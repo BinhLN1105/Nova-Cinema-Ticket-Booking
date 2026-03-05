@@ -1,0 +1,43 @@
+DỰ ÁN TICKET BOOKING (HỆ THỐNG ĐẶT VÉ RẠP CHIẾU PHIM)
+
+Đây là một dự án monorepo chứa đa nền tảng bao gồm Backend, Frontend và Mobile App.
+
+CẤU TRÚC THƯ MỤC
+================
+
+.
+├── App/                            # Ứng dụng Mobile Android (Dành cho khách hàng)
+│
+├── Backend/                        # Các Web Service & API Back-end
+│   └── ticket-booking/             # Project Spring Boot chính của hệ thống đặt vé
+│       ├── src/main/java...        # Source code Java (Controllers, Services, Repositories, Models, v.v.)
+│       └── src/main/resources/     # Cấu hình app (application.properties, .env, cấu trúc db)
+│
+├── Frontend/                       # Web Frontend (Dành cho quản lý/admin rạp chiếu phim v.v.)
+│
+├── .gitignore                      # Cấu hình bỏ qua các file không đưa lên Git (build, node_modules, .env...)
+├── README.md                       # Tài liệu chính của dự án 
+├── Cinema_Entity_Design.docx       # Tài liệu thiết kế Entity/CSDL (Dành cho tham khảo)
+└── structure.txt                   # File mô tả cấu trúc dự án (chính là file này)
+
+
+MÔ TẢ CÁC THÀNH PHẦN
+====================
+1. Backend (Java / Spring Boot):
+   - Chịu trách nhiệm cung cấp RESTful APIs phục vụ cho cả App Android và Web Frontend.
+   - Kết nối Cấu hình hệ thống CSDL (PostgreSQL / Supabase + pgvector).
+   - Tích hợp các thư viện/framework bảo mật (Spring Security), thanh toán (VNPay), dịch vụ bên thứ ba (Firebase Cloud Messaging).
+   - Có tích hợp pgvector cho tác vụ AI Search/Embedding và các model/entity theo chuẩn thiết kế CSDL của rạp chiếu phim.
+
+2. App (Mobile - Android):
+   - Ứng dụng cho người dùng cuối (khách hàng sẽ cài đặt trên thiết bị).
+   - Cho phép người dùng xem lịch chiếu, đặt vé, mua combo, review, xem thông báo, và thanh toán.
+
+3. Frontend (Web):
+   - Trang quản trị (CMS) dành cho Admin hoặc Nhân viên rạp.
+   - Giúp quản lý cấu hình các rạp chiếu, phòng chiếu, phim, suất chiếu, vé, và doanh thu.
+
+LƯU Ý KHI PHÁT TRIỂN
+====================
+- Quản lý Secret: Những thông tin nhạy cảm (mật khẩu db, keys bên thứ ba) nên được đặt vào các file `.env` phía Backend hoặc `local.properties` (bên Android app) và không bao giờ được đưa lên Git.
+- Gitignore: Cấu hình file `.gitignore` tại root đã bao phủ cách tổ chức folder và bỏ qua các thư mục build / cache / log được sinh ra trong quá trình dev cho cả 3 platform để giữ cho repo clean.
