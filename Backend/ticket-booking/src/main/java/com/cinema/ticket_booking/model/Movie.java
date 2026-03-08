@@ -49,7 +49,7 @@ public class Movie {
     @Column(name = "director", length = 150)
     private String director;
 
-    @Column(name = "cast", columnDefinition = "TEXT")
+    @Column(name = "movie_cast", columnDefinition = "TEXT")
     private String cast;
 
     @Column(name = "language", length = 50)
@@ -76,11 +76,7 @@ public class Movie {
 
     // Quan hệ nhiều-nhiều với Genre qua bảng trung gian MovieGenre
     @ManyToMany
-    @JoinTable(
-        name = "movie_genres",
-        joinColumns = @JoinColumn(name = "movie_id"),
-        inverseJoinColumns = @JoinColumn(name = "genre_id")
-    )
+    @JoinTable(name = "movie_genres", joinColumns = @JoinColumn(name = "movie_id"), inverseJoinColumns = @JoinColumn(name = "genre_id"))
     @Builder.Default
     private Set<Genre> genres = new HashSet<>();
 

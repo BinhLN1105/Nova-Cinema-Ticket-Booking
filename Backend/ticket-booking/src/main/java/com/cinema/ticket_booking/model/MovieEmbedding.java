@@ -12,15 +12,9 @@ import java.util.UUID;
  * Lưu vector embedding của phim để thực hiện AI semantic search.
  * Yêu cầu Supabase extension: CREATE EXTENSION IF NOT EXISTS vector;
  *
- * Bảng này CHỈ được đọc/ghi bởi Python AI Service — Spring Boot không thao tác trực tiếp.
+ * Bảng này CHỈ được đọc/ghi bởi Python AI Service — Spring Boot không thao tác
+ * trực tiếp.
  * Spring Boot chỉ đọc để check embedding có tồn tại hay chưa.
- *
- * Dependency cần thêm vào pom.xml:
- * <dependency>
- *     <groupId>com.pgvector</groupId>
- *     <artifactId>pgvector</artifactId>
- *     <version>0.1.6</version>
- * </dependency>
  */
 @Entity
 @Table(name = "movie_embeddings")
