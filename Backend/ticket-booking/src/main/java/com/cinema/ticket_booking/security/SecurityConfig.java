@@ -13,6 +13,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.config.Customizer;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -20,56 +26,70 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final JwtAuthenticationFilter jwtFilter;
-    private final JwtAuthenticationEntryPoint entryPoint;
+        private final JwtAuthenticationFilter jwtFilter;
+        private final JwtAuthenticationEntryPoint entryPoint;
 
-    @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
-                .authorizeHttpRequests(auth -> auth
+        @Bean
+        public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+                http
+                                .cors(Customizer.withDefaults())
+                                .csrf(AbstractHttpConfigurer::disable)
+                                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                                .exceptionHandling(ex -> ex.authenticationEntryPoint(entryPoint))
+                                .authorizeHttpRequests(auth -> auth
 
-                        // ── PUBLIC endpoints ─────────────────────────────────────
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/v1/auth/register",
-                                "/api/v1/auth/login",
-                                "/api/v1/auth/social-login",
-                                "/api/v1/auth/refresh")
-                        .permitAll()
+                                                // ── PUBLIC endpoints ─────────────────────────────────────
+                                                .requestMatchers(HttpMethod.POST,
+                                                                "/api/v1/auth/register",
+                                                                "/api/v1/auth/login",
+                                                                "/api/v1/auth/social-login",
+                                                                "/api/v1/auth/refresh")
+                                                .permitAll()
 
-                        .requestMatchers(HttpMethod.GET,
-                                "/api/v1/movies",
-                                "/api/v1/movies/**",
-                                "/api/v1/cinemas",
-                                "/api/v1/cinemas/**",
-                                "/api/v1/showtimes",
-                                "/api/v1/showtimes/**",
-                                "/api/v1/combos",
-                                "/api/v1/reviews",
-                                "/api/v1/vouchers/validate")
-                        .permitAll()
+                                                .requestMatchers(HttpMethod.GET,
+                                                                "/api/v1/movies",
+                                                                "/api/v1/movies/**",
+                                                                "/api/v1/cinemas",
+                                                                "/api/v1/cinemas/**",
+                                                                "/api/v1/showtimes",
+                                                                "/api/v1/showtimes/**",
+                                                                "/api/v1/combos",
+                                                                "/api/v1/reviews",
+                                                                "/api/v1/vouchers/validate")
+                                                .permitAll()
 
-                        // VNPay callback không mang token
-                        .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/callback").permitAll()
+                                                // VNPay callback không mang token
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/payments/vnpay/callback")
+                                                .permitAll()
 
-                        // Swagger / Actuator (dev)
-                        .requestMatchers(
-                                "/swagger-ui/**",
-                                "/v3/api-docs/**",
-                                "/actuator/health")
-                        .permitAll()
+                                                // Swagger / Actuator (dev)
+                                                .requestMatchers(
+                                                                "/swagger-ui/**",
+                                                                "/v3/api-docs/**",
+                                                                "/actuator/health")
+                                                .permitAll()
 
-                        // ── Tất cả endpoint còn lại cần đăng nhập ────────────────
-                        .anyRequest().authenticated())
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+                                                // ── Tất cả endpoint còn lại cần đăng nhập ────────────────
+                                                .anyRequest().authenticated())
+                                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
-        return http.build();
-    }
+                return http.build();
+        }
 
-    @Bean
-    public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+        @Bean
+        public PasswordEncoder passwordEncoder() {
+                return new BCryptPasswordEncoder();
+        }
+
+        @Bean
+        public CorsConfigurationSource corsConfigurationSource() {
+                CorsConfiguration configuration = new CorsConfiguration();
+                configuration.setAllowedOriginPatterns(List.of("*"));
+                configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowCredentials(true);
+                UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+                source.registerCorsConfiguration("/**", configuration);
+                return source;
+        }
 }

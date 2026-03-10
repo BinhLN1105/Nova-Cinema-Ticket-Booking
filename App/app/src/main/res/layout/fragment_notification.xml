@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/background">
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
+            android:src="@drawable/ic_home" android:background="@null" android:tint="@color/white"/>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="Thông báo" android:textColor="@color/white"
+            android:textSize="18sp" android:textStyle="bold" android:layout_marginStart="8dp"/>
+        <TextView android:id="@+id/btnMarkAllRead" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="Đọc tất cả"
+            android:textColor="@color/primary" android:textSize="13sp"/>
+    </LinearLayout>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvNotifications"
+            android:layout_width="match_parent" android:layout_height="match_parent" android:padding="8dp"/>
+        <TextView android:id="@+id/tvEmpty" android:layout_width="match_parent"
+            android:layout_height="match_parent" android:text="Không có thông báo"
+            android:textColor="@color/on_surface_variant" android:gravity="center" android:visibility="gone"/>
+        <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone"/>
+    </FrameLayout>
+</LinearLayout>

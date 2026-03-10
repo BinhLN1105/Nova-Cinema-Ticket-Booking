@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Dark Mode overrides — Netflix style -->
+    <color name="background">#141414</color>
+    <color name="surface">#1F1F1F</color>
+    <color name="surface_variant">#2A2A2A</color>
+    <color name="surface_elevated">#2C2C2C</color>
+    <color name="on_background">#F9FAFB</color>
+    <color name="on_surface">#F9FAFB</color>
+    <color name="on_surface_variant">#9CA3AF</color>
+    <color name="outline">#374151</color>
+    <color name="outline_variant">#1F2937</color>
+
+    <!-- Text dark -->
+    <color name="text_primary">#F9FAFB</color>
+    <color name="text_secondary">#9CA3AF</color>
+    <color name="text_hint">#6B7280</color>
+
+    <!-- Card dark -->
+    <color name="card_background">#1F1F1F</color>
+    <color name="card_stroke">#374151</color>
+
+    <!-- Bottom nav dark -->
+    <color name="bottom_nav_background">#1F1F1F</color>
+    <color name="bottom_nav_inactive">#6B7280</color>
+
+    <!-- Divider dark -->
+    <color name="divider">#374151</color>
+    <color name="shimmer_base">#2A2A2A</color>
+    <color name="shimmer_highlight">#3A3A3A</color>
+
+    <!-- Error container dark -->
+    <color name="error_container">#7F1D1D</color>
+    <color name="success_container">#14532D</color>
+    <color name="warning_container">#78350F</color>
+    <color name="accent_gold_light">#78350F</color>
+    <color name="primary_container">#7F1D1D</color>
+    <color name="on_primary_container">#FFDAD6</color>
+</resources>

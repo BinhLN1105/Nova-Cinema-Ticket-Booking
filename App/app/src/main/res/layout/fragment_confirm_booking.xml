@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/background">
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
+            android:src="@drawable/ic_home" android:background="@null" android:tint="@color/white"/>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="Xác nhận đặt vé" android:textColor="@color/white"
+            android:textSize="18sp" android:textStyle="bold" android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp" android:layout_weight="1">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:padding="16dp">
+
+            <!-- Thông tin đặt vé -->
+            <androidx.cardview.widget.CardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginBottom="12dp"
+                app:cardBackgroundColor="@color/surface" app:cardCornerRadius="12dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <TextView android:id="@+id/tvMovieTitle" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/white"
+                        android:textSize="16sp" android:textStyle="bold"/>
+                    <TextView android:id="@+id/tvCinemaName" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                        android:layout_marginTop="4dp"/>
+                    <TextView android:id="@+id/tvShowtimeTime" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                        android:layout_marginTop="2dp"/>
+                    <TextView android:id="@+id/tvSeatCount" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/primary"
+                        android:layout_marginTop="4dp" android:textStyle="bold"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- Combo -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="🍿 Thêm combo" android:textColor="@color/white"
+                android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
+            <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvCombos"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:nestedScrollingEnabled="false"/>
+
+            <!-- Voucher -->
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="🎟 Voucher" android:textColor="@color/white"
+                android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="16dp"
+                android:layout_marginBottom="8dp"/>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal">
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+                    android:hint="Nhập mã voucher" app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/on_surface_variant">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etVoucher" android:layout_width="match_parent"
+                        android:layout_height="wrap_content" android:textColor="@color/white"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnApplyVoucher"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Áp dụng" android:layout_marginStart="8dp"
+                    app:backgroundTint="@color/surface_variant"/>
+            </LinearLayout>
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="horizontal" android:layout_marginTop="4dp">
+                <TextView android:id="@+id/tvVoucherInfo" android:layout_width="0dp"
+                    android:layout_height="wrap_content" android:layout_weight="1"
+                    android:textColor="@color/seat_available" android:visibility="gone"/>
+                <TextView android:id="@+id/btnClearVoucher" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:text="Xóa"
+                    android:textColor="@color/error" android:visibility="gone"/>
+            </LinearLayout>
+
+            <!-- Tổng tiền -->
+            <androidx.cardview.widget.CardView android:layout_width="match_parent"
+                android:layout_height="wrap_content" android:layout_marginTop="16dp"
+                app:cardBackgroundColor="@color/surface" app:cardCornerRadius="12dp">
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="vertical" android:padding="16dp">
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Tạm tính"
+                            android:textColor="@color/on_surface_variant"/>
+                        <TextView android:id="@+id/tvSubtotal" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/white"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal" android:layout_marginTop="4dp">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Giảm giá"
+                            android:textColor="@color/on_surface_variant"/>
+                        <TextView android:id="@+id/tvDiscount" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/seat_available"/>
+                    </LinearLayout>
+                    <View android:layout_width="match_parent" android:layout_height="1dp"
+                        android:background="@color/surface_variant" android:layout_marginVertical="8dp"/>
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="horizontal">
+                        <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                            android:layout_weight="1" android:text="Tổng cộng"
+                            android:textColor="@color/white" android:textStyle="bold"/>
+                        <TextView android:id="@+id/tvTotal" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/accent_gold"
+                            android:textSize="18sp" android:textStyle="bold"/>
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </ScrollView>
+
+    <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone"/>
+
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnConfirmBooking"
+        android:layout_width="match_parent" android:layout_height="56dp"
+        android:layout_margin="16dp" android:text="XÁC NHẬN ĐẶT VÉ"
+        android:textSize="16sp" android:textStyle="bold" app:backgroundTint="@color/primary"/>
+</LinearLayout>

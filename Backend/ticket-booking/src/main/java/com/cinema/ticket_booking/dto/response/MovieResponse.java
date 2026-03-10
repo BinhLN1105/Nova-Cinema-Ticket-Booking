@@ -41,6 +41,7 @@ public class MovieResponse {
         private String posterUrl;
         private Integer duration;
         private String rated;
+        private LocalDate releaseDate;
         private BigDecimal avgRating;
         private MovieStatus status;
         private List<GenreResponse> genres;

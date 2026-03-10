@@ -1,0 +1,105 @@
+plugins {
+    alias(libs.plugins.android.application)
+    alias(libs.plugins.hilt)
+    id 'com.google.gms.google-services'
+}
+
+android {
+    namespace 'com.cinema.ticket_booking'
+    compileSdk 35
+
+    defaultConfig {
+        applicationId 'com.cinema.ticket_booking'
+        minSdk 24
+        targetSdk 35
+        versionCode 1
+        versionName '1.0.0'
+        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+    }
+
+    buildTypes {
+        debug {
+            // 10.0.2.2 = localhost máy tính khi chạy trên Android Emulator
+            buildConfigField "String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\""
+            debuggable true
+        }
+        release {
+            buildConfigField "String", "BASE_URL", "\"https://your-app.railway.app/api/v1/\""
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
+
+dependencies {
+    // AndroidX Core
+    implementation libs.androidx.core.ktx
+    implementation libs.androidx.appcompat
+    implementation libs.material
+    implementation libs.androidx.activity
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.swiperefreshlayout
+
+    // Navigation Component
+    implementation libs.androidx.navigation.fragment
+    implementation libs.androidx.navigation.ui
+
+    // Lifecycle — ViewModel + LiveData
+    implementation libs.androidx.lifecycle.viewmodel
+    implementation libs.androidx.lifecycle.livedata
+    implementation libs.androidx.lifecycle.runtime
+
+    // Hilt — Dependency Injection
+    implementation libs.hilt.android
+    annotationProcessor libs.hilt.compiler
+
+    // Retrofit + OkHttp — Network
+    implementation libs.retrofit
+    implementation libs.retrofit.gson
+    implementation libs.okhttp
+    implementation libs.okhttp.logging
+
+    // Room — Local cache
+    implementation libs.room.runtime
+    implementation libs.room.ktx
+    annotationProcessor libs.room.compiler
+
+    // Glide — Image loading
+    implementation libs.glide
+    annotationProcessor libs.glide.compiler
+
+    // Google Sign-In
+    implementation libs.google.auth
+
+    // Facebook Login
+    implementation libs.facebook.login
+
+    // Firebase — FCM + Analytics
+    implementation platform(libs.firebase.bom)
+    implementation libs.firebase.messaging
+    implementation libs.firebase.analytics
+
+    // EncryptedSharedPreferences — lưu token an toàn
+    implementation libs.androidx.security.crypto
+
+    // ZXing — QR Code scanner
+    implementation libs.zxing.android
+
+    // Lottie — Animation (loading, success...)
+    implementation libs.lottie
+
+    // Testing
+    testImplementation libs.junit
+    androidTestImplementation libs.androidx.junit
+    androidTestImplementation libs.androidx.espresso.core
+}

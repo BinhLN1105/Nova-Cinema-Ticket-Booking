@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:background="@color/background">
+
+    <!-- Header -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
+            android:src="@drawable/ic_home" android:background="@null" android:tint="@color/white"/>
+        <TextView android:id="@+id/tvShowtimeInfo" android:layout_width="0dp"
+            android:layout_height="wrap_content" android:layout_weight="1"
+            android:textColor="@color/white" android:textSize="14sp" android:layout_marginStart="8dp"
+            android:maxLines="2"/>
+    </LinearLayout>
+
+    <!-- Screen indicator -->
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="———————— MÀN HÌNH ————————"
+        android:textColor="@color/on_surface_variant" android:gravity="center"
+        android:textSize="11sp" android:layout_marginBottom="8dp"/>
+
+    <!-- Seat map -->
+    <androidx.core.widget.NestedScrollView android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1">
+        <HorizontalScrollView android:layout_width="match_parent" android:layout_height="wrap_content">
+            <LinearLayout android:id="@+id/seatContainer"
+                android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:orientation="vertical" android:padding="8dp"/>
+        </HorizontalScrollView>
+    </androidx.core.widget.NestedScrollView>
+
+    <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_gravity="center"
+        android:visibility="gone"/>
+
+    <!-- Legend -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="12dp" android:gravity="center">
+        <View android:layout_width="20dp" android:layout_height="20dp" android:background="@color/seat_available"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Trống  " android:textColor="@color/on_surface_variant" android:textSize="11sp"/>
+        <View android:layout_width="20dp" android:layout_height="20dp" android:background="@color/seat_selected"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Đang chọn  " android:textColor="@color/on_surface_variant" android:textSize="11sp"/>
+        <View android:layout_width="20dp" android:layout_height="20dp" android:background="@color/seat_booked"/>
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:text=" Đã đặt" android:textColor="@color/on_surface_variant" android:textSize="11sp"/>
+    </LinearLayout>
+
+    <!-- Bottom summary -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:padding="16dp"
+        android:background="@color/surface" android:gravity="center_vertical">
+        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content"
+            android:layout_weight="1" android:orientation="vertical">
+            <TextView android:id="@+id/tvSelectedCount" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0 ghế đã chọn"
+                android:textColor="@color/on_surface_variant" android:textSize="13sp"/>
+            <TextView android:id="@+id/tvTotalPrice" android:layout_width="wrap_content"
+                android:layout_height="wrap_content" android:text="0đ"
+                android:textColor="@color/accent_gold" android:textSize="18sp" android:textStyle="bold"/>
+        </LinearLayout>
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnConfirm"
+            android:layout_width="wrap_content" android:layout_height="48dp"
+            android:text="Tiếp tục" android:enabled="false" app:backgroundTint="@color/primary"/>
+    </LinearLayout>
+</LinearLayout>

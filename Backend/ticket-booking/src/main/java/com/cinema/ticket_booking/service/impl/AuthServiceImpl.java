@@ -16,6 +16,9 @@ import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.service.AuthService;
 import com.cinema.ticket_booking.service.JwtService;
+import com.cinema.ticket_booking.service.social.FacebookTokenVerifier;
+import com.cinema.ticket_booking.service.social.GoogleTokenVerifier;
+import com.cinema.ticket_booking.service.social.SocialUserInfo;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -35,6 +38,8 @@ public class AuthServiceImpl implements AuthService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final GoogleTokenVerifier googleTokenVerifier;
+    private final FacebookTokenVerifier facebookTokenVerifier;
 
     @Value("${app.jwt.refresh-expiry-days:30}")
     private int refreshExpiryDays;
@@ -82,38 +87,23 @@ public class AuthServiceImpl implements AuthService {
         return buildAuthResponse(user);
     }
 
-    // ── Social Login (Google / Facebook) ─────────────────────────────────
+    // ── Social Login ──────────────────────────────────────────────────────
 
     @Override
     public AuthResponse socialLogin(SocialLoginRequest request) {
-        SocialUserInfo info = verifySocialToken(request.getIdToken(), request.getProvider());
+        // Bước 1: Uỷ quyền xác minh token cho đúng verifier
+        SocialUserInfo info = switch (request.getProvider()) {
+            case GOOGLE -> googleTokenVerifier.verify(request.getIdToken());
+            case FACEBOOK -> facebookTokenVerifier.verify(request.getIdToken());
+            default -> throw new BadRequestException(
+                    "Provider không được hỗ trợ: " + request.getProvider());
+        };
 
-        User user = userRepository
-                .findByAuthProviderAndProviderId(request.getProvider(), info.getProviderId())
-                .orElseGet(() -> {
-                    // Email đã tồn tại dạng LOCAL → liên kết account
-                    if (userRepository.existsByEmail(info.getEmail())) {
-                        User existing = userRepository.findByEmail(info.getEmail()).get();
-                        existing.setAuthProvider(request.getProvider());
-                        existing.setProviderId(info.getProviderId());
-                        if (existing.getAvatarUrl() == null)
-                            existing.setAvatarUrl(info.getAvatarUrl());
-                        return userRepository.save(existing);
-                    }
-                    // Tạo tài khoản mới từ Social
-                    return userRepository.save(User.builder()
-                            .email(info.getEmail())
-                            .fullName(info.getFullName())
-                            .avatarUrl(info.getAvatarUrl())
-                            .authProvider(request.getProvider())
-                            .providerId(info.getProviderId())
-                            .role(UserRole.CUSTOMER)
-                            .isActive(true)
-                            .build());
-                });
+        // Bước 2: Tìm hoặc tạo user từ thông tin Social
+        User user = findOrCreateSocialUser(info, request.getProvider());
 
-        if (!user.getIsActive())
-            throw new BadRequestException("Tài khoản đã bị khoá");
+        validateActiveUser(user);
+
         return buildAuthResponse(user);
     }
 
@@ -129,9 +119,11 @@ public class AuthServiceImpl implements AuthService {
             throw new UnauthorizedException("Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại");
         }
 
-        String newAccess = jwtService.generateAccessToken(stored.getUser());
+        // Chỉ cấp lại access token mới, giữ nguyên refresh token cũ
+        String newAccessToken = jwtService.generateAccessToken(stored.getUser());
+
         return AuthResponse.builder()
-                .accessToken(newAccess)
+                .accessToken(newAccessToken)
                 .refreshToken(request.getRefreshToken())
                 .tokenType("Bearer")
                 .user(toUserInfo(stored.getUser()))
@@ -147,10 +139,46 @@ public class AuthServiceImpl implements AuthService {
 
     // ── Private helpers ───────────────────────────────────────────────────
 
+    /**
+     * Tìm user theo providerId.
+     * Nếu chưa tồn tại → kiểm tra email → tạo mới hoặc liên kết account LOCAL.
+     */
+    private User findOrCreateSocialUser(SocialUserInfo info, AuthProvider provider) {
+        // Trường hợp 1: Đã từng đăng nhập Social trước đó → tìm theo providerId
+        return userRepository.findByAuthProviderAndProviderId(provider, info.getProviderId())
+                .orElseGet(() -> {
+                    // Trường hợp 2: Email đã có tài khoản LOCAL → liên kết Social vào
+                    if (userRepository.existsByEmail(info.getEmail())) {
+                        User existing = userRepository.findByEmail(info.getEmail()).get();
+                        existing.setAuthProvider(provider);
+                        existing.setProviderId(info.getProviderId());
+                        if (existing.getAvatarUrl() == null) {
+                            existing.setAvatarUrl(info.getAvatarUrl());
+                        }
+                        return userRepository.save(existing);
+                    }
+
+                    // Trường hợp 3: Người dùng hoàn toàn mới → tạo tài khoản
+                    User newUser = User.builder()
+                            .email(info.getEmail())
+                            .fullName(info.getFullName())
+                            .avatarUrl(info.getAvatarUrl())
+                            .authProvider(provider)
+                            .providerId(info.getProviderId())
+                            .role(UserRole.CUSTOMER)
+                            .isActive(true)
+                            .build();
+                    return userRepository.save(newUser);
+                });
+    }
+
+    /** Tạo access token + refresh token, lưu refresh token vào DB */
     private AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtService.generateAccessToken(user);
         String refreshToken = jwtService.generateRefreshToken();
 
+        // Xoá refresh token cũ → lưu token mới (1 thiết bị = 1 refresh token)
+        // Nếu muốn hỗ trợ multi-device: bỏ dòng deleteAllByUser
         refreshTokenRepository.deleteAllByUser(user);
         refreshTokenRepository.save(RefreshToken.builder()
                 .user(user)
@@ -166,30 +194,19 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
-    private AuthResponse.UserResponse toUserInfo(User u) {
+    private void validateActiveUser(User user) {
+        if (!user.getIsActive()) {
+            throw new BadRequestException("Tài khoản đã bị khoá, vui lòng liên hệ hỗ trợ");
+        }
+    }
+
+    private AuthResponse.UserResponse toUserInfo(User user) {
         return AuthResponse.UserResponse.builder()
-                .id(u.getId().toString())
-                .email(u.getEmail())
-                .fullName(u.getFullName())
-                .avatarUrl(u.getAvatarUrl())
-                .role(u.getRole())
+                .id(user.getId().toString())
+                .email(user.getEmail())
+                .fullName(user.getFullName())
+                .avatarUrl(user.getAvatarUrl())
+                .role(user.getRole())
                 .build();
-    }
-
-    /**
-     * Xác minh idToken với Google / Facebook.
-     * TODO: tích hợp Google Auth Library hoặc Facebook Graph API.
-     */
-    private SocialUserInfo verifySocialToken(String idToken, AuthProvider provider) {
-        throw new UnsupportedOperationException("Implement social token verification");
-    }
-
-    @Data
-    @AllArgsConstructor
-    public static class SocialUserInfo {
-        private String providerId;
-        private String email;
-        private String fullName;
-        private String avatarUrl;
     }
 }
