@@ -61,4 +61,8 @@ public interface ShowtimeSeatRepository extends JpaRepository<ShowtimeSeat, UUID
           AND ss.lockedUntil < :now
     """)
     int releaseExpiredLocks(@Param("now") LocalDateTime now);
+
+    // Xoá toàn bộ ghế của suất chiếu khi admin xoá suất chiếu
+    @Modifying
+    void deleteByShowtimeId(UUID showtimeId);
 }

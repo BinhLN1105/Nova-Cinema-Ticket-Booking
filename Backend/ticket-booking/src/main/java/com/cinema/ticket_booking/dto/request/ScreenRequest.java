@@ -9,7 +9,6 @@ import lombok.Data;
 @Data
 public class ScreenRequest {
 
-    @NotNull
     private String cinemaId;
 
     @NotBlank(message = "Tên phòng không được để trống")

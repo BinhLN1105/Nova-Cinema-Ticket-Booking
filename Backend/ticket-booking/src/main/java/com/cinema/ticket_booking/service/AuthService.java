@@ -5,7 +5,7 @@ import com.cinema.ticket_booking.dto.request.RefreshTokenRequest;
 import com.cinema.ticket_booking.dto.request.RegisterRequest;
 import com.cinema.ticket_booking.dto.request.SocialLoginRequest;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
-import com.cinema.ticket_booking.model.User;
+
 
 public interface AuthService {
 
@@ -17,6 +17,6 @@ public interface AuthService {
 
     AuthResponse refreshToken(RefreshTokenRequest request);
 
-    void logout(User currentUser);
+    void logout(String refreshToken);
 
 }

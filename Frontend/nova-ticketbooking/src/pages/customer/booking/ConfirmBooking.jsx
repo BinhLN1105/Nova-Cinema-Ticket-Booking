@@ -1,228 +1,162 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import {
-  ArrowLeft,
-  Tag,
-  Plus,
-  Minus,
-  ShoppingBag,
-  ArrowRight,
-} from "lucide-react";
-import { showtimeApi, voucherApi } from "@/api/endpoints";
-import { useBooking } from "@/hooks";
-import { formatCurrency, formatDateTime } from "@/utils";
+import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { useQuery } from '@tanstack/react-query'
+import { ArrowLeft, Tag, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react'
+import { showtimeApi, voucherApi } from '@/api/endpoints'
+import { useBooking } from '@/hooks'
+import { formatCurrency, formatDateTime, cn } from '@/utils'
 
 export default function ConfirmBooking() {
-  const navigate = useNavigate();
-  const booking = useBooking();
-  const [voucherInput, setVoucherInput] = useState("");
-  const [voucherError, setVoucherError] = useState("");
+  const navigate = useNavigate()
+  const booking = useBooking()
+  const [voucherInput, setVoucherInput] = useState('')
+  const [voucherError, setVoucherError] = useState('')
+  const [isValidating, setIsValidating] = useState(false)
+
+  useEffect(() => {
+    window.scrollTo(0, 0)
+    if (!booking.selectedShowtime || booking.selectedSeats.length === 0) {
+      navigate('/')
+    }
+  }, [])
 
   const { data: combos } = useQuery({
-    queryKey: ["combos"],
+    queryKey: ['combos'],
     queryFn: showtimeApi.getCombos,
-  });
+  })
 
   const applyVoucher = async () => {
-    if (!voucherInput.trim()) return;
+    if (!voucherInput.trim()) return
     try {
-      const v = await voucherApi.validate(voucherInput.trim());
-      booking.applyVoucher(v);
-      setVoucherError("");
+      const v = await voucherApi.validate(voucherInput.trim())
+      booking.applyVoucher(v)
+      setVoucherError('')
     } catch {
-      setVoucherError("Mã không hợp lệ hoặc đã hết hạn");
+      setVoucherError('Mã không hợp lệ hoặc đã hết hạn')
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-32">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="flex items-center gap-4 mb-8">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2.5 rounded-xl glass border border-white/8 text-cinema-200 hover:text-white transition-all"
-          >
+          <button onClick={() => navigate(-1)}
+            className="p-2.5 rounded-xl glass border border-white/8 text-cinema-200 hover:text-white transition-all">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-2xl font-bold text-white">
-            Xác nhận đặt vé
-          </h1>
+          <h1 className="font-display text-2xl font-bold text-white">Xác nhận đặt vé</h1>
         </div>
 
         <div className="space-y-4">
-          {/* Booking summary */}
-          {booking.selectedShowtime && (
-            <div className="card-cinema p-5">
-              <h3 className="text-sm font-semibold text-cinema-400 uppercase tracking-wider mb-4">
-                Thông tin suất chiếu
-              </h3>
-              <div className="space-y-2 text-sm">
-                {[
-                  ["Phim", booking.selectedMovie?.title],
-                  ["Rạp", booking.selectedShowtime.cinemaName],
-                  [
-                    "Phòng",
-                    `${booking.selectedShowtime.screenName} · ${booking.selectedShowtime.screenType}`,
-                  ],
-                  [
-                    "Giờ chiếu",
-                    formatDateTime(booking.selectedShowtime.startTime),
-                  ],
-                  [
-                    "Ghế",
-                    booking.selectedSeats
-                      .map((s) => `${s.rowLabel}${s.colNumber}`)
-                      .join(", "),
-                  ],
-                ].map(
-                  ([label, value]) =>
-                    value && (
-                      <div key={label} className="flex justify-between gap-4">
-                        <span className="text-cinema-400">{label}</span>
-                        <span className="text-white text-right">{value}</span>
-                      </div>
-                    ),
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Combos */}
-          {combos && combos.length > 0 && (
+          {/* Combos Summary */}
+          {Object.keys(booking.selectedCombos).length > 0 && combos && (
             <div className="card-cinema p-5">
               <div className="flex items-center gap-2 mb-4">
                 <ShoppingBag className="w-4 h-4 text-gold-400" />
-                <h3 className="text-sm font-semibold text-cinema-400 uppercase tracking-wider">
-                  Thêm combo
-                </h3>
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Bắp / Nước</h3>
               </div>
-              <div className="space-y-3">
-                {combos.map((combo) => {
-                  const qty = booking.selectedCombos[combo.id] ?? 0;
+              <div className="space-y-3 text-sm">
+                {Object.entries(booking.selectedCombos).map(([id, qty]) => {
+                  const combo = combos.find(c => c.id === id)
+                  if (!combo) return null
                   return (
-                    <div key={combo.id} className="flex items-center gap-3">
-                      {combo.imageUrl && (
-                        <img
-                          src={combo.imageUrl}
-                          alt={combo.name}
-                          className="w-12 h-12 rounded-lg object-cover flex-shrink-0"
-                        />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm font-medium">
-                          {combo.name}
-                        </p>
-                        <p className="text-cinema-400 text-xs line-clamp-1">
-                          {combo.description}
-                        </p>
-                        <p className="text-brand-400 text-sm font-bold mt-0.5">
-                          {formatCurrency(combo.price)}
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() =>
-                            booking.setComboQty(combo.id, Math.max(0, qty - 1))
-                          }
-                          disabled={qty === 0}
-                          className="w-7 h-7 rounded-lg bg-cinema-700 text-white
-                            flex items-center justify-center hover:bg-cinema-600 disabled:opacity-30 transition-all"
-                        >
-                          <Minus className="w-3 h-3" />
-                        </button>
-                        <span className="w-5 text-center text-white text-sm font-bold">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() => booking.setComboQty(combo.id, qty + 1)}
-                          className="w-7 h-7 rounded-lg bg-brand-500/20 border border-brand-500/30
-                            text-brand-400 flex items-center justify-center hover:bg-brand-500/30 transition-all"
-                        >
-                          <Plus className="w-3 h-3" />
-                        </button>
-                      </div>
+                    <div key={id} className="flex justify-between gap-4">
+                      <span className="text-gray-300 font-medium">{combo.name} <span className="text-white ml-2">x{qty}</span></span>
+                      <span className="text-white text-right font-medium">{formatCurrency(combo.price * qty)}</span>
                     </div>
-                  );
+                  )
                 })}
               </div>
             </div>
           )}
+          {/* Booking summary */}
+          {booking.selectedShowtime && (
+            <div className="card-cinema p-5">
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Thông tin suất chiếu</h3>
+              <div className="space-y-2 text-sm">
+                {[
+                  ['Phim', booking.selectedMovie?.title],
+                  ['Rạp', booking.selectedShowtime.cinemaName],
+                  ['Phòng', `${booking.selectedShowtime.screenName} · ${booking.selectedShowtime.screenType}`],
+                  ['Giờ chiếu', formatDateTime(booking.selectedShowtime.startTime)],
+                  ['Ghế', booking.selectedSeats.map(s => `${s.rowLabel}${s.colNumber}`).join(', ')],
+                ].map(([label, value]) => value && (
+                  <div key={label} className="flex justify-between gap-4">
+                    <span className="text-gray-400 font-medium">{label}</span>
+                    <span className="text-white text-right font-medium">{value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
-          {/* Voucher */}
+
           <div className="card-cinema p-5">
             <div className="flex items-center gap-2 mb-4">
               <Tag className="w-4 h-4 text-gold-400" />
-              <h3 className="text-sm font-semibold text-cinema-400 uppercase tracking-wider">
-                Mã giảm giá
-              </h3>
+              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Mã giảm giá</h3>
             </div>
             {booking.appliedVoucher ? (
-              <div
-                className="flex items-center justify-between p-3 rounded-xl
-                bg-green-500/10 border border-green-500/30"
-              >
+              <div className="flex items-center justify-between p-3 rounded-xl
+                bg-green-500/10 border border-green-500/30">
                 <div>
-                  <p className="text-green-400 font-medium text-sm">
-                    {booking.appliedVoucher.code}
-                  </p>
-                  <p className="text-green-300/70 text-xs">
-                    {booking.appliedVoucher.description}
-                  </p>
+                  <p className="text-green-400 font-medium text-sm">{booking.appliedVoucher.code}</p>
+                  <p className="text-green-300/70 text-xs">{booking.appliedVoucher.description}</p>
                 </div>
-                <button
-                  onClick={() => booking.clearVoucher()}
-                  className="text-cinema-400 hover:text-white text-xs transition-colors"
-                >
-                  Xóa
-                </button>
+                <button onClick={() => booking.clearVoucher()}
+                  className="text-gray-300 hover:text-white text-xs transition-colors">Xóa</button>
               </div>
             ) : (
               <div className="flex gap-2">
-                <input
-                  value={voucherInput}
-                  onChange={(e) =>
-                    setVoucherInput(e.target.value.toUpperCase())
-                  }
-                  placeholder="Nhập mã voucher"
-                  className="input-cinema flex-1 text-sm"
-                />
-                <button
-                  onClick={applyVoucher}
+                <input value={voucherInput} onChange={e => setVoucherInput(e.target.value.toUpperCase())}
+                  placeholder="Nhập mã voucher" className="input-cinema flex-1 text-sm" />
+                <button onClick={applyVoucher}
                   className="px-4 py-2 rounded-xl bg-brand-500/15 border border-brand-500/30
-                    text-brand-400 hover:bg-brand-500/25 transition-all text-sm font-medium"
-                >
+                    text-brand-400 hover:bg-brand-500/25 transition-all text-sm font-medium">
                   Áp dụng
                 </button>
               </div>
             )}
-            {voucherError && (
-              <p className="text-brand-400 text-xs mt-2">{voucherError}</p>
-            )}
+            {voucherError && <p className="text-brand-400 text-xs mt-2">{voucherError}</p>}
           </div>
 
           {/* Price breakdown */}
           <div className="card-cinema p-5 space-y-3">
-            <div className="flex justify-between text-sm text-cinema-300">
+            <div className="flex justify-between text-sm text-gray-300 font-medium">
               <span>Tiền ghế ({booking.selectedSeats.length} ghế)</span>
-              <span className="text-white">
-                {formatCurrency(booking.subtotal)}
-              </span>
+              <span className="text-white">{formatCurrency(booking.subtotal)}</span>
             </div>
+            {Object.keys(booking.selectedCombos).length > 0 && combos && (
+               <div className="flex justify-between text-sm text-gray-300 font-medium">
+                 <span>Tiền bắp nước</span>
+                 <span className="text-white">
+                   {formatCurrency(
+                     Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
+                       const combo = combos.find(c => c.id === id)
+                       return acc + (combo ? combo.price * qty : 0)
+                     }, 0)
+                   )}
+                 </span>
+               </div>
+            )}
             {booking.discount > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-cinema-300">Giảm giá</span>
-                <span className="text-green-400">
-                  - {formatCurrency(booking.discount)}
-                </span>
+              <div className="flex justify-between text-sm font-medium">
+                <span className="text-gray-300">Giảm giá</span>
+                <span className="text-green-400">- {formatCurrency(booking.discount)}</span>
               </div>
             )}
             <div className="h-px bg-white/5" />
             <div className="flex justify-between font-bold">
               <span className="text-white">Tổng cộng</span>
               <span className="text-brand-400 text-lg">
-                {formatCurrency(booking.total)}
+                {formatCurrency(
+                  booking.total + Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
+                    const combo = combos?.find(c => c.id === id)
+                    return acc + (combo ? combo.price * qty : 0)
+                  }, 0)
+                )}
               </span>
             </div>
           </div>
@@ -232,11 +166,8 @@ export default function ConfirmBooking() {
       {/* Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 glass-dark border-t border-white/8">
         <div className="max-w-2xl mx-auto">
-          <button
-            onClick={booking.confirmBooking}
-            disabled={booking.isConfirming}
-            className="btn-primary w-full py-4 text-base disabled:opacity-60"
-          >
+          <button onClick={booking.confirmBooking} disabled={booking.isConfirming}
+            className="btn-primary w-full py-4 text-base disabled:opacity-60">
             {booking.isConfirming ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -244,7 +175,12 @@ export default function ConfirmBooking() {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                Thanh toán {formatCurrency(booking.total)}
+                Thanh toán {formatCurrency(
+                  booking.total + Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
+                    const combo = combos?.find(c => c.id === id)
+                    return acc + (combo ? combo.price * qty : 0)
+                  }, 0)
+                )}
                 <ArrowRight className="w-5 h-5" />
               </span>
             )}
@@ -252,5 +188,5 @@ export default function ConfirmBooking() {
         </div>
       </div>
     </div>
-  );
+  )
 }

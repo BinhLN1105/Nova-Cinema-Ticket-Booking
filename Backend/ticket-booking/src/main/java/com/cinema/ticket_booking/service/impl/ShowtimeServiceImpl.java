@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.ShowtimeRequest;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
 import com.cinema.ticket_booking.model.Movie;
@@ -22,6 +23,8 @@ import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -122,6 +125,40 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         generateShowtimeSeats(showtime, screen, request.getBasePrice());
 
         return showtimeMapper.toResponse(showtime);
+    }
+
+    // ── ADMIN: danh sách suất chiếu (phân trang) ──────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ShowtimeResponse> adminList(Pageable pageable, String cinemaId, LocalDate date) {
+        Page<Showtime> page;
+        if (cinemaId != null && !cinemaId.isEmpty() && date != null) {
+            page = showtimeRepository.findByCinemaIdAndDate(UUID.fromString(cinemaId), date, pageable);
+        } else if (cinemaId != null && !cinemaId.isEmpty()) {
+            page = showtimeRepository.findByCinemaId(UUID.fromString(cinemaId), pageable);
+        } else if (date != null) {
+            page = showtimeRepository.findByDate(date, pageable);
+        } else {
+            page = showtimeRepository.findAll(pageable);
+        }
+
+        Page<ShowtimeResponse> mapped = page.map(s -> {
+            ShowtimeResponse r = showtimeMapper.toResponse(s);
+            r.setAvailableSeats(showtimeSeatRepository
+                    .countByShowtimeIdAndStatus(s.getId(), SeatStatus.AVAILABLE));
+            return r;
+        });
+        return PageResponse.of(mapped);
+    }
+
+    // ── ADMIN: xoá suất chiếu ──────────────────────────────────────────────
+
+    @Override
+    public void delete(UUID id) {
+        Showtime showtime = findById(id);
+        showtimeSeatRepository.deleteByShowtimeId(showtime.getId());
+        showtimeRepository.delete(showtime);
     }
 
     @Override

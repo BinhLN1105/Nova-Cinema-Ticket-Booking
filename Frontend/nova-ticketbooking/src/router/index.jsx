@@ -41,10 +41,14 @@ const MoviesPage = () =>
   lazy_(() => import("@/pages/customer/movies/MoviesPage"));
 const MovieDetailPage = () =>
   lazy_(() => import("@/pages/customer/movies/MovieDetailPage"));
+const PromotionsPage   = () => 
+  lazy_(() => import('@/pages/customer/promotions/PromotionsPage'))
 const SelectShowtime = () =>
   lazy_(() => import("@/pages/customer/booking/SelectShowtime"));
 const SelectSeat = () =>
   lazy_(() => import("@/pages/customer/booking/SelectSeat"));
+const SelectCombo = () =>
+  lazy_(() => import("@/pages/customer/booking/SelectCombo"));
 const ConfirmBooking = () =>
   lazy_(() => import("@/pages/customer/booking/ConfirmBooking"));
 const PaymentPage = () =>
@@ -73,10 +77,13 @@ const AdminCinemas = () =>
 const AdminBookings = () =>
   lazy_(() => import("@/pages/admin/bookings/BookingsPage"));
 const AdminUsers = () => lazy_(() => import("@/pages/admin/users/UsersPage"));
+const AdminPromotions  = () => lazy_(() => import('@/pages/admin/promotions/PromotionsPage'))
 const AdminReports = () =>
   lazy_(() => import("@/pages/admin/reports/ReportsPage"));
 const AdminSettings = () =>
   lazy_(() => import("@/pages/admin/settings/SettingsPage"));
+const AdminShowtimes = () =>
+  lazy_(() => import("@/pages/admin/showtimes/ShowtimesPage"));
 
 // Staff
 const StaffDashboard = () =>
@@ -95,12 +102,14 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "movies", element: <MoviesPage /> },
       { path: "movies/:id", element: <MovieDetailPage /> },
+      { path: 'promotions',      element: <PromotionsPage /> },
       // Protected customer routes
       {
         element: <RequireAuth role="CUSTOMER" />,
         children: [
           { path: "booking/showtime/:movieId", element: <SelectShowtime /> },
           { path: "booking/seats/:showtimeId", element: <SelectSeat /> },
+          { path: "booking/combo", element: <SelectCombo /> },
           { path: "booking/confirm", element: <ConfirmBooking /> },
           { path: "booking/payment/:id", element: <PaymentPage /> },
           { path: "booking/result", element: <BookingResult /> },
@@ -141,6 +150,8 @@ export const router = createBrowserRouter([
           { path: "cinemas", element: <AdminCinemas /> },
           { path: "bookings", element: <AdminBookings /> },
           { path: "users", element: <AdminUsers /> },
+          { path: 'promotions',     element: <AdminPromotions /> },
+          { path: 'showtimes',      element: <AdminShowtimes /> },
           { path: "reports", element: <AdminReports /> },
           { path: "settings", element: <AdminSettings /> },
         ],

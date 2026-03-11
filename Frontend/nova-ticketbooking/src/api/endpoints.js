@@ -33,10 +33,14 @@ export const movieApi = {
 export const cinemaApi = {
   getAll: (city) => api.get("/cinemas", { city }),
   getById: (id) => api.get(`/cinemas/${id}`),
+  getScreens: (cinemaId) => api.get(`/cinemas/${cinemaId}/screens`),
   // Admin
-  create: (data) => api.post("/admin/cinemas", data),
-  update: (id, data) => api.put(`/admin/cinemas/${id}`, data),
-  delete: (id) => api.delete(`/admin/cinemas/${id}`),
+  create: (data) => api.post("/cinemas", data),
+  update: (id, data) => api.put(`/cinemas/${id}`, data),
+  delete: (id) => api.delete(`/cinemas/${id}`),
+  createScreen: (cinemaId, data) => api.post(`/cinemas/${cinemaId}/screens`, data),
+  updateScreen: (cinemaId, screenId, data) => api.put(`/cinemas/${cinemaId}/screens/${screenId}`, data),
+  deleteScreen: (cinemaId, screenId) => api.delete(`/cinemas/${cinemaId}/screens/${screenId}`),
 };
 
 // ── Showtimes ─────────────────────────────────
@@ -44,11 +48,11 @@ export const showtimeApi = {
   getByMovie: (movieId, cinemaId, date) =>
     api.get("/showtimes", { movieId, cinemaId, date }),
   getSeatMap: (showtimeId) => api.get(`/showtimes/${showtimeId}/seats`),
-  getCombos: () => api.get("/showtimes/combos"),
+  getCombos: () => api.get("/combos"),
   // Admin
-  create: (data) => api.post("/admin/showtimes", data),
-  update: (id, data) => api.put(`/admin/showtimes/${id}`, data),
-  delete: (id) => api.delete(`/admin/showtimes/${id}`),
+  getAll: (params) => api.get("/showtimes/admin", params),
+  create: (data) => api.post("/showtimes", data),
+  delete: (id) => api.delete(`/showtimes/${id}`),
 };
 
 // ── Vouchers ──────────────────────────────────
@@ -62,8 +66,8 @@ export const bookingApi = {
   getMyAll: (page = 0, size = 10) => api.get("/bookings/me", { page, size }),
   getById: (id) => api.get(`/bookings/${id}`),
   cancel: (id) => api.patch(`/bookings/${id}/cancel`),
-  createPayment: (bookingId, method = "VNPAY") =>
-    api.post(`/bookings/${bookingId}/payment`, { method }),
+  createPayment: (bookingId) =>
+    api.post(`/payments`, { bookingId }),
   // Admin/Staff
   getAll: (params) => api.get("/admin/bookings", params),
   verifyQr: (qrCode) => api.post("/staff/bookings/verify", { qrCode }),
@@ -98,4 +102,27 @@ export const userApi = {
 export const dashboardApi = {
   getStats: () => api.get("/admin/dashboard/stats"),
   getRevenue: (period) => api.get(`/admin/dashboard/revenue`, { period }),
+};
+
+// ── Vouchers (Admin) ──────────────────────────
+export const adminVoucherApi = {
+  getAll:   (params) => api.get('/admin/vouchers', params),
+  getById:  (id)     => api.get(`/admin/vouchers/${id}`),
+  create:   (data)   => api.post('/admin/vouchers', data),
+  update:   (id, data) => api.put(`/admin/vouchers/${id}`, data),
+  delete:   (id)     => api.delete(`/admin/vouchers/${id}`),
+  toggleActive: (id) => api.patch(`/admin/vouchers/${id}/toggle`),
+};
+
+// ── Promotions / Banners ──────────────────────
+export const promotionApi = {
+  // Public
+  getActive: () => api.get('/promotions/active'),
+  getById:   (id) => api.get(`/promotions/${id}`),
+  // Admin
+  getAll:    (params) => api.get('/admin/promotions', params),
+  create:    (data)   => api.post('/admin/promotions', data),
+  update:    (id, data) => api.put(`/admin/promotions/${id}`, data),
+  delete:    (id)     => api.delete(`/admin/promotions/${id}`),
+  toggleActive: (id)  => api.patch(`/admin/promotions/${id}/toggle`),
 };

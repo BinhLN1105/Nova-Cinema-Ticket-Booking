@@ -11,9 +11,14 @@ export function useBooking() {
   const createBookingMutation = useMutation({
     mutationFn: bookingApi.create,
     onSuccess: (booking) => {
+      window.scrollTo(0, 0);
+      store.reset();
       navigate(`/booking/payment/${booking.id}`);
     },
-    onError: () => toast.error("Đặt vé thất bại, vui lòng thử lại"),
+    onError: (error) => {
+      const msg = error.response?.data?.message || "Đặt vé thất bại, vui lòng thử lại";
+      toast.error(msg);
+    },
   });
 
   const createPaymentMutation = useMutation({
@@ -27,7 +32,7 @@ export function useBooking() {
     if (!store.selectedShowtime || store.selectedSeats.length === 0) return;
     createBookingMutation.mutate({
       showtimeId: store.selectedShowtime.id,
-      seatIds: store.selectedSeats.map((s) => s.showtimeSeatId),
+      showtimeSeatIds: store.selectedSeats.map((s) => s.showtimeSeatId),
       combos: Object.entries(store.selectedCombos).map(
         ([comboId, quantity]) => ({
           comboId,

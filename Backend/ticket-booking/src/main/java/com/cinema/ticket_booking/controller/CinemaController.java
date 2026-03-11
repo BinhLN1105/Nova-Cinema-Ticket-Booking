@@ -97,4 +97,14 @@ public class CinemaController {
         return ResponseEntity
                 .ok(ApiResponse.success(screenService.update(screenId, request), "Cập nhật phòng chiếu thành công"));
     }
+
+    // DELETE /api/v1/cinemas/{cinemaId}/screens/{screenId} [ADMIN]
+    @DeleteMapping("/{cinemaId}/screens/{screenId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> deleteScreen(
+            @PathVariable UUID cinemaId,
+            @PathVariable UUID screenId) {
+        screenService.delete(screenId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xoá phòng chiếu"));
+    }
 }

@@ -133,8 +133,12 @@ public class AuthServiceImpl implements AuthService {
     // ── Logout ────────────────────────────────────────────────────────────
 
     @Override
-    public void logout(User currentUser) {
-        refreshTokenRepository.deleteAllByUser(currentUser);
+    public void logout(String refreshToken) {
+        RefreshToken stored = refreshTokenRepository.findByToken(refreshToken)
+                .orElse(null);
+        if (stored != null) {
+            refreshTokenRepository.deleteAllByUser(stored.getUser());
+        }
     }
 
     // ── Private helpers ───────────────────────────────────────────────────

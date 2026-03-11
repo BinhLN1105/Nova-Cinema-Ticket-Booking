@@ -6,13 +6,13 @@ import com.cinema.ticket_booking.dto.request.RegisterRequest;
 import com.cinema.ticket_booking.dto.request.SocialLoginRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
-import com.cinema.ticket_booking.model.User;
+
 import com.cinema.ticket_booking.service.AuthService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -52,11 +52,11 @@ public class AuthController {
         return ResponseEntity.ok(ApiResponse.success(authService.refreshToken(request)));
     }
 
-    // POST /api/v1/auth/logout (yêu cầu Bearer token)
+    // POST /api/v1/auth/logout
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @AuthenticationPrincipal User currentUser) {
-        authService.logout(currentUser);
+            @Valid @RequestBody RefreshTokenRequest request) {
+        authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }
 }

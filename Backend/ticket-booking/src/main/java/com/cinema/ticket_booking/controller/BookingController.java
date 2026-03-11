@@ -59,8 +59,8 @@ public class BookingController {
                                 bookingService.getDetail(currentUser.getId(), id)));
         }
 
-        // DELETE /api/v1/bookings/{id} — huỷ đơn (chỉ khi PENDING)
-        @DeleteMapping("/{id}")
+        // DELETE /api/v1/bookings/{id} hoặc PATCH /api/v1/bookings/{id}/cancel — huỷ đơn (chỉ khi PENDING)
+        @RequestMapping(value = {"/{id}", "/{id}/cancel"}, method = {RequestMethod.DELETE, RequestMethod.PATCH})
         public ResponseEntity<ApiResponse<Void>> cancelBooking(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID id) {

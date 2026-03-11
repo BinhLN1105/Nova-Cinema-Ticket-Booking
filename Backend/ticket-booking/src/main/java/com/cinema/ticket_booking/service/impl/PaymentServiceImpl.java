@@ -66,20 +66,24 @@ public class PaymentServiceImpl implements PaymentService {
         if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Đơn đặt vé đã hết hạn, vui lòng đặt lại");
         }
-        if (paymentRepository.existsByBookingIdAndStatus(booking.getId(), PaymentStatus.SUCCESS)) {
-            throw new PaymentException("Đơn hàng này đã được thanh toán");
+        Payment payment = paymentRepository.findByBookingId(booking.getId()).orElse(null);
+        if (payment != null) {
+            if (payment.getStatus() == PaymentStatus.SUCCESS) {
+                throw new PaymentException("Đơn hàng này đã được thanh toán");
+            }
+        } else {
+            payment = Payment.builder()
+                    .booking(booking)
+                    .amount(booking.getTotalAmount())
+                    .method(PaymentMethod.VNPAY)
+                    .status(PaymentStatus.PENDING)
+                    .build();
         }
 
         String txnRef = generateTxnRef(booking.getBookingCode());
-
-        // Lưu Payment ở trạng thái PENDING
-        Payment payment = Payment.builder()
-                .booking(booking)
-                .amount(booking.getTotalAmount())
-                .method(PaymentMethod.VNPAY)
-                .status(PaymentStatus.PENDING)
-                .vnpayTxnRef(txnRef)
-                .build();
+        payment.setVnpayTxnRef(txnRef);
+        payment.setStatus(PaymentStatus.PENDING);
+        payment.setMethod(PaymentMethod.VNPAY);
         paymentRepository.save(payment);
 
         // Tạo URL chuyển hướng đến cổng thanh toán VNPay
@@ -199,7 +203,7 @@ public class PaymentServiceImpl implements PaymentService {
             if (v != null && !v.isBlank()) {
                 if (sb.length() > 0)
                     sb.append('&');
-                sb.append(k).append('=').append(v);
+                sb.append(k).append('=').append(URLEncoder.encode(v, StandardCharsets.US_ASCII));
             }
         });
         return sb.toString();
@@ -208,11 +212,13 @@ public class PaymentServiceImpl implements PaymentService {
     private String buildQueryString(Map<String, String> params) throws Exception {
         StringBuilder sb = new StringBuilder();
         for (Map.Entry<String, String> e : params.entrySet()) {
-            if (sb.length() > 0)
-                sb.append('&');
-            sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.UTF_8))
-                    .append('=')
-                    .append(URLEncoder.encode(e.getValue(), StandardCharsets.UTF_8));
+            if (e.getValue() != null && !e.getValue().isBlank()) {
+                if (sb.length() > 0)
+                    sb.append('&');
+                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII))
+                        .append('=')
+                        .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
+            }
         }
         return sb.toString();
     }

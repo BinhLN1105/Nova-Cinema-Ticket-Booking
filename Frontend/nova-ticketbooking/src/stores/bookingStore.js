@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 const initialState = {
   selectedMovie: null,
@@ -12,10 +13,12 @@ const initialState = {
   total: 0,
 };
 
-export const useBookingStore = create((set, get) => ({
-  ...initialState,
+export const useBookingStore = create(
+  persist(
+    (set, get) => ({
+      ...initialState,
 
-  setMovie: (movie) => set({ selectedMovie: movie }),
+      setMovie: (movie) => set({ selectedMovie: movie }),
   setShowtime: (showtime) => set({ selectedShowtime: showtime }),
   setDate: (date) => set({ selectedDate: date }),
 
@@ -78,5 +81,10 @@ export const useBookingStore = create((set, get) => ({
     set({ subtotal, discount, total: subtotal - discount });
   },
 
-  reset: () => set(initialState),
-}));
+      reset: () => set(initialState),
+    }),
+    {
+      name: "booking-storage",
+    }
+  )
+);

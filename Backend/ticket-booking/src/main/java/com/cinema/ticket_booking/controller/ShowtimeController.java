@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.controller;
 
 import com.cinema.ticket_booking.dto.request.ShowtimeRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
 import com.cinema.ticket_booking.service.ShowtimeService;
@@ -55,5 +56,27 @@ public class ShowtimeController {
             @Valid @RequestBody ShowtimeRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(showtimeService.create(request), "Tạo suất chiếu thành công"));
+    }
+
+    // GET /api/v1/showtimes/admin — danh sách toàn bộ suất chiếu cho admin
+    @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<PageResponse<ShowtimeResponse>>> adminList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "15") int size,
+            @RequestParam(required = false) String cinemaId,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        var pageable = org.springframework.data.domain.PageRequest.of(page, size,
+                org.springframework.data.domain.Sort.by("startTime").descending());
+        var result = showtimeService.adminList(pageable, cinemaId, date);
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    // DELETE /api/v1/showtimes/{id} [ADMIN]
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        showtimeService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xoá suất chiếu"));
     }
 }

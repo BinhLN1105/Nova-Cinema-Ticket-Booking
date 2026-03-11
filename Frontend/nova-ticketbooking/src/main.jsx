@@ -6,7 +6,11 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { router } from "@/router";
+import { useThemeStore } from "@/stores/themeStore";
 import "@/styles/globals.css";
+
+// Apply saved theme preferences on startup
+useThemeStore.getState().init();
 
 const queryClient = new QueryClient({
   defaultOptions: {

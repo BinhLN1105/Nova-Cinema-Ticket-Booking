@@ -11,105 +11,122 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
-    // Tìm theo mã booking (dùng cho check-in QR)
-    Optional<Booking> findByBookingCode(String bookingCode);
+        // Tìm theo mã booking (dùng cho check-in QR)
+        Optional<Booking> findByBookingCode(String bookingCode);
 
-    // Tìm theo QR code string
-    Optional<Booking> findByQrCode(String qrCode);
+        // Tìm theo QR code string
+        Optional<Booking> findByQrCode(String qrCode);
 
-    // Lịch sử đặt vé của user (phân trang)
-    Page<Booking> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+        // Lịch sử đặt vé của user (phân trang)
+        Page<Booking> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
-    // Đơn đặt vé của user theo trạng thái
-    List<Booking> findByUserIdAndStatus(UUID userId, BookingStatus status);
+        // Đơn đặt vé của user theo trạng thái
+        List<Booking> findByUserIdAndStatus(UUID userId, BookingStatus status);
 
-    // Admin: xem booking theo suất chiếu
-    List<Booking> findByShowtimeId(UUID showtimeId);
+        // Admin: lọc booking theo trạng thái (phân trang)
+        Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
 
-    // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
-    @Modifying
-    @Query("""
-                UPDATE Booking b
-                SET b.status = 'EXPIRED'
-                WHERE b.status = 'PENDING'
-                  AND b.expiresAt < :now
-            """)
-    int expireOverdueBookings(@Param("now") LocalDateTime now);
+        // Admin: xem booking theo suất chiếu
+        List<Booking> findByShowtimeId(UUID showtimeId);
 
-    // Kiểm tra user đã có booking PAID cho suất chiếu chưa (để cho phép review)
-    @Query("""
-                SELECT COUNT(b) > 0 FROM Booking b
-                WHERE b.user.id     = :userId
-                  AND b.showtime.movie.id = :movieId
-                  AND b.status      = 'PAID'
-            """)
-    boolean hasUserPaidForMovie(
-            @Param("userId") UUID userId,
-            @Param("movieId") UUID movieId);
+        // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
+        @Modifying
+        @Query("""
+                            UPDATE Booking b
+                            SET b.status = 'EXPIRED'
+                            WHERE b.status = 'PENDING'
+                              AND b.expiresAt < :now
+                        """)
+        int expireOverdueBookings(@Param("now") LocalDateTime now);
 
-    // ── Dashboard Admin Queries ──────────────────────────────────────────
+        // Kiểm tra user đã có booking PAID cho suất chiếu chưa (để cho phép review)
+        @Query("""
+                            SELECT COUNT(b) > 0 FROM Booking b
+                            WHERE b.user.id     = :userId
+                              AND b.showtime.movie.id = :movieId
+                              AND b.status      = 'PAID'
+                        """)
+        boolean hasUserPaidForMovie(
+                        @Param("userId") UUID userId,
+                        @Param("movieId") UUID movieId);
 
-    @Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE status = 'COMPLETED'", nativeQuery = true)
-    java.math.BigDecimal calculateTotalRevenue();
+        // ── Dashboard Admin Queries ──────────────────────────────────────────
 
-    @Query(value = "SELECT COUNT(*) FROM bookings WHERE status = 'COMPLETED'", nativeQuery = true)
-    long countTotalBookings();
+        @Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE status = 'PAID'", nativeQuery = true)
+        BigDecimal calculateTotalRevenue();
 
-    @Query(value = "SELECT DATE(created_at) as date, SUM(total_amount) as revenue " +
-            "FROM bookings " +
-            "WHERE status = 'COMPLETED' AND created_at >= CURRENT_DATE - INTERVAL '6 days' " +
-            "GROUP BY DATE(created_at) ORDER BY date ASC", nativeQuery = true)
-    List<RevenueByDayProjection> getRevenueByDay();
+        @Query(value = "SELECT COUNT(*) FROM bookings WHERE status = 'PAID'", nativeQuery = true)
+        long countTotalBookings();
 
-    @Query(value = "SELECT m.id as id, m.title as title, m.poster_url as posterUrl, " +
-            "COUNT(b.id) as tickets, SUM(b.total_amount) as rev " +
-            "FROM bookings b " +
-            "JOIN showtimes s ON b.showtime_id = s.id " +
-            "JOIN movies m ON s.movie_id = m.id " +
-            "WHERE b.status = 'COMPLETED' " +
-            "GROUP BY m.id, m.title, m.poster_url " +
-            "ORDER BY rev DESC LIMIT 5", nativeQuery = true)
-    List<TopMovieProjection> getTop5Movies();
+        @Query(value = "SELECT DATE(created_at) as date, SUM(total_amount) as revenue " +
+                        "FROM bookings " +
+                        "WHERE status = 'PAID' AND created_at >= CURRENT_DATE - INTERVAL '6 days' " +
+                        "GROUP BY DATE(created_at) ORDER BY date ASC", nativeQuery = true)
+        List<RevenueByDayProjection> getRevenueByDay();
 
-    @Query(value = "SELECT b.id as id, b.booking_code as bookingCode, m.title as movieTitle, " +
-            "c.name as cinemaName, s.start_time as startTime, b.total_amount as totalAmount, b.status as status " +
-            "FROM bookings b " +
-            "JOIN showtimes s ON b.showtime_id = s.id " +
-            "JOIN movies m ON s.movie_id = m.id " +
-            "JOIN screens sc ON s.screen_id = sc.id " +
-            "JOIN cinemas c ON sc.cinema_id = c.id " +
-            "ORDER BY b.created_at DESC LIMIT 5", nativeQuery = true)
-    List<RecentBookingProjection> getRecentBookings();
+        @Query(value = "SELECT m.id as id, m.title as title, m.poster_url as posterUrl, " +
+                        "COUNT(b.id) as tickets, SUM(b.total_amount) as rev " +
+                        "FROM bookings b " +
+                        "JOIN showtimes s ON b.showtime_id = s.id " +
+                        "JOIN movies m ON s.movie_id = m.id " +
+                        "WHERE b.status = 'PAID' " +
+                        "GROUP BY m.id, m.title, m.poster_url " +
+                        "ORDER BY rev DESC LIMIT 5", nativeQuery = true)
+        List<TopMovieProjection> getTop5Movies();
 
-    // ── Projections ───────────────────────────────────────────────────────
+        @Query(value = "SELECT b.id as id, b.booking_code as bookingCode, m.title as movieTitle, " +
+                        "c.name as cinemaName, s.start_time as startTime, b.total_amount as totalAmount, b.status as status "
+                        +
+                        "FROM bookings b " +
+                        "JOIN showtimes s ON b.showtime_id = s.id " +
+                        "JOIN movies m ON s.movie_id = m.id " +
+                        "JOIN screens sc ON s.screen_id = sc.id " +
+                        "JOIN cinemas c ON sc.cinema_id = c.id " +
+                        "ORDER BY b.created_at DESC LIMIT 5", nativeQuery = true)
+        List<RecentBookingProjection> getRecentBookings();
 
-    interface RevenueByDayProjection {
-        String getDate();
-        java.math.BigDecimal getRevenue();
-    }
+        // ── Projections ───────────────────────────────────────────────────────
 
-    interface TopMovieProjection {
-        String getId();
-        String getTitle();
-        String getPosterUrl();
-        Long getTickets();
-        java.math.BigDecimal getRev();
-    }
+        interface RevenueByDayProjection {
+                LocalDate getDate();
 
-    interface RecentBookingProjection {
-        String getId();
-        String getBookingCode();
-        String getMovieTitle();
-        String getCinemaName();
-        java.sql.Timestamp getStartTime();
-        java.math.BigDecimal getTotalAmount();
-        String getStatus();
-    }
+                BigDecimal getRevenue();
+        }
+
+        interface TopMovieProjection {
+                String getId();
+
+                String getTitle();
+
+                String getPosterUrl();
+
+                Long getTickets();
+
+                BigDecimal getRev();
+        }
+
+        interface RecentBookingProjection {
+                String getId();
+
+                String getBookingCode();
+
+                String getMovieTitle();
+
+                String getCinemaName();
+
+                LocalDateTime getStartTime();
+
+                BigDecimal getTotalAmount();
+
+                String getStatus();
+        }
 }

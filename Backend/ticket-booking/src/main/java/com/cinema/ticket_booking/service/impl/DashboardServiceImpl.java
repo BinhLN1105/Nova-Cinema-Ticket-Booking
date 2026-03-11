@@ -55,7 +55,7 @@ public class DashboardServiceImpl implements DashboardService {
                 LocalDate d = today.minusDays(i);
                 BigDecimal dayRev = BigDecimal.ZERO;
                 for (BookingRepository.RevenueByDayProjection row : revData) {
-                    if (row.getDate() != null && row.getDate().equals(d.toString())) {
+                    if (row.getDate() != null && row.getDate().equals(d)) {
                         dayRev = row.getRevenue();
                         break;
                     }
@@ -80,7 +80,7 @@ public class DashboardServiceImpl implements DashboardService {
                         .bookingCode(row.getBookingCode())
                         .movieTitle(row.getMovieTitle())
                         .cinemaName(row.getCinemaName())
-                        .startTime(row.getStartTime() != null ? row.getStartTime().toLocalDateTime() : null)
+                        .startTime(row.getStartTime())
                         .totalAmount(row.getTotalAmount())
                         .status(row.getStatus())
                         .build();

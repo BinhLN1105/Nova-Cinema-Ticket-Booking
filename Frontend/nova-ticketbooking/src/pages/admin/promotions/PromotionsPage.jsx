@@ -1,0 +1,538 @@
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import {
+  Tag, Ticket, Plus, Edit2, Trash2, ToggleLeft, ToggleRight,
+  Copy, CheckCircle2, Calendar, Percent, DollarSign, Users, TrendingUp
+} from 'lucide-react'
+import { adminVoucherApi, promotionApi } from '@/api/endpoints'
+import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
+import { Table, AdminCard, PageHeader, Pagination, StatusBadge } from '@/components/common/ui/AdminTable'
+import { Field, Input, Textarea, Select, Button, SearchInput, Switch } from '@/components/common/ui/FormElements'
+import { formatDate, formatCurrency, cn } from '@/utils'
+import toast from 'react-hot-toast'
+
+// ─── Voucher Schema ───────────────────────────
+const voucherSchema = z.object({
+  code:          z.string().min(3, 'Mã ít nhất 3 ký tự').toUpperCase(),
+  description:   z.string().min(5, 'Mô tả ít nhất 5 ký tự'),
+  discountType:  z.enum(['PERCENTAGE', 'FIXED']),
+  discountValue: z.coerce.number().min(1, 'Giá trị phải > 0'),
+  minOrder:      z.coerce.number().min(0),
+  maxDiscount:   z.coerce.number().optional(),
+  usageLimit:    z.coerce.number().min(1, 'Số lần dùng phải > 0'),
+  startDate:     z.string().min(1, 'Chọn ngày bắt đầu'),
+  endDate:       z.string().min(1, 'Chọn ngày kết thúc'),
+  applicableTo:  z.enum(['ALL', 'MOVIE', 'FIRST_BOOKING']),
+})
+
+// ─── Promotion Schema ─────────────────────────
+const promoSchema = z.object({
+  title:       z.string().min(2, 'Tiêu đề ít nhất 2 ký tự'),
+  description: z.string().min(10, 'Mô tả ít nhất 10 ký tự'),
+  imageUrl:    z.string().url('URL không hợp lệ').optional().or(z.literal('')),
+  startDate:   z.string().min(1, 'Chọn ngày bắt đầu'),
+  endDate:     z.string().min(1, 'Chọn ngày kết thúc'),
+  targetUrl:   z.string().optional(),
+  priority:    z.coerce.number().min(0).max(100),
+})
+
+// ─── Voucher type badge ───────────────────────
+function VoucherTypeBadge({ type, value }) {
+  return (
+    <span className={cn(
+      'inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border',
+      type === 'PERCENTAGE'
+        ? 'bg-purple-50 text-purple-700 border-purple-200'
+        : 'bg-green-50 text-green-700 border-green-200'
+    )}>
+      {type === 'PERCENTAGE'
+        ? <><Percent className="w-3 h-3" /> {value}%</>
+        : <><DollarSign className="w-3 h-3" /> {formatCurrency(value)}</>
+      }
+    </span>
+  )
+}
+
+// ─── Copy code button ─────────────────────────
+function CopyCode({ code }) {
+  const [copied, setCopied] = useState(false)
+  const copy = (e) => {
+    e.stopPropagation()
+    navigator.clipboard.writeText(code)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+  return (
+    <button onClick={copy}
+      className="flex items-center gap-1.5 font-mono text-sm font-bold text-gray-700
+        bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg transition-all group">
+      <span>{code}</span>
+      {copied
+        ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+        : <Copy className="w-3.5 h-3.5 text-gray-400 group-hover:text-gray-600" />}
+    </button>
+  )
+}
+
+// ─── Voucher usage progress ───────────────────
+function UsageBar({ used, limit }) {
+  const pct = Math.min((used / limit) * 100, 100)
+  return (
+    <div className="min-w-[100px]">
+      <div className="flex justify-between text-xs text-gray-500 mb-1">
+        <span>{used}/{limit}</span>
+        <span>{Math.round(pct)}%</span>
+      </div>
+      <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+        <div className={cn(
+          'h-full rounded-full transition-all',
+          pct >= 90 ? 'bg-red-500' : pct >= 60 ? 'bg-amber-500' : 'bg-green-500'
+        )} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── MOCK data for demo (replace with API) ────
+const MOCK_VOUCHERS = [
+  { id: '1', code: 'NOVA20',     description: 'Giảm 20% tối đa 50K cho đơn từ 100K', discountType: 'PERCENTAGE', discountValue: 20, minOrder: 100000, maxDiscount: 50000, usageLimit: 500, usedCount: 123, startDate: '2024-01-01', endDate: '2024-12-31', applicableTo: 'ALL',           isActive: true },
+  { id: '2', code: 'WELCOME50K', description: 'Giảm 50.000đ vé đầu tiên',            discountType: 'FIXED',      discountValue: 50000, minOrder: 100000, maxDiscount: null, usageLimit: 1000, usedCount: 456, startDate: '2024-01-01', endDate: '2024-06-30', applicableTo: 'FIRST_BOOKING', isActive: true },
+  { id: '3', code: 'IMAX15',     description: 'Giảm 15% suất IMAX',                  discountType: 'PERCENTAGE', discountValue: 15, minOrder: 150000, maxDiscount: 30000, usageLimit: 200, usedCount: 198, startDate: '2024-03-01', endDate: '2024-03-31', applicableTo: 'MOVIE',         isActive: false },
+  { id: '4', code: 'VIP30',      description: 'Ưu đãi 30% cho thành viên VIP',       discountType: 'PERCENTAGE', discountValue: 30, minOrder: 200000, maxDiscount: 100000, usageLimit: 100, usedCount: 12, startDate: '2024-04-01', endDate: '2024-12-31', applicableTo: 'ALL',           isActive: true },
+]
+
+const MOCK_PROMOS = [
+  { id: '1', title: 'Mùa hè rực rỡ — Giảm đến 30%', description: 'Ưu đãi đặc biệt mùa hè...', imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-06-01', endDate: '2024-08-31', targetUrl: '/movies', priority: 10, isActive: true },
+  { id: '2', title: 'Combo gia đình cuối tuần',       description: 'Đặt 4 vé tặng 1 combo...',  imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-01-01', endDate: '2024-12-31', targetUrl: '/movies', priority: 5,  isActive: true },
+  { id: '3', title: 'Flashsale thứ 3 hàng tuần',     description: 'Mỗi thứ 3 giảm 25%...',     imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-01-01', endDate: '2024-12-31', targetUrl: '/movies', priority: 8,  isActive: false },
+]
+
+const APPLICABLE_LABELS = { ALL: 'Tất cả', MOVIE: 'Phim cụ thể', FIRST_BOOKING: 'Đặt vé lần đầu' }
+
+// ═══════════════════════════════════════════════
+export default function PromotionsPage() {
+  const [activeTab, setTab] = useState('vouchers')
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Khuyến mãi & Voucher"
+        subtitle="Quản lý mã giảm giá và chương trình ưu đãi"
+      />
+
+      {/* Tab selector */}
+      <div className="flex gap-1 p-1 bg-white border border-gray-200 rounded-2xl w-fit shadow-sm">
+        {[
+          { id: 'vouchers',    label: 'Mã Voucher',     icon: Ticket },
+          { id: 'promotions',  label: 'Banner Khuyến mãi', icon: Tag },
+        ].map(({ id, label, icon: Icon }) => (
+          <button key={id} onClick={() => setTab(id)}
+            className={cn(
+              'flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all',
+              activeTab === id
+                ? 'bg-brand-500 text-white shadow-sm'
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+            )}>
+            <Icon className="w-4 h-4" /> {label}
+          </button>
+        ))}
+      </div>
+
+      <AnimatePresence mode="wait">
+        {activeTab === 'vouchers' && (
+          <motion.div key="vouchers" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <VouchersTab />
+          </motion.div>
+        )}
+        {activeTab === 'promotions' && (
+          <motion.div key="promotions" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <PromotionsTab />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  )
+}
+
+// ─── VOUCHERS TAB ─────────────────────────────
+function VouchersTab() {
+  const [search, setSearch]         = useState('')
+  const [showForm, setShowForm]     = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [deleteTarget, setDelete]   = useState(null)
+  const qc = useQueryClient()
+
+  // Using mock data — replace with API
+  const vouchers = MOCK_VOUCHERS.filter(v =>
+    v.code.includes(search.toUpperCase()) ||
+    v.description.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(voucherSchema),
+    defaultValues: { discountType: 'PERCENTAGE', applicableTo: 'ALL', minOrder: 0, usageLimit: 100, priority: 5 },
+  })
+  const discountType = watch('discountType')
+
+  const openCreate = () => { setEditTarget(null); reset({ discountType: 'PERCENTAGE', applicableTo: 'ALL', minOrder: 0, usageLimit: 100 }); setShowForm(true) }
+  const openEdit   = (v) => { setEditTarget(v); reset(v); setShowForm(true) }
+
+  const onSubmit = (data) => {
+    toast.success(editTarget ? 'Đã cập nhật voucher' : 'Tạo voucher thành công')
+    setShowForm(false)
+  }
+
+  // Stats
+  const activeCount = MOCK_VOUCHERS.filter(v => v.isActive).length
+  const totalUsed   = MOCK_VOUCHERS.reduce((s, v) => s + v.usedCount, 0)
+  const nearExpiry  = MOCK_VOUCHERS.filter(v => v.usedCount / v.usageLimit >= 0.9).length
+
+  const columns = [
+    {
+      key: 'code', header: 'Mã Voucher',
+      render: (v) => (
+        <div className="flex flex-col gap-1.5">
+          <CopyCode code={v.code} />
+          <p className="text-xs text-gray-400 max-w-[180px] line-clamp-1">{v.description}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'discount', header: 'Ưu đãi',
+      render: (v) => (
+        <div className="space-y-1">
+          <VoucherTypeBadge type={v.discountType} value={v.discountValue} />
+          <p className="text-xs text-gray-400">Đơn tối thiểu: {formatCurrency(v.minOrder)}</p>
+          {v.maxDiscount && <p className="text-xs text-gray-400">Tối đa: {formatCurrency(v.maxDiscount)}</p>}
+        </div>
+      ),
+    },
+    {
+      key: 'applicableTo', header: 'Áp dụng',
+      render: (v) => (
+        <span className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded-lg">
+          {APPLICABLE_LABELS[v.applicableTo]}
+        </span>
+      ),
+    },
+    {
+      key: 'usage', header: 'Lượt dùng',
+      render: (v) => <UsageBar used={v.usedCount} limit={v.usageLimit} />,
+    },
+    {
+      key: 'validity', header: 'Thời hạn',
+      render: (v) => (
+        <div className="text-xs text-gray-500 space-y-0.5">
+          <p className="flex items-center gap-1"><Calendar className="w-3 h-3" /> {formatDate(v.startDate)}</p>
+          <p className="text-gray-400">→ {formatDate(v.endDate)}</p>
+        </div>
+      ),
+    },
+    {
+      key: 'isActive', header: 'Trạng thái',
+      render: (v) => (
+        <StatusBadge label={v.isActive ? 'Đang hoạt động' : 'Tạm dừng'} color={v.isActive ? 'green' : 'gray'} />
+      ),
+    },
+    {
+      key: 'actions', header: '',
+      render: (v) => (
+        <div className="flex items-center justify-end gap-1">
+          <button onClick={() => openEdit(v)}
+            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Chỉnh sửa">
+            <Edit2 className="w-4 h-4" />
+          </button>
+          <button onClick={() => toast.success(`Đã ${v.isActive ? 'tạm dừng' : 'kích hoạt'} voucher`)}
+            className={cn('p-2 rounded-lg transition-all', v.isActive ? 'hover:bg-amber-50 text-amber-400' : 'hover:bg-green-50 text-green-400')}
+            title={v.isActive ? 'Tạm dừng' : 'Kích hoạt'}>
+            {v.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
+          </button>
+          <button onClick={() => setDelete(v)}
+            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xóa">
+            <Trash2 className="w-4 h-4" />
+          </button>
+        </div>
+      ),
+    },
+  ]
+
+  return (
+    <div className="space-y-5">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[
+          { label: 'Tổng voucher',   value: MOCK_VOUCHERS.length, icon: Ticket,     bg: 'bg-blue-50',   text: 'text-blue-500' },
+          { label: 'Đang hoạt động', value: activeCount,          icon: CheckCircle2,bg: 'bg-green-50', text: 'text-green-500' },
+          { label: 'Lượt sử dụng',  value: totalUsed.toLocaleString(), icon: Users, bg: 'bg-purple-50', text: 'text-purple-500' },
+          { label: 'Gần hết lượt',  value: nearExpiry,            icon: TrendingUp,  bg: 'bg-red-50',   text: 'text-red-500' },
+        ].map(({ label, value, icon: Icon, bg, text }) => (
+          <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
+              <Icon className={`w-5 h-5 ${text}`} />
+            </div>
+            <div>
+              <p className="text-xl font-bold text-gray-900">{value}</p>
+              <p className="text-xs text-gray-500">{label}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AdminCard>
+        <div className="p-4 border-b border-gray-100 flex items-center justify-between gap-3">
+          <SearchInput value={search} onChange={setSearch} placeholder="Tìm mã voucher..." className="max-w-xs" />
+          <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate} size="sm">Tạo Voucher</Button>
+        </div>
+        <Table columns={columns} data={vouchers} rowKey={v => v.id}
+          emptyMessage="Chưa có voucher nào" emptyIcon="🎟️" />
+      </AdminCard>
+
+      {/* Form Modal */}
+      <Modal open={showForm} onClose={() => setShowForm(false)}
+        title={editTarget ? 'Chỉnh sửa Voucher' : 'Tạo Voucher mới'}
+        description="Cấu hình chi tiết mã giảm giá" size="xl">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Mã Voucher" required error={errors.code?.message}>
+              <Input {...register('code')}
+                onChange={e => e.target.value = e.target.value.toUpperCase()}
+                error={!!errors.code} placeholder="VD: NOVA20" className="uppercase font-mono tracking-wider" />
+            </Field>
+            <Field label="Áp dụng cho" required error={errors.applicableTo?.message}>
+              <Select {...register('applicableTo')} error={!!errors.applicableTo}
+                options={[
+                  { value: 'ALL',           label: '🎬 Tất cả đơn hàng' },
+                  { value: 'MOVIE',         label: '🎞️ Phim cụ thể' },
+                  { value: 'FIRST_BOOKING', label: '🎉 Đặt vé lần đầu' },
+                ]} />
+            </Field>
+
+            <Field label="Mô tả" required error={errors.description?.message} className="col-span-2">
+              <Input {...register('description')} error={!!errors.description} placeholder="Mô tả ngắn về voucher này..." />
+            </Field>
+
+            <Field label="Loại giảm giá" required>
+              <Select {...register('discountType')} options={[
+                { value: 'PERCENTAGE', label: '% Phần trăm' },
+                { value: 'FIXED',      label: '₫ Số tiền cố định' },
+              ]} />
+            </Field>
+            <Field label={discountType === 'PERCENTAGE' ? 'Phần trăm giảm (%)' : 'Số tiền giảm (₫)'}
+              required error={errors.discountValue?.message}>
+              <Input {...register('discountValue')} type="number" min={1}
+                error={!!errors.discountValue}
+                placeholder={discountType === 'PERCENTAGE' ? '20' : '50000'} />
+            </Field>
+
+            <Field label="Đơn hàng tối thiểu (₫)" error={errors.minOrder?.message}>
+              <Input {...register('minOrder')} type="number" min={0} placeholder="100000" />
+            </Field>
+            {discountType === 'PERCENTAGE' && (
+              <Field label="Giảm tối đa (₫)" error={errors.maxDiscount?.message}>
+                <Input {...register('maxDiscount')} type="number" min={0} placeholder="50000 (bỏ trống = không giới hạn)" />
+              </Field>
+            )}
+
+            <Field label="Số lần dùng tối đa" required error={errors.usageLimit?.message}>
+              <Input {...register('usageLimit')} type="number" min={1} placeholder="100" />
+            </Field>
+
+            <Field label="Ngày bắt đầu" required error={errors.startDate?.message}>
+              <Input {...register('startDate')} type="date" error={!!errors.startDate} />
+            </Field>
+            <Field label="Ngày kết thúc" required error={errors.endDate?.message}>
+              <Input {...register('endDate')} type="date" error={!!errors.endDate} />
+            </Field>
+          </div>
+
+          {/* Preview */}
+          {watch('code') && (
+            <div className="p-4 rounded-xl bg-gradient-to-r from-brand-50 to-purple-50 border border-brand-100">
+              <p className="text-xs text-gray-500 mb-2 font-medium">Preview voucher</p>
+              <div className="flex items-center gap-3">
+                <span className="font-mono text-lg font-black text-brand-600 bg-white px-3 py-1.5 rounded-lg border border-brand-200 tracking-widest">
+                  {watch('code')}
+                </span>
+                <div className="text-sm text-gray-700">
+                  <p className="font-semibold">
+                    {watch('discountType') === 'PERCENTAGE'
+                      ? `Giảm ${watch('discountValue') || 0}%`
+                      : `Giảm ${formatCurrency(watch('discountValue') || 0)}`}
+                    {watch('maxDiscount') ? ` (tối đa ${formatCurrency(watch('maxDiscount'))})` : ''}
+                  </p>
+                  <p className="text-gray-400 text-xs">Đơn từ {formatCurrency(watch('minOrder') || 0)}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
+            <Button type="submit" className="flex-1">
+              {editTarget ? 'Lưu thay đổi' : 'Tạo Voucher'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget} onClose={() => setDelete(null)}
+        onConfirm={() => { toast.success('Đã xóa voucher'); setDelete(null) }}
+        title="Xóa Voucher?" confirmLabel="Xóa"
+        message={`Bạn có chắc muốn xóa voucher "${deleteTarget?.code}"? Người dùng đang có mã này sẽ không dùng được nữa.`}
+      />
+    </div>
+  )
+}
+
+// ─── PROMOTIONS TAB ───────────────────────────
+function PromotionsTab() {
+  const [showForm, setShowForm]     = useState(false)
+  const [editTarget, setEditTarget] = useState(null)
+  const [deleteTarget, setDelete]   = useState(null)
+
+  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+    resolver: zodResolver(promoSchema),
+    defaultValues: { priority: 5 },
+  })
+
+  const openCreate = () => { setEditTarget(null); reset({ priority: 5 }); setShowForm(true) }
+  const openEdit   = (p) => { setEditTarget(p); reset(p); setShowForm(true) }
+
+  const onSubmit = (data) => {
+    toast.success(editTarget ? 'Đã cập nhật khuyến mãi' : 'Tạo khuyến mãi thành công')
+    setShowForm(false)
+  }
+
+  return (
+    <div className="space-y-5">
+      <div className="flex justify-between items-center">
+        <p className="text-sm text-gray-500">{MOCK_PROMOS.length} chương trình khuyến mãi</p>
+        <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate} size="sm">
+          Tạo khuyến mãi
+        </Button>
+      </div>
+
+      {/* Promo cards grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        {MOCK_PROMOS.map((promo, i) => (
+          <motion.div key={promo.id}
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.07 }}
+            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
+
+            {/* Image */}
+            <div className="relative h-36 bg-gradient-to-br from-brand-50 to-purple-50 overflow-hidden">
+              {promo.imageUrl ? (
+                <img src={promo.imageUrl} alt={promo.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Tag className="w-12 h-12 text-brand-200" />
+                </div>
+              )}
+              {/* Active badge */}
+              <div className="absolute top-2 right-2">
+                <StatusBadge label={promo.isActive ? 'Đang chạy' : 'Tạm dừng'} color={promo.isActive ? 'green' : 'gray'} />
+              </div>
+              {/* Priority badge */}
+              <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-sm text-white text-xs
+                px-2 py-0.5 rounded-full font-medium">
+                Ưu tiên {promo.priority}
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-4">
+              <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1">{promo.title}</h3>
+              <p className="text-gray-400 text-xs line-clamp-2 mb-3">{promo.description}</p>
+              <div className="flex items-center justify-between text-xs text-gray-400">
+                <span className="flex items-center gap-1">
+                  <Calendar className="w-3 h-3" />
+                  {formatDate(promo.startDate)} – {formatDate(promo.endDate)}
+                </span>
+              </div>
+              {/* Actions */}
+              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                <button onClick={() => openEdit(promo)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
+                  text-xs font-medium text-blue-600 hover:bg-blue-50 transition-all">
+                  <Edit2 className="w-3.5 h-3.5" /> Sửa
+                </button>
+                <button onClick={() => toast.success(`Đã ${promo.isActive ? 'tạm dừng' : 'kích hoạt'}`)}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                    promo.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
+                  )}>
+                  {promo.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                  {promo.isActive ? 'Tắt' : 'Bật'}
+                </button>
+                <button onClick={() => setDelete(promo)}
+                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
+                  text-xs font-medium text-red-500 hover:bg-red-50 transition-all">
+                  <Trash2 className="w-3.5 h-3.5" /> Xóa
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Form Modal */}
+      <Modal open={showForm} onClose={() => setShowForm(false)}
+        title={editTarget ? 'Chỉnh sửa khuyến mãi' : 'Tạo chương trình khuyến mãi'}
+        size="lg">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          <Field label="Tiêu đề" required error={errors.title?.message}>
+            <Input {...register('title')} error={!!errors.title} placeholder="VD: Mùa hè rực rỡ - Giảm 30%" />
+          </Field>
+          <Field label="Mô tả" required error={errors.description?.message}>
+            <Textarea {...register('description')} error={!!errors.description} rows={3}
+              placeholder="Nội dung chi tiết chương trình khuyến mãi..." />
+          </Field>
+          <Field label="URL ảnh banner" error={errors.imageUrl?.message}>
+            <Input {...register('imageUrl')} error={!!errors.imageUrl}
+              placeholder="https://example.com/banner.jpg" type="url" />
+          </Field>
+          {watch('imageUrl') && (
+            <div className="rounded-xl overflow-hidden border border-gray-200 h-32">
+              <img src={watch('imageUrl')} alt="preview" className="w-full h-full object-cover"
+                onError={e => e.target.style.display = 'none'} />
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Ngày bắt đầu" required error={errors.startDate?.message}>
+              <Input {...register('startDate')} type="date" error={!!errors.startDate} />
+            </Field>
+            <Field label="Ngày kết thúc" required error={errors.endDate?.message}>
+              <Input {...register('endDate')} type="date" error={!!errors.endDate} />
+            </Field>
+            <Field label="Link đích (URL)" error={errors.targetUrl?.message}>
+              <Input {...register('targetUrl')} placeholder="/movies hoặc /movies?promo=xxx" />
+            </Field>
+            <Field label="Độ ưu tiên (0–100)" error={errors.priority?.message}>
+              <Input {...register('priority')} type="number" min={0} max={100} placeholder="5" />
+            </Field>
+          </div>
+          <div className="flex gap-3 pt-2">
+            <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
+            <Button type="submit" className="flex-1">
+              {editTarget ? 'Lưu thay đổi' : 'Tạo khuyến mãi'}
+            </Button>
+          </div>
+        </form>
+      </Modal>
+
+      <ConfirmDialog
+        open={!!deleteTarget} onClose={() => setDelete(null)}
+        onConfirm={() => { toast.success('Đã xóa khuyến mãi'); setDelete(null) }}
+        title="Xóa khuyến mãi?" confirmLabel="Xóa"
+        message={`Xóa khuyến mãi "${deleteTarget?.title}"?`}
+      />
+    </div>
+  )
+}

@@ -30,11 +30,12 @@ export function CustomerLayout() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Close menus on route change
+  // Close menus and scroll to top on route change
   useEffect(() => {
     setMenuOpen(false);
     setUserMenu(false);
-  }, [location]);
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const navLinks = [
     { href: "/", label: "Trang chủ" },
@@ -252,17 +253,14 @@ export function CustomerLayout() {
       </header>
 
       {/* ── Page Content ── */}
-      <AnimatePresence mode="wait">
-        <motion.main
-          key={location.pathname}
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-        >
-          <Outlet />
-        </motion.main>
-      </AnimatePresence>
+      <motion.main
+        key={location.pathname}
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <Outlet />
+      </motion.main>
 
       {/* ── Footer ── */}
       <footer className="border-t border-white/5 bg-cinema-900 mt-24">

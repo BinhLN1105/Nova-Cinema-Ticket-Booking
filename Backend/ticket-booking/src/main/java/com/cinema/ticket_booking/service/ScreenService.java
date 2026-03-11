@@ -15,5 +15,7 @@ public interface ScreenService {
 
     ScreenResponse update(UUID id, ScreenRequest request);
 
+    void delete(UUID id);
+
     Screen findById(UUID id);
 }

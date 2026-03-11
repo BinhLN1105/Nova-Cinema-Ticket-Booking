@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.controller;
 
+import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
@@ -42,5 +43,14 @@ public class UserController {
             @RequestParam String token) {
         userService.updateFcmToken(currentUser.getId(), token);
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật FCM token thành công"));
+    }
+
+    // PATCH /api/v1/users/me/password
+    @PatchMapping("/me/password")
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changePassword(currentUser.getId(), request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đổi mật khẩu thành công"));
     }
 }

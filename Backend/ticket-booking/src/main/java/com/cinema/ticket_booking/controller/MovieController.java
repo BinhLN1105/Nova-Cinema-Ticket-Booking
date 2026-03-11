@@ -5,9 +5,11 @@ import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.GenreResponse;
 import com.cinema.ticket_booking.dto.response.MovieResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
+import com.cinema.ticket_booking.dto.response.ReviewResponse;
 import com.cinema.ticket_booking.enums.MovieStatus;
 import com.cinema.ticket_booking.service.GenreService;
 import com.cinema.ticket_booking.service.MovieService;
+import com.cinema.ticket_booking.service.ReviewService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -27,6 +29,7 @@ public class MovieController {
 
     private final MovieService movieService;
     private final GenreService genreService;
+    private final ReviewService reviewService;
 
     // GET /api/v1/movies?status=NOW_SHOWING&page=0&size=10
     @GetMapping
@@ -59,6 +62,16 @@ public class MovieController {
     public ResponseEntity<ApiResponse<List<MovieResponse.Summary>>> getNowShowingByCinema(
             @PathVariable UUID cinemaId) {
         return ResponseEntity.ok(ApiResponse.success(movieService.getNowShowingByCinema(cinemaId)));
+    }
+
+    // GET /api/v1/movies/{id}/reviews
+    @GetMapping("/{id}/reviews")
+    public ResponseEntity<ApiResponse<PageResponse<ReviewResponse>>> getMovieReviews(
+            @PathVariable UUID id,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(ApiResponse.success(reviewService.getByMovie(id, pageable)));
     }
 
     // POST /api/v1/movies [ADMIN]

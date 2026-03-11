@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.service;
 
 import com.cinema.ticket_booking.dto.request.ShowtimeRequest;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
 import com.cinema.ticket_booking.model.Showtime;
@@ -20,6 +21,11 @@ public interface ShowtimeService {
     SeatMapResponse getSeatMap(UUID showtimeId);
 
     ShowtimeResponse create(ShowtimeRequest request);
+
+    PageResponse<ShowtimeResponse> adminList(org.springframework.data.domain.Pageable pageable,
+                                              String cinemaId, java.time.LocalDate date);
+
+    void delete(UUID id);
 
     Showtime findById(UUID id);
 }
