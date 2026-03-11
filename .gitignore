@@ -64,6 +64,7 @@ App/**/local.properties
 App/**/keystore.properties
 App/**/*.keystore
 App/**/*.jks
+App/**/google-services.json
 
 # ==============================
 # Mac/Windows
