@@ -55,6 +55,8 @@ const PaymentPage = () =>
   lazy_(() => import("@/pages/customer/booking/PaymentPage"));
 const BookingResult = () =>
   lazy_(() => import("@/pages/customer/booking/BookingResult"));
+const CancelConfirmPage = () =>
+  lazy_(() => import("@/pages/customer/bookings/CancelConfirmPage"));
 const TicketsPage = () =>
   lazy_(() => import("@/pages/customer/tickets/TicketsPage"));
 const TicketDetail = () =>
@@ -84,6 +86,8 @@ const AdminSettings = () =>
   lazy_(() => import("@/pages/admin/settings/SettingsPage"));
 const AdminShowtimes = () =>
   lazy_(() => import("@/pages/admin/showtimes/ShowtimesPage"));
+const AdminPricingRules = () =>
+  lazy_(() => import("@/pages/admin/pricing-rules/PricingRulesPage"));
 
 // Staff
 const StaffDashboard = () =>
@@ -113,6 +117,7 @@ export const router = createBrowserRouter([
           { path: "booking/confirm", element: <ConfirmBooking /> },
           { path: "booking/payment/:id", element: <PaymentPage /> },
           { path: "booking/result", element: <BookingResult /> },
+          { path: "booking/cancel-confirm", element: <CancelConfirmPage /> },
           { path: "tickets", element: <TicketsPage /> },
           { path: "tickets/:id", element: <TicketDetail /> },
           { path: "profile", element: <ProfilePage /> },
@@ -152,6 +157,7 @@ export const router = createBrowserRouter([
           { path: "users", element: <AdminUsers /> },
           { path: 'promotions',     element: <AdminPromotions /> },
           { path: 'showtimes',      element: <AdminShowtimes /> },
+          { path: 'pricing-rules',  element: <AdminPricingRules /> },
           { path: "reports", element: <AdminReports /> },
           { path: "settings", element: <AdminSettings /> },
         ],

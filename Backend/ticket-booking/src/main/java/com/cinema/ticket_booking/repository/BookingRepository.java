@@ -59,6 +59,19 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         @Param("userId") UUID userId,
                         @Param("movieId") UUID movieId);
 
+        // ── Exp Conversion ───────────────────────────────────────────────────
+        
+        @Query("""
+            SELECT b FROM Booking b 
+            WHERE b.status = :status 
+            AND b.expAdded = false 
+            AND b.showtime.startTime < :thresholdDate
+        """)
+        List<Booking> findBookingsForExpConversion(
+            @Param("status") BookingStatus status,
+            @Param("thresholdDate") LocalDateTime thresholdDate
+        );
+
         // ── Dashboard Admin Queries ──────────────────────────────────────────
 
         @Query(value = "SELECT COALESCE(SUM(total_amount), 0) FROM bookings WHERE status = 'PAID'", nativeQuery = true)

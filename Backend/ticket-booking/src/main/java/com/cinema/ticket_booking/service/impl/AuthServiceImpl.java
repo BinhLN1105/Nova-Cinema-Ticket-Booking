@@ -211,6 +211,9 @@ public class AuthServiceImpl implements AuthService {
                 .fullName(user.getFullName())
                 .avatarUrl(user.getAvatarUrl())
                 .role(user.getRole())
+                .rewardPoints(user.getRewardPoints())
+                .availableExp(user.getAvailableExp())
+                .membershipTier(user.getMembershipTier())
                 .build();
     }
 }

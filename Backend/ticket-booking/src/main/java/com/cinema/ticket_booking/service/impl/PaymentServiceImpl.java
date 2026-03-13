@@ -11,7 +11,13 @@ import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.PaymentException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.PaymentMapper;
+import com.cinema.ticket_booking.model.Transaction;
+import com.cinema.ticket_booking.model.User;
+import com.cinema.ticket_booking.enums.TransactionType;
+import com.cinema.ticket_booking.enums.TransactionStatus;
 import com.cinema.ticket_booking.repository.PaymentRepository;
+import com.cinema.ticket_booking.repository.TransactionRepository;
+import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.service.BookingService;
 import com.cinema.ticket_booking.service.PaymentService;
 import lombok.RequiredArgsConstructor;
@@ -38,6 +44,8 @@ public class PaymentServiceImpl implements PaymentService {
     private final PaymentRepository paymentRepository;
     private final BookingService bookingService;
     private final PaymentMapper paymentMapper;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     @Value("${vnpay.tmn-code}")
     private String vnpayTmnCode;
@@ -141,6 +149,56 @@ public class PaymentServiceImpl implements PaymentService {
             log.warn("Thanh toán thất bại: {} - ResponseCode: {}", txnRef, responseCode);
         }
 
+        return paymentMapper.toResponse(payment);
+    }
+
+    @Override
+    public PaymentResponse payWithWallet(UUID userId, UUID bookingId) {
+        Booking booking = bookingService.findById(bookingId);
+
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new BadRequestException("Bạn không có quyền thanh toán đơn này");
+        }
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new BadRequestException("Đơn đặt vé không ở trạng thái chờ thanh toán");
+        }
+        if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Đơn đặt vé đã hết hạn, vui lòng đặt lại");
+        }
+
+        long pointsNeeded = booking.getTotalAmount().divide(BigDecimal.valueOf(1000)).longValue();
+        User user = booking.getUser();
+
+        if (user.getRewardPoints() < pointsNeeded) {
+            throw new BadRequestException("Số dư CinePoint không đủ để thanh toán. Vui lòng nạp thêm!");
+        }
+
+        // Trừ CinePoint
+        user.setRewardPoints(user.getRewardPoints() - pointsNeeded);
+        userRepository.save(user);
+
+        // Lưu lịch sử giao dịch Wallet
+        Transaction transaction = Transaction.builder()
+                .user(user)
+                .amount(booking.getTotalAmount())
+                .type(TransactionType.PAYMENT_CREDIT)
+                .status(TransactionStatus.SUCCESS)
+                .referenceId(booking.getBookingCode())
+                .description("Thanh toán vé bằng CinePoint")
+                .build();
+        transactionRepository.save(transaction);
+
+        // Lưu lịch sử thanh toán hóa đơn
+        Payment payment = Payment.builder()
+                .booking(booking)
+                .amount(booking.getTotalAmount())
+                .method(PaymentMethod.WALLET)
+                .status(PaymentStatus.SUCCESS)
+                .paidAt(LocalDateTime.now())
+                .build();
+        paymentRepository.save(payment);
+
+        bookingService.confirmPaid(booking.getId());
         return paymentMapper.toResponse(payment);
     }
 

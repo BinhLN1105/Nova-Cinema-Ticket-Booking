@@ -18,6 +18,7 @@ import com.cinema.ticket_booking.mapper.ShowtimeMapper;
 import com.cinema.ticket_booking.repository.SeatRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.repository.ShowtimeSeatRepository;
+import com.cinema.ticket_booking.repository.PricingRuleRepository;
 import com.cinema.ticket_booking.repository.ScreenRepository;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
@@ -43,6 +44,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final SeatRepository seatRepository;
     private final ScreenRepository screenRepository;
+    private final PricingRuleRepository pricingRuleRepository;
     private final MovieService movieService;
     private final CinemaService cinemaService;
     private final ShowtimeMapper showtimeMapper;
@@ -162,6 +164,14 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     @Override
+    public void overrideSeatPrices(UUID showtimeId, com.cinema.ticket_booking.dto.request.OverrideSeatPriceRequest request) {
+        findById(showtimeId); // Ensure showtime exists
+        List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeAndIds(showtimeId, request.getShowtimeSeatIds());
+        seats.forEach(seat -> seat.setPrice(request.getNewPrice()));
+        showtimeSeatRepository.saveAll(seats);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public Showtime findById(UUID id) {
         return showtimeRepository.findById(id)
@@ -172,19 +182,101 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     private void generateShowtimeSeats(Showtime showtime, Screen screen, BigDecimal basePrice) {
         List<Seat> seats = seatRepository.findByScreenIdAndIsActiveTrueOrderByRowLabelAscColNumberAsc(screen.getId());
+        List<com.cinema.ticket_booking.model.PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
+
+        // 1. Áp dụng Rule theo Ngày, Giờ, hoặc Sự kiện (Áp dụng chung cho cả phòng)
+        BigDecimal timeAdjustedPrice = applyTimeRules(basePrice, showtime, activeRules);
+
+        // 2. Từng ghế áp dụng Rule theo Loại Ghế
         List<ShowtimeSeat> showtimeSeats = seats.stream().map(seat -> {
-            BigDecimal price = switch (seat.getSeatType()) {
-                case VIP -> basePrice.multiply(new BigDecimal("1.5"));
-                case COUPLE -> basePrice.multiply(new BigDecimal("2.0"));
-                default -> basePrice;
-            };
+            BigDecimal finalPrice = applySeatRules(timeAdjustedPrice, seat, activeRules);
             return ShowtimeSeat.builder()
                     .showtime(showtime)
                     .seat(seat)
                     .status(SeatStatus.AVAILABLE)
-                    .price(price)
+                    .price(finalPrice)
                     .build();
         }).toList();
         showtimeSeatRepository.saveAll(showtimeSeats);
+    }
+
+    private BigDecimal applyTimeRules(BigDecimal basePrice, Showtime showtime, List<com.cinema.ticket_booking.model.PricingRule> rules) {
+        BigDecimal price = basePrice;
+        for (com.cinema.ticket_booking.model.PricingRule rule : rules) {
+            boolean apply = false;
+            switch (rule.getRuleType()) {
+                case DAY_OF_WEEK:
+                    if (showtime.getStartTime().getDayOfWeek().name().equalsIgnoreCase(rule.getConditionValue())) {
+                        apply = true;
+                    }
+                    break;
+                case TIME_FRAME:
+                    // Format ví dụ: "22:00-23:59"
+                    String[] times = rule.getConditionValue().split("-");
+                    if (times.length == 2) {
+                        try {
+                            java.time.LocalTime start = java.time.LocalTime.parse(times[0]);
+                            java.time.LocalTime end = java.time.LocalTime.parse(times[1]);
+                            java.time.LocalTime showTimeTime = showtime.getStartTime().toLocalTime();
+                            if (!showTimeTime.isBefore(start) && !showTimeTime.isAfter(end)) {
+                                apply = true;
+                            }
+                        } catch (Exception e) {
+                            // Bỏ qua lỗi parse rule
+                        }
+                    }
+                    break;
+                case DATE_RANGE:
+                    // Format: "2024-04-30,2024-05-01"
+                    String[] dates = rule.getConditionValue().split(",");
+                    if (dates.length == 2) {
+                        try {
+                            LocalDate startDate = LocalDate.parse(dates[0]);
+                            LocalDate endDate = LocalDate.parse(dates[1]);
+                            LocalDate showDate = showtime.getStartTime().toLocalDate();
+                            if (!showDate.isBefore(startDate) && !showDate.isAfter(endDate)) {
+                                apply = true;
+                            }
+                        } catch (Exception e) {}
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            if (apply) {
+                price = calculateAdjustment(price, rule);
+            }
+        }
+        return price;
+    }
+
+    private BigDecimal applySeatRules(BigDecimal timeAdjustedPrice, Seat seat, List<com.cinema.ticket_booking.model.PricingRule> rules) {
+        BigDecimal price = timeAdjustedPrice;
+        for (com.cinema.ticket_booking.model.PricingRule rule : rules) {
+            if (rule.getRuleType() == com.cinema.ticket_booking.enums.PricingRuleType.SEAT_TYPE) {
+                if (seat.getSeatType().name().equalsIgnoreCase(rule.getConditionValue())) {
+                    price = calculateAdjustment(price, rule);
+                }
+            }
+        }
+        return price;
+    }
+
+    private BigDecimal calculateAdjustment(BigDecimal currentPrice, com.cinema.ticket_booking.model.PricingRule rule) {
+        switch (rule.getAdjustmentType()) {
+            case PERCENTAGE:
+                // Giảm/tăng %
+                BigDecimal multiplier = BigDecimal.ONE.add(rule.getAdjustmentValue().divide(BigDecimal.valueOf(100)));
+                return currentPrice.multiply(multiplier);
+            case FIXED_AMOUNT:
+                // Cộng/trừ tiền trực tiếp
+                return currentPrice.add(rule.getAdjustmentValue());
+            case MULTIPLIER:
+                // Nhân hệ số
+                return currentPrice.multiply(rule.getAdjustmentValue());
+            default:
+                return currentPrice;
+        }
     }
 }

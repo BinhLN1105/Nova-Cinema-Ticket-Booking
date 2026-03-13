@@ -73,4 +73,9 @@ public class UserServiceImpl implements UserService {
         return userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Người dùng", userId));
     }
+
+    @Override
+    public void save(User user) {
+        userRepository.save(user);
+    }
 }

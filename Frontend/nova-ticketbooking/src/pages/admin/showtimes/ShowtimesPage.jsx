@@ -1,12 +1,14 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Calendar, Clock, Film, MapPin, Users, DollarSign, ChevronDown, ChevronUp } from 'lucide-react'
+import { Plus, Trash2, Calendar, Clock, Film, MapPin, Users, DollarSign, ChevronDown, ChevronUp, LayoutGrid, GanttChart } from 'lucide-react'
 import { showtimeApi, movieApi, cinemaApi } from '@/api/endpoints'
 import { PageHeader } from '@/components/common/ui/AdminTable'
 import { Modal } from '@/components/common/ui/Modal'
 import { Button } from '@/components/common/ui/FormElements'
 import { formatCurrency, formatDateTime } from '@/utils'
 import toast from 'react-hot-toast'
+import PricingOverrideModal from './PricingOverrideModal'
+import GanttTimeline from './GanttTimeline'
 
 const STATUS_BADGE = {
   SCHEDULED:  { label: 'Sắp chiếu',   cls: 'bg-blue-50 text-blue-600 border-blue-100' },
@@ -138,8 +140,15 @@ function CinemaShowtimesList({ cinema, onOpenCreate, onOpenDelete }) {
                             <p className="flex items-center gap-1.5"><DollarSign className="w-3.5 h-3.5 text-gray-400"/> {formatCurrency(s.basePrice)}</p>
                           </div>
                           
-                          {/* Delete overlay */}
-                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Action overlay */}
+                          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-1">
+                            <button 
+                              onClick={() => window.dispatchEvent(new CustomEvent('open-override-price', { detail: s.id }))}
+                              className="w-8 h-8 flex items-center justify-center bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-500 hover:text-white transition-colors"
+                              title="Tùy chỉnh giá ghế"
+                            >
+                              <DollarSign className="w-4 h-4" />
+                            </button>
                             <button 
                               onClick={() => onOpenDelete(s)}
                               className="w-8 h-8 flex items-center justify-center bg-red-100 text-red-600 rounded-lg hover:bg-red-500 hover:text-white transition-colors"
@@ -166,6 +175,16 @@ export default function ShowtimesPage() {
   const qc = useQueryClient()
   const [showCreate, setShowCreate] = useState(false)
   const [delTarget, setDelTarget] = useState(null)
+  const [overrideShowtimeId, setOverrideShowtimeId] = useState(null)
+  const [viewMode, setViewMode] = useState('cards') // 'cards' | 'gantt'
+  const [ganttDate, setGanttDate] = useState(new Date().toISOString().split('T')[0])
+
+  // Listen to custom event from child components
+  useEffect(() => {
+    const handleOpen = (e) => setOverrideShowtimeId(e.detail)
+    window.addEventListener('open-override-price', handleOpen)
+    return () => window.removeEventListener('open-override-price', handleOpen)
+  }, [])
 
   // Form state
   const [movieId, setMovieId] = useState('')
@@ -238,27 +257,59 @@ export default function ShowtimesPage() {
         title="Quản lý suất chiếu"
         subtitle="Hiển thị theo rạp"
         action={
-          <Button onClick={() => handleOpenCreate('')} leftIcon={<Plus className="w-4 h-4" />}>
-            Thêm suất chiếu
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex bg-gray-100 p-0.5 rounded-lg">
+              <button
+                onClick={() => setViewMode('cards')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  viewMode === 'cards' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <LayoutGrid className="w-4 h-4" /> Thẻ
+              </button>
+              <button
+                onClick={() => setViewMode('gantt')}
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all flex items-center gap-1.5 ${
+                  viewMode === 'gantt' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                <GanttChart className="w-4 h-4" /> Timeline
+              </button>
+            </div>
+            {viewMode === 'gantt' && (
+              <input
+                type="date"
+                value={ganttDate}
+                onChange={(e) => setGanttDate(e.target.value)}
+                className="px-3 py-1.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20"
+              />
+            )}
+            <Button onClick={() => handleOpenCreate('')} leftIcon={<Plus className="w-4 h-4" />}>
+              Thêm suất chiếu
+            </Button>
+          </div>
         }
       />
 
-      {/* Main Content: Cinema Accordions */}
+      {/* Main Content */}
       <div className="max-w-7xl mx-auto">
-        {loadingCinemas ? (
-          <div className="py-12 text-center text-gray-500">Đang tải danh sách rạp...</div>
-        ) : cinemasData?.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">Chưa có rạp chiếu phim nào.</div>
+        {viewMode === 'gantt' ? (
+          <GanttTimeline date={ganttDate} />
         ) : (
-          cinemasData.map(cinema => (
-            <CinemaShowtimesList 
-              key={cinema.id} 
-              cinema={cinema} 
-              onOpenCreate={handleOpenCreate}
-              onOpenDelete={setDelTarget}
-            />
-          ))
+          loadingCinemas ? (
+            <div className="py-12 text-center text-gray-500">Đang tải danh sách rạp...</div>
+          ) : cinemasData?.length === 0 ? (
+            <div className="py-12 text-center text-gray-500">Chưa có rạp chiếu phim nào.</div>
+          ) : (
+            cinemasData.map(cinema => (
+              <CinemaShowtimesList 
+                key={cinema.id} 
+                cinema={cinema} 
+                onOpenCreate={handleOpenCreate}
+                onOpenDelete={setDelTarget}
+              />
+            ))
+          )
         )}
       </div>
 
@@ -352,6 +403,17 @@ export default function ShowtimesPage() {
           </button>
         </div>
       </Modal>
+
+      {overrideShowtimeId && (
+        <PricingOverrideModal 
+          showtimeId={overrideShowtimeId}
+          onClose={() => setOverrideShowtimeId(null)}
+          onSuccess={() => {
+            setOverrideShowtimeId(null)
+            qc.invalidateQueries({ queryKey: ['admin-showtimes'] })
+          }}
+        />
+      )}
     </div>
   )
 }

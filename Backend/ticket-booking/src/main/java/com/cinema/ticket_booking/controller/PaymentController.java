@@ -37,6 +37,15 @@ public class PaymentController {
                                 "Vui lòng mở paymentUrl để thanh toán qua VNPay"));
         }
 
+        // POST /api/v1/payments/wallet/{bookingId}
+        @PostMapping("/payments/wallet/{bookingId}")
+        public ResponseEntity<ApiResponse<PaymentResponse>> payWithWallet(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable UUID bookingId) {
+                PaymentResponse data = paymentService.payWithWallet(currentUser.getId(), bookingId);
+                return ResponseEntity.ok(ApiResponse.success(data, "Thanh toán bằng CinePoint thành công"));
+        }
+
         // GET /api/v1/payments/vnpay/callback hoặc /api/v1/payment/vnpay-return
         // Endpoint này PUBLIC (không cần token) vì VNPay gọi từ trình duyệt
         @GetMapping({"/payments/vnpay/callback", "/payment/vnpay-return"})

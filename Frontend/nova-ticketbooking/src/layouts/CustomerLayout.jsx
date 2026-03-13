@@ -144,9 +144,31 @@ export function CustomerLayout() {
                         <User className="w-4 h-4 text-brand-400" />
                       )}
                     </div>
-                    <span className="hidden sm:block text-sm font-medium max-w-[100px] truncate">
-                      {user?.fullName}
-                    </span>
+                    <div className="hidden sm:flex flex-col items-start justify-center mr-1">
+                      <span className="text-sm font-medium max-w-[120px] truncate leading-tight">
+                        {user?.fullName}
+                      </span>
+                      <div className="flex items-center gap-1.5 mt-0.5">
+                        <span
+                          className={cn(
+                            "text-[10px] font-bold px-1.5 py-[1px] rounded uppercase border",
+                            user?.membershipTier === "DIAMOND"
+                              ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                              : user?.membershipTier === "GOLD"
+                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                : user?.membershipTier === "SILVER"
+                                  ? "bg-slate-300/20 text-slate-300 border-slate-300/30"
+                                  : "bg-orange-500/20 text-orange-400 border-orange-500/30"
+                          )}
+                        >
+                          {user?.membershipTier || "BRONZE"}
+                        </span>
+                        <span className="text-[10px] font-medium text-cinema-300 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                          {user?.rewardPoints || 0} CP
+                        </span>
+                      </div>
+                    </div>
                     <ChevronDown
                       className={cn(
                         "w-4 h-4 text-cinema-300 transition-transform duration-200",
@@ -165,6 +187,13 @@ export function CustomerLayout() {
                         className="absolute right-0 top-full mt-2 w-48 rounded-2xl
                           glass-dark border border-white/8 overflow-hidden shadow-card-float"
                       >
+                        <div className="px-4 py-3 border-b border-white/6 mb-1 bg-white/[0.02]">
+                          <p className="text-xs text-cinema-300 mb-1">CinePoint</p>
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-lg font-bold text-brand-400">{user?.rewardPoints || 0}</span>
+                            <span className="text-xs font-medium text-cinema-400">CP</span>
+                          </div>
+                        </div>
                         <Link
                           to="/profile"
                           className="flex items-center gap-3 px-4 py-3 text-sm

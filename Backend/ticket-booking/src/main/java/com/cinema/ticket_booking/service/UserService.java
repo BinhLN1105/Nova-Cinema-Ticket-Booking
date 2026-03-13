@@ -19,4 +19,6 @@ public interface UserService {
 
     // Dùng nội bộ trong các Service khác
     User findById(UUID userId);
+
+    void save(User user);
 }

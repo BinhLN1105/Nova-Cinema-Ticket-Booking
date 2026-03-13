@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.model;
 
 import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.UserRole;
+import com.cinema.ticket_booking.enums.MembershipTier;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -58,6 +59,22 @@ public class User {
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
+
+    // Loyalty points earned from ticket cancellations or purchases
+    @Column(name = "reward_points", nullable = false, columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long rewardPoints = 0L;
+
+    // Actual experience points for tier upgrading
+    @Column(name = "available_exp", nullable = false, columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long availableExp = 0L;
+
+    // Membership tier mapping from available_exp
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_tier", nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'BRONZE'")
+    @Builder.Default
+    private MembershipTier membershipTier = MembershipTier.BRONZE;
 
     // Firebase Cloud Messaging token cho Push Notification
     @Column(name = "fcm_token", columnDefinition = "TEXT")

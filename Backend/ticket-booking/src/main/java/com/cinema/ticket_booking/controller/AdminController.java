@@ -13,6 +13,8 @@ import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.service.DashboardService;
+import com.cinema.ticket_booking.service.AnalyticsService;
+import com.cinema.ticket_booking.dto.response.AnalyticsResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,6 +39,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final DashboardService dashboardService;
+    private final AnalyticsService analyticsService;
     private final UserRepository userRepository;
     private final BookingRepository bookingRepository;
 
@@ -72,6 +75,11 @@ public class AdminController {
             result.add(new RevenueByDay(d.format(DateTimeFormatter.ISO_DATE), dayRev));
         }
         return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    @GetMapping("/dashboard/analytics")
+    public ResponseEntity<ApiResponse<AnalyticsResponse>> getAnalytics() {
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getAnalytics(), "Lấy dữ liệu phân tích thành công"));
     }
 
     // ── Users (Admin) ────────────────────────────────────────────────────

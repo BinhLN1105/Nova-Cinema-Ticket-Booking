@@ -12,5 +12,7 @@ public interface PaymentService {
 
     PaymentResponse handleVnpayCallback(Map<String, String> params);
 
+    PaymentResponse payWithWallet(UUID userId, UUID bookingId);
+
     PaymentResponse getByBookingId(UUID bookingId);
 }

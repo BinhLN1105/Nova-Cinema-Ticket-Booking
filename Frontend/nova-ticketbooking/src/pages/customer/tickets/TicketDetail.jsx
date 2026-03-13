@@ -1,8 +1,9 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck } from 'lucide-react'
 import { bookingApi } from '@/api/endpoints'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import toast from 'react-hot-toast'
@@ -10,6 +11,7 @@ import toast from 'react-hot-toast'
 export default function TicketDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [copied, setCopied] = useState(false)
 
   const { data: booking, refetch, isLoading } = useQuery({
     queryKey: ['booking', id],
@@ -18,9 +20,39 @@ export default function TicketDetail() {
   })
 
   const cancelMutation = useMutation({
-    mutationFn: () => bookingApi.cancel(id),
-    onSuccess: () => { toast.success('Đã hủy vé'); refetch() },
+    mutationFn: () => bookingApi.cancelRequest(id),
+    onSuccess: () => { toast.success('Đã gửi yêu cầu huỷ vé. Vui lòng kiểm tra email của bạn để xác nhận.'); refetch() },
+    onError: (err) => { toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi huỷ vé'); }
   })
+
+  const ticketUrl = `${window.location.origin}/tickets/${id}`
+
+  const copyLink = async () => {
+    await navigator.clipboard.writeText(ticketUrl)
+    setCopied(true)
+    toast.success('Đã sao chép link vé!')
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  const shareNative = async () => {
+    if (navigator.share) {
+      await navigator.share({
+        title: `Vé xem phim: ${booking?.movieTitle}`,
+        text: `Mình vừa đặt vé xem ${booking?.movieTitle} tại ${booking?.cinemaName}. Xem vé tại link:`,
+        url: ticketUrl,
+      })
+    } else {
+      copyLink()
+    }
+  }
+
+  const shareZalo = () => {
+    window.open(`https://zalo.me/share/oa?url=${encodeURIComponent(ticketUrl)}`, '_blank')
+  }
+
+  const shareFacebook = () => {
+    window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(ticketUrl)}`, '_blank', 'width=600,height=400')
+  }
 
   if (isLoading) return (
     <div className="min-h-screen bg-cinema-900 pt-24 flex items-center justify-center">
@@ -108,6 +140,46 @@ export default function TicketDetail() {
                   Xuất trình mã QR này tại quầy để check-in
                 </p>
                 <p className="text-cinema-600 font-mono text-xs mt-1">{booking.bookingCode}</p>
+
+                {/* Share buttons */}
+                <div className="w-full mt-5 pt-4 border-t border-cinema-700/50">
+                  <p className="text-cinema-400 text-xs text-center mb-3 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                    <Share2 className="w-3.5 h-3.5" /> Chia sẻ vé
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {/* Copy Link */}
+                    <button onClick={copyLink}
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      {copied
+                        ? <CheckCheck className="w-5 h-5 text-green-400" />
+                        : <Copy className="w-5 h-5 text-cinema-300" />}
+                      <span className="text-[10px] text-cinema-400">{copied ? 'Đã chép' : 'Sao chép'}</span>
+                    </button>
+                    {/* Zalo */}
+                    <button onClick={shareZalo}
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                        <rect width="24" height="24" rx="6" fill="#0068FF"/>
+                        <text x="3" y="17" fontSize="11" fontWeight="bold" fill="white">Za</text>
+                      </svg>
+                      <span className="text-[10px] text-cinema-400">Zalo</span>
+                    </button>
+                    {/* Facebook */}
+                    <button onClick={shareFacebook}
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                      </svg>
+                      <span className="text-[10px] text-cinema-400">Facebook</span>
+                    </button>
+                    {/* Native Share / More */}
+                    <button onClick={shareNative}
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      <Share2 className="w-5 h-5 text-cinema-300" />
+                      <span className="text-[10px] text-cinema-400">Khác</span>
+                    </button>
+                  </div>
+                </div>
               </>
             ) : (
               <div className="text-center py-4">
@@ -133,7 +205,7 @@ export default function TicketDetail() {
         </div>
 
         {/* Cancel */}
-        {booking.status === 'PENDING' && (
+        {booking.status === 'PAID' && (
           <button onClick={() => cancelMutation.mutate()}
             disabled={cancelMutation.isPending}
             className="w-full mt-4 flex items-center justify-center gap-2 py-3

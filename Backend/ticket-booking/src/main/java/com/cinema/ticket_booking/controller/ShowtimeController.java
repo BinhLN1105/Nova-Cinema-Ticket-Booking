@@ -79,4 +79,14 @@ public class ShowtimeController {
         showtimeService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã xoá suất chiếu"));
     }
+
+    // PUT /api/v1/showtimes/{id}/seats/price [ADMIN]
+    @PutMapping("/{id}/seats/price")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> overrideSeatPrices(
+            @PathVariable UUID id,
+            @Valid @RequestBody com.cinema.ticket_booking.dto.request.OverrideSeatPriceRequest request) {
+        showtimeService.overrideSeatPrices(id, request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật giá ghế thủ công thành công"));
+    }
 }

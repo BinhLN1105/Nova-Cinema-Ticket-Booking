@@ -59,13 +59,22 @@ public class BookingController {
                                 bookingService.getDetail(currentUser.getId(), id)));
         }
 
-        // DELETE /api/v1/bookings/{id} hoặc PATCH /api/v1/bookings/{id}/cancel — huỷ đơn (chỉ khi PENDING)
-        @RequestMapping(value = {"/{id}", "/{id}/cancel"}, method = {RequestMethod.DELETE, RequestMethod.PATCH})
-        public ResponseEntity<ApiResponse<Void>> cancelBooking(
+        // POST /api/v1/bookings/{id}/cancel-request — Yêu cầu huỷ đơn vé đã thanh toán
+        @PostMapping("/{id}/cancel-request")
+        public ResponseEntity<ApiResponse<Void>> requestCancelBooking(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID id) {
-                bookingService.cancelBooking(currentUser.getId(), id);
-                return ResponseEntity.ok(ApiResponse.success(null, "Huỷ đơn thành công"));
+                bookingService.requestCancelBooking(currentUser.getId(), id);
+                return ResponseEntity.ok(ApiResponse.success(null, "Yêu cầu huỷ vé thành công. Vui lòng kiểm tra email để xác nhận."));
+        }
+
+        // POST /api/v1/bookings/cancel-confirm — Xác nhận huỷ vé qua token email
+        @PostMapping("/cancel-confirm")
+        public ResponseEntity<ApiResponse<Void>> confirmCancelBooking(
+                        @RequestParam String token,
+                        @RequestParam UUID bookingId) {
+                bookingService.confirmCancelBooking(token, bookingId);
+                return ResponseEntity.ok(ApiResponse.success(null, "Xác nhận huỷ vé thành công. CinePoint đã được cộng vào tài khoản của bạn."));
         }
 
         // POST /api/v1/bookings/check-in [STAFF, ADMIN] — quét QR tại rạp

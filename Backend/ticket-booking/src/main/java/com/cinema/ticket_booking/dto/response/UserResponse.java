@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.dto.response;
 
 import com.cinema.ticket_booking.enums.AuthProvider;
+import com.cinema.ticket_booking.enums.MembershipTier;
 import com.cinema.ticket_booking.enums.UserRole;
 import lombok.Builder;
 import lombok.Data;
@@ -19,5 +20,8 @@ public class UserResponse {
     private UserRole role;
     private AuthProvider authProvider;
     private Boolean isActive;
+    private Long rewardPoints;
+    private Long availableExp;
+    private MembershipTier membershipTier;
     private LocalDateTime createdAt;
 }

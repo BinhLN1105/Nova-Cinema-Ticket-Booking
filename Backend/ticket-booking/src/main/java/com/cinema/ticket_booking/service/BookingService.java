@@ -20,7 +20,9 @@ public interface BookingService {
 
     void confirmPaid(UUID bookingId);
 
-    void cancelBooking(UUID userId, UUID bookingId);
+    void requestCancelBooking(UUID userId, UUID bookingId);
+
+    void confirmCancelBooking(String token, UUID bookingId);
 
     Booking findById(UUID id);
 }

@@ -53,6 +53,8 @@ export const showtimeApi = {
   getAll: (params) => api.get("/showtimes/admin", params),
   create: (data) => api.post("/showtimes", data),
   delete: (id) => api.delete(`/showtimes/${id}`),
+  overrideSeatPrices: (id, showtimeSeatIds, newPrice) => 
+    api.put(`/showtimes/${id}/seats/price`, { showtimeSeatIds, newPrice })
 };
 
 // ── Vouchers ──────────────────────────────────
@@ -65,9 +67,11 @@ export const bookingApi = {
   create: (data) => api.post("/bookings", data),
   getMyAll: (page = 0, size = 10) => api.get("/bookings/me", { page, size }),
   getById: (id) => api.get(`/bookings/${id}`),
-  cancel: (id) => api.patch(`/bookings/${id}/cancel`),
+  cancelRequest: (id) => api.post(`/bookings/${id}/cancel-request`),
+  cancelConfirm: (token, bookingId) => api.post(`/bookings/cancel-confirm?token=${token}&bookingId=${bookingId}`),
   createPayment: (bookingId) =>
     api.post(`/payments`, { bookingId }),
+  payWithWallet: (bookingId) => api.post(`/payments/wallet/${bookingId}`),
   // Admin/Staff
   getAll: (params) => api.get("/admin/bookings", params),
   verifyQr: (qrCode) => api.post("/staff/bookings/verify", { qrCode }),
@@ -102,6 +106,7 @@ export const userApi = {
 export const dashboardApi = {
   getStats: () => api.get("/admin/dashboard/stats"),
   getRevenue: (period) => api.get(`/admin/dashboard/revenue`, { period }),
+  getAnalytics: () => api.get("/admin/dashboard/analytics"),
 };
 
 // ── Vouchers (Admin) ──────────────────────────
@@ -125,4 +130,19 @@ export const promotionApi = {
   update:    (id, data) => api.put(`/admin/promotions/${id}`, data),
   delete:    (id)     => api.delete(`/admin/promotions/${id}`),
   toggleActive: (id)  => api.patch(`/admin/promotions/${id}/toggle`),
+};
+
+// ── Pricing Rules ─────────────────────────────
+export const ruleApi = {
+  getAll: (params) => api.get('/admin/pricing-rules', params),
+  getById: (id) => api.get(`/admin/pricing-rules/${id}`),
+  create: (data) => api.post('/admin/pricing-rules', data),
+  update: (id, data) => api.put(`/admin/pricing-rules/${id}`, data),
+  delete: (id) => api.delete(`/admin/pricing-rules/${id}`),
+  toggleActive: (id) => api.patch(`/admin/pricing-rules/${id}/toggle`),
+};
+
+// ── Wallet ────────────────────────────────────
+export const walletApi = {
+  topup: (amount) => api.post("/wallet/topup", { amount }),
 };

@@ -3,11 +3,14 @@ import { useQuery } from "@tanstack/react-query";
 import {
   AreaChart,
   Area,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  Cell,
 } from "recharts";
 import {
   TrendingUp,
@@ -16,6 +19,9 @@ import {
   Ticket,
   Film,
   Users,
+  Clock,
+  Building2,
+  BarChart3,
 } from "lucide-react";
 import { dashboardApi } from "@/api/endpoints";
 import {
@@ -66,6 +72,15 @@ export default function AdminDashboard() {
     queryFn: dashboardApi.getStats,
     refetchInterval: 60_000,
   });
+
+  const { data: analytics, isLoading: analyticsLoading } = useQuery({
+    queryKey: ["admin", "analytics"],
+    queryFn: dashboardApi.getAnalytics,
+    refetchInterval: 120_000,
+  });
+
+  const PEAK_COLORS = ["#374151", "#4b5563", "#6b7280", "#9ca3af", "#E50914", "#dc2626", "#ef4444", "#f87171"];
+  const BAR_COLORS = ["#E50914", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"];
 
   const STATS = stats
     ? [
@@ -281,6 +296,98 @@ export default function AdminDashboard() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ── Advanced Analytics ─────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Peak Hours */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-brand-500" />
+            <h2 className="font-bold text-gray-900">Giờ vàng (Golden Hours)</h2>
+          </div>
+          <p className="text-sm text-gray-400 mb-5">Khung giờ có nhiều lượt đặt vé nhất</p>
+          {analyticsLoading ? (
+            <div className="skeleton h-52 rounded-xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={analytics?.peakHours?.filter(h => h.bookingCount > 0)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis dataKey="hour" tickFormatter={h => `${h}h`} tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                <YAxis tick={{ fontSize: 11, fill: "#9ca3af" }} axisLine={false} tickLine={false} />
+                <Tooltip labelFormatter={h => `${h}:00`} formatter={v => [v, "Lượt đặt"]} 
+                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }} />
+                <Bar dataKey="bookingCount" radius={[6, 6, 0, 0]}>
+                  {analytics?.peakHours?.filter(h => h.bookingCount > 0).map((_, i) => (
+                    <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+
+        {/* Revenue by Cinema */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="w-4 h-4 text-brand-500" />
+            <h2 className="font-bold text-gray-900">Doanh thu theo rạp</h2>
+          </div>
+          <p className="text-sm text-gray-400 mb-5">So sánh doanh thu giữa các rạp chiếu</p>
+          {analyticsLoading ? (
+            <div className="skeleton h-52 rounded-xl" />
+          ) : (
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={analytics?.revenueByCinema} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                <XAxis type="number" tickFormatter={v => formatCompactCurrency(v)} tick={{ fontSize: 11, fill: "#9ca3af" }} />
+                <YAxis type="category" dataKey="cinemaName" width={120} tick={{ fontSize: 11, fill: "#374151" }} />
+                <Tooltip formatter={v => [formatCurrency(v), "Doanh thu"]} 
+                  contentStyle={{ borderRadius: 12, border: "none", boxShadow: "0 4px 24px rgba(0,0,0,0.1)" }} />
+                <Bar dataKey="revenue" radius={[0, 6, 6, 0]}>
+                  {analytics?.revenueByCinema?.map((_, i) => (
+                    <Cell key={i} fill={BAR_COLORS[i % BAR_COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </div>
+      </div>
+
+      {/* Occupancy */}
+      <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart3 className="w-4 h-4 text-brand-500" />
+          <h2 className="font-bold text-gray-900">Tỷ lệ lấp đầy phòng chiếu</h2>
+        </div>
+        <p className="text-sm text-gray-400 mb-5">Occupancy rate theo từng rạp</p>
+        {analyticsLoading ? (
+          <div className="skeleton h-32 rounded-xl" />
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {analytics?.occupancyByCinema?.map((item, i) => (
+              <div key={i} className="p-4 rounded-xl bg-gray-50 border border-gray-100">
+                <p className="font-semibold text-gray-800 text-sm mb-2">{item.cinemaName}</p>
+                <div className="w-full bg-gray-200 rounded-full h-3 mb-2">
+                  <div
+                    className="h-3 rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(item.occupancyRate, 100)}%`,
+                      backgroundColor: item.occupancyRate > 80 ? '#E50914' : item.occupancyRate > 50 ? '#f97316' : '#22c55e'
+                    }}
+                  />
+                </div>
+                <div className="flex justify-between text-xs text-gray-500">
+                  <span>{item.bookedSeats}/{item.totalSeats} ghế</span>
+                  <span className="font-bold" style={{
+                    color: item.occupancyRate > 80 ? '#E50914' : item.occupancyRate > 50 ? '#f97316' : '#22c55e'
+                  }}>{item.occupancyRate}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

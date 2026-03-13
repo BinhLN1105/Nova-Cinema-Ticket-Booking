@@ -60,7 +60,7 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // VNPay callback không mang token
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay-return", "/api/v1/payments/vnpay/callback")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay-return", "/api/v1/payments/vnpay/callback", "/api/v1/wallet/vnpay-return")
                                                 .permitAll()
 
                                                 // Swagger / Actuator (dev)

@@ -23,5 +23,8 @@ public class AuthResponse {
         private String fullName;
         private String avatarUrl;
         private UserRole role;
+        private Long rewardPoints;
+        private Long availableExp;
+        private com.cinema.ticket_booking.enums.MembershipTier membershipTier;
     }
 }

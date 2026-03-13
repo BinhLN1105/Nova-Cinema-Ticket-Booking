@@ -5,6 +5,7 @@ import com.cinema.ticket_booking.service.VoucherService;
 import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import com.cinema.ticket_booking.service.QrCodeService;
+import com.cinema.ticket_booking.service.EmailService;
 import com.cinema.ticket_booking.dto.request.BookingRequest;
 import com.cinema.ticket_booking.dto.response.BookingResponse;
 import com.cinema.ticket_booking.dto.response.CheckInResponse;
@@ -27,7 +28,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 @RequiredArgsConstructor
@@ -43,6 +43,7 @@ public class BookingServiceImpl implements BookingService {
     private final ShowtimeService showtimeService;
     private final VoucherService voucherService;
     private final QrCodeService qrCodeService;
+    private final EmailService emailService;
     private final BookingMapper bookingMapper;
 
     @Value("${app.booking.pending-minutes:10}")
@@ -122,6 +123,8 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal totalAmount = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
 
+        long pendingExp = totalAmount.divide(BigDecimal.valueOf(1000)).longValue();
+
         // ── 3. Tạo Booking ────────────────────────────────────────────────
         Booking booking = Booking.builder()
                 .user(user)
@@ -132,6 +135,8 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
                 .expiresAt(lockUntil)
+                .pendingExp(pendingExp)
+                .expAdded(false)
                 .build();
         bookingRepository.save(booking);
 
@@ -270,18 +275,64 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public void cancelBooking(UUID userId, UUID bookingId) {
+    public void requestCancelBooking(UUID userId, UUID bookingId) {
         Booking booking = findById(bookingId);
         if (!booking.getUser().getId().equals(userId)) {
             throw new BadRequestException("Bạn không có quyền huỷ đơn đặt vé này");
         }
-        if (booking.getStatus() != BookingStatus.PENDING) {
-            throw new BadRequestException("Chỉ có thể huỷ đơn ở trạng thái PENDING");
+        if (booking.getStatus() != BookingStatus.PAID) {
+            throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
         }
-        releaseSeats(bookingId);
-        booking.setStatus(BookingStatus.CANCELLED);
+        
+        // Điều kiện huỷ vé: trước giờ chiếu 2 tiếng
+        LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
+        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(2))) {
+            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất 2 tiếng");
+        }
+
+        // Tạo cancellation token hết hạn sau 15 phút
+        String token = UUID.randomUUID().toString();
+        booking.setCancellationToken(token);
+        booking.setCancellationTokenExpiry(LocalDateTime.now().plusMinutes(15));
         bookingRepository.save(booking);
+
+        // Gửi email
+        emailService.sendCancellationConfirmEmail(booking, token);
     }
+
+    @Override
+    public void confirmCancelBooking(String token, UUID bookingId) {
+        Booking booking = findById(bookingId);
+
+        // Verify token
+        if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
+            throw new BadRequestException("Mã xác nhận huỷ vé không hợp lệ");
+        }
+        if (booking.getCancellationTokenExpiry() != null && LocalDateTime.now().isAfter(booking.getCancellationTokenExpiry())) {
+            throw new BadRequestException("Mã xác nhận huỷ vé đã hết hạn");
+        }
+        if (booking.getStatus() != BookingStatus.PAID) {
+            throw new BadRequestException("Trạng thái đơn vé không hợp lệ");
+        }
+
+        // 1. Nhả ghế
+        releaseSeats(bookingId);
+
+        // 2. Cập nhật booking status
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationToken(null);
+        booking.setCancellationTokenExpiry(null);
+        booking.setPendingExp(0L); // Cancel points
+        bookingRepository.save(booking);
+
+        // 3. Hoàn CinePoint cho user (tỷ lệ 1000 VNĐ = 1 CinePoint)
+        User user = booking.getUser();
+        long rewardPointsToAdd = booking.getTotalAmount().longValue() / 1000;
+        user.setRewardPoints(user.getRewardPoints() + rewardPointsToAdd);
+        userService.save(user); // Giả sử userService có method save(User user), nếu không thì dùng userRepository.save() (tuy nhiên UserService trong service nên call save ở đó, hoặc tạo phương thức updateUser bên UserService)
+    }
+
+
 
     // ── Private ───────────────────────────────────────────────────────────
 

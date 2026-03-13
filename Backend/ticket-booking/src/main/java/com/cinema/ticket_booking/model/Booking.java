@@ -64,6 +64,14 @@ public class Booking {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
+    @Column(name = "pending_exp")
+    @Builder.Default
+    private Long pendingExp = 0L;
+
+    @Column(name = "exp_added")
+    @Builder.Default
+    private Boolean expAdded = false;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -71,6 +79,13 @@ public class Booking {
     // Thời hạn thanh toán khi status = PENDING
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
+
+    // Dùng để xác nhận hủy vé qua email
+    @Column(name = "cancellation_token", length = 100)
+    private String cancellationToken;
+
+    @Column(name = "cancellation_token_expiry")
+    private LocalDateTime cancellationTokenExpiry;
 
     @OneToMany(mappedBy = "booking", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default

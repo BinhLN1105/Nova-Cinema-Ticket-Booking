@@ -16,6 +16,7 @@ import {
   Bell,
   Search,
   Clock,
+  Tags,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
@@ -26,6 +27,7 @@ const NAV_ITEMS = [
   { href: "/admin/movies", icon: Film, label: "Phim" },
   { href: "/admin/cinemas", icon: Building2, label: "Rạp chiếu" },
   { href: "/admin/showtimes", icon: Clock, label: "Suất chiếu" },
+  { href: "/admin/pricing-rules", icon: Tags, label: "Quy tắc giá" },
   { href: "/admin/bookings", icon: CalendarCheck, label: "Đặt vé" },
   { href: "/admin/users", icon: Users, label: "Người dùng" },
   { href: "/admin/reports", icon: BarChart3, label: "Báo cáo" },

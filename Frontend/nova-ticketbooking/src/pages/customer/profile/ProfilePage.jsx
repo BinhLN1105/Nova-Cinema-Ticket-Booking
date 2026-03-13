@@ -1,7 +1,7 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette } from 'lucide-react'
+import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard } from 'lucide-react'
 import { bookingApi, notificationApi } from '@/api/endpoints'
 import { api } from '@/api/client'
 import { SecurityTab } from '@/components/customer/SecurityTab'
@@ -10,6 +10,8 @@ import { useAuth } from '@/hooks'
 import { formatDate, formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
+import { TopUpModal } from './TopUpModal'
+import { useSearchParams } from 'react-router-dom'
 
 const TABS = [
   { id: 'profile',       label: 'Thông tin',    icon: User },
@@ -33,7 +35,22 @@ export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false)
   const [fullName, setFullName] = useState(user?.fullName ?? '')
   const [phone, setPhone] = useState(user?.phone ?? '')
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false)
   const setUser = useAuthStore(s => s.setUser)
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  useEffect(() => {
+    const topupStatus = searchParams.get('topup')
+    if (topupStatus === 'success') {
+      toast.success('Nạp CinePoint thành công!')
+      // Xóa query param để không hiện toast liên tục khi reload
+      setSearchParams({})
+      api.get('/auth/me').then(res => setUser(res))
+    } else if (topupStatus === 'failed') {
+      toast.error('Nạp CinePoint thất bại')
+      setSearchParams({})
+    }
+  }, [searchParams, setSearchParams, setUser])
 
   // Tickets
   const { data: ticketsData, isLoading: ticketsLoading } = useQuery({
@@ -81,8 +98,40 @@ export default function ProfilePage() {
             </div>
           </div>
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">{user?.fullName}</h1>
+            <h1 className="font-display text-2xl font-bold text-white flex items-center gap-3">
+              {user?.fullName}
+              <span className={cn(
+                "px-2.5 py-1 text-xs font-bold rounded-lg uppercase tracking-wider backdrop-blur-sm border",
+                user?.membershipTier === 'DIAMOND' ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30 shadow-[0_0_10px_rgba(34,211,238,0.3)]" :
+                user?.membershipTier === 'GOLD' ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" :
+                user?.membershipTier === 'SILVER' ? "bg-slate-400/20 text-slate-300 border-slate-400/30" :
+                "bg-orange-500/20 text-orange-400 border-orange-500/30"
+              )}>
+                {user?.membershipTier || 'BRONZE'}
+              </span>
+            </h1>
             <p className="text-cinema-300 text-sm">{user?.email}</p>
+            
+            <div className="flex flex-wrap items-center gap-4 mt-3">
+              {user?.rewardPoints != null && (
+                <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-xl px-3 py-1.5">
+                  <Ticket className="w-4 h-4 text-brand-400" />
+                  <span className="text-white text-sm font-medium">{formatCurrency(user.rewardPoints, '')} CP</span>
+                  <button 
+                    onClick={() => setIsTopUpOpen(true)}
+                    className="ml-2 text-xs bg-brand-500 text-white px-2 py-1 rounded-md hover:bg-brand-600 transition-colors font-semibold"
+                  >
+                    Nạp
+                  </button>
+                </div>
+              )}
+              {user?.availableExp != null && (
+                <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-1.5">
+                  <Star className="w-4 h-4 text-yellow-400" />
+                  <span className="text-yellow-400 text-sm font-medium">{user.availableExp} EXP</span>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -260,6 +309,11 @@ export default function ProfilePage() {
 
         </motion.div>
       </div>
+
+      <TopUpModal 
+        isOpen={isTopUpOpen} 
+        onClose={() => setIsTopUpOpen(false)} 
+      />
     </div>
   )
 }
