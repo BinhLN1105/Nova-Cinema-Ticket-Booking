@@ -8,6 +8,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { router } from "@/router";
 import { useThemeStore } from "@/stores/themeStore";
 import "@/styles/globals.css";
+import "./i18n";
 
 // Apply saved theme preferences on startup
 useThemeStore.getState().init();

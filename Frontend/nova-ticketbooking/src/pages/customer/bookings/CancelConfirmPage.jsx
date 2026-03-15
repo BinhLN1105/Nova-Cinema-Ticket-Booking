@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle, XCircle, Loader2 } from 'lucide-react'
 import { bookingApi } from '@/api/endpoints'
+import { api } from '@/api/client'
 import { useAuthStore } from '@/stores/authStore'
 import { useAuth } from '@/hooks'
 
@@ -16,20 +17,25 @@ export default function CancelConfirmPage() {
 
   const [status, setStatus] = useState('loading') // loading, success, error
   const [errorMessage, setErrorMessage] = useState('')
+  const hasCalled = useRef(false)
 
   useEffect(() => {
-    if (!token || !bookingId) {
-      setStatus('error')
-      setErrorMessage('Đường dẫn không hợp lệ')
-      return
-    }
+    if (!token || !bookingId || hasCalled.current) return
+    hasCalled.current = true
 
     const confirmCancel = async () => {
       try {
         await bookingApi.cancelConfirm(token, bookingId)
+        
+        // Fetch latest user profile to update CinePoints
+        try {
+          const updatedUser = await api.get('/auth/me')
+          setUser(updatedUser)
+        } catch (profileErr) {
+          console.error('Failed to refresh profile:', profileErr)
+        }
+
         setStatus('success')
-        // Optimistically update user reward points by refetching profile (simplification: let them refresh or we can fetch me API here)
-        // Optionally update store if we knew the exact amount, but let's just let it be for now since profile page refetches or uses current state
       } catch (err) {
         setStatus('error')
         setErrorMessage(err.response?.data?.message || 'Có lỗi xảy ra khi xác nhận huỷ vé')
@@ -37,7 +43,7 @@ export default function CancelConfirmPage() {
     }
 
     confirmCancel()
-  }, [token, bookingId])
+  }, [token, bookingId, setUser])
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-16 flex items-center justify-center">

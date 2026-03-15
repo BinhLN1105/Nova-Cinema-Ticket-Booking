@@ -56,8 +56,8 @@ public class ReviewServiceImpl implements ReviewService {
         if (!booking.getShowtime().getMovie().getId().equals(movie.getId())) {
             throw new BadRequestException("Booking này không phải cho phim này");
         }
-        if (booking.getStatus() != BookingStatus.PAID) {
-            throw new BadRequestException("Bạn cần thanh toán và xem phim trước khi đánh giá");
+        if (!bookingService.isEligibleForReview(userId, movie.getId())) {
+            throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
         }
 
         // Mỗi booking chỉ review 1 lần

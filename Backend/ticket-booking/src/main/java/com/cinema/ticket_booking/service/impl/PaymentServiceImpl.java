@@ -169,12 +169,13 @@ public class PaymentServiceImpl implements PaymentService {
         long pointsNeeded = booking.getTotalAmount().divide(BigDecimal.valueOf(1000)).longValue();
         User user = booking.getUser();
 
-        if (user.getRewardPoints() < pointsNeeded) {
+        long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
+        if (currentPoints < pointsNeeded) {
             throw new BadRequestException("Số dư CinePoint không đủ để thanh toán. Vui lòng nạp thêm!");
         }
 
         // Trừ CinePoint
-        user.setRewardPoints(user.getRewardPoints() - pointsNeeded);
+        user.setRewardPoints(currentPoints - pointsNeeded);
         userRepository.save(user);
 
         // Lưu lịch sử giao dịch Wallet

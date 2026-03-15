@@ -1,18 +1,25 @@
 package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.config.VnpayProperties;
+import com.cinema.ticket_booking.dto.request.GiftCardRequest;
+import com.cinema.ticket_booking.dto.response.GiftCardResponse;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.PaymentResponse;
 import com.cinema.ticket_booking.enums.TransactionStatus;
 import com.cinema.ticket_booking.enums.TransactionType;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.PaymentException;
+import com.cinema.ticket_booking.mapper.GiftCardMapper;
+import com.cinema.ticket_booking.model.GiftCard;
 import com.cinema.ticket_booking.model.Transaction;
 import com.cinema.ticket_booking.model.User;
+import com.cinema.ticket_booking.repository.GiftCardRepository;
 import com.cinema.ticket_booking.repository.TransactionRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
-import com.cinema.ticket_booking.service.WalletService;
+import com.cinema.ticket_booking.service.GiftCardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,42 +38,45 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @Slf4j
 @Transactional
-public class WalletServiceImpl implements WalletService {
+public class GiftCardServiceImpl implements GiftCardService {
 
+    private final GiftCardRepository giftCardRepository;
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
+    private final GiftCardMapper giftCardMapper;
     private final VnpayProperties vnpayProperties;
 
     @Override
-    public PaymentResponse createTopUpUrl(UUID userId, BigDecimal amount, String returnUrlBase) {
-        if (amount.compareTo(new BigDecimal("10000")) < 0) {
-            throw new BadRequestException("Số tiền nạp tối thiểu là 10.000 VNĐ");
+    public PaymentResponse buyGiftCard(UUID userId, GiftCardRequest.Buy request) {
+        if (request.getPrice().compareTo(new BigDecimal("50000")) < 0) {
+            throw new BadRequestException("Mệnh giá thẻ tối thiểu là 50.000 VNĐ");
         }
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Không tìm thấy người dùng"));
 
-        String txnRef = "TU" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        // Tạo Transaction chờ xử lý
+        String txnRef = "GC" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         Transaction transaction = Transaction.builder()
                 .user(user)
-                .amount(amount)
-                .type(TransactionType.TOPUP_VNPAY)
+                .amount(request.getPrice())
+                .type(TransactionType.BUY_GIFT_CARD_VNPAY)
                 .status(TransactionStatus.PENDING)
                 .referenceId(txnRef)
-                .description("Nạp CinePoint qua VNPay")
+                .description("Mua Gift Card Code CinePoint")
                 .build();
-        
+
         transactionRepository.save(transaction);
 
-        String returnUrl = returnUrlBase + "/api/v1/wallet/vnpay-return";
-        String paymentUrl = buildVnpayUrl(amount, txnRef, returnUrl);
+        String returnUrl = request.getReturnUrlBase() + "/api/v1/gift-cards/vnpay-return";
+        String paymentUrl = buildVnpayUrl(request.getPrice(), txnRef, returnUrl);
 
         return PaymentResponse.builder()
                 .id(transaction.getId().toString())
                 .status(com.cinema.ticket_booking.enums.PaymentStatus.valueOf(transaction.getStatus().name()))
                 .method(com.cinema.ticket_booking.enums.PaymentMethod.VNPAY)
-                .amount(amount)
+                .amount(request.getPrice())
                 .paymentUrl(paymentUrl)
                 .build();
     }
@@ -82,33 +92,91 @@ public class WalletServiceImpl implements WalletService {
         }
 
         Transaction transaction = transactionRepository.findByReferenceId(txnRef)
-                .orElseThrow(() -> new BadRequestException("Không tìm thấy giao dịch nạp tiền: " + txnRef));
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy giao dịch mua thẻ: " + txnRef));
 
         if (transaction.getStatus() != TransactionStatus.PENDING) {
-            log.warn("VNPay callback cho giao dịch đã xử lý: {}", txnRef);
+            log.warn("VNPay callback cho giao dịch tạo thẻ đã xử lý: {}", txnRef);
             return;
         }
 
         if ("00".equals(responseCode)) {
             transaction.setStatus(TransactionStatus.SUCCESS);
+            
+            // Giả định 1000đ = 1 CinePoint
+            long pointValue = transaction.getAmount().divide(new BigDecimal("1000")).longValue();
 
-            // Cộng điểm: 1000 VNĐ = 1 Điểm
-            long pointsToAdd = transaction.getAmount().divide(new BigDecimal("1000")).longValue();
-            User user = transaction.getUser();
-            long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
-            user.setRewardPoints(currentPoints + pointsToAdd);
-            userRepository.save(user);
+            GiftCard giftCard = GiftCard.builder()
+                    .code(generateUniqueGiftCardCode())
+                    .price(transaction.getAmount())
+                    .pointValue(pointValue)
+                    .isRedeemed(false)
+                    .boughtBy(transaction.getUser())
+                    .expiresAt(LocalDateTime.now().plusMonths(6)) // Hạn 6 tháng
+                    .build();
 
-            log.info("Nạp CinePoint thành công: {}, +{} points", txnRef, pointsToAdd);
+            giftCardRepository.save(giftCard);
+            log.info("Tạo Gift Card {} mệnh giá {} ({}) thành công bởi txn {}", giftCard.getCode(), pointValue, transaction.getAmount(), txnRef);
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
-            log.warn("Nạp điểm thất bại: {} - ResponseCode: {}", txnRef, responseCode);
+            log.warn("Mua Gift Card thất bại: {} - ResponseCode: {}", txnRef, responseCode);
         }
 
         transactionRepository.save(transaction);
     }
 
-    // ── VNPay helpers ─────────────────────────────────────────────────────
+    @Override
+    public GiftCardResponse redeemGiftCard(UUID userId, GiftCardRequest.Redeem request) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("Không tìm thấy người dùng"));
+
+        GiftCard giftCard = giftCardRepository.findByCode(request.getCode())
+                .orElseThrow(() -> new BadRequestException("Mã thẻ không tồn tại"));
+
+        if (giftCard.getIsRedeemed()) {
+            throw new BadRequestException("Mã thẻ đã được sử dụng");
+        }
+
+        if (giftCard.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Mã thẻ đã hết hạn sử dụng");
+        }
+
+        // Đổi thẻ
+        giftCard.setIsRedeemed(true);
+        giftCard.setRedeemedBy(user);
+        giftCard.setRedeemedAt(LocalDateTime.now());
+        giftCardRepository.save(giftCard);
+
+        // Nạp điểm
+        user.setRewardPoints(user.getRewardPoints() + giftCard.getPointValue());
+        userRepository.save(user);
+
+        return giftCardMapper.toResponse(giftCard);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<GiftCardResponse> getMyBoughtCards(UUID userId, Pageable pageable) {
+        return PageResponse.of(giftCardRepository.findByBoughtByIdOrderByCreatedAtDesc(userId, pageable)
+                .map(giftCardMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<GiftCardResponse> getMyRedeemedCards(UUID userId, Pageable pageable) {
+        return PageResponse.of(giftCardRepository.findByRedeemedByIdOrderByRedeemedAtDesc(userId, pageable)
+                .map(giftCardMapper::toResponse));
+    }
+
+    // ── Utility ─────────────────────────────────────────────────────────────
+
+    private String generateUniqueGiftCardCode() {
+        // GC-XXXX-XXXX
+        String part1 = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        String part2 = UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        return "GC-" + part1 + "-" + part2;
+    }
+
+    // ── VNPay Helpers (Similiar to Wallet) ───────────────────────────
 
     private String buildVnpayUrl(BigDecimal amount, String txnRef, String returnUrl) {
         try {
@@ -119,8 +187,8 @@ public class WalletServiceImpl implements WalletService {
             params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
             params.put("vnp_CurrCode", "VND");
             params.put("vnp_TxnRef", txnRef);
-            params.put("vnp_OrderInfo", "Nap CinePoint " + txnRef);
-            params.put("vnp_OrderType", "190000"); // Mã danh mục cho phần nạp tiền
+            params.put("vnp_OrderInfo", "Mua Gift Card CinePoint " + txnRef);
+            params.put("vnp_OrderType", "190000"); // Mã danh mục
             params.put("vnp_Locale", "vn");
             params.put("vnp_ReturnUrl", returnUrl);
             params.put("vnp_IpAddr", "127.0.0.1");
@@ -132,7 +200,7 @@ public class WalletServiceImpl implements WalletService {
 
             return vnpayProperties.getUrl() + "?" + queryString;
         } catch (Exception e) {
-            throw new PaymentException("Không thể tạo URL nạp tiền VNPay");
+            throw new PaymentException("Không thể tạo URL nạp thẻ VNPay");
         }
     }
 

@@ -8,6 +8,8 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.hibernate.StaleObjectStateException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -64,6 +66,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ConflictException.class)
     public ResponseEntity<ErrorResponse> handleConflict(ConflictException ex) {
         return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
+    // Xử lý xung đột dữ liệu (optimistic locking)
+    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, StaleObjectStateException.class})
+    public ResponseEntity<ErrorResponse> handleOptimisticLocking(Exception ex) {
+        log.warn("Data conflict detected: {}", ex.getMessage());
+        return build(HttpStatus.CONFLICT, "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
     }
 
     // ── 402 Payment Required ───────────────────────────────────────────────

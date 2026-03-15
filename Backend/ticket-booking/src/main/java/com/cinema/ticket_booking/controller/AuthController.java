@@ -6,12 +6,16 @@ import com.cinema.ticket_booking.dto.request.RegisterRequest;
 import com.cinema.ticket_booking.dto.request.SocialLoginRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
+import com.cinema.ticket_booking.dto.response.UserResponse;
+import com.cinema.ticket_booking.model.User;
 
 import com.cinema.ticket_booking.service.AuthService;
+import com.cinema.ticket_booking.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 
 import org.springframework.web.bind.annotation.*;
 
@@ -21,6 +25,15 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final UserService userService;
+
+    // GET /api/v1/auth/me
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponse<UserResponse>> getMe(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(
+                userService.getProfile(currentUser.getId())));
+    }
 
     // POST /api/v1/auth/register
     @PostMapping("/register")

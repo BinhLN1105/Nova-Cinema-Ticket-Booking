@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+// import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
@@ -23,11 +24,21 @@ public class DataInitializer {
     private final UserRepository userRepository;
     private final GenreRepository genreRepository;
     private final PasswordEncoder passwordEncoder;
+    // private final JdbcTemplate jdbcTemplate;
 
     @Bean
     public CommandLineRunner initData() {
         return args -> {
             log.info("Checking for default test data...");
+
+            // try {
+            // jdbcTemplate.execute("ALTER TABLE transactions DROP CONSTRAINT IF EXISTS
+            // transactions_type_check");
+            // log.info("Dropped transactions_type_check constraint to allow new enum
+            // values.");
+            // } catch (Exception e) {
+            // log.warn("Could not drop transactions_type_check", e);
+            // }
 
             // Create Admin User
             if (!userRepository.existsByEmail("admin@cinema.com")) {
@@ -66,8 +77,7 @@ public class DataInitializer {
                         "Kinh Dị", "Tình Cảm", "Hài Hước",
                         "Tâm Lý", "Hình Sự", "Hoạt Hình",
                         "Tài Liệu", "Thể Thao", "Gia Đình",
-                        "Âm Nhạc", "Kỳ Ảo"
-                );
+                        "Âm Nhạc", "Kỳ Ảo");
 
                 for (String name : defaultGenres) {
                     Genre genre = new Genre();
@@ -81,7 +91,8 @@ public class DataInitializer {
     }
 
     private String toSlug(String input) {
-        if (input == null || input.isEmpty()) return "";
+        if (input == null || input.isEmpty())
+            return "";
         String noWhitespace = java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD);
         String slug = noWhitespace.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
         slug = slug.replaceAll("[^\\w\\s-]", ""); // Remove non-word chars

@@ -10,6 +10,7 @@ import com.cinema.ticket_booking.enums.MovieStatus;
 import com.cinema.ticket_booking.service.GenreService;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.ReviewService;
+import com.cinema.ticket_booking.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -30,6 +31,7 @@ public class MovieController {
     private final MovieService movieService;
     private final GenreService genreService;
     private final ReviewService reviewService;
+    private final BookingService bookingService;
 
     // GET /api/v1/movies?status=NOW_SHOWING&page=0&size=10
     @GetMapping
@@ -72,6 +74,15 @@ public class MovieController {
             @RequestParam(defaultValue = "10") int size) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(ApiResponse.success(reviewService.getByMovie(id, pageable)));
+    }
+
+    // GET /api/v1/movies/{id}/can-review
+    @GetMapping("/{id}/can-review")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<Boolean>> canReview(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal com.cinema.ticket_booking.model.User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(bookingService.isEligibleForReview(currentUser.getId(), id)));
     }
 
     // POST /api/v1/movies [ADMIN]

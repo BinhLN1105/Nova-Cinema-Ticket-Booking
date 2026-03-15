@@ -1,9 +1,13 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
-import { Star, Clock, Play, Ticket, Calendar, Globe, Users, ChevronLeft } from 'lucide-react'
-import { movieApi, reviewApi } from '@/api/endpoints'
+import { Star, Clock, Play, Ticket, Calendar, Globe, Users, ChevronLeft, MessageSquare } from 'lucide-react'
+import { movieApi, reviewApi, bookingApi } from '@/api/endpoints'
 import { formatDate, getRatedColor, getImageUrl, cn } from '@/utils'
+import { useAuthStore } from '@/stores/authStore'
+import { toast } from 'react-hot-toast'
+import { useState } from 'react'
+import { Modal } from '@/components/common/ui/Modal'
 
 export default function MovieDetailPage() {
   const { id } = useParams()
@@ -15,11 +19,72 @@ export default function MovieDetailPage() {
     enabled: !!id,
   })
 
-  const { data: reviews } = useQuery({
+  const { data: reviews, refetch: refetchReviews } = useQuery({
     queryKey: ['reviews', id],
     queryFn: () => reviewApi.getByMovie(id),
     enabled: !!id,
   })
+
+  const { user } = useAuthStore()
+
+  const { data: canReviewObj } = useQuery({
+    queryKey: ['canReview', id],
+    queryFn: () => movieApi.canReview(id).then(res => res.data),
+    enabled: !!user && !!id,
+  })
+  const canReview = canReviewObj?.data || false
+
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [rating, setRating] = useState(5)
+  const [comment, setComment] = useState('')
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+
+  // Hàm load booking thỏa mãn điều kiện để truyền bookingId vào API review
+  // Nhưng reviewApi.create yêu cầu data { movieId, bookingId, rating, comment }
+  // Chúng ta cần lấy bookingId. BookingRepository.isEligibleForReview không trả về bookingId.
+  // Wait, reviewApi.create requires a bookingId... it's easier to just fetch `bookingApi.getMyAll` 
+  // and find the paid booking for this movie, OR we can modify backend to auto-detect bookingId.
+  // Actually, to make it simple without altering backend again, let's fetch my bookings here:
+  const { data: myBookingsData } = useQuery({
+    queryKey: ['bookings', 'me'],
+    queryFn: () => bookingApi.getMyAll(0, 100).then(res => res.data.data.content),
+    enabled: isReviewModalOpen,
+  })
+
+  const handleSubmitReview = async (e) => {
+    e.preventDefault()
+    if (!comment.trim()) {
+      return toast.error('Vui lòng nhập nhận xét')
+    }
+
+    // Tìm booking PAID cho phim này
+    const validBooking = myBookingsData?.find(b => 
+      b.movieTitle === movie.title && b.status === "PAID"
+    )
+
+    if (!validBooking) {
+      return toast.error('Không tìm thấy giao dịch hợp lệ để đánh giá.')
+    }
+
+    setIsSubmittingReview(true)
+    try {
+      await reviewApi.create(id, {
+        movieId: id,
+        bookingId: validBooking.id, // Using the booking ID we found
+        rating,
+        comment
+      })
+      toast.success('Gửi đánh giá thành công')
+      refetchReviews()
+      setIsReviewModalOpen(false)
+      setComment('')
+      setRating(5)
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
+    } finally {
+      setIsSubmittingReview(false)
+    }
+  }
 
   if (isLoading) return (
     <div className="min-h-screen bg-cinema-900 pt-20">
@@ -129,12 +194,25 @@ export default function MovieDetailPage() {
             </motion.div>
 
             {/* Reviews */}
-            {reviews?.content && reviews.content.length > 0 && (
+            {reviews?.content && (
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}>
-                <h2 className="font-display text-xl font-bold text-white mb-4">
-                  Đánh giá ({reviews.totalElements})
-                </h2>
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="font-display text-xl font-bold text-white">
+                    Đánh giá ({reviews.totalElements})
+                  </h2>
+                  {user && canReview && (
+                    <button onClick={() => setIsReviewModalOpen(true)}
+                      className="btn-ghost py-1.5 px-3 text-sm text-brand-400 border-brand-500/30">
+                      <MessageSquare className="w-4 h-4" /> Viết đánh giá
+                    </button>
+                  )}
+                  {user && !canReview && (
+                    <div className="text-sm text-cinema-400 italic">
+                      Đã mua vé & xem phim để đánh giá
+                    </div>
+                  )}
+                </div>
                 <div className="space-y-3">
                   {reviews.content.slice(0, 4).map(review => (
                     <div key={review.id} className="p-4 rounded-xl bg-cinema-800/60 border border-white/5">
@@ -212,6 +290,50 @@ export default function MovieDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Review Modal */}
+      <Modal open={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Viết đánh giá của bạn">
+        <form onSubmit={handleSubmitReview} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-cinema-200 mb-2">Đánh giá sao</label>
+            <div className="flex gap-2">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <button
+                  key={i} type="button"
+                  onClick={() => setRating(i + 1)}
+                  className="focus:outline-none"
+                >
+                  <Star className={cn('w-8 h-8 transition-colors', 
+                    i < rating ? 'text-gold-400 fill-current' : 'text-cinema-600'
+                  )} />
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-cinema-200 mb-2">Nhận xét chi tiết</label>
+            <textarea
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              className="input w-full h-32 resize-none"
+              placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim..."
+              maxLength={1000}
+            />
+            <div className="text-right text-xs text-cinema-400 mt-1">
+              {comment.length}/1000
+            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <button type="button" onClick={() => setIsReviewModalOpen(false)} className="btn-ghost">
+              Hủy
+            </button>
+            <button type="submit" disabled={isSubmittingReview} className="btn-primary">
+              {isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
     </div>
   )
 }

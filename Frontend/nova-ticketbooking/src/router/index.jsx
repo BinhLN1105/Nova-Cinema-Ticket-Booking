@@ -63,6 +63,10 @@ const TicketDetail = () =>
   lazy_(() => import("@/pages/customer/tickets/TicketDetail"));
 const ProfilePage = () =>
   lazy_(() => import("@/pages/customer/profile/ProfilePage"));
+const GiftCardPage = () =>
+  lazy_(() => import("@/pages/customer/gift-cards/GiftCardPage"));
+const GiftCardResult = () =>
+  lazy_(() => import("@/pages/customer/gift-cards/GiftCardResultPage"));
 
 // Auth
 const LoginPage = () => lazy_(() => import("@/pages/customer/auth/LoginPage"));
@@ -107,6 +111,8 @@ export const router = createBrowserRouter([
       { path: "movies", element: <MoviesPage /> },
       { path: "movies/:id", element: <MovieDetailPage /> },
       { path: 'promotions',      element: <PromotionsPage /> },
+      { path: "gift-cards",      element: <GiftCardPage /> },
+      { path: "gift-cards/result", element: <GiftCardResult /> },
       // Protected customer routes
       {
         element: <RequireAuth role="CUSTOMER" />,

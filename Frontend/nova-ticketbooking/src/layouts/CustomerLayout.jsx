@@ -10,10 +10,14 @@ import {
   Menu,
   X,
   ChevronDown,
+  Wallet,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
 import { cn } from "@/utils";
+import { useTranslation } from "react-i18next";
+import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
+import { TopUpModal } from "@/pages/customer/profile/TopUpModal";
 
 export function CustomerLayout() {
   const location = useLocation();
@@ -22,7 +26,9 @@ export function CustomerLayout() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
+  const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -38,8 +44,10 @@ export function CustomerLayout() {
   }, [location.pathname]);
 
   const navLinks = [
-    { href: "/", label: "Trang chủ" },
-    { href: "/movies", label: "Phim" },
+    { href: "/", label: t("nav.home", "Trang chủ") },
+    { href: "/movies", label: t("nav.movies", "Phim") },
+    { href: "/promotions", label: t("nav.promotions", "Khuyến mãi") },
+    { href: "/gift-cards", label: t("nav.gift_cards", "Thẻ quà tặng") },
   ];
 
   return (
@@ -98,6 +106,8 @@ export function CustomerLayout() {
               <Search className="w-5 h-5" />
             </button>
 
+            <LanguageSwitcher />
+
             {isAuthenticated ? (
               <>
                 {/* Notifications */}
@@ -120,7 +130,7 @@ export function CustomerLayout() {
                   transition-all duration-200"
                 >
                   <Ticket className="w-4 h-4" />
-                  Vé của tôi
+                  {t("nav.tickets", "Vé của tôi")}
                 </Link>
 
                 {/* User menu */}
@@ -189,9 +199,18 @@ export function CustomerLayout() {
                       >
                         <div className="px-4 py-3 border-b border-white/6 mb-1 bg-white/[0.02]">
                           <p className="text-xs text-cinema-300 mb-1">CinePoint</p>
-                          <div className="flex items-baseline gap-1">
-                            <span className="text-lg font-bold text-brand-400">{user?.rewardPoints || 0}</span>
-                            <span className="text-xs font-medium text-cinema-400">CP</span>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-lg font-bold text-brand-400">{user?.rewardPoints || 0}</span>
+                              <span className="text-xs font-medium text-cinema-400">CP</span>
+                            </div>
+                            <button
+                              onClick={() => { setUserMenu(false); setIsTopUpOpen(true); }}
+                              className="flex items-center gap-1.5 text-xs bg-brand-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-brand-600 transition-colors font-semibold"
+                            >
+                              <Wallet className="w-3.5 h-3.5" />
+                              Nạp điểm
+                            </button>
                           </div>
                         </div>
                         <Link
@@ -199,14 +218,14 @@ export function CustomerLayout() {
                           className="flex items-center gap-3 px-4 py-3 text-sm
                           text-cinema-100 hover:bg-white/6 transition-colors"
                         >
-                          <User className="w-4 h-4" /> Tài khoản
+                          <User className="w-4 h-4" /> {t("nav.profile", "Tài khoản")}
                         </Link>
                         <Link
                           to="/tickets"
                           className="flex items-center gap-3 px-4 py-3 text-sm
                           text-cinema-100 hover:bg-white/6 transition-colors"
                         >
-                          <Ticket className="w-4 h-4" /> Vé của tôi
+                          <Ticket className="w-4 h-4" /> {t("nav.tickets", "Vé của tôi")}
                         </Link>
                         <div className="border-t border-white/6 my-1" />
                         <button
@@ -228,7 +247,7 @@ export function CustomerLayout() {
                   className="px-4 py-2 rounded-xl text-sm font-medium
                   text-cinema-100 hover:text-white hover:bg-white/8 transition-all"
                 >
-                  Đăng nhập
+                  {t("nav.login", "Đăng nhập")}
                 </Link>
                 <Link
                   to="/auth/register"
@@ -347,7 +366,7 @@ export function CustomerLayout() {
             items-center justify-between gap-4"
           >
             <p className="text-cinema-400 text-sm">
-              © 2024 NovaTicket. All rights reserved.
+              © {new Date().getFullYear()} NovaTicket. All rights reserved.
             </p>
             <div className="flex items-center gap-4">
               {["Chính sách bảo mật", "Điều khoản sử dụng"].map((t) => (
@@ -364,6 +383,8 @@ export function CustomerLayout() {
           </div>
         </div>
       </footer>
+
+      <TopUpModal isOpen={isTopUpOpen} onClose={() => setIsTopUpOpen(false)} />
     </div>
   );
 }

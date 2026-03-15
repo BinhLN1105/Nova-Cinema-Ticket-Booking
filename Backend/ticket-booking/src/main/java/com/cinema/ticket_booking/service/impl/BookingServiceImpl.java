@@ -44,6 +44,7 @@ public class BookingServiceImpl implements BookingService {
     private final VoucherService voucherService;
     private final QrCodeService qrCodeService;
     private final EmailService emailService;
+    private final TransactionRepository transactionRepository;
     private final BookingMapper bookingMapper;
 
     @Value("${app.booking.pending-minutes:10}")
@@ -138,7 +139,7 @@ public class BookingServiceImpl implements BookingService {
                 .pendingExp(pendingExp)
                 .expAdded(false)
                 .build();
-        bookingRepository.save(booking);
+        booking = bookingRepository.save(booking);
 
         // ── 4. Tạo BookingItem + Ticket ───────────────────────────────────
         for (ShowtimeSeat ss : seats) {
@@ -147,7 +148,7 @@ public class BookingServiceImpl implements BookingService {
                     .showtimeSeat(ss)
                     .seatPrice(ss.getPrice())
                     .build();
-            bookingItemRepository.save(item);
+            item = bookingItemRepository.save(item);
 
             Ticket ticket = Ticket.builder()
                     .booking(booking)
@@ -199,6 +200,14 @@ public class BookingServiceImpl implements BookingService {
                         .reduce(BigDecimal.ZERO, BigDecimal::add));
 
         return buildFullResponse(booking, seats, combos, subtotal);
+    }
+
+    // ── Review Eligibility ────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isEligibleForReview(UUID userId, UUID movieId) {
+        return bookingRepository.isEligibleForReview(userId, movieId, LocalDateTime.now());
     }
 
     // ── Check-in QR ───────────────────────────────────────────────────────
@@ -284,10 +293,10 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
         }
         
-        // Điều kiện huỷ vé: trước giờ chiếu 2 tiếng
+        // Điều kiện huỷ vé: trước giờ chiếu 1 tiếng
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
-        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(2))) {
-            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất 2 tiếng");
+        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(1))) {
+            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất 1 tiếng");
         }
 
         // Tạo cancellation token hết hạn sau 15 phút
@@ -328,8 +337,20 @@ public class BookingServiceImpl implements BookingService {
         // 3. Hoàn CinePoint cho user (tỷ lệ 1000 VNĐ = 1 CinePoint)
         User user = booking.getUser();
         long rewardPointsToAdd = booking.getTotalAmount().longValue() / 1000;
-        user.setRewardPoints(user.getRewardPoints() + rewardPointsToAdd);
-        userService.save(user); // Giả sử userService có method save(User user), nếu không thì dùng userRepository.save() (tuy nhiên UserService trong service nên call save ở đó, hoặc tạo phương thức updateUser bên UserService)
+        long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
+        user.setRewardPoints(currentPoints + rewardPointsToAdd);
+        userService.save(user);
+
+        // 4. Lưu lịch sử hoàn tiền
+        Transaction transaction = Transaction.builder()
+                .user(user)
+                .amount(booking.getTotalAmount())
+                .type(TransactionType.REFUND)
+                .status(TransactionStatus.SUCCESS)
+                .referenceId(booking.getBookingCode())
+                .description("Hoàn trả CinePoint sau khi hủy vé " + booking.getBookingCode())
+                .build();
+        transactionRepository.save(transaction);
     }
 
 

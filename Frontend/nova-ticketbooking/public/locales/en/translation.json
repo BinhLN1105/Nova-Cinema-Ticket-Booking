@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "home": "Home",
+    "movies": "Movies",
+    "promotions": "Promotions",
+    "gift_cards": "Gift Cards",
+    "login": "Sign In",
+    "admin": "Admin",
+    "staff": "Staff",
+    "profile": "Profile"
+  },
+  "home": {
+    "hero_title_1": "Where Emotions",
+    "hero_title_2": "Sublimate",
+    "hero_subtitle": "Experience ultimate cinema with international standard theater systems. Book tickets today for great deals.",
+    "book_now": "Book Now",
+    "view_schedule": "View Schedule",
+    "now_showing": "Now Showing",
+    "coming_soon": "Coming Soon",
+    "view_all": "View All"
+  },
+  "common": {
+    "loading": "Loading...",
+    "search": "Search movies...",
+    "cancel": "Cancel",
+    "save": "Save"
+  }
+}

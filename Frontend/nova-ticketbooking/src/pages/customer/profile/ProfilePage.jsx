@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard } from 'lucide-react'
+import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard, Gift } from 'lucide-react'
 import { bookingApi, notificationApi } from '@/api/endpoints'
 import { api } from '@/api/client'
 import { SecurityTab } from '@/components/customer/SecurityTab'
@@ -11,11 +11,20 @@ import { formatDate, formatDateTime, formatCurrency, getStatusBadge, cn } from '
 import { useAuthStore } from '@/stores/authStore'
 import toast from 'react-hot-toast'
 import { TopUpModal } from './TopUpModal'
-import { useSearchParams } from 'react-router-dom'
+import { GiftCardTab } from '@/components/customer/GiftCardTab'
+import { useSearchParams, useNavigate } from 'react-router-dom'
+
+const TIER_THRESHOLDS = {
+  BRONZE: { min: 0, max: 500, next: 'SILVER', label: 'Bạc' },
+  SILVER: { min: 500, max: 3000, next: 'GOLD', label: 'Vàng' },
+  GOLD: { min: 3000, max: 10000, next: 'DIAMOND', label: 'Kim Cương' },
+  DIAMOND: { min: 10000, max: 10000, next: null, label: null }
+}
 
 const TABS = [
   { id: 'profile',       label: 'Thông tin',    icon: User },
   { id: 'tickets',       label: 'Vé của tôi',   icon: Ticket },
+  { id: 'giftcards',     label: 'Thẻ quà tặng', icon: Gift },
   { id: 'notifications', label: 'Thông báo',    icon: Bell },
   { id: 'security',      label: 'Bảo mật',      icon: Shield },
   { id: 'appearance',    label: 'Giao diện',    icon: Palette },
@@ -37,16 +46,22 @@ export default function ProfilePage() {
   const [phone, setPhone] = useState(user?.phone ?? '')
   const [isTopUpOpen, setIsTopUpOpen] = useState(false)
   const setUser = useAuthStore(s => s.setUser)
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
+  const hasHandledTopup = useRef(false)
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup')
+    if (!topupStatus || hasHandledTopup.current) return
+
     if (topupStatus === 'success') {
+      hasHandledTopup.current = true
       toast.success('Nạp CinePoint thành công!')
       // Xóa query param để không hiện toast liên tục khi reload
       setSearchParams({})
       api.get('/auth/me').then(res => setUser(res))
     } else if (topupStatus === 'failed') {
+      hasHandledTopup.current = true
       toast.error('Nạp CinePoint thất bại')
       setSearchParams({})
     }
@@ -113,24 +128,89 @@ export default function ProfilePage() {
             <p className="text-cinema-300 text-sm">{user?.email}</p>
             
             <div className="flex flex-wrap items-center gap-4 mt-3">
-              {user?.rewardPoints != null && (
-                <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-xl px-3 py-1.5">
-                  <Ticket className="w-4 h-4 text-brand-400" />
-                  <span className="text-white text-sm font-medium">{formatCurrency(user.rewardPoints, '')} CP</span>
-                  <button 
-                    onClick={() => setIsTopUpOpen(true)}
-                    className="ml-2 text-xs bg-brand-500 text-white px-2 py-1 rounded-md hover:bg-brand-600 transition-colors font-semibold"
-                  >
-                    Nạp
-                  </button>
-                </div>
-              )}
-              {user?.availableExp != null && (
-                <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-1.5">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <span className="text-yellow-400 text-sm font-medium">{user.availableExp} EXP</span>
-                </div>
-              )}
+              <div className="flex items-center gap-2 bg-brand-500/10 border border-brand-500/20 rounded-xl px-3 py-1.5">
+                <Ticket className="w-4 h-4 text-brand-400" />
+                <span className="text-white text-sm font-medium">{user?.rewardPoints?.toLocaleString('vi-VN') || 0} CP</span>
+                <button 
+                  onClick={() => setIsTopUpOpen(true)}
+                  className="ml-2 text-xs bg-brand-500 text-white px-2 py-1 rounded-md hover:bg-brand-600 transition-colors font-semibold"
+                >
+                  Nạp điểm
+                </button>
+                <button 
+                  onClick={() => setActiveTab('giftcards')}
+                  className="ml-1 text-xs bg-white/10 text-brand-300 border border-brand-500/30 px-2 py-1 rounded-md hover:bg-white/20 transition-colors font-semibold"
+                >
+                  Đổi thẻ
+                </button>
+              </div>
+              <div className="flex items-center gap-2 bg-yellow-500/10 border border-yellow-500/20 rounded-xl px-3 py-1.5">
+                <Star className="w-4 h-4 text-yellow-400" />
+                <span className="text-yellow-400 text-sm font-medium">{user?.availableExp || 0} EXP</span>
+              </div>
+            </div>
+
+            {/* Rank Progress Bar */}
+            <div className="mt-5 max-w-sm">
+              {(() => {
+                const tier = user?.membershipTier || 'BRONZE'
+                const config = TIER_THRESHOLDS[tier]
+                const currentExp = user?.availableExp || 0
+                
+                if (tier === 'DIAMOND') {
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between text-[11px] font-bold tracking-wide">
+                        <span className="text-cyan-400 uppercase">Rank Tối Đa</span>
+                        <span className="text-cinema-400">{currentExp} EXP</span>
+                      </div>
+                      <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/5">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: '100%' }}
+                          className="h-full bg-cyan-500 shadow-[0_0_15px_rgba(34,211,238,0.5)]"
+                        />
+                      </div>
+                      <p className="text-[10px] text-cinema-400 italic">Chúc mừng! Bạn đã đạt cấp độ cao nhất.</p>
+                    </div>
+                  )
+                }
+
+                const progress = Math.min(100, Math.max(0, ((currentExp - config.min) / (config.max - config.min)) * 100))
+                const remaining = config.max - currentExp
+
+                return (
+                  <div className="space-y-1.5">
+                    <div className="flex justify-between text-[11px] font-bold tracking-wide uppercase">
+                      <span className="text-cinema-300">Tiến trình lên hạng {config.label}</span>
+                      <span className="text-white">{currentExp} / {config.max} <span className="text-cinema-400 ml-0.5 whitespace-nowrap">EXP</span></span>
+                    </div>
+                    <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden border border-white/10 p-[0.5px]">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${progress}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className={cn(
+                          "h-full rounded-full relative overflow-hidden",
+                          tier === 'BRONZE' ? "bg-orange-500" :
+                          tier === 'SILVER' ? "bg-slate-400" :
+                          "bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.3)]"
+                        )}
+                      >
+                        <motion.div 
+                          animate={{ x: ['-100%', '100%'] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                        />
+                      </motion.div>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px] text-cinema-400">
+                      <span className="flex-shrink-0 font-medium">Còn {remaining} EXP nữa</span>
+                      <div className="h-px flex-grow bg-white/5" />
+                    </div>
+                  </div>
+                )
+              })()}
             </div>
           </div>
         </div>
@@ -225,6 +305,22 @@ export default function ProfilePage() {
                   <LogOut className="w-4 h-4" /> Đăng xuất
                 </button>
               </div>
+            </div>
+          )}
+
+          {/* ── Gift Cards ─────────────────── */}
+          {activeTab === 'giftcards' && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center mb-2">
+                <p className="text-cinema-200 text-sm">Quản lý thẻ quà tặng và điểm tích lũy của bạn</p>
+                <button 
+                  onClick={() => navigate('/gift-cards')}
+                  className="btn-ghost py-1.5 px-3 text-sm text-brand-400"
+                >
+                  Mua thẻ mới
+                </button>
+              </div>
+              <GiftCardTab />
             </div>
           )}
 

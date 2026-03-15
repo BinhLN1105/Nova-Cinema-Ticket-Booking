@@ -48,16 +48,25 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         """)
         int expireOverdueBookings(@Param("now") LocalDateTime now);
 
-        // Kiểm tra user đã có booking PAID cho suất chiếu chưa (để cho phép review)
+        // Kiểm tra user đã có booking hợp lệ để review phim (Verified Purchase Review)
+        // Điều kiện: Booking PAID, VÀ (suất chiếu đã bắt đầu HOẶC có ít nhất 1 vé đã check-in)
         @Query("""
-                            SELECT COUNT(b) > 0 FROM Booking b
-                            WHERE b.user.id     = :userId
-                              AND b.showtime.movie.id = :movieId
-                              AND b.status      = 'PAID'
-                        """)
-        boolean hasUserPaidForMovie(
-                        @Param("userId") UUID userId,
-                        @Param("movieId") UUID movieId);
+                SELECT COUNT(b) > 0 FROM Booking b
+                WHERE b.user.id     = :userId
+                  AND b.showtime.movie.id = :movieId
+                  AND b.status      = 'PAID'
+                  AND (
+                      b.showtime.startTime <= :now
+                      OR EXISTS (
+                          SELECT 1 FROM Ticket t 
+                          WHERE t.booking.id = b.id AND t.isUsed = true
+                      )
+                  )
+            """)
+        boolean isEligibleForReview(
+                @Param("userId") UUID userId,
+                @Param("movieId") UUID movieId,
+                @Param("now") LocalDateTime now);
 
         // ── Exp Conversion ───────────────────────────────────────────────────
         

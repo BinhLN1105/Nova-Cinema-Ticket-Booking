@@ -1,0 +1,70 @@
+Danh sách các chức năng hiện có ở Server Backend (Spring Boot):
+
+1. Xác thực và Phân quyền (Auth & Users)
+   - Đăng ký, Đăng nhập (Email/Password).
+   - Đăng nhập qua mạng xã hội (Google OAuth2).
+   - Quản lý Access Token & Refresh Token (JWT).
+   - Lấy thông tin tài khoản cá nhân (Me).
+   - Quản lý người dùng: Xem danh sách, phân quyền (Admin/Staff/Customer), khoá/mở khoá tài khoản (Ban).
+
+2. Quản lý Phim (Movies)
+   - Lấy danh sách phim (Đang chiếu, Sắp chiếu, Đã chiếu).
+   - Tìm kiếm phim theo tên, lọc theo thể loại.
+   - Thêm, sửa, xoá phim và cập nhật trạng thái phim (Admin).
+   - Kiểm tra điều kiện đánh giá phim (Verified Purchase).
+
+3. Quản lý Rạp và Phòng chiếu (Cinemas & Screens)
+   - Lấy danh sách rạp theo khu vực/thành phố, xem thông tin rạp.
+   - Quản lý cụm rạp: Thêm, sửa, xoá rạp (Admin).
+   - Quản lý phòng chiếu trong từng rạp (Thêm, sửa, xoá sơ đồ phòng chiếu).
+
+4. Quản lý Lịch chiếu & Ghế ngồi (Showtimes)
+   - Lấy lịch chiếu theo phim, rạp và ngày cụ thể.
+   - Lấy sơ đồ ghế ngồi chi tiết của một suất chiếu (hiển thị ghế trống, đã đặt).
+   - Tạo lịch chiếu mới, xoá lịch chiếu cũ (Admin).
+   - Thay đổi giá vé cho từng ghế cụ thể trong suất chiếu (Override Seat Prices).
+
+5. Đặt vé và Thanh toán (Bookings & Payments)
+   - Tạo đơn đặt vé mới (Chọn ghế, bắp nước).
+   - Thanh toán trực tiếp qua cổng VNPay.
+   - Thanh toán qua Ví điểm CinePoint (Wallet).
+   - Yêu cầu huỷ vé và xác nhận huỷ vé (gửi token qua email để hoàn tiền).
+   - Xem lịch sử đặt vé cá nhân.
+   - Xem danh sách toàn bộ dơn đặt vé (Admin/Staff).
+   - Quét mã QR và Check-in vé tại rạp (Staff).
+
+6. Ví và Điểm thưởng (Wallet & Membership)
+   - Tích luỹ điểm kinh nghiệm (EXP) qua các lần mua vé để thăng hạng (Bronze > Silver > Gold > Diamond).
+   - Nạp tiền (Top-up) vào ví CinePoint qua gateway VNPay.
+   - Sử dụng điểm CinePoint để thanh toán vé phim.
+
+7. Thẻ quà tặng (Gift Cards)
+   - Mua thẻ quà tặng/e-voucher qua cổng thanh toán VNPay.
+   - Đổi mã nạp (Redeem code) từ Thẻ quà tặng sang điểm CinePoint.
+   - Xem danh sách thẻ quà tặng đã đổi thành công.
+
+8. Quy tắc giá tự động (Dynamic Pricing Rules)
+   - Tự động tính tiền vé dựa trên nhiều tiêu chí: Loại ghế (Thường, VIP, Sweetbox), Loại phòng, Ngày trong tuần (Cuối tuần), Khung giờ chiếu (Khung giờ vàng).
+   - Thêm, sửa, xoá và bật/tắt các quy tắc giá (Admin).
+
+9. Đánh giá và Bình luận (Reviews)
+   - Viết đánh giá phim (chỉ cho phép nếu người dùng đã mua vé phim đó và đã xem/check-in).
+   - Lấy danh sách đánh giá của từng bộ phim.
+
+10. Quản lý Khuyến mãi & Voucher (Promotions & Vouchers)
+    - Quản lý các chiến dịch khuyến mãi, banner hiển thị ở trang chủ.
+    - Tạo, xem, sửa, xoá, kích hoạt Voucher giảm giá.
+    - Áp dụng và kiểm tra thông tin voucher khi thanh toán đơn hàng.
+
+11. Bắp nước (Combos)
+    - Lấy danh sách các sản phẩm bắp, nước, combo hiện có để khách hàng chọn khi đặt vé.
+
+12. Thông báo (Notifications)
+    - Nhận thông báo hệ thống (Vé đặt thành công, Vé bị huỷ, Lên hạng, v.v.).
+    - Đếm số lượng thông báo chưa đọc.
+    - Đánh dấu đã đọc một hoặc tất cả thông báo.
+
+13. Thống kê và Báo cáo (Analytics Dashboard)
+    - Lấy thống kê tổng quan (Doanh thu, số lượng vé, số user).
+    - Lấy báo cáo doanh thu theo các mốc thời gian (ngày, tuần, tháng, năm).
+    - Biểu đồ phân tích chuyên sâu cho giao diện Admin.

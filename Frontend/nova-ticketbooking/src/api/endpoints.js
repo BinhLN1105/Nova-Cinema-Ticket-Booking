@@ -21,6 +21,7 @@ export const movieApi = {
   getById: (id) => api.get(`/movies/${id}`),
   search: (q, page = 0) => api.get("/movies/search", { q, page, size: 12 }),
   getGenres: () => api.get("/movies/genres"),
+  canReview: (id) => api.get(`/movies/${id}/can-review`),
   // Admin
   create: (data) => api.post("/movies", data),
   update: (id, data) => api.put(`/movies/${id}`, data),
@@ -145,4 +146,11 @@ export const ruleApi = {
 // ── Wallet ────────────────────────────────────
 export const walletApi = {
   topup: (amount) => api.post("/wallet/topup", { amount }),
+};
+
+// ── Gift Cards ────────────────────────────────
+export const giftCardApi = {
+  buy: (price, returnUrlBase) => api.post("/gift-cards/buy", { price, returnUrlBase }),
+  redeem: (code) => api.post("/gift-cards/redeem", { code }),
+  getMyAll: (page = 0, size = 10) => api.get("/gift-cards/me", { page, size }),
 };

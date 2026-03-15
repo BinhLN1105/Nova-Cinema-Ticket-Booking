@@ -3,13 +3,13 @@ package com.cinema.ticket_booking.service.impl;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.service.EmailService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring6.SpringTemplateEngine;
-import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
 @Service
@@ -19,12 +19,13 @@ public class EmailServiceImpl implements EmailService {
     private final JavaMailSender mailSender;
     private final SpringTemplateEngine templateEngine;
 
-    @Value("${app.frontend.url:http://localhost:5173}")
+    @Value("${app.frontend.url}")
     private String frontendUrl;
 
     @Override
+    @Async("asyncExecutor")
     public void sendCancellationConfirmEmail(Booking booking, String token) {
-        String confirmUrl = frontendUrl + "/booking/cancel-confirm?token=" 
+        String confirmUrl = frontendUrl + "/booking/cancel-confirm?token="
                 + token + "&bookingId=" + booking.getId().toString();
 
         try {
@@ -43,8 +44,9 @@ public class EmailServiceImpl implements EmailService {
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
-        } catch (MessagingException e) {
-            System.err.println("Error sending email: " + e.getMessage());
+        } catch (Exception e) {
+            System.err.println("CRITICAL ERROR: Failed to send cancellation email: " + e.getMessage());
+            // Log full stack trace but don't rethrow to avoid crashing caller
             e.printStackTrace();
         }
     }

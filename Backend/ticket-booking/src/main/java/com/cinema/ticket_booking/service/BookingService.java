@@ -25,4 +25,6 @@ public interface BookingService {
     void confirmCancelBooking(String token, UUID bookingId);
 
     Booking findById(UUID id);
+
+    boolean isEligibleForReview(UUID userId, UUID movieId);
 }

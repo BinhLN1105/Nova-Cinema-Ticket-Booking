@@ -1,0 +1,28 @@
+{
+  "nav": {
+    "home": "Trang chủ",
+    "movies": "Phim",
+    "promotions": "Khuyến mãi",
+    "gift_cards": "Thẻ quà tặng",
+    "login": "Đăng nhập",
+    "admin": "Quản trị",
+    "staff": "Nhân viên",
+    "profile": "Tài khoản"
+  },
+  "home": {
+    "hero_title_1": "Nơi Cảm Xúc",
+    "hero_title_2": "Thăng Hoa",
+    "hero_subtitle": "Trải nghiệm điện ảnh đỉnh cao với hệ thống rạp chiếu chuẩn quốc tế. Đặt vé ngay hôm nay để nhận nhiều ưu đãi hấp dẫn.",
+    "book_now": "Đặt vé ngay",
+    "view_schedule": "Xem lịch chiếu",
+    "now_showing": "Phim Đang Chiếu",
+    "coming_soon": "Phim Sắp Chiếu",
+    "view_all": "Xem tất cả"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "search": "Tìm kiếm phim...",
+    "cancel": "Hủy",
+    "save": "Lưu"
+  }
+}

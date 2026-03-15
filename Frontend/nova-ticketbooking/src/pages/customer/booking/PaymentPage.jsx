@@ -52,7 +52,7 @@ export default function PaymentPage() {
 
   const paymentMethods = [
     { id: 'wallet', name: 'Ví CinePoint', icon: Coins, color: 'text-yellow-400',
-      desc: `Số dư: ${formatCurrency(walletBalance, '')} CP${!hasEnoughBalance ? ' (Không đủ)' : ''}`,
+      desc: `Số dư: ${walletBalance?.toLocaleString('vi-VN') || 0} CP${!hasEnoughBalance ? ' (Không đủ)' : ''}`,
       disabled: !hasEnoughBalance },
     { id: 'vnpay', name: 'VNPay', icon: CreditCard, color: 'text-blue-400', desc: 'Thanh toán qua ví VNPay hoặc quét mã QR' },
     { id: 'momo', name: 'MoMo', icon: Wallet, color: 'text-pink-500', desc: 'Thanh toán bằng ví điện tử MoMo' },

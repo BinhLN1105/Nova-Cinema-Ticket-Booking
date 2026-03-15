@@ -4,6 +4,7 @@ import { motion, useScroll, useTransform } from 'framer-motion'
 import { Play, Star, Clock, ChevronRight, Ticket, Zap } from 'lucide-react'
 import { useMovies } from '@/hooks'
 import { cn, formatDate, getRatedColor } from '@/utils'
+import { useTranslation } from 'react-i18next'
 
 // ── Skeleton ──────────────────────────────────
 function MovieSkeleton() {
@@ -98,6 +99,7 @@ function SectionHeader({ title, subtitle, href }) {
 
 // ── Hero ──────────────────────────────────────
 function Hero({ featured }) {
+  const { t } = useTranslation()
   const ref = useRef(null)
   const { scrollYProgress } = useScroll({ target: ref })
   const y = useTransform(scrollYProgress, [0, 1], [0, 120])
@@ -145,24 +147,23 @@ function Hero({ featured }) {
 
           <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold
             text-white leading-tight max-w-2xl mb-6">
-            Trải nghiệm điện ảnh{' '}
-            <span className="text-gradient-red">đỉnh cao</span>
+            {t('home.hero_title_1', 'Trải nghiệm điện ảnh')}{' '}
+            <span className="text-gradient-red">{t('home.hero_title_2', 'đỉnh cao')}</span>
           </h1>
 
           <p className="text-cinema-200 text-lg max-w-lg mb-10 leading-relaxed">
-            Hàng trăm bộ phim hấp dẫn, đặt vé nhanh chóng,
-            chọn chỗ ngồi yêu thích — mọi lúc, mọi nơi.
+            {t('home.hero_subtitle', 'Hàng trăm bộ phim hấp dẫn, đặt vé nhanh chóng, chọn chỗ ngồi yêu thích — mọi lúc, mọi nơi.')}
           </p>
 
           <div className="flex flex-wrap gap-4">
             <Link to="/movies" className="btn-primary text-base px-7 py-3.5">
               <Play className="w-5 h-5 fill-current" />
-              Khám phá phim
+              {t("home.view_schedule", "Khám phá phim")}
             </Link>
             <Link to="/movies?status=NOW_SHOWING"
               className="btn-ghost text-base px-7 py-3.5">
               <Ticket className="w-5 h-5" />
-              Đặt vé ngay
+              {t("home.book_now", "Đặt vé ngay")}
             </Link>
           </div>
 
@@ -190,6 +191,7 @@ function Hero({ featured }) {
 
 // ── Main Page ─────────────────────────────────
 export default function HomePage() {
+  const { t } = useTranslation()
   const { nowShowing, comingSoon } = useMovies()
   const featured = nowShowing.data?.content?.[0]
 
@@ -200,8 +202,8 @@ export default function HomePage() {
       {/* Now Showing */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <SectionHeader
-          title="Đang chiếu"
-          subtitle="Những bộ phim đang hot nhất hiện tại"
+          title={t("home.now_showing", "Đang chiếu")}
+          subtitle=""
           href="/movies?status=NOW_SHOWING"
         />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
