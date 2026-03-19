@@ -5,6 +5,7 @@ import com.cinema.ticket_booking.dto.request.ShowtimeRequest;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
+import com.cinema.ticket_booking.dto.response.ShowtimeSyncResponse;
 import com.cinema.ticket_booking.model.Showtime;
 
 import org.springframework.data.domain.Pageable;
@@ -25,12 +26,14 @@ public interface ShowtimeService {
 
     ShowtimeResponse create(ShowtimeRequest request);
 
+    List<ShowtimeSyncResponse> getShowtimesForSync(String movieTitle, UUID movieId, String cinemaName, LocalDate date);
+
     PageResponse<ShowtimeResponse> adminList(Pageable pageable,
-                                              String cinemaId, java.time.LocalDate date);
+            String cinemaId, java.time.LocalDate date);
 
     void overrideSeatPrices(UUID showtimeId, OverrideSeatPriceRequest request);
 
     void delete(UUID id);
 
     Showtime findById(UUID id);
-}
+};

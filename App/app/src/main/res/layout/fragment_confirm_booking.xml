@@ -7,9 +7,9 @@
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical">
         <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
-            android:src="@drawable/ic_home" android:background="@null" android:tint="@color/white"/>
+            android:src="@drawable/ic_back" android:background="@null" android:tint="@color/on_background"/>
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="Xác nhận đặt vé" android:textColor="@color/white"
+            android:text="Xác nhận đặt vé" android:textColor="@color/on_background"
             android:textSize="18sp" android:textStyle="bold" android:layout_marginStart="8dp"/>
     </LinearLayout>
 
@@ -24,7 +24,7 @@
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:orientation="vertical" android:padding="16dp">
                     <TextView android:id="@+id/tvMovieTitle" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/white"
+                        android:layout_height="wrap_content" android:textColor="@color/on_background"
                         android:textSize="16sp" android:textStyle="bold"/>
                     <TextView android:id="@+id/tvCinemaName" android:layout_width="match_parent"
                         android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
@@ -40,7 +40,7 @@
 
             <!-- Combo -->
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="🍿 Thêm combo" android:textColor="@color/white"
+                android:text="🍿 Thêm combo" android:textColor="@color/on_background"
                 android:textSize="16sp" android:textStyle="bold" android:layout_marginBottom="8dp"/>
             <androidx.recyclerview.widget.RecyclerView android:id="@+id/rvCombos"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -48,7 +48,7 @@
 
             <!-- Voucher -->
             <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="🎟 Voucher" android:textColor="@color/white"
+                android:text="🎟 Voucher" android:textColor="@color/on_background"
                 android:textSize="16sp" android:textStyle="bold" android:layout_marginTop="16dp"
                 android:layout_marginBottom="8dp"/>
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
@@ -60,7 +60,7 @@
                     app:hintTextColor="@color/on_surface_variant">
                     <com.google.android.material.textfield.TextInputEditText
                         android:id="@+id/etVoucher" android:layout_width="match_parent"
-                        android:layout_height="wrap_content" android:textColor="@color/white"
+                        android:layout_height="wrap_content" android:textColor="@color/on_surface"
                         android:inputType="text"/>
                 </com.google.android.material.textfield.TextInputLayout>
                 <com.google.android.material.button.MaterialButton android:id="@+id/btnApplyVoucher"
@@ -90,7 +90,7 @@
                             android:layout_weight="1" android:text="Tạm tính"
                             android:textColor="@color/on_surface_variant"/>
                         <TextView android:id="@+id/tvSubtotal" android:layout_width="wrap_content"
-                            android:layout_height="wrap_content" android:textColor="@color/white"/>
+                            android:layout_height="wrap_content" android:textColor="@color/on_background"/>
                     </LinearLayout>
                     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
                         android:orientation="horizontal" android:layout_marginTop="4dp">
@@ -106,7 +106,7 @@
                         android:orientation="horizontal">
                         <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                             android:layout_weight="1" android:text="Tổng cộng"
-                            android:textColor="@color/white" android:textStyle="bold"/>
+                            android:textColor="@color/on_surface" android:textStyle="bold"/>
                         <TextView android:id="@+id/tvTotal" android:layout_width="wrap_content"
                             android:layout_height="wrap_content" android:textColor="@color/accent_gold"
                             android:textSize="18sp" android:textStyle="bold"/>

@@ -88,13 +88,16 @@ public class AuthRepository {
     // ── Logout ────────────────────────────────────────────────────────────
 
     public void logout() {
-        apiService.logout().enqueue(new Callback<>() {
-            @Override
-            public void onResponse(Call<ApiResponse<Void>> call,
-                                   Response<ApiResponse<Void>> response) { }
-            @Override
-            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) { }
-        });
+        String refreshToken = tokenManager.getRefreshToken();
+        if (refreshToken != null) {
+            apiService.logout(new RefreshTokenRequest(refreshToken)).enqueue(new Callback<>() {
+                @Override
+                public void onResponse(Call<ApiResponse<Void>> call,
+                                       Response<ApiResponse<Void>> response) { }
+                @Override
+                public void onFailure(Call<ApiResponse<Void>> call, Throwable t) { }
+            });
+        }
         tokenManager.clearAll();
     }
 

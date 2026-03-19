@@ -18,6 +18,7 @@ import { cn } from "@/utils";
 import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { TopUpModal } from "@/pages/customer/profile/TopUpModal";
+import { AiChatbot } from "@/components/customer/AiChatbot";
 
 export function CustomerLayout() {
   const location = useLocation();
@@ -385,6 +386,7 @@ export function CustomerLayout() {
       </footer>
 
       <TopUpModal isOpen={isTopUpOpen} onClose={() => setIsTopUpOpen(false)} />
+      <AiChatbot />
     </div>
   );
 }

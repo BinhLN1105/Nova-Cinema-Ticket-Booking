@@ -37,6 +37,17 @@ logs/
 !**/src/main/**
 
 # ==============================
+# Backend (AI Booking / Python RAG Service)
+# ==============================
+Backend/ai-booking/venv/
+Backend/ai-booking/.env
+Backend/ai-booking/chroma_db/
+Backend/ai-booking/__pycache__/
+Backend/ai-booking/*.py[cod]
+Backend/ai-booking/.pytest_cache/
+
+
+# ==============================
 # Frontend (Node.js / React / Vue)
 # ==============================
 Frontend/**/node_modules/

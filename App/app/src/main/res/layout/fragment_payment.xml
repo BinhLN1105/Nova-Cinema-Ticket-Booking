@@ -6,9 +6,9 @@
         android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical"
         android:background="@color/surface">
         <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
-            android:src="@drawable/ic_home" android:background="@null" android:tint="@color/white"/>
+            android:src="@drawable/ic_back" android:background="@null" android:tint="@color/on_background"/>
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="Thanh toán VNPay" android:textColor="@color/white"
+            android:text="Thanh toán VNPay" android:textColor="@color/on_background"
             android:textSize="16sp" android:textStyle="bold" android:layout_marginStart="8dp"/>
     </LinearLayout>
     <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"

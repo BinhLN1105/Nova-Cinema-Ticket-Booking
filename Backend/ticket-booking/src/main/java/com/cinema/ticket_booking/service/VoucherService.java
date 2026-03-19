@@ -2,10 +2,12 @@ package com.cinema.ticket_booking.service;
 
 import com.cinema.ticket_booking.dto.request.VoucherRequest;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
+import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.model.Voucher;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.List;
 
 public interface VoucherService {
 
@@ -22,4 +24,6 @@ public interface VoucherService {
     VoucherResponse.Summary getSummaryByCode(String code);
 
     Voucher findById(UUID id);
+
+    List<VoucherSyncResponse> getActiveVouchersForSync();
 }

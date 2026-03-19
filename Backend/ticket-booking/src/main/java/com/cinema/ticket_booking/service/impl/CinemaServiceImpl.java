@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.CinemaRequest;
 import com.cinema.ticket_booking.dto.response.CinemaResponse;
+import com.cinema.ticket_booking.dto.response.CinemaSyncResponse;
 import com.cinema.ticket_booking.model.Cinema;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.CinemaMapper;
@@ -21,6 +22,19 @@ public class CinemaServiceImpl implements CinemaService {
 
     private final CinemaRepository cinemaRepository;
     private final CinemaMapper cinemaMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<CinemaSyncResponse> getAllForSync() {
+        return cinemaRepository.findByIsActiveTrue().stream()
+                .map(c -> CinemaSyncResponse.builder()
+                        .id(c.getId())
+                        .name(c.getName())
+                        .address(c.getAddress())
+                        .city(c.getCity())
+                        .build())
+                .toList();
+    }
 
     @Override
     @Transactional(readOnly = true)

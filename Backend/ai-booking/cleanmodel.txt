@@ -1,0 +1,4 @@
+xóa model models--intfloat--multilingual-e5-base
+1. mở file explorer
+2. dán C:\Users\WIN11\.cache\huggingface\hub\
+3. xóa model

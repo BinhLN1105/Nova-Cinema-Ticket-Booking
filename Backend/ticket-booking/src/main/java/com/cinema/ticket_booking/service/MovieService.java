@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.service;
 import com.cinema.ticket_booking.dto.request.MovieRequest;
 import com.cinema.ticket_booking.dto.response.MovieResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
+import com.cinema.ticket_booking.dto.response.MovieSyncResponse;
 import com.cinema.ticket_booking.model.Movie;
 import com.cinema.ticket_booking.enums.MovieStatus;
 import org.springframework.data.domain.Pageable;
@@ -28,4 +29,6 @@ public interface MovieService {
     void updateAvgRating(UUID movieId, Double newAvg);
 
     Movie findById(UUID id); // Dùng cho nội bộ các service khác gọi sang
+
+    List<MovieSyncResponse> getNowShowingForSync(String genre);
 }

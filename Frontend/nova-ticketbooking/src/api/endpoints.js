@@ -154,3 +154,9 @@ export const giftCardApi = {
   redeem: (code) => api.post("/gift-cards/redeem", { code }),
   getMyAll: (page = 0, size = 10) => api.get("/gift-cards/me", { page, size }),
 };
+
+// ── Chatbot ───────────────────────────────────
+export const chatbotApi = {
+  chat: (userMessage) => api.post("/chatbot/chat", { userMessage }),
+  clearSession: () => api.post("/chatbot/session/clear"),
+};

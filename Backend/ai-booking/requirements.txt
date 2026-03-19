@@ -1,0 +1,26 @@
+# Server
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
+
+# AI / LLM
+langchain==0.3.1
+langchain-google-genai==2.0.1
+langchain-community==0.3.1
+google-generativeai==0.8.1
+
+# Vector DB - local, không cần cài riêng
+chromadb
+
+# Embedding - chạy local, không tốn API key
+sentence-transformers==3.1.1
+
+# HTTP client để gọi Java API
+httpx==0.27.2
+
+# Utilities
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# File parsing
+markdown==3.7

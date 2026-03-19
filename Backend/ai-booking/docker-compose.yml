@@ -1,0 +1,20 @@
+version: "3.9"
+
+services:
+  nova-rag:
+    build: .
+    container_name: nova-rag
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    volumes:
+      - ./data:/app/data # Mount file tĩnh vào container
+      - ./chroma_db:/app/chroma_db # Persist ChromaDB trên host
+      - ./hf_cache:/root/.cache/huggingface # Cache Hugging Face models trên host
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

@@ -63,6 +63,10 @@ public class SecurityConfig {
                                                 .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay-return", "/api/v1/payments/vnpay/callback", "/api/v1/wallet/vnpay-return", "/api/v1/gift-cards/vnpay-return")
                                                 .permitAll()
 
+                                                // Internal API (Python RAG) - Protected by X-Internal-Key in Controller
+                                                .requestMatchers("/internal/api/**")
+                                                .permitAll()
+
                                                 // Swagger / Actuator (dev)
                                                 .requestMatchers(
                                                                 "/swagger-ui/**",

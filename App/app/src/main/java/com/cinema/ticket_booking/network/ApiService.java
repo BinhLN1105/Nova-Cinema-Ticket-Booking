@@ -23,7 +23,7 @@ public interface ApiService {
     Call<ApiResponse<AuthResponse>> refreshToken(@Body RefreshTokenRequest request);
 
     @POST("auth/logout")
-    Call<ApiResponse<Void>> logout();
+    Call<ApiResponse<Void>> logout(@Body RefreshTokenRequest request);
 
     // ── User ─────────────────────────────────────────────────────────────
     @GET("users/me")

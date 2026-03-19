@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service;
 
 import com.cinema.ticket_booking.dto.request.CinemaRequest;
 import com.cinema.ticket_booking.dto.response.CinemaResponse;
+import com.cinema.ticket_booking.dto.response.CinemaSyncResponse;
 import com.cinema.ticket_booking.model.Cinema;
 
 import java.util.List;
@@ -20,4 +21,6 @@ public interface CinemaService {
     void deactivate(UUID id);
 
     Cinema findById(UUID id); // Dùng cho nội bộ hoặc các service khác gọi sang
+
+    List<CinemaSyncResponse> getAllForSync();
 }

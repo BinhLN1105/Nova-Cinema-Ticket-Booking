@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.service.impl;
 import com.cinema.ticket_booking.dto.request.MovieRequest;
 import com.cinema.ticket_booking.dto.response.MovieResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
+import com.cinema.ticket_booking.dto.response.MovieSyncResponse;
 import com.cinema.ticket_booking.model.Genre;
 import com.cinema.ticket_booking.model.Movie;
 import com.cinema.ticket_booking.enums.MovieStatus;
@@ -29,6 +30,23 @@ public class MovieServiceImpl implements MovieService {
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final MovieMapper movieMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovieSyncResponse> getNowShowingForSync(String genre) {
+        return movieRepository.findAll().stream()
+                .filter(m -> m.getStatus() == MovieStatus.NOW_SHOWING)
+                .filter(m -> genre == null || m.getGenres().stream().anyMatch(g -> g.getName().equalsIgnoreCase(genre)))
+                .map(m -> MovieSyncResponse.builder()
+                        .id(m.getId())
+                        .title(m.getTitle())
+                        .description(m.getDescription())
+                        .duration(m.getDuration())
+                        .rated(m.getRated())
+                        .language(m.getLanguage())
+                        .build())
+                .toList();
+    }
 
     @Override
     @Transactional(readOnly = true)

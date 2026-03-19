@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.VoucherRequest;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
+import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.model.Voucher;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ConflictException;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,23 @@ public class VoucherServiceImpl implements VoucherService {
     private final VoucherMapper voucherMapper;
 
     // ── ADMIN ─────────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VoucherSyncResponse> getActiveVouchersForSync() {
+        return voucherRepository.findAll().stream()
+                .filter(v -> v.getIsActive() && java.time.LocalDateTime.now().isBefore(v.getValidTo()))
+                .map(v -> VoucherSyncResponse.builder()
+                        .id(v.getId())
+                        .code(v.getCode())
+                        .description(v.getDescription())
+                        .discountType(v.getDiscountType())
+                        .discountValue(v.getDiscountValue())
+                        .minOrder(v.getMinOrder())
+                        .validTo(v.getValidTo())
+                        .build())
+                .toList();
+    }
 
     @Override
     public VoucherResponse create(VoucherRequest request) {
