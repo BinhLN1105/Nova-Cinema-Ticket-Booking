@@ -21,6 +21,8 @@ import com.facebook.CallbackManager;
 import com.facebook.FacebookCallback;
 import com.facebook.FacebookException;
 import com.facebook.login.LoginResult;
+import com.facebook.login.LoginManager;
+import java.util.Arrays;
 import com.google.android.gms.auth.api.signin.GoogleSignIn;
 import com.google.android.gms.auth.api.signin.GoogleSignInAccount;
 import com.google.android.gms.auth.api.signin.GoogleSignInClient;
@@ -106,8 +108,7 @@ public class LoginFragment extends Fragment {
     private void setupFacebookLogin() {
         facebookCallbackManager = CallbackManager.Factory.create();
 
-        binding.btnFacebook.setPermissions("email", "public_profile");
-        binding.btnFacebook.registerCallback(facebookCallbackManager,
+        LoginManager.getInstance().registerCallback(facebookCallbackManager,
                 new FacebookCallback<>() {
                     @Override
                     public void onSuccess(LoginResult loginResult) {
@@ -145,6 +146,10 @@ public class LoginFragment extends Fragment {
         // Google Sign-In
         binding.btnGoogle.setOnClickListener(v ->
                 googleLauncher.launch(googleSignInClient.getSignInIntent()));
+
+        // Facebook Login
+        binding.btnFacebook.setOnClickListener(v -> 
+                LoginManager.getInstance().logInWithReadPermissions(LoginFragment.this, Arrays.asList("email", "public_profile")));
 
         // Chuyển sang màn đăng ký
         binding.tvRegister.setOnClickListener(v ->

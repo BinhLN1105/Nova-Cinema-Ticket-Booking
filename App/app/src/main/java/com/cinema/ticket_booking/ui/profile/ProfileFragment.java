@@ -10,6 +10,8 @@ import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentProfileBinding;
 import com.cinema.ticket_booking.util.ThemeManager;
+import com.cinema.ticket_booking.data.local.TokenManager;
+import javax.inject.Inject;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -17,6 +19,8 @@ public class ProfileFragment extends Fragment {
 
     private FragmentProfileBinding binding;
     private ProfileViewModel viewModel;
+    
+    @Inject TokenManager tokenManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -28,37 +32,33 @@ public class ProfileFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
-        viewModel.loadProfile();
+        if (tokenManager.isLoggedIn()) {
+            viewModel.loadProfile();
 
-        // Hiển thị trạng thái theme switch
-        binding.switchDarkMode.setChecked(ThemeManager.isDarkMode(requireContext()));
-        binding.switchDarkMode
-                .setOnCheckedChangeListener((btn, isChecked) -> ThemeManager.setDarkMode(requireContext(), isChecked));
-
-        viewModel.getProfile().observe(getViewLifecycleOwner(), resource -> {
-            if (resource.isSuccess() && resource.data != null) {
-                var u = resource.data;
-                binding.tvName.setText(u.getFullName() != null ? u.getFullName() : "Người dùng");
-                binding.tvEmail.setText(u.getEmail());
-                if (u.getAvatarUrl() != null && !u.getAvatarUrl().isEmpty()) {
-                    Glide.with(this).load(u.getAvatarUrl())
-                            .circleCrop()
-                            .placeholder(R.drawable.ic_profile)
-                            .into(binding.ivAvatar);
-                }
-            }
-        });
-
-        binding.btnLogout.setOnClickListener(v -> {
-            viewModel.logout();
-            Navigation.findNavController(view).navigate(R.id.action_profile_to_login);
-        });
-
-        binding.rowMyTickets
-                .setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.bookingHistoryFragment));
-
-        binding.rowNotifications
-                .setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.notificationFragment));
+            binding.btnLogout.setText("Đăng xuất");
+            binding.btnLogout.setTextColor(getResources().getColor(R.color.error, null));
+            binding.btnLogout.setStrokeColorResource(R.color.error);
+            binding.btnLogout.setOnClickListener(v -> {
+                viewModel.logout();
+                Navigation.findNavController(view).navigate(R.id.action_profile_to_login);
+            });
+            
+            binding.rowMyTickets.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.bookingHistoryFragment));
+            binding.rowNotifications.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.notificationFragment));
+        } else {
+            binding.tvName.setText("Chưa đăng nhập");
+            binding.tvEmail.setText("Vui lòng đăng nhập để sử dụng tính năng");
+            
+            binding.btnLogout.setText("Đăng nhập");
+            binding.btnLogout.setTextColor(getResources().getColor(R.color.primary, null));
+            binding.btnLogout.setStrokeColorResource(R.color.primary);
+            binding.btnLogout.setOnClickListener(v -> {
+                Navigation.findNavController(view).navigate(R.id.action_profile_to_login);
+            });
+            
+            binding.rowMyTickets.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.action_profile_to_login));
+            binding.rowNotifications.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.action_profile_to_login));
+        }
     }
 
     @Override

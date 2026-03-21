@@ -28,9 +28,7 @@ public class SplashFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (!isAdded()) return;
-            int action = tokenManager.isLoggedIn()
-                    ? R.id.action_splash_to_home
-                    : R.id.action_splash_to_login;
+            int action = R.id.action_splash_to_home;
             Navigation.findNavController(view).navigate(action);
         }, 1500);
     }
