@@ -19,7 +19,7 @@ public class HomeFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+            ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentHomeBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -40,8 +40,8 @@ public class HomeFragment extends Fragment {
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
                     if (resource.data != null) {
-                        MovieAdapter adapter = new MovieAdapter(resource.data.getContent(), movieId ->
-                                navigateToDetail(view, movieId));
+                        MovieAdapter adapter = new MovieAdapter(resource.data.getContent(),
+                                movieId -> navigateToDetail(view, movieId));
                         binding.rvNowShowing.setAdapter(adapter);
                     }
                 }
@@ -51,19 +51,25 @@ public class HomeFragment extends Fragment {
 
         viewModel.getComingSoon().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null) {
-                MovieAdapter adapter = new MovieAdapter(resource.data.getContent(), movieId ->
-                        navigateToDetail(view, movieId));
+                MovieAdapter adapter = new MovieAdapter(resource.data.getContent(),
+                        movieId -> navigateToDetail(view, movieId));
                 binding.rvComingSoon.setAdapter(adapter);
             }
         });
 
+        // SwipeRefresh
         binding.swipeRefresh.setOnRefreshListener(() -> {
-            viewModel.refresh();
+            viewModel.loadHomeData();
             binding.swipeRefresh.setRefreshing(false);
         });
 
-        binding.etSearch.setOnClickListener(v ->
-                Navigation.findNavController(view).navigate(R.id.searchFragment));
+        // Chatbot FAB
+        if (binding.btnChatbot != null) {
+            binding.btnChatbot
+                    .setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.action_home_to_chatbot));
+        }
+
+        binding.etSearch.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.searchFragment));
     }
 
     private void navigateToDetail(View view, String movieId) {
@@ -72,5 +78,9 @@ public class HomeFragment extends Fragment {
         Navigation.findNavController(view).navigate(R.id.action_home_to_movieDetail, args);
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

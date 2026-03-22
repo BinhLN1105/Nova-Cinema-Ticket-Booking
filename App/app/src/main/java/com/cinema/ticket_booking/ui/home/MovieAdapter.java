@@ -11,17 +11,20 @@ import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> {
 
-    public interface OnMovieClickListener { void onClick(String movieId); }
+    public interface OnMovieClickListener {
+        void onClick(String movieId);
+    }
 
     private final List<MovieSummary> movies;
     private final OnMovieClickListener listener;
 
     public MovieAdapter(List<MovieSummary> movies, OnMovieClickListener listener) {
-        this.movies   = movies;
+        this.movies = movies;
         this.listener = listener;
     }
 
-    @NonNull @Override
+    @NonNull
+    @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         ItemMovieBinding b = ItemMovieBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
@@ -33,14 +36,19 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
         holder.bind(movies.get(position));
     }
 
-    @Override public int getItemCount() { return movies.size(); }
+    @Override
+    public int getItemCount() {
+        return movies.size();
+    }
 
     class ViewHolder extends RecyclerView.ViewHolder {
         private final ItemMovieBinding b;
+
         ViewHolder(ItemMovieBinding b) {
             super(b.getRoot());
             this.b = b;
         }
+
         void bind(MovieSummary movie) {
             b.tvTitle.setText(movie.getTitle());
             b.tvRating.setText(String.format("★ %.1f", movie.getAvgRating()));

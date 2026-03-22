@@ -15,11 +15,12 @@ import javax.inject.Inject;
 @AndroidEntryPoint
 public class SplashFragment extends Fragment {
 
-    @Inject TokenManager tokenManager;
+    @Inject
+    TokenManager tokenManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+            ViewGroup container, Bundle savedInstanceState) {
         return inflater.inflate(R.layout.fragment_splash, container, false);
     }
 
@@ -27,8 +28,14 @@ public class SplashFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            if (!isAdded()) return;
-            int action = R.id.action_splash_to_home;
+            if (!isAdded())
+                return;
+            int action;
+            if (tokenManager.isLoggedIn() && tokenManager.isStaffOrAdmin()) {
+                action = R.id.action_splash_to_scanner;
+            } else {
+                action = R.id.action_splash_to_home;
+            }
             Navigation.findNavController(view).navigate(action);
         }, 1500);
     }

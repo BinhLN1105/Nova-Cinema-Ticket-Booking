@@ -20,7 +20,8 @@ public class PaymentFragment extends Fragment {
     private FragmentPaymentBinding binding;
     private String bookingId;
 
-    @Inject BookingRepository bookingRepository;
+    @Inject
+    BookingRepository bookingRepository;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -33,7 +34,8 @@ public class PaymentFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        if (getArguments() != null) bookingId = getArguments().getString("bookingId");
+        if (getArguments() != null)
+            bookingId = getArguments().getString("bookingId");
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
@@ -89,5 +91,9 @@ public class PaymentFragment extends Fragment {
         binding.webView.loadUrl(url);
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

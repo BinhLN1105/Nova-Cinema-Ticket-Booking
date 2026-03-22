@@ -10,24 +10,42 @@ import com.cinema.ticket_booking.databinding.ItemBookingBinding;
 import java.util.List;
 
 public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAdapter.VH> {
-    public interface Listener { void onClick(String bookingId); }
+    public interface Listener {
+        void onClick(String bookingId);
+    }
+
     private final List<BookingSummary> items;
     private final Listener listener;
 
     public BookingHistoryAdapter(List<BookingSummary> items, Listener listener) {
-        this.items = items; this.listener = listener;
+        this.items = items;
+        this.listener = listener;
     }
 
-    @NonNull @Override
+    @NonNull
+    @Override
     public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
         return new VH(ItemBookingBinding.inflate(LayoutInflater.from(p.getContext()), p, false));
     }
-    @Override public void onBindViewHolder(@NonNull VH h, int pos) { h.bind(items.get(pos)); }
-    @Override public int getItemCount() { return items.size(); }
+
+    @Override
+    public void onBindViewHolder(@NonNull VH h, int pos) {
+        h.bind(items.get(pos));
+    }
+
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
 
     class VH extends RecyclerView.ViewHolder {
         final ItemBookingBinding b;
-        VH(ItemBookingBinding b) { super(b.getRoot()); this.b = b; }
+
+        VH(ItemBookingBinding b) {
+            super(b.getRoot());
+            this.b = b;
+        }
+
         void bind(BookingSummary s) {
             b.tvMovieTitle.setText(s.getMovieTitle());
             b.tvCinema.setText(s.getCinemaName());

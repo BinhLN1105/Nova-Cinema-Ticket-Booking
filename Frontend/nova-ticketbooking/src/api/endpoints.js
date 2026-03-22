@@ -101,6 +101,15 @@ export const userApi = {
   getById: (id) => api.get(`/admin/users/${id}`),
   updateRole: (id, role) => api.patch(`/admin/users/${id}/role`, { role }),
   ban: (id) => api.patch(`/admin/users/${id}/ban`),
+  // Staff management
+  createStaff: (data) => api.post("/admin/staff", data),
+  assignCinema: (userId, cinemaId) => api.patch(`/admin/staff/${userId}/cinema`, { cinemaId }),
+};
+
+// ── Admin Check-In (QR image upload) ─────────
+export const adminCheckInApi = {
+  // POST /bookings/check-in?qrCode=xxx  (same endpoint, admin bypasses cinema validation)
+  checkIn: (qrCode) => api.post(`/bookings/check-in?qrCode=${encodeURIComponent(qrCode)}`),
 };
 
 // ── Dashboard ─────────────────────────────────

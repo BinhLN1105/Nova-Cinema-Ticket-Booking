@@ -29,6 +29,8 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient;
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions;
 import com.google.android.gms.common.api.ApiException;
 import com.google.android.gms.tasks.Task;
+import com.cinema.ticket_booking.data.local.TokenManager;
+import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -36,18 +38,21 @@ import dagger.hilt.android.AndroidEntryPoint;
 public class LoginFragment extends Fragment {
 
     private FragmentLoginBinding binding;
-    private AuthViewModel        authViewModel;
+    private AuthViewModel authViewModel;
 
     // Google Sign-In
-    private GoogleSignInClient          googleSignInClient;
+    private GoogleSignInClient googleSignInClient;
     private ActivityResultLauncher<Intent> googleLauncher;
 
     // Facebook Login
     private CallbackManager facebookCallbackManager;
 
+    @Inject
+    TokenManager tokenManager;
+
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+            ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentLoginBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -74,7 +79,7 @@ public class LoginFragment extends Fragment {
 
     private void setupGoogleSignIn() {
         GoogleSignInOptions gso = new GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-                .requestIdToken(getString(R.string.google_web_client_id))  // Web Client ID từ Google Cloud Console
+                .requestIdToken(getString(R.string.google_web_client_id)) // Web Client ID từ Google Cloud Console
                 .requestEmail()
                 .build();
 
@@ -133,7 +138,7 @@ public class LoginFragment extends Fragment {
     private void setupClickListeners() {
         // Đăng nhập LOCAL
         binding.btnLogin.setOnClickListener(v -> {
-            String email    = binding.etEmail.getText().toString().trim();
+            String email = binding.etEmail.getText().toString().trim();
             String password = binding.etPassword.getText().toString();
 
             if (email.isEmpty() || password.isEmpty()) {
@@ -144,22 +149,19 @@ public class LoginFragment extends Fragment {
         });
 
         // Google Sign-In
-        binding.btnGoogle.setOnClickListener(v ->
-                googleLauncher.launch(googleSignInClient.getSignInIntent()));
+        binding.btnGoogle.setOnClickListener(v -> googleLauncher.launch(googleSignInClient.getSignInIntent()));
 
         // Facebook Login
-        binding.btnFacebook.setOnClickListener(v -> 
-                LoginManager.getInstance().logInWithReadPermissions(LoginFragment.this, Arrays.asList("email", "public_profile")));
+        binding.btnFacebook.setOnClickListener(v -> LoginManager.getInstance()
+                .logInWithReadPermissions(LoginFragment.this, Arrays.asList("email", "public_profile")));
 
         // Chuyển sang màn đăng ký
-        binding.tvRegister.setOnClickListener(v ->
-                Navigation.findNavController(requireView())
-                        .navigate(R.id.action_login_to_register));
+        binding.tvRegister.setOnClickListener(v -> Navigation.findNavController(requireView())
+                .navigate(R.id.action_login_to_register));
 
         // Quên mật khẩu
-        binding.tvForgotPassword.setOnClickListener(v ->
-                Toast.makeText(requireContext(),
-                        "Tính năng đang phát triển", Toast.LENGTH_SHORT).show());
+        binding.tvForgotPassword.setOnClickListener(v -> Toast.makeText(requireContext(),
+                "Tính năng đang phát triển", Toast.LENGTH_SHORT).show());
     }
 
     // ── Observers ─────────────────────────────────────────────────────────
@@ -194,8 +196,9 @@ public class LoginFragment extends Fragment {
     }
 
     private void navigateToHome() {
+        int action = tokenManager.isStaffOrAdmin() ? R.id.action_login_to_scanner : R.id.action_login_to_home;
         Navigation.findNavController(requireView())
-                .navigate(R.id.action_login_to_home);
+                .navigate(action);
     }
 
     // Facebook cần override onActivityResult

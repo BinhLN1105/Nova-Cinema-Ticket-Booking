@@ -11,7 +11,17 @@ import javax.inject.Inject;
 public class BookingDetailViewModel extends ViewModel {
     private final BookingRepository repo;
     private final MutableLiveData<Resource<BookingResponse>> booking = new MutableLiveData<>();
-    @Inject public BookingDetailViewModel(BookingRepository repo) { this.repo = repo; }
-    public LiveData<Resource<BookingResponse>> getBooking() { return booking; }
-    public void loadBooking(String id) { repo.getBookingDetail(id).observeForever(booking::setValue); }
+
+    @Inject
+    public BookingDetailViewModel(BookingRepository repo) {
+        this.repo = repo;
+    }
+
+    public LiveData<Resource<BookingResponse>> getBooking() {
+        return booking;
+    }
+
+    public void loadBooking(String id) {
+        repo.getBookingDetail(id).observeForever(booking::setValue);
+    }
 }

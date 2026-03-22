@@ -29,16 +29,25 @@ public class SelectSeatViewModel extends ViewModel {
         this.bookingRepo = bookingRepo;
     }
 
-    public LiveData<Resource<SeatMapResponse>> getSeatMap() { return seatMap; }
-    public Set<String> getSelectedSeatIds() { return selectedSeatIds; }
-    public Map<String, Integer> getSelectedCombos() { return selectedCombos; }
+    public LiveData<Resource<SeatMapResponse>> getSeatMap() {
+        return seatMap;
+    }
+
+    public Set<String> getSelectedSeatIds() {
+        return selectedSeatIds;
+    }
+
+    public Map<String, Integer> getSelectedCombos() {
+        return selectedCombos;
+    }
 
     public void loadSeatMap(String showtimeId) {
         showtimeRepo.getSeatMap(showtimeId).observeForever(seatMap::setValue);
     }
 
     public boolean toggleSeat(SeatMapResponse.SeatItem seat) {
-        if ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus())) return false;
+        if ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus()))
+            return false;
         if (selectedSeatIds.contains(seat.getShowtimeSeatId()))
             selectedSeatIds.remove(seat.getShowtimeSeatId());
         else
@@ -47,7 +56,8 @@ public class SelectSeatViewModel extends ViewModel {
     }
 
     public double calculateTotal(SeatMapResponse seatMapData) {
-        if (seatMapData == null) return 0;
+        if (seatMapData == null)
+            return 0;
         double total = 0;
         for (SeatMapResponse.SeatItem seat : seatMapData.getSeats()) {
             if (selectedSeatIds.contains(seat.getShowtimeSeatId()))

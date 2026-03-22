@@ -15,7 +15,7 @@ import javax.inject.Inject;
 public class AuthViewModel extends ViewModel {
 
     private final AuthRepository authRepository;
-    private final TokenManager   tokenManager;
+    private final TokenManager tokenManager;
 
     // LiveData các màn hình observe
     private final MutableLiveData<Resource<AuthResponse>> authResult = new MutableLiveData<>();
@@ -23,7 +23,7 @@ public class AuthViewModel extends ViewModel {
     @Inject
     public AuthViewModel(AuthRepository authRepository, TokenManager tokenManager) {
         this.authRepository = authRepository;
-        this.tokenManager   = tokenManager;
+        this.tokenManager = tokenManager;
     }
 
     public LiveData<Resource<AuthResponse>> getAuthResult() {
@@ -34,26 +34,22 @@ public class AuthViewModel extends ViewModel {
 
     public void register(String email, String password, String fullName, String phone) {
         RegisterRequest request = new RegisterRequest(email, password, fullName, phone);
-        authRepository.register(request).observeForever(result ->
-                authResult.setValue(result));
+        authRepository.register(request).observeForever(result -> authResult.setValue(result));
     }
 
     public void login(String email, String password) {
         LoginRequest request = new LoginRequest(email, password);
-        authRepository.login(request).observeForever(result ->
-                authResult.setValue(result));
+        authRepository.login(request).observeForever(result -> authResult.setValue(result));
     }
 
     public void loginWithGoogle(String idToken) {
         SocialLoginRequest request = new SocialLoginRequest(idToken, "GOOGLE");
-        authRepository.socialLogin(request).observeForever(result ->
-                authResult.setValue(result));
+        authRepository.socialLogin(request).observeForever(result -> authResult.setValue(result));
     }
 
     public void loginWithFacebook(String accessToken) {
         SocialLoginRequest request = new SocialLoginRequest(accessToken, "FACEBOOK");
-        authRepository.socialLogin(request).observeForever(result ->
-                authResult.setValue(result));
+        authRepository.socialLogin(request).observeForever(result -> authResult.setValue(result));
     }
 
     public void logout() {

@@ -43,7 +43,8 @@ public class ConfirmBookingFragment extends Fragment {
         // Voucher
         binding.btnApplyVoucher.setOnClickListener(v -> {
             String code = binding.etVoucher.getText().toString().trim();
-            if (!code.isEmpty()) viewModel.validateVoucher(code);
+            if (!code.isEmpty())
+                viewModel.validateVoucher(code);
         });
         binding.btnClearVoucher.setOnClickListener(v -> {
             viewModel.clearVoucher();
@@ -67,8 +68,14 @@ public class ConfirmBookingFragment extends Fragment {
             if (resource.isSuccess() && resource.data != null) {
                 binding.rvCombos.setLayoutManager(new LinearLayoutManager(requireContext()));
                 binding.rvCombos.setAdapter(new ComboAdapter(resource.data,
-                        comboId -> { viewModel.addCombo(comboId); updatePriceSummary(); },
-                        comboId -> { viewModel.removeCombo(comboId); updatePriceSummary(); },
+                        comboId -> {
+                            viewModel.addCombo(comboId);
+                            updatePriceSummary();
+                        },
+                        comboId -> {
+                            viewModel.removeCombo(comboId);
+                            updatePriceSummary();
+                        },
                         viewModel.getSelectedCombos()));
             }
         });
@@ -76,7 +83,8 @@ public class ConfirmBookingFragment extends Fragment {
 
     private void setupObservers(View view) {
         viewModel.getVoucher().observe(getViewLifecycleOwner(), resource -> {
-            if (resource == null) return;
+            if (resource == null)
+                return;
             if (resource.isSuccess() && resource.data != null) {
                 binding.tvVoucherInfo.setText("✓ " + resource.data.getDescription());
                 binding.tvVoucherInfo.setVisibility(View.VISIBLE);
@@ -120,5 +128,9 @@ public class ConfirmBookingFragment extends Fragment {
         binding.tvTotal.setText(String.format("%,.0fđ", total));
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

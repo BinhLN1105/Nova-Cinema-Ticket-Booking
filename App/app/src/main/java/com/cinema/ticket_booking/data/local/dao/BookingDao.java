@@ -1,4 +1,5 @@
 package com.cinema.ticket_booking.data.local.dao;
+
 import androidx.lifecycle.LiveData;
 import androidx.room.*;
 import com.cinema.ticket_booking.data.local.entity.BookingEntity;

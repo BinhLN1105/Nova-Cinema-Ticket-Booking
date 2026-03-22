@@ -16,12 +16,12 @@ import javax.inject.Singleton;
 @Singleton
 public class AuthRepository {
 
-    private final ApiService   apiService;
+    private final ApiService apiService;
     private final TokenManager tokenManager;
 
     @Inject
     public AuthRepository(ApiService apiService, TokenManager tokenManager) {
-        this.apiService   = apiService;
+        this.apiService = apiService;
         this.tokenManager = tokenManager;
     }
 
@@ -34,9 +34,10 @@ public class AuthRepository {
         apiService.register(request).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<AuthResponse>> call,
-                                   Response<ApiResponse<AuthResponse>> response) {
+                    Response<ApiResponse<AuthResponse>> response) {
                 handleAuthResponse(response, result);
             }
+
             @Override
             public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
@@ -54,9 +55,10 @@ public class AuthRepository {
         apiService.login(request).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<AuthResponse>> call,
-                                   Response<ApiResponse<AuthResponse>> response) {
+                    Response<ApiResponse<AuthResponse>> response) {
                 handleAuthResponse(response, result);
             }
+
             @Override
             public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
@@ -74,9 +76,10 @@ public class AuthRepository {
         apiService.socialLogin(request).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<AuthResponse>> call,
-                                   Response<ApiResponse<AuthResponse>> response) {
+                    Response<ApiResponse<AuthResponse>> response) {
                 handleAuthResponse(response, result);
             }
+
             @Override
             public void onFailure(Call<ApiResponse<AuthResponse>> call, Throwable t) {
                 result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
@@ -93,9 +96,12 @@ public class AuthRepository {
             apiService.logout(new RefreshTokenRequest(refreshToken)).enqueue(new Callback<>() {
                 @Override
                 public void onResponse(Call<ApiResponse<Void>> call,
-                                       Response<ApiResponse<Void>> response) { }
+                        Response<ApiResponse<Void>> response) {
+                }
+
                 @Override
-                public void onFailure(Call<ApiResponse<Void>> call, Throwable t) { }
+                public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                }
             });
         }
         tokenManager.clearAll();
@@ -104,7 +110,7 @@ public class AuthRepository {
     // ── Helper ────────────────────────────────────────────────────────────
 
     private void handleAuthResponse(Response<ApiResponse<AuthResponse>> response,
-                                    MutableLiveData<Resource<AuthResponse>> result) {
+            MutableLiveData<Resource<AuthResponse>> result) {
         if (response.isSuccessful() && response.body() != null
                 && response.body().isSuccess()) {
             AuthResponse auth = response.body().getData();
@@ -115,8 +121,7 @@ public class AuthRepository {
                     auth.getUser().getEmail(),
                     auth.getUser().getFullName(),
                     auth.getUser().getRole(),
-                    auth.getUser().getAvatarUrl()
-            );
+                    auth.getUser().getAvatarUrl());
             result.setValue(Resource.success(auth));
         } else {
             String msg = response.body() != null

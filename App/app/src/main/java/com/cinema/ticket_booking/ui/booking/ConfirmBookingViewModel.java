@@ -23,17 +23,29 @@ public class ConfirmBookingViewModel extends ViewModel {
     private final Map<String, Integer> selectedCombos = new LinkedHashMap<>();
 
     @Inject
-    public ConfirmBookingViewModel(BookingRepository bookingRepo, VoucherRepository voucherRepo, ComboRepository comboRepo) {
+    public ConfirmBookingViewModel(BookingRepository bookingRepo, VoucherRepository voucherRepo,
+            ComboRepository comboRepo) {
         this.bookingRepo = bookingRepo;
         this.voucherRepo = voucherRepo;
         this.comboRepo = comboRepo;
         loadCombos();
     }
 
-    public LiveData<Resource<List<ComboResponse>>> getCombos() { return combos; }
-    public LiveData<Resource<VoucherSummary>> getVoucher() { return voucher; }
-    public LiveData<Resource<BookingResponse>> getBookingResult() { return bookingResult; }
-    public Map<String, Integer> getSelectedCombos() { return selectedCombos; }
+    public LiveData<Resource<List<ComboResponse>>> getCombos() {
+        return combos;
+    }
+
+    public LiveData<Resource<VoucherSummary>> getVoucher() {
+        return voucher;
+    }
+
+    public LiveData<Resource<BookingResponse>> getBookingResult() {
+        return bookingResult;
+    }
+
+    public Map<String, Integer> getSelectedCombos() {
+        return selectedCombos;
+    }
 
     private void loadCombos() {
         comboRepo.getCombos().observeForever(combos::setValue);
@@ -42,11 +54,15 @@ public class ConfirmBookingViewModel extends ViewModel {
     public void validateVoucher(String code) {
         voucherRepo.validateVoucher(code).observeForever(r -> {
             voucher.setValue(r);
-            if (r.isSuccess()) appliedVoucher = r.data;
+            if (r.isSuccess())
+                appliedVoucher = r.data;
         });
     }
 
-    public void clearVoucher() { appliedVoucher = null; voucher.setValue(null); }
+    public void clearVoucher() {
+        appliedVoucher = null;
+        voucher.setValue(null);
+    }
 
     public void addCombo(String comboId) {
         selectedCombos.merge(comboId, 1, Integer::sum);
@@ -57,7 +73,8 @@ public class ConfirmBookingViewModel extends ViewModel {
     }
 
     public double calculateDiscount(double subtotal) {
-        if (appliedVoucher == null) return 0;
+        if (appliedVoucher == null)
+            return 0;
         if ("PERCENTAGE".equals(appliedVoucher.getDiscountType()))
             return Math.min(subtotal * appliedVoucher.getDiscountValue() / 100, appliedVoucher.getMinOrder());
         return appliedVoucher.getDiscountValue();
@@ -69,7 +86,8 @@ public class ConfirmBookingViewModel extends ViewModel {
             comboItems.add(new BookingRequest.ComboItem(e.getKey(), e.getValue()));
 
         String voucherCode = appliedVoucher != null ? appliedVoucher.getCode() : null;
-        BookingRequest req = new BookingRequest(showtimeId, SelectSeatViewModel.pendingSeatIds, comboItems, voucherCode);
+        BookingRequest req = new BookingRequest(showtimeId, SelectSeatViewModel.pendingSeatIds, comboItems,
+                voucherCode);
         bookingRepo.createBooking(req).observeForever(bookingResult::setValue);
     }
 }

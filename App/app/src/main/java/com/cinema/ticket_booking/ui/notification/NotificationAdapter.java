@@ -9,18 +9,35 @@ import java.util.List;
 
 public class NotificationAdapter extends RecyclerView.Adapter<NotificationAdapter.VH> {
     private final List<NotificationResponse> items;
-    public NotificationAdapter(List<NotificationResponse> items) { this.items = items; }
 
-    @NonNull @Override
+    public NotificationAdapter(List<NotificationResponse> items) {
+        this.items = items;
+    }
+
+    @NonNull
+    @Override
     public VH onCreateViewHolder(@NonNull ViewGroup p, int t) {
         return new VH(ItemNotificationBinding.inflate(LayoutInflater.from(p.getContext()), p, false));
     }
-    @Override public void onBindViewHolder(@NonNull VH h, int pos) { h.bind(items.get(pos)); }
-    @Override public int getItemCount() { return items.size(); }
+
+    @Override
+    public void onBindViewHolder(@NonNull VH h, int pos) {
+        h.bind(items.get(pos));
+    }
+
+    @Override
+    public int getItemCount() {
+        return items.size();
+    }
 
     class VH extends RecyclerView.ViewHolder {
         final ItemNotificationBinding b;
-        VH(ItemNotificationBinding b) { super(b.getRoot()); this.b = b; }
+
+        VH(ItemNotificationBinding b) {
+            super(b.getRoot());
+            this.b = b;
+        }
+
         void bind(NotificationResponse n) {
             b.tvTitle.setText(n.getTitle());
             b.tvBody.setText(n.getBody());

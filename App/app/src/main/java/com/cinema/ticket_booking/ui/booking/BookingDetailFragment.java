@@ -33,7 +33,8 @@ public class BookingDetailFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(BookingDetailViewModel.class);
 
         String bookingId = getArguments() != null ? getArguments().getString("bookingId") : null;
-        if (bookingId != null) viewModel.loadBooking(bookingId);
+        if (bookingId != null)
+            viewModel.loadBooking(bookingId);
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
@@ -42,7 +43,8 @@ public class BookingDetailFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data == null) return;
+                    if (resource.data == null)
+                        return;
                     var b = resource.data;
                     binding.tvBookingCode.setText("Mã vé: " + b.getBookingCode());
                     binding.tvMovieTitle.setText(b.getMovieTitle());
@@ -97,5 +99,9 @@ public class BookingDetailFragment extends Fragment {
         }
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

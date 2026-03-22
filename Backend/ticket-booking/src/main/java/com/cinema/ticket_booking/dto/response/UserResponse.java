@@ -24,4 +24,7 @@ public class UserResponse {
     private Long availableExp;
     private MembershipTier membershipTier;
     private LocalDateTime createdAt;
+    /** Chỉ có giá trị khi role == STAFF, null với CUSTOMER/ADMIN */
+    private String cinemaId;
+    private String cinemaName;
 }

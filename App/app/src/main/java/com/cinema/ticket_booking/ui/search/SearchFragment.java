@@ -34,13 +34,22 @@ public class SearchFragment extends Fragment {
         binding.rvResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
 
         binding.etSearch.addTextChangedListener(new TextWatcher() {
-            @Override public void beforeTextChanged(CharSequence s, int st, int c, int a) {}
-            @Override public void onTextChanged(CharSequence s, int st, int b, int c) {
-                String q = s.toString().trim();
-                if (q.length() >= 2) viewModel.search(q);
-                else if (q.isEmpty()) viewModel.clearResults();
+            @Override
+            public void beforeTextChanged(CharSequence s, int st, int c, int a) {
             }
-            @Override public void afterTextChanged(Editable s) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int st, int b, int c) {
+                String q = s.toString().trim();
+                if (q.length() >= 2)
+                    viewModel.search(q);
+                else if (q.isEmpty())
+                    viewModel.clearResults();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
         });
 
         viewModel.getResults().observe(getViewLifecycleOwner(), resource -> {
@@ -48,7 +57,8 @@ public class SearchFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data == null || resource.data.getContent() == null || resource.data.getContent().isEmpty()) {
+                    if (resource.data == null || resource.data.getContent() == null
+                            || resource.data.getContent().isEmpty()) {
                         binding.tvEmpty.setVisibility(View.VISIBLE);
                         binding.rvResults.setVisibility(View.GONE);
                     } else {
@@ -70,5 +80,9 @@ public class SearchFragment extends Fragment {
         });
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

@@ -1,9 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Shield, Ban, MoreVertical, User, Mail, Phone, Calendar } from 'lucide-react'
-import { userApi } from '@/api/endpoints'
+import { Shield, Ban, MoreVertical, User, Mail, Phone, Calendar, Building, Plus } from 'lucide-react'
+import { userApi, cinemaApi } from '@/api/endpoints'
 import { AdminCard, PageHeader, Table, Pagination, StatusBadge } from '@/components/common/ui/AdminTable'
-import { SearchInput, Button, Select } from '@/components/common/ui/FormElements'
+import { SearchInput, Button, Select, Input } from '@/components/common/ui/FormElements'
 import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
 import { formatDate, cn } from '@/utils'
 import toast from 'react-hot-toast'
@@ -18,17 +18,40 @@ export default function UsersPage() {
   const [search, setSearch]           = useState('')
   const [roleFilter, setRoleFilter]   = useState('')
   const [page, setPage]               = useState(0)
+  
+  // Modals state
   const [viewUser, setViewUser]       = useState(null)
   const [banTarget, setBanTarget]     = useState(null)
   const [changeRole, setChangeRole]   = useState(null)
   const [newRole, setNewRole]         = useState('')
+  
+  // Staff management state
+  const [showCreateStaff, setShowCreateStaff] = useState(false)
+  const [assignCinemaUser, setAssignCinemaUser] = useState(null)
+  const [selectedCinema, setSelectedCinema] = useState('')
+  
+  // Form create staff
+  const [staffForm, setStaffForm] = useState({ fullName: '', email: '', password: '', cinemaId: '' })
+
   const qc = useQueryClient()
 
+  // Queries
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'users', search, roleFilter, page],
     queryFn: () => userApi.getAll({ search, role: roleFilter || undefined, page, size: 15 }),
   })
 
+  const { data: cinemas } = useQuery({
+    queryKey: ['admin', 'cinemas', 'all'],
+    queryFn: () => cinemaApi.getAll(),
+  })
+
+  const cinemaOptions = useMemo(() => {
+    if (!cinemas) return []
+    return cinemas.map(c => ({ value: c.id, label: c.name }))
+  }, [cinemas])
+
+  // Mutations
   const banMutation = useMutation({
     mutationFn: () => userApi.ban(banTarget?.id),
     onSuccess: () => {
@@ -47,6 +70,27 @@ export default function UsersPage() {
     },
   })
 
+  const createStaffMut = useMutation({
+    mutationFn: () => userApi.createStaff(staffForm),
+    onSuccess: () => {
+      toast.success('Tạo nhân viên thành công')
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] })
+      setShowCreateStaff(false)
+      setStaffForm({ fullName: '', email: '', password: '', cinemaId: '' })
+    },
+    onError: (err) => toast.error(err?.response?.data?.message || 'Lỗi khi tạo nhân viên')
+  })
+
+  const assignCinemaMut = useMutation({
+    mutationFn: () => userApi.assignCinema(assignCinemaUser?.id, selectedCinema),
+    onSuccess: () => {
+      toast.success('Đã phân công rạp')
+      qc.invalidateQueries({ queryKey: ['admin', 'users'] })
+      setAssignCinemaUser(null)
+    },
+    onError: (err) => toast.error(err?.response?.data?.message || 'Lỗi phân công rạp')
+  })
+
   const columns = [
     {
       key: 'user', header: 'Người dùng',
@@ -59,32 +103,36 @@ export default function UsersPage() {
           <div>
             <p className="font-semibold text-gray-900 text-sm">{u.fullName}</p>
             <p className="text-xs text-gray-400 flex items-center gap-1">
-              <Mail className="w-3 h-3" /> {u.email}
+               {u.email}
             </p>
           </div>
         </div>
       ),
     },
     {
-      key: 'phone', header: 'SĐT',
-      render: (u) => (
-        <span className="text-gray-600 text-sm flex items-center gap-1.5">
-          <Phone className="w-3.5 h-3.5 text-gray-400" /> {u.phone ? u.phone.slice(0, 4) + '****' : '—'}
-        </span>
-      ),
-    },
-    {
       key: 'role', header: 'Vai trò',
       render: (u) => {
         const r = ROLE_BADGE[u.role] ?? { label: u.role, color: 'gray' }
-        return <StatusBadge label={r.label} color={r.color} />
+        return (
+          <div className="space-y-1">
+            <StatusBadge label={r.label} color={r.color} />
+            {u.role === 'STAFF' && u.cinemaName && (
+              <p className="text-xs text-brand-600 font-medium flex items-center gap-1">
+                <Building className="w-3 h-3" /> {u.cinemaName}
+              </p>
+            )}
+            {u.role === 'STAFF' && !u.cinemaName && (
+              <p className="text-xs text-red-500 font-medium whitespace-nowrap">Chưa gắn rạp</p>
+            )}
+          </div>
+        )
       },
     },
     {
       key: 'createdAt', header: 'Ngày tham gia',
       render: (u) => (
-        <span className="text-gray-500 text-sm flex items-center gap-1.5">
-          <Calendar className="w-3.5 h-3.5 text-gray-400" /> {formatDate(u.createdAt)}
+        <span className="text-gray-500 text-sm flex items-center gap-1.5 whitespace-nowrap">
+           {formatDate(u.createdAt)}
         </span>
       ),
     },
@@ -96,6 +144,12 @@ export default function UsersPage() {
             className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all" title="Xem chi tiết">
             <User className="w-4 h-4" />
           </button>
+          {u.role === 'STAFF' && (
+             <button onClick={() => { setAssignCinemaUser(u); setSelectedCinema(u.cinemaId || '') }}
+               className="p-2 rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-600 transition-all font-medium text-xs whitespace-nowrap" title="Phân công rạp">
+               <Building className="w-4 h-4" />
+             </button>
+          )}
           <button onClick={() => { setChangeRole(u); setNewRole(u.role) }}
             className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Thay đổi vai trò">
             <Shield className="w-4 h-4" />
@@ -111,7 +165,12 @@ export default function UsersPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader title="Quản lý người dùng" subtitle={`${data?.totalElements ?? 0} tài khoản`} />
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <PageHeader title="Quản lý người dùng" subtitle={`${data?.totalElements ?? 0} tài khoản`} />
+        <Button onClick={() => setShowCreateStaff(true)} className="flex items-center gap-2">
+          <Plus className="w-4 h-4" /> Tạo nhân viên
+        </Button>
+      </div>
 
       <AdminCard>
         <div className="p-4 border-b border-gray-100 flex flex-col sm:flex-row gap-3">
@@ -134,7 +193,7 @@ export default function UsersPage() {
           totalElements={data.totalElements} pageSize={15} onPageChange={setPage} />}
       </AdminCard>
 
-      {/* View user modal */}
+      {/* ── View user modal ── */}
       <Modal open={!!viewUser} onClose={() => setViewUser(null)}
         title="Thông tin người dùng" size="sm">
         {viewUser && (
@@ -146,8 +205,15 @@ export default function UsersPage() {
               </div>
               <div className="text-center">
                 <p className="font-bold text-gray-900 text-lg">{viewUser.fullName}</p>
-                <StatusBadge label={ROLE_BADGE[viewUser.role]?.label ?? viewUser.role}
-                  color={ROLE_BADGE[viewUser.role]?.color ?? 'gray'} />
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <StatusBadge label={ROLE_BADGE[viewUser.role]?.label ?? viewUser.role}
+                    color={ROLE_BADGE[viewUser.role]?.color ?? 'gray'} />
+                  {viewUser.role === 'STAFF' && viewUser.cinemaName && (
+                    <span className="text-xs bg-brand-50 text-brand-600 px-2 py-0.5 rounded-md font-medium">
+                      {viewUser.cinemaName}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="space-y-3 text-sm">
@@ -169,7 +235,53 @@ export default function UsersPage() {
         )}
       </Modal>
 
-      {/* Change role modal */}
+      {/* ── Create Staff Modal ── */}
+      <Modal open={showCreateStaff} onClose={() => setShowCreateStaff(false)} title="Tạo tài khoản Nhân viên (STAFF)" size="md">
+        <div className="space-y-4">
+           <Input label="Họ và tên" placeholder="Nhập họ tên nhân viên" 
+              value={staffForm.fullName} onChange={e => setStaffForm(p => ({...p, fullName: e.target.value}))} />
+           <Input label="Email đăng nhập" type="email" placeholder="staff@novacinema.com" 
+              value={staffForm.email} onChange={e => setStaffForm(p => ({...p, email: e.target.value}))} />
+           <Input label="Mật khẩu" type="password" placeholder="Tối thiểu 6 ký tự" 
+              value={staffForm.password} onChange={e => setStaffForm(p => ({...p, password: e.target.value}))} />
+           
+           <div className="space-y-1.5">
+              <label className="text-sm font-medium text-gray-700">Phân công rạp (tùy chọn)</label>
+              <Select placeholder="-- Chọn rạp --" value={staffForm.cinemaId} 
+                 onChange={e => setStaffForm(p => ({...p, cinemaId: e.target.value}))}
+                 options={cinemaOptions} />
+           </div>
+
+           <div className="flex gap-3 pt-4 border-t">
+              <Button variant="ghost" className="flex-1" onClick={() => setShowCreateStaff(false)}>Hủy</Button>
+              <Button className="flex-1" loading={createStaffMut.isPending}
+                 disabled={!staffForm.fullName || !staffForm.email || !staffForm.password}
+                 onClick={() => createStaffMut.mutate()}>Tạo nhân viên</Button>
+           </div>
+        </div>
+      </Modal>
+
+      {/* ── Assign Cinema Modal ── */}
+      <Modal open={!!assignCinemaUser} onClose={() => setAssignCinemaUser(null)} title="Phân công rạp cho Nhân viên" size="sm">
+        {assignCinemaUser && (
+           <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                 Chọn rạp làm việc cho nhân viên <span className="font-bold text-gray-900">{assignCinemaUser.fullName}</span>
+              </p>
+              <Select placeholder="-- Chọn rạp --" value={selectedCinema} 
+                 onChange={e => setSelectedCinema(e.target.value)}
+                 options={[...cinemaOptions, { value: '', label: 'Không gắn rạp (Hủy phân công)' }]} />
+              
+              <div className="flex gap-3 pt-4 border-t">
+                 <Button variant="ghost" className="flex-1" onClick={() => setAssignCinemaUser(null)}>Hủy</Button>
+                 <Button className="flex-1" loading={assignCinemaMut.isPending}
+                    onClick={() => assignCinemaMut.mutate()}>Cập nhật rạp</Button>
+              </div>
+           </div>
+        )}
+      </Modal>
+
+      {/* ── Change role modal ── */}
       <Modal open={!!changeRole} onClose={() => setChangeRole(null)}
         title="Thay đổi vai trò" size="sm">
         {changeRole && (

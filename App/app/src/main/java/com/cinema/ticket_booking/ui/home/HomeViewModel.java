@@ -21,10 +21,21 @@ public class HomeViewModel extends ViewModel {
         loadMovies();
     }
 
-    public LiveData<Resource<PageResponse<MovieSummary>>> getNowShowing() { return nowShowing; }
-    public LiveData<Resource<PageResponse<MovieSummary>>> getComingSoon() { return comingSoon; }
+    public LiveData<Resource<PageResponse<MovieSummary>>> getNowShowing() {
+        return nowShowing;
+    }
 
-    public void refresh() { loadMovies(); }
+    public LiveData<Resource<PageResponse<MovieSummary>>> getComingSoon() {
+        return comingSoon;
+    }
+
+    public void refresh() {
+        loadMovies();
+    }
+
+    public void loadHomeData() {
+        loadMovies();
+    }
 
     private void loadMovies() {
         movieRepository.getMovies("NOW_SHOWING", 0, 20)

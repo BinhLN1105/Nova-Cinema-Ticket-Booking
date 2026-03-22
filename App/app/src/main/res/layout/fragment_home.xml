@@ -58,4 +58,16 @@
         android:visibility="gone" android:indeterminateTint="@color/primary"
         android:layout_gravity="center"/>
 
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/btnChatbot"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:src="@drawable/ic_baseline_chat_24"
+        app:tint="@color/white"
+        app:backgroundTint="@color/primary"
+        app:fabSize="normal"
+        android:contentDescription="Chat AI"/>
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

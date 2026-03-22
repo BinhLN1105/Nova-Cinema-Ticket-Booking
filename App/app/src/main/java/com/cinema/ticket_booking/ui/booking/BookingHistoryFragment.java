@@ -37,7 +37,8 @@ public class BookingHistoryFragment extends Fragment {
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
                     binding.swipeRefresh.setRefreshing(false);
-                    if (resource.data == null || resource.data.getContent() == null || resource.data.getContent().isEmpty()) {
+                    if (resource.data == null || resource.data.getContent() == null
+                            || resource.data.getContent().isEmpty()) {
                         binding.tvEmpty.setVisibility(View.VISIBLE);
                         binding.rvBookings.setVisibility(View.GONE);
                     } else {
@@ -45,11 +46,11 @@ public class BookingHistoryFragment extends Fragment {
                         binding.rvBookings.setVisibility(View.VISIBLE);
                         binding.rvBookings.setAdapter(new BookingHistoryAdapter(
                                 resource.data.getContent(), bookingId -> {
-                            Bundle args = new Bundle();
-                            args.putString("bookingId", bookingId);
-                            Navigation.findNavController(view)
-                                    .navigate(R.id.action_history_to_bookingDetail, args);
-                        }));
+                                    Bundle args = new Bundle();
+                                    args.putString("bookingId", bookingId);
+                                    Navigation.findNavController(view)
+                                            .navigate(R.id.action_history_to_bookingDetail, args);
+                                }));
                     }
                 }
                 case ERROR -> {
@@ -63,5 +64,9 @@ public class BookingHistoryFragment extends Fragment {
         binding.swipeRefresh.setOnRefreshListener(() -> viewModel.refresh());
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

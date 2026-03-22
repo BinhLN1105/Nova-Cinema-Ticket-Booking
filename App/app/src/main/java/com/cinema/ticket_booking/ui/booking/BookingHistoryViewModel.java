@@ -11,10 +11,22 @@ import javax.inject.Inject;
 public class BookingHistoryViewModel extends ViewModel {
     private final BookingRepository repo;
     private final MutableLiveData<Resource<PageResponse<BookingSummary>>> bookings = new MutableLiveData<>();
-    @Inject public BookingHistoryViewModel(BookingRepository repo) {
-        this.repo = repo; load();
+
+    @Inject
+    public BookingHistoryViewModel(BookingRepository repo) {
+        this.repo = repo;
+        load();
     }
-    public LiveData<Resource<PageResponse<BookingSummary>>> getBookings() { return bookings; }
-    public void refresh() { load(); }
-    private void load() { repo.getMyBookings(0, 20).observeForever(bookings::setValue); }
+
+    public LiveData<Resource<PageResponse<BookingSummary>>> getBookings() {
+        return bookings;
+    }
+
+    public void refresh() {
+        load();
+    }
+
+    private void load() {
+        repo.getMyBookings(0, 20).observeForever(bookings::setValue);
+    }
 }

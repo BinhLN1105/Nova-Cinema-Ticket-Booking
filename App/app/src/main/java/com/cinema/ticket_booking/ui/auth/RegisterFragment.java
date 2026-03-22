@@ -19,7 +19,7 @@ public class RegisterFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
+            ViewGroup container, Bundle savedInstanceState) {
         binding = FragmentRegisterBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -30,10 +30,10 @@ public class RegisterFragment extends Fragment {
         authViewModel = new ViewModelProvider(this).get(AuthViewModel.class);
 
         binding.btnRegister.setOnClickListener(v -> {
-            String email    = binding.etEmail.getText().toString().trim();
+            String email = binding.etEmail.getText().toString().trim();
             String password = binding.etPassword.getText().toString();
-            String name     = binding.etFullName.getText().toString().trim();
-            String phone    = binding.etPhone.getText().toString().trim();
+            String name = binding.etFullName.getText().toString().trim();
+            String phone = binding.etPhone.getText().toString().trim();
             if (email.isEmpty() || password.isEmpty() || name.isEmpty()) {
                 Toast.makeText(requireContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
                 return;
@@ -41,8 +41,7 @@ public class RegisterFragment extends Fragment {
             authViewModel.register(email, password, name, phone);
         });
 
-        binding.tvLogin.setOnClickListener(v ->
-                Navigation.findNavController(view).popBackStack());
+        binding.tvLogin.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
         authViewModel.getAuthResult().observe(getViewLifecycleOwner(), resource -> {
             switch (resource.status) {
@@ -60,5 +59,9 @@ public class RegisterFragment extends Fragment {
         });
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

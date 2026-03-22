@@ -90,6 +90,8 @@ const AdminSettings = () =>
   lazy_(() => import("@/pages/admin/settings/SettingsPage"));
 const AdminShowtimes = () =>
   lazy_(() => import("@/pages/admin/showtimes/ShowtimesPage"));
+const AdminCheckIn = () =>
+  lazy_(() => import("@/pages/admin/checkin/CheckInPage"));
 const AdminPricingRules = () =>
   lazy_(() => import("@/pages/admin/pricing-rules/PricingRulesPage"));
 
@@ -161,6 +163,7 @@ export const router = createBrowserRouter([
           { path: "cinemas", element: <AdminCinemas /> },
           { path: "bookings", element: <AdminBookings /> },
           { path: "users", element: <AdminUsers /> },
+          { path: "checkin", element: <AdminCheckIn /> },
           { path: 'promotions',     element: <AdminPromotions /> },
           { path: 'showtimes',      element: <AdminShowtimes /> },
           { path: 'pricing-rules',  element: <AdminPricingRules /> },

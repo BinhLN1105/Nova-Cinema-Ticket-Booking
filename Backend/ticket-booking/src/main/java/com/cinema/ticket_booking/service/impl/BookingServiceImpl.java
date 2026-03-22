@@ -46,6 +46,7 @@ public class BookingServiceImpl implements BookingService {
     private final EmailService emailService;
     private final TransactionRepository transactionRepository;
     private final BookingMapper bookingMapper;
+    private final StaffProfileRepository staffProfileRepository;
 
     @Value("${app.booking.pending-minutes:10}")
     private int pendingMinutes;
@@ -216,12 +217,27 @@ public class BookingServiceImpl implements BookingService {
      * Nhân viên quét QR → lấy toàn bộ ticket của booking → mark is_used = true.
      */
     @Override
-    public CheckInResponse checkIn(String qrCode) {
+    public CheckInResponse checkIn(User staff, String qrCode) {
         Booking booking = bookingRepository.findByQrCode(qrCode)
                 .orElseThrow(() -> new BadRequestException("QR code không hợp lệ"));
 
         if (booking.getStatus() != BookingStatus.PAID) {
             throw new BadRequestException("Đơn vé chưa được thanh toán");
+        }
+
+        // ── Cinema validation ─────────────────────────────────────────────
+        // ADMIN: bypass hoàn toàn (không cần gọi DB)
+        // STAFF: kiểm tra xem có StaffProfile và có thuộc rạp này không
+        if (staff.getRole() == UserRole.STAFF) {
+            UUID bookingCinemaId = booking.getShowtime().getScreen().getCinema().getId();
+            staffProfileRepository.findByUserId(staff.getId())
+                    .ifPresent(profile -> {
+                        if (!profile.getCinema().getId().equals(bookingCinemaId)) {
+                            throw new BadRequestException(
+                                    "Bạn không có quyền quét vé cho rạp '" +
+                                    booking.getShowtime().getScreen().getCinema().getName() + "'");
+                        }
+                    });
         }
 
         List<Ticket> tickets = ticketRepository.findByBookingIdWithSeatDetail(booking.getId());

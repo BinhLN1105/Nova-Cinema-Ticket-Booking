@@ -13,10 +13,22 @@ public class ProfileViewModel extends ViewModel {
     private final UserRepository userRepo;
     private final AuthRepository authRepo;
     private final MutableLiveData<Resource<UserResponse>> profile = new MutableLiveData<>();
-    @Inject public ProfileViewModel(UserRepository userRepo, AuthRepository authRepo) {
-        this.userRepo = userRepo; this.authRepo = authRepo;
+
+    @Inject
+    public ProfileViewModel(UserRepository userRepo, AuthRepository authRepo) {
+        this.userRepo = userRepo;
+        this.authRepo = authRepo;
     }
-    public LiveData<Resource<UserResponse>> getProfile() { return profile; }
-    public void loadProfile() { userRepo.getProfile().observeForever(profile::setValue); }
-    public void logout() { authRepo.logout(); }
+
+    public LiveData<Resource<UserResponse>> getProfile() {
+        return profile;
+    }
+
+    public void loadProfile() {
+        userRepo.getProfile().observeForever(profile::setValue);
+    }
+
+    public void logout() {
+        authRepo.logout();
+    }
 }

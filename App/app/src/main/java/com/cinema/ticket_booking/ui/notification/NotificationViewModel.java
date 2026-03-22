@@ -11,10 +11,22 @@ import javax.inject.Inject;
 public class NotificationViewModel extends ViewModel {
     private final NotificationRepository repo;
     private final MutableLiveData<Resource<PageResponse<NotificationResponse>>> notifications = new MutableLiveData<>();
-    @Inject public NotificationViewModel(NotificationRepository repo) {
-        this.repo = repo; load();
+
+    @Inject
+    public NotificationViewModel(NotificationRepository repo) {
+        this.repo = repo;
+        load();
     }
-    public LiveData<Resource<PageResponse<NotificationResponse>>> getNotifications() { return notifications; }
-    public void markAllAsRead() { repo.markAllAsRead(); }
-    private void load() { repo.getNotifications(0).observeForever(notifications::setValue); }
+
+    public LiveData<Resource<PageResponse<NotificationResponse>>> getNotifications() {
+        return notifications;
+    }
+
+    public void markAllAsRead() {
+        repo.markAllAsRead();
+    }
+
+    private void load() {
+        repo.getNotifications(0).observeForever(notifications::setValue);
+    }
 }

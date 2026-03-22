@@ -40,7 +40,8 @@ public class NotificationFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data == null || resource.data.getContent() == null || resource.data.getContent().isEmpty()) {
+                    if (resource.data == null || resource.data.getContent() == null
+                            || resource.data.getContent().isEmpty()) {
                         binding.tvEmpty.setVisibility(View.VISIBLE);
                     } else {
                         binding.tvEmpty.setVisibility(View.GONE);
@@ -56,5 +57,9 @@ public class NotificationFragment extends Fragment {
         });
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

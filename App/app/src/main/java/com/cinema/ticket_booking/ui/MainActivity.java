@@ -8,6 +8,7 @@ import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.ActivityMainBinding;
+import com.cinema.ticket_booking.util.ThemeManager;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.Set;
 
@@ -27,11 +28,16 @@ public class MainActivity extends AppCompatActivity {
             R.id.confirmBookingFragment,
             R.id.paymentFragment,
             R.id.bookingDetailFragment,
-            R.id.notificationFragment
+            R.id.notificationFragment,
+            R.id.scannerFragment,
+            R.id.chatbotFragment,
+            R.id.walletFragment,
+            R.id.voucherFragment
     );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        ThemeManager.applyTheme(this);   // ← phải gọi TRƯỚC setContentView để tránh flicker
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());

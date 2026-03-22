@@ -25,8 +25,7 @@ public class CinemaFirebaseMessagingService extends FirebaseMessagingService {
         if (message.getNotification() != null) {
             showNotification(
                     message.getNotification().getTitle(),
-                    message.getNotification().getBody()
-            );
+                    message.getNotification().getBody());
         }
     }
 

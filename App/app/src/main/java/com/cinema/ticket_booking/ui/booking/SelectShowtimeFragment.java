@@ -77,10 +77,14 @@ public class SelectShowtimeFragment extends Fragment {
                         android.R.layout.simple_spinner_item, names);
                 binding.spinnerCinema.setAdapter(adapter);
                 binding.spinnerCinema.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-                    @Override public void onItemSelected(AdapterView<?> p, View v2, int pos, long id) {
+                    @Override
+                    public void onItemSelected(AdapterView<?> p, View v2, int pos, long id) {
                         viewModel.selectCinema(resource.data.get(pos).getId());
                     }
-                    @Override public void onNothingSelected(AdapterView<?> p) {}
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> p) {
+                    }
                 });
             }
         });
@@ -118,9 +122,16 @@ public class SelectShowtimeFragment extends Fragment {
     }
 
     private java.util.Date parseDate(String s) {
-        try { return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(s); }
-        catch (Exception e) { return new java.util.Date(); }
+        try {
+            return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(s);
+        } catch (Exception e) {
+            return new java.util.Date();
+        }
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

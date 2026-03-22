@@ -62,6 +62,40 @@
                 <TextView android:id="@+id/tvCast" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
                     android:layout_marginTop="4dp" android:textSize="13sp"/>
+
+                <View android:layout_width="match_parent" android:layout_height="1dp"
+                    android:background="@color/surface_variant" android:layout_marginVertical="12dp"/>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="⭐ Đánh giá từ khán giả" android:textColor="@color/on_background"
+                        android:textStyle="bold" android:textSize="16sp"/>
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWriteReview"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Viết đánh giá" android:textColor="@color/primary"/>
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvReviews"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvNoReviews"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Chưa có đánh giá nào."
+                    android:textColor="@color/on_surface_variant"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone"/>
+
             </LinearLayout>
         </LinearLayout>
     </ScrollView>

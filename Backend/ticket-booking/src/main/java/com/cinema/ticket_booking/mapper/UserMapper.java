@@ -8,5 +8,7 @@ import org.mapstruct.*;
 public interface UserMapper {
 
     @Mapping(target = "id", expression = "java(user.getId().toString())")
+    @Mapping(target = "cinemaId",   ignore = true)
+    @Mapping(target = "cinemaName", ignore = true)
     UserResponse toResponse(User user);
 }

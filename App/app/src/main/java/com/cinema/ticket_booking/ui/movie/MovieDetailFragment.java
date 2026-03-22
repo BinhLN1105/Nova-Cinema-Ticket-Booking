@@ -4,15 +4,21 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.*;
+import android.widget.EditText;
+import android.widget.RatingBar;
 import android.widget.Toast;
 import androidx.annotation.*;
+import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
+import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.databinding.FragmentMovieDetailBinding;
 import dagger.hilt.android.AndroidEntryPoint;
+import javax.inject.Inject;
 
 @AndroidEntryPoint
 public class MovieDetailFragment extends Fragment {
@@ -20,6 +26,9 @@ public class MovieDetailFragment extends Fragment {
     private FragmentMovieDetailBinding binding;
     private MovieDetailViewModel viewModel;
     private String movieId;
+
+    @Inject
+    TokenManager tokenManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -44,6 +53,7 @@ public class MovieDetailFragment extends Fragment {
             args.putString("movieId", movieId);
             Navigation.findNavController(view).navigate(R.id.action_movieDetail_to_selectShowtime, args);
         });
+        binding.btnWriteReview.setOnClickListener(v -> showWriteReviewDialog());
     }
 
     private void setupObservers(View view) {
@@ -52,7 +62,8 @@ public class MovieDetailFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data == null) return;
+                    if (resource.data == null)
+                        return;
                     var m = resource.data;
                     binding.tvTitle.setText(m.getTitle());
                     binding.tvDescription.setText(m.getDescription());
@@ -64,7 +75,8 @@ public class MovieDetailFragment extends Fragment {
                     binding.tvReleaseDate.setText("Khởi chiếu: " + m.getReleaseDate());
                     if (m.getGenres() != null && !m.getGenres().isEmpty()) {
                         StringBuilder sb = new StringBuilder();
-                        for (var g : m.getGenres()) sb.append(g.getName()).append("  ");
+                        for (var g : m.getGenres())
+                            sb.append(g.getName()).append("  ");
                         binding.tvGenres.setText(sb.toString().trim());
                     }
                     Glide.with(this).load(m.getPosterUrl())
@@ -82,7 +94,60 @@ public class MovieDetailFragment extends Fragment {
                 }
             }
         });
+
+        // Reviews
+        binding.rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
+        viewModel.getReviews().observe(getViewLifecycleOwner(), resource -> {
+            if (resource.isSuccess() && resource.data != null && resource.data.getContent() != null) {
+                if (resource.data.getContent().isEmpty()) {
+                    binding.tvNoReviews.setVisibility(View.VISIBLE);
+                    binding.rvReviews.setVisibility(View.GONE);
+                } else {
+                    binding.tvNoReviews.setVisibility(View.GONE);
+                    binding.rvReviews.setVisibility(View.VISIBLE);
+                    binding.rvReviews.setAdapter(new ReviewAdapter(resource.data.getContent()));
+                }
+            }
+        });
+
+        viewModel.getCreateReviewResult().observe(getViewLifecycleOwner(), resource -> {
+            if (resource.isSuccess()) {
+                Toast.makeText(requireContext(), "Đã gửi đánh giá!", Toast.LENGTH_SHORT).show();
+                viewModel.loadReviews(movieId);
+            } else if (resource.status == com.cinema.ticket_booking.util.Resource.Status.ERROR) {
+                Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    private void showWriteReviewDialog() {
+        if (!tokenManager.isLoggedIn()) {
+            Toast.makeText(requireContext(), "Vui lòng đăng nhập để viết đánh giá", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_write_review, null);
+        RatingBar ratingBar = dialogView.findViewById(R.id.ratingBar);
+        EditText etComment = dialogView.findViewById(R.id.etComment);
+
+        new AlertDialog.Builder(requireContext())
+                .setTitle("Đánh giá phim")
+                .setView(dialogView)
+                .setPositiveButton("Gửi", (dialog, which) -> {
+                    int rating = (int) ratingBar.getRating();
+                    String comment = etComment.getText().toString().trim();
+                    if (rating == 0) {
+                        Toast.makeText(requireContext(), "Vui lòng chọn số sao", Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    viewModel.submitReview(movieId, null, rating, comment);
+                })
+                .setNegativeButton("Hủy", null)
+                .show();
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

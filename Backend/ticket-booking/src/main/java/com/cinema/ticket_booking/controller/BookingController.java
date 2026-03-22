@@ -81,8 +81,9 @@ public class BookingController {
         @PostMapping("/check-in")
         @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
         public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(
+                        @AuthenticationPrincipal User currentUser,
                         @RequestParam String qrCode) {
                 return ResponseEntity.ok(ApiResponse.success(
-                                bookingService.checkIn(qrCode), "Check-in thành công"));
+                                bookingService.checkIn(currentUser, qrCode), "Check-in thành công"));
         }
 }

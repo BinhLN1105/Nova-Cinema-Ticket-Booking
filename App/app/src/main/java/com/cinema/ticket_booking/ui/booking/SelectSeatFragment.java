@@ -40,7 +40,7 @@ public class SelectSeatFragment extends Fragment {
 
         binding.tvShowtimeInfo.setText(
                 SelectShowtimeViewModel.pendingMovieTitle + " • " +
-                SelectShowtimeViewModel.pendingShowtimeTime);
+                        SelectShowtimeViewModel.pendingShowtimeTime);
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
         binding.btnConfirm.setOnClickListener(v -> {
@@ -73,7 +73,8 @@ public class SelectSeatFragment extends Fragment {
 
     private void renderSeatMap(SeatMapResponse seatMap) {
         binding.seatContainer.removeAllViews();
-        if (seatMap.getSeats() == null) return;
+        if (seatMap.getSeats() == null)
+            return;
 
         // Group by row
         Map<String, List<SeatMapResponse.SeatItem>> rows = new LinkedHashMap<>();
@@ -124,12 +125,16 @@ public class SelectSeatFragment extends Fragment {
 
     private void updateSeatColor(TextView tv, SeatMapResponse.SeatItem seat, boolean selected) {
         int color;
-        if (selected) color = R.color.seat_selected;
+        if (selected)
+            color = R.color.seat_selected;
         else if ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus()))
             color = R.color.seat_booked;
-        else if ("VIP".equals(seat.getSeatType())) color = R.color.seat_vip;
-        else if ("COUPLE".equals(seat.getSeatType())) color = R.color.seat_couple;
-        else color = R.color.seat_available;
+        else if ("VIP".equals(seat.getSeatType()))
+            color = R.color.seat_vip;
+        else if ("COUPLE".equals(seat.getSeatType()))
+            color = R.color.seat_couple;
+        else
+            color = R.color.seat_available;
         tv.setBackgroundColor(getResources().getColor(color, null));
         tv.setTextColor(getResources().getColor(android.R.color.white, null));
     }
@@ -142,5 +147,9 @@ public class SelectSeatFragment extends Fragment {
         binding.btnConfirm.setEnabled(count > 0);
     }
 
-    @Override public void onDestroyView() { super.onDestroyView(); binding = null; }
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        binding = null;
+    }
 }

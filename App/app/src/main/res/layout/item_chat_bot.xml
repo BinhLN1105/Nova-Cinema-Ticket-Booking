@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="start"
+    android:padding="8dp">
+
+    <ImageView
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_baseline_smart_toy_24"
+        android:layout_marginEnd="8dp"
+        android:layout_gravity="bottom"/>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:maxWidth="280dp"
+        android:orientation="vertical"
+        android:background="@drawable/bg_chat_bot"
+        android:elevation="2dp"
+        android:padding="12dp">
+
+        <TextView
+            android:id="@+id/tvMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="?attr/colorOnSurface"
+            android:textSize="14sp"
+            android:text="Bot reply"/>
+
+        <com.airbnb.lottie.LottieAnimationView
+            android:id="@+id/loadingIndicator"
+            android:layout_width="40dp"
+            android:layout_height="20dp"
+            android:visibility="gone"
+            app:lottie_rawRes="@raw/typing_indicator"
+            app:lottie_autoPlay="true"
+            app:lottie_loop="true"
+            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+    </LinearLayout>
+</LinearLayout>

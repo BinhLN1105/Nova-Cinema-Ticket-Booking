@@ -32,10 +32,21 @@ public class SelectShowtimeViewModel extends ViewModel {
         selectedDate.setValue(todayDate());
     }
 
-    public LiveData<Resource<List<ShowtimeResponse>>> getShowtimes() { return showtimes; }
-    public LiveData<Resource<List<CinemaResponse>>> getCinemas() { return cinemas; }
-    public LiveData<String> getSelectedDate() { return selectedDate; }
-    public String getSelectedCinemaId() { return selectedCinemaId.getValue(); }
+    public LiveData<Resource<List<ShowtimeResponse>>> getShowtimes() {
+        return showtimes;
+    }
+
+    public LiveData<Resource<List<CinemaResponse>>> getCinemas() {
+        return cinemas;
+    }
+
+    public LiveData<String> getSelectedDate() {
+        return selectedDate;
+    }
+
+    public String getSelectedCinemaId() {
+        return selectedCinemaId.getValue();
+    }
 
     public void loadCinemas() {
         cinemaRepo.getCinemas(null).observeForever(cinemas::setValue);

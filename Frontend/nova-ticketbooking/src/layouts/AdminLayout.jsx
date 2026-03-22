@@ -17,6 +17,7 @@ import {
   Search,
   Clock,
   Tags,
+  QrCode,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/admin/showtimes", icon: Clock, label: "Suất chiếu" },
   { href: "/admin/pricing-rules", icon: Tags, label: "Quy tắc giá" },
   { href: "/admin/bookings", icon: CalendarCheck, label: "Đặt vé" },
+  { href: "/admin/checkin", icon: QrCode, label: "Soát vé (QR)" },
   { href: "/admin/users", icon: Users, label: "Người dùng" },
   { href: "/admin/reports", icon: BarChart3, label: "Báo cáo" },
   { href: "/admin/settings", icon: Settings, label: "Cài đặt" },
