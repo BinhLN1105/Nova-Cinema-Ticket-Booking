@@ -4,37 +4,50 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:background="?android:attr/colorBackground">
+    android:background="@color/background">
 
-    <androidx.appcompat.widget.Toolbar
-        android:id="@+id/toolbar"
-        android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorSurface"
-        app:title="Voucher của tôi"
-        app:navigationIcon="@drawable/ic_baseline_arrow_back_24"/>
+    <!-- Top AppBar -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:paddingTop="32dp" android:paddingBottom="16dp" android:paddingHorizontal="16dp" android:gravity="center_vertical"
+        android:background="@color/surface_glass">
+        <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
+            android:src="@drawable/ic_back" android:background="?selectableItemBackgroundBorderless" android:tint="@color/on_surface"/>
+        <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
+            android:text="VOUCHER CỦA TÔI" android:textColor="@color/primary"
+            android:textSize="20sp" android:textStyle="bold" android:layout_marginStart="16dp"
+            android:textAllCaps="true"/>
+    </LinearLayout>
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:visibility="gone"/>
+    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:indeterminateTint="@color/primary"
+            android:visibility="gone"/>
 
-    <TextView
-        android:id="@+id/tvEmpty"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Bạn chưa có voucher nào."
-        android:textColor="?android:attr/textColorSecondary"
-        android:gravity="center"
-        android:padding="32dp"
-        android:visibility="gone"/>
+        <LinearLayout
+            android:id="@+id/tvEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_gravity="center"
+            android:visibility="gone">
+            <ImageView android:layout_width="80dp" android:layout_height="80dp"
+                android:src="@drawable/ic_ticket" android:tint="@color/on_surface_variant"
+                android:alpha="0.5" android:layout_marginBottom="16dp"/>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                android:text="BẠN CHƯA CÓ VOUCHER NÀO" android:textColor="@color/on_surface_variant"
+                android:textSize="16sp" android:textStyle="bold" android:letterSpacing="0.05"/>
+        </LinearLayout>
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvVouchers"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:padding="8dp"
-        android:clipToPadding="false"/>
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvVouchers"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="16dp"
+            android:clipToPadding="false"/>
+    </FrameLayout>
 </LinearLayout>

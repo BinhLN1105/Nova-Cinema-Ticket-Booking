@@ -90,7 +90,8 @@ public class TokenManager {
     }
 
     public boolean isLoggedIn() {
-        return getAccessToken() != null;
+        String token = getAccessToken();
+        return token != null && !token.trim().isEmpty();
     }
 
     // public boolean isAdmin() { return "ADMIN".equals(getUserRole()); }

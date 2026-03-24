@@ -10,6 +10,8 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentBookingHistoryBinding;
+import com.cinema.ticket_booking.data.local.TokenManager;
+import javax.inject.Inject;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -17,6 +19,9 @@ public class BookingHistoryFragment extends Fragment {
 
     private FragmentBookingHistoryBinding binding;
     private BookingHistoryViewModel viewModel;
+
+    @Inject
+    TokenManager tokenManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -27,6 +32,19 @@ public class BookingHistoryFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+
+        // If not logged in, show login prompt BEFORE creating ViewModel
+        if (!tokenManager.isLoggedIn()) {
+            binding.rvBookings.setVisibility(View.GONE);
+            binding.tvEmpty.setVisibility(View.GONE);
+            binding.layoutLoginPrompt.setVisibility(View.VISIBLE);
+            binding.swipeRefresh.setEnabled(false);
+            binding.btnLoginPrompt.setOnClickListener(v ->
+                    Navigation.findNavController(view).navigate(R.id.loginFragment));
+            return;
+        }
+
+        // Only create ViewModel (which auto-loads data) AFTER login check
         viewModel = new ViewModelProvider(this).get(BookingHistoryViewModel.class);
 
         binding.rvBookings.setLayoutManager(new LinearLayoutManager(requireContext()));

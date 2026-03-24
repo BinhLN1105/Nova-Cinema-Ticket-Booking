@@ -1,39 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Dark Mode overrides — Netflix style -->
-    <color name="background">#141414</color>
-    <color name="surface">#1F1F1F</color>
-    <color name="surface_variant">#2A2A2A</color>
-    <color name="surface_elevated">#2C2C2C</color>
-    <color name="on_background">#F9FAFB</color>
-    <color name="on_surface">#F9FAFB</color>
-    <color name="on_surface_variant">#9CA3AF</color>
-    <color name="outline">#374151</color>
-    <color name="outline_variant">#1F2937</color>
+    <!-- Brand (CineNoir Dark) -->
+    <color name="primary">#E50914</color>
+    <color name="primary_dark">#B00710</color>
+    <color name="primary_light">#FF5252</color>
+    <color name="primary_container">#FFDAD6</color>
+    <color name="on_primary">#FFFFFF</color>
+    <color name="on_primary_container">#410002</color>
 
-    <!-- Text dark -->
-    <color name="text_primary">#F9FAFB</color>
-    <color name="text_secondary">#9CA3AF</color>
-    <color name="text_hint">#6B7280</color>
+    <!-- Background & Surface -->
+    <color name="background">#000000</color>
+    <color name="surface">#121212</color>
+    <color name="surface_variant">#262626</color>
+    <color name="surface_container_lowest">#000000</color>
+    <color name="surface_container_low">#131313</color>
+    <color name="surface_container_high">#20201F</color>
+    <color name="surface_container_highest">#262626</color>
+    
+    <!-- On Colors & Text -->
+    <color name="on_background">#FFFFFF</color>
+    <color name="on_surface">#FFFFFF</color>
+    <color name="on_surface_variant">#A0A0A0</color>
+    
+    <color name="outline">#333333</color>
+    <color name="outline_variant">#484847</color>
 
-    <!-- Card dark -->
-    <color name="card_background">#1F1F1F</color>
-    <color name="card_stroke">#374151</color>
+    <!-- Semantic colors -->
+    <color name="secondary">#222222</color>
+    <color name="tertiary">#FFD700</color>
+    <color name="error">#DC2626</color>
+    <color name="error_container">#FEE2E2</color>
+    <color name="success">#16A34A</color>
+    <color name="success_container">#DCFCE7</color>
 
-    <!-- Bottom nav dark -->
-    <color name="bottom_nav_background">#1F1F1F</color>
-    <color name="bottom_nav_inactive">#6B7280</color>
+    <!-- Translucent Overlays -->
+    <color name="surface_glass">#BF0E0E0E</color>
+    <color name="surface_glass_heavy">#E60E0E0E</color>
+    <color name="highlight_subtle">#1AFFFFFF</color>
+    <color name="chip_background">#33262626</color>
+    <color name="divider_subtle">#33FFFFFF</color>
 
-    <!-- Divider dark -->
-    <color name="divider">#374151</color>
-    <color name="shimmer_base">#2A2A2A</color>
-    <color name="shimmer_highlight">#3A3A3A</color>
+    <!-- Seat colors -->
+    <color name="seat_available">#262626</color>
+    <color name="seat_selected">#E50914</color>
+    <color name="seat_booked">#131313</color>
+    <color name="seat_vip">#FFD700</color>
+    <color name="seat_couple">#EC4899</color>
+    <color name="seat_locked">#6B7280</color>
 
-    <!-- Error container dark -->
-    <color name="error_container">#7F1D1D</color>
-    <color name="success_container">#14532D</color>
-    <color name="warning_container">#78350F</color>
-    <color name="accent_gold_light">#78350F</color>
-    <color name="primary_container">#7F1D1D</color>
-    <color name="on_primary_container">#FFDAD6</color>
+    <!-- Text -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#A0A0A0</color>
+    <color name="text_hint">#64748B</color>
+    <color name="text_on_primary">#FFFFFF</color>
+
+    <!-- Common -->
+    <color name="white">#FFFFFF</color>
+    <color name="black">#000000</color>
+    <color name="transparent">#00000000</color>
+    <color name="divider">#333333</color>
+
+    <!-- Bottom nav -->
+    <color name="bottom_nav_background">#1A1A1A</color>
+    <color name="bottom_nav_active">#E50914</color>
+    <color name="bottom_nav_inactive">#A0A0A0</color>
+
+    <!-- Card -->
+    <color name="card_background">#262626</color>
+    <color name="card_stroke">#333333</color>
 </resources>

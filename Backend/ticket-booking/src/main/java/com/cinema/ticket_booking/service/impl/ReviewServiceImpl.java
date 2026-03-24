@@ -56,7 +56,7 @@ public class ReviewServiceImpl implements ReviewService {
         if (!booking.getShowtime().getMovie().getId().equals(movie.getId())) {
             throw new BadRequestException("Booking này không phải cho phim này");
         }
-        if (!bookingService.isEligibleForReview(userId, movie.getId())) {
+        if (bookingService.getEligibleBookingForReview(userId, movie.getId()) == null) {
             throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
         }
 

@@ -56,6 +56,8 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
             Glide.with(b.ivPoster.getContext())
                     .load(movie.getPosterUrl())
                     .placeholder(R.drawable.ic_movie_placeholder)
+                    .error(R.drawable.ic_movie_placeholder)
+                    .centerCrop()
                     .into(b.ivPoster);
             b.getRoot().setOnClickListener(v -> listener.onClick(movie.getId()));
         }

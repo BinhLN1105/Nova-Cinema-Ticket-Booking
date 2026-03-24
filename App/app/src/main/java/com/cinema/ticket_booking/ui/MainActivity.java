@@ -49,11 +49,26 @@ public class MainActivity extends AppCompatActivity {
         NavController navController = navHost.getNavController();
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
 
+        // Disable dummy item to prevent selection
+        binding.bottomNav.getMenu().getItem(2).setEnabled(false);
+
+        // FAB navigates to Tickets (History)
+        binding.fabTickets.setOnClickListener(v -> {
+            Integer current = navController.getCurrentDestination() != null ? navController.getCurrentDestination().getId() : null;
+            if (current == null || current != R.id.bookingHistoryFragment) {
+                navController.navigate(R.id.bookingHistoryFragment);
+            }
+        });
+
         navController.addOnDestinationChangedListener((ctrl, dest, args) -> {
             if (NO_BOTTOM_NAV.contains(dest.getId())) {
+                binding.bottomAppBar.setVisibility(View.GONE);
                 binding.bottomNav.setVisibility(View.GONE);
+                binding.fabTickets.hide();
             } else {
+                binding.bottomAppBar.setVisibility(View.VISIBLE);
                 binding.bottomNav.setVisibility(View.VISIBLE);
+                binding.fabTickets.show();
             }
         });
     }

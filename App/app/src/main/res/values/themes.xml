@@ -2,8 +2,7 @@
 <resources>
 
     <!-- ════════════════════════════════════════
-         BASE APP THEME — Light (mặc định)
-         Hỗ trợ toggle Dark/Light qua Settings
+         BASE APP THEME — CineNoir Gloss
          ════════════════════════════════════════ -->
     <style name="Theme.CinemaApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <!-- Brand color -->
@@ -20,7 +19,7 @@
 
         <!-- System bars -->
         <item name="android:statusBarColor">@color/background</item>
-        <item name="android:navigationBarColor">@color/bottom_nav_background</item>
+        <item name="android:navigationBarColor">@color/background</item>
         <item name="android:windowLightStatusBar">true</item>
 
         <!-- Ripple -->
@@ -36,11 +35,6 @@
         <item name="shapeAppearanceSmallComponent">@style/ShapeSmall</item>
         <item name="shapeAppearanceMediumComponent">@style/ShapeMedium</item>
         <item name="shapeAppearanceLargeComponent">@style/ShapeLarge</item>
-    </style>
-
-    <!-- Dark mode — statusBar icon màu sáng -->
-    <style name="Theme.CinemaApp.Dark" parent="Theme.CinemaApp">
-        <item name="android:windowLightStatusBar">false</item>
     </style>
 
     <!-- Splash screen -->

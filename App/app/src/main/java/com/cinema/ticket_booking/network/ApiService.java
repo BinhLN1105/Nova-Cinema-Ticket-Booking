@@ -51,6 +51,9 @@ public interface ApiService {
         @GET("movies/{id}")
         Call<ApiResponse<MovieDetail>> getMovieDetail(@Path("id") String id);
 
+        @GET("movies/{id}/can-review")
+        Call<ApiResponse<String>> canReview(@Path("id") String id);
+
         @GET("movies/cinema/{cinemaId}")
         Call<ApiResponse<List<MovieSummary>>> getNowShowingByCinema(@Path("cinemaId") String cinemaId);
 

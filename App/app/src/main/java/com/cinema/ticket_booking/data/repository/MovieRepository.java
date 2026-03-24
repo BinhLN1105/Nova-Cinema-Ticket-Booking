@@ -63,6 +63,27 @@ public class MovieRepository {
         return result;
     }
 
+    public LiveData<Resource<String>> canReview(String id) {
+        MutableLiveData<Resource<String>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.canReview(id).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call,
+                    Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
+                    result.setValue(Resource.success(response.body().getData()));
+                else
+                    result.setValue(Resource.error(response.body() != null ? response.body().getMessage() : "Lỗi kiểm tra quyền đánh giá"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
     public LiveData<Resource<PageResponse<MovieSummary>>> searchMovies(String query, int page, int size) {
         MutableLiveData<Resource<PageResponse<MovieSummary>>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());

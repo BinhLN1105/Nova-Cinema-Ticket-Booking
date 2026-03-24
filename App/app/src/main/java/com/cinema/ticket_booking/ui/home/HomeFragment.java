@@ -1,5 +1,9 @@
 package com.cinema.ticket_booking.ui.home;
 
+import com.bumptech.glide.Glide;
+import com.cinema.ticket_booking.data.model.response.MovieSummary;
+import java.util.List;
+
 import android.os.Bundle;
 import android.view.*;
 import androidx.annotation.*;
@@ -39,13 +43,33 @@ public class HomeFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data != null) {
-                        MovieAdapter adapter = new MovieAdapter(resource.data.getContent(),
+                    if (resource.data != null && resource.data.getContent() != null && !resource.data.getContent().isEmpty()) {
+                        List<MovieSummary> movies = resource.data.getContent();
+                        MovieAdapter adapter = new MovieAdapter(movies,
                                 movieId -> navigateToDetail(view, movieId));
                         binding.rvNowShowing.setAdapter(adapter);
+
+                        // Setup Hero Section with first movie from backend
+                        MovieSummary firstMovie = movies.get(0);
+                        binding.tvHeroTitle.setText(firstMovie.getTitle().toUpperCase());
+                        Glide.with(requireContext())
+                                .load(firstMovie.getPosterUrl())
+                                .placeholder(R.drawable.placeholder_hero)
+                                .error(R.drawable.placeholder_hero)
+                                .centerCrop()
+                                .into(binding.ivHero);
+                        binding.btnBookHero.setOnClickListener(v -> navigateToDetail(view, firstMovie.getId()));
+                    } else {
+                        // No movies from backend — show empty state
+                        binding.tvHeroTitle.setText("No Movies Available");
+                        binding.btnBookHero.setVisibility(View.GONE);
                     }
                 }
-                case ERROR -> binding.progressBar.setVisibility(View.GONE);
+                case ERROR -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.tvHeroTitle.setText("Unable to load movies");
+                    binding.btnBookHero.setVisibility(View.GONE);
+                }
             }
         });
 

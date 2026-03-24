@@ -2,6 +2,7 @@
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
@@ -11,46 +12,265 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <ScrollView android:layout_width="match_parent" android:layout_height="match_parent">
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical" android:padding="16dp">
+        <androidx.core.widget.NestedScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:paddingBottom="96dp"
+            android:clipToPadding="false">
 
-                <!-- Search bar -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:hint="Tìm kiếm phim..." android:layout_marginBottom="24dp"
-                    app:startIconDrawable="@drawable/ic_search"
-                    app:boxStrokeColor="@color/surface_variant"
-                    app:hintTextColor="@color/on_surface_variant">
-                    <com.google.android.material.textfield.TextInputEditText
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <!-- Header -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:paddingHorizontal="16dp"
+                    android:background="@color/surface_variant">
+
+                    <LinearLayout
+                        android:id="@+id/locationLayout"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Location"
+                            android:textAllCaps="true"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Hà Nội ▼"
+                            android:textColor="@color/on_surface"
+                            android:textSize="14sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="CINEMATIC"
+                        android:textColor="@color/primary"
+                        android:textSize="20sp"
+                        android:textStyle="bold|italic"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+
+                    <!-- Search / Profile -->
+                    <ImageView
                         android:id="@+id/etSearch"
-                        android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:focusable="false" android:textColor="@color/on_background"/>
-                </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:padding="8dp"
+                        android:src="@drawable/ic_search"
+                        app:tint="@color/on_surface"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent"
+                        app:layout_constraintBottom_toBottomOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Hero Section (Static placeholder mimicking design) -->
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="350dp"
+                    android:background="@color/surface_container_lowest">
+                    
+                    <ImageView
+                        android:id="@+id/ivHero"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:scaleType="centerCrop"
+                        android:src="@drawable/placeholder_hero"
+                        android:alpha="0.8" />
+                        
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@drawable/bg_gradient_bottom" />
+
+                    <TextView
+                        android:id="@+id/tvHeroTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text=""
+                        android:textColor="@color/white"
+                        android:textSize="28sp"
+                        android:textStyle="bold|italic"
+                        android:textAllCaps="true"
+                        android:layout_marginBottom="16dp"
+                        app:layout_constraintBottom_toTopOf="@id/btnBookHero"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnBookHero"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="BOOK NOW"
+                        android:textColor="@color/white"
+                        app:backgroundTint="@color/primary"
+                        app:cornerRadius="24dp"
+                        android:layout_marginBottom="32dp"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent" />
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Quick Booking Card -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="-24dp"
+                    app:cardBackgroundColor="@color/surface_container_highest"
+                    app:cardCornerRadius="24dp"
+                    app:cardElevation="8dp">
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:padding="16dp">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="QUICK BOOKING"
+                            android:textColor="@color/primary"
+                            android:textStyle="bold"
+                            android:textSize="12sp"
+                            android:gravity="center"
+                            android:layout_marginBottom="16dp"/>
+                        <HorizontalScrollView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:scrollbars="none">
+                            <LinearLayout
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+                                <com.google.android.material.button.MaterialButton
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Select Movie"
+                                    android:textColor="@color/white"
+                                    app:strokeColor="@color/outline"
+                                    app:icon="@drawable/ic_movie"
+                                    app:cornerRadius="16dp"
+                                    android:layout_marginEnd="8dp"/>
+                                <com.google.android.material.button.MaterialButton
+                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Theater"
+                                    android:textColor="@color/white"
+                                    app:strokeColor="@color/outline"
+                                    app:cornerRadius="16dp" />
+                            </LinearLayout>
+                        </HorizontalScrollView>
+                    </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- Đang chiếu -->
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🎬 Đang chiếu" android:textColor="@color/on_background"
-                    android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:layout_marginTop="32dp"
+                    android:paddingHorizontal="24dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Now Showing" 
+                        android:textColor="@color/on_background"
+                        android:textSize="20sp" 
+                        android:textStyle="bold" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="SEE ALL"
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvNowShowing"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:clipToPadding="false" android:layout_marginBottom="24dp"/>
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:paddingHorizontal="24dp"
+                    android:clipToPadding="false"
+                    android:layout_marginBottom="24dp"/>
+
+                <!-- Promo Banner -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginBottom="32dp"
+                    app:cardCornerRadius="24dp"
+                    app:cardBackgroundColor="@color/surface_container_lowest">
+                    <!-- Optional: Add static promo content or image here -->
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text="Extra 20% OFF\nwith VNPay"
+                        android:textColor="@color/white"
+                        android:textStyle="bold"
+                        android:textSize="18sp"
+                        android:gravity="center_vertical|start"
+                        android:padding="24dp"
+                        android:background="@color/secondary" />
+                </com.google.android.material.card.MaterialCardView>
 
                 <!-- Sắp chiếu -->
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="🔜 Sắp chiếu" android:textColor="@color/on_background"
-                    android:textSize="18sp" android:textStyle="bold" android:layout_marginBottom="12dp"/>
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="24dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Coming Soon" 
+                        android:textColor="@color/on_background"
+                        android:textSize="20sp" 
+                        android:textStyle="bold"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="NOTIFY ME"
+                        android:textColor="@color/primary"
+                        android:textSize="12sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvComingSoon"
-                    android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:clipToPadding="false"/>
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:paddingHorizontal="24dp"
+                    android:clipToPadding="false"
+                    android:layout_marginBottom="32dp"/>
 
             </LinearLayout>
-        </ScrollView>
+        </androidx.core.widget.NestedScrollView>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
     <ProgressBar android:id="@+id/progressBar"
@@ -63,11 +283,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="96dp"
         android:src="@drawable/ic_baseline_chat_24"
         app:tint="@color/white"
         app:backgroundTint="@color/primary"
-        app:fabSize="normal"
+        app:fabSize="mini"
         android:contentDescription="Chat AI"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

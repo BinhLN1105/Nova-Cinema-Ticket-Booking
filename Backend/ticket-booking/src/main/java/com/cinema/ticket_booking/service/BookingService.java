@@ -27,5 +27,5 @@ public interface BookingService {
 
     Booking findById(UUID id);
 
-    boolean isEligibleForReview(UUID userId, UUID movieId);
+    UUID getEligibleBookingForReview(UUID userId, UUID movieId);
 }

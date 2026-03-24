@@ -3,10 +3,10 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="8dp"
-    app:cardCornerRadius="12dp"
-    app:cardElevation="2dp"
-    app:cardBackgroundColor="?attr/colorSurface">
+    android:layout_marginBottom="12dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    app:cardBackgroundColor="@color/surface_container_highest">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -26,32 +26,38 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textStyle="bold"
-                android:textSize="16sp"
-                android:textColor="?attr/colorPrimary"/>
+                android:textSize="18sp"
+                android:textColor="@color/primary"
+                android:textAllCaps="true"/>
 
             <TextView
                 android:id="@+id/tvDescription"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="13sp"
-                android:textColor="?attr/colorOnSurface"
+                android:textSize="14sp"
+                android:textColor="@color/on_surface"
                 android:layout_marginTop="4dp"/>
 
             <TextView
                 android:id="@+id/tvValidTo"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textSize="11sp"
-                android:textColor="?android:attr/textColorSecondary"
-                android:layout_marginTop="2dp"/>
+                android:textSize="12sp"
+                android:textColor="@color/on_surface_variant"
+                android:layout_marginTop="8dp"/>
         </LinearLayout>
+        
+        <!-- Dotted line separator -->
+        <View android:layout_width="1dp" android:layout_height="match_parent"
+            android:background="@color/on_surface_variant" android:alpha="0.2"
+            android:layout_marginHorizontal="16dp"/>
 
         <TextView
             android:id="@+id/tvDiscount"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textStyle="bold"
-            android:textSize="16sp"
-            android:textColor="@color/accent_gold"/>
+            android:textSize="20sp"
+            android:textColor="@color/primary"/>
     </LinearLayout>
 </androidx.cardview.widget.CardView>

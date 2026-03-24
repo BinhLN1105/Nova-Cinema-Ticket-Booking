@@ -39,7 +39,7 @@ public class VoucherFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(VoucherViewModel.class);
 
-        binding.toolbar.setNavigationOnClickListener(v -> Navigation.findNavController(v).navigateUp());
+        binding.btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.rvVouchers.setLayoutManager(new LinearLayoutManager(requireContext()));
 
         binding.progressBar.setVisibility(View.VISIBLE);

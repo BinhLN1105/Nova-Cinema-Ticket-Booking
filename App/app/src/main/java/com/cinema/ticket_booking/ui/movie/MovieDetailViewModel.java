@@ -35,6 +35,10 @@ public class MovieDetailViewModel extends ViewModel {
         return createReviewResult;
     }
 
+    public LiveData<Resource<String>> checkReviewEligibility(String movieId) {
+        return movieRepo.canReview(movieId);
+    }
+
     public void loadMovie(String id) {
         movieRepo.getMovieDetail(id).observeForever(movie::setValue);
     }

@@ -54,7 +54,7 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             b.tvStatus.setText(s.getStatus());
             int color = switch (s.getStatus()) {
                 case "PAID" -> R.color.seat_available;
-                case "PENDING" -> R.color.accent_gold;
+                case "PENDING" -> R.color.tertiary;
                 default -> R.color.error;
             };
             b.tvStatus.setTextColor(b.getRoot().getContext().getColor(color));

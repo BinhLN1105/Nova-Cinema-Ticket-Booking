@@ -79,10 +79,11 @@ public class MovieController {
     // GET /api/v1/movies/{id}/can-review
     @GetMapping("/{id}/can-review")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<Boolean>> canReview(
+    public ResponseEntity<ApiResponse<String>> canReview(
             @PathVariable UUID id,
             @org.springframework.security.core.annotation.AuthenticationPrincipal com.cinema.ticket_booking.model.User currentUser) {
-        return ResponseEntity.ok(ApiResponse.success(bookingService.isEligibleForReview(currentUser.getId(), id)));
+        UUID bookingId = bookingService.getEligibleBookingForReview(currentUser.getId(), id);
+        return ResponseEntity.ok(ApiResponse.success(bookingId != null ? bookingId.toString() : null));
     }
 
     // POST /api/v1/movies [ADMIN]

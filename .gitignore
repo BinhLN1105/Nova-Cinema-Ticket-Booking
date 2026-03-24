@@ -78,6 +78,12 @@ App/**/*.jks
 App/**/google-services.json
 
 # ==============================
+# UI/UX design
+# ==============================
+UI-UX_App_Design/**
+UI-UX_App_Design
+
+# ==============================
 # Mac/Windows
 # ==============================
 *.DS_Store

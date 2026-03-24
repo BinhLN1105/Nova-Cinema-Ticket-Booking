@@ -55,7 +55,7 @@
                 android:id="@+id/tvRating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:textColor="@color/accent_gold"
+                android:textColor="@color/tertiary"
                 android:textSize="14sp"
                 android:textStyle="bold"/>
         </LinearLayout>

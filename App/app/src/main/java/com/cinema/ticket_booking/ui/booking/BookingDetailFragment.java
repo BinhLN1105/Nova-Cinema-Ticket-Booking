@@ -74,7 +74,7 @@ public class BookingDetailFragment extends Fragment {
                     // Trạng thái màu
                     int statusColor = switch (b.getStatus()) {
                         case "PAID" -> R.color.seat_available;
-                        case "PENDING" -> R.color.accent_gold;
+                        case "PENDING" -> R.color.tertiary;
                         case "CANCELLED", "EXPIRED" -> R.color.error;
                         default -> R.color.on_surface_variant;
                     };

@@ -207,8 +207,10 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional(readOnly = true)
-    public boolean isEligibleForReview(UUID userId, UUID movieId) {
-        return bookingRepository.isEligibleForReview(userId, movieId, LocalDateTime.now());
+    public UUID getEligibleBookingForReview(UUID userId, UUID movieId) {
+        return bookingRepository.findEligibleBookingForReview(userId, movieId, LocalDateTime.now())
+                .map(Booking::getId)
+                .orElse(null);
     }
 
     // ── Check-in QR ───────────────────────────────────────────────────────

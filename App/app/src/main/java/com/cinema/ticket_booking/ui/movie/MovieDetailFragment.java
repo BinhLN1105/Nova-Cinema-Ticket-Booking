@@ -44,6 +44,7 @@ public class MovieDetailFragment extends Fragment {
         if (getArguments() != null) {
             movieId = getArguments().getString("movieId");
             viewModel.loadMovie(movieId);
+            viewModel.loadReviews(movieId);
         }
 
         setupObservers(view);
@@ -53,7 +54,27 @@ public class MovieDetailFragment extends Fragment {
             args.putString("movieId", movieId);
             Navigation.findNavController(view).navigate(R.id.action_movieDetail_to_selectShowtime, args);
         });
-        binding.btnWriteReview.setOnClickListener(v -> showWriteReviewDialog());
+        binding.btnWriteReview.setOnClickListener(v -> {
+            if (!tokenManager.isLoggedIn()) {
+                Toast.makeText(requireContext(), "Vui lòng đăng nhập để viết đánh giá", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            binding.progressBar.setVisibility(View.VISIBLE);
+            androidx.lifecycle.LiveData<com.cinema.ticket_booking.util.Resource<String>> liveData = viewModel.checkReviewEligibility(movieId);
+            liveData.observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<>() {
+                @Override
+                public void onChanged(com.cinema.ticket_booking.util.Resource<String> resource) {
+                    if (resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) return;
+                    binding.progressBar.setVisibility(View.GONE);
+                    liveData.removeObserver(this);
+                    if (resource.isSuccess() && resource.data != null) {
+                        showWriteReviewDialog(resource.data);
+                    } else {
+                        Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim trước khi đánh giá!", Toast.LENGTH_SHORT).show();
+                    }
+                }
+            });
+        });
     }
 
     private void setupObservers(View view) {
@@ -120,11 +141,7 @@ public class MovieDetailFragment extends Fragment {
         });
     }
 
-    private void showWriteReviewDialog() {
-        if (!tokenManager.isLoggedIn()) {
-            Toast.makeText(requireContext(), "Vui lòng đăng nhập để viết đánh giá", Toast.LENGTH_SHORT).show();
-            return;
-        }
+    private void showWriteReviewDialog(String bookingId) {
         View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_write_review, null);
         RatingBar ratingBar = dialogView.findViewById(R.id.ratingBar);
         EditText etComment = dialogView.findViewById(R.id.etComment);
@@ -139,7 +156,7 @@ public class MovieDetailFragment extends Fragment {
                         Toast.makeText(requireContext(), "Vui lòng chọn số sao", Toast.LENGTH_SHORT).show();
                         return;
                     }
-                    viewModel.submitReview(movieId, null, rating, comment);
+                    viewModel.submitReview(movieId, bookingId, rating, comment);
                 })
                 .setNegativeButton("Hủy", null)
                 .show();
