@@ -30,30 +30,7 @@
                     android:paddingHorizontal="16dp"
                     android:background="@color/surface_variant">
 
-                    <LinearLayout
-                        android:id="@+id/locationLayout"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent">
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Location"
-                            android:textAllCaps="true"
-                            android:textColor="@color/on_surface_variant"
-                            android:textSize="10sp"
-                            android:textStyle="bold" />
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Hà Nội ▼"
-                            android:textColor="@color/on_surface"
-                            android:textSize="14sp"
-                            android:textStyle="bold" />
-                    </LinearLayout>
+
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -67,7 +44,7 @@
                         app:layout_constraintTop_toTopOf="parent"
                         app:layout_constraintBottom_toBottomOf="parent" />
 
-                    <!-- Search / Profile -->
+                    <!-- Search / Profile
                     <ImageView
                         android:id="@+id/etSearch"
                         android:layout_width="40dp"
@@ -77,8 +54,29 @@
                         app:tint="@color/on_surface"
                         app:layout_constraintEnd_toEndOf="parent"
                         app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent" />
+                        app:layout_constraintBottom_toBottomOf="parent" /> -->
                 </androidx.constraintlayout.widget.ConstraintLayout>
+
+                <!-- Movie Search Bar -->
+                <com.google.android.material.textfield.TextInputLayout
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="60dp"
+                    android:layout_marginHorizontal="16dp"
+                    android:layout_marginTop="8dp"
+                    android:layout_marginBottom="8dp"
+                    android:hint="Search Movies..."
+                    app:startIconDrawable="@drawable/ic_search"
+                    app:boxStrokeColor="@color/primary"
+                    app:hintTextColor="@color/on_surface_variant">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/on_surface"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text" />
+                </com.google.android.material.textfield.TextInputLayout>
 
                 <!-- Hero Section (Static placeholder mimicking design) -->
                 <androidx.constraintlayout.widget.ConstraintLayout
@@ -217,14 +215,17 @@
 
                 <!-- Promo Banner -->
                 <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/cvPromo"
                     android:layout_width="match_parent"
                     android:layout_height="120dp"
                     android:layout_marginHorizontal="24dp"
                     android:layout_marginBottom="32dp"
                     app:cardCornerRadius="24dp"
+                    android:visibility="gone"
                     app:cardBackgroundColor="@color/surface_container_lowest">
                     <!-- Optional: Add static promo content or image here -->
                     <TextView
+                        android:id="@+id/tvPromoText"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:text="Extra 20% OFF\nwith VNPay"
@@ -290,5 +291,17 @@
         app:backgroundTint="@color/primary"
         app:fabSize="mini"
         android:contentDescription="Chat AI"/>
+
+    <!-- Overlay Search Results -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSearchResults"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="140dp"
+        android:background="#E60A0F1D"
+        android:elevation="12dp"
+        android:visibility="gone"
+        android:clipToPadding="false"
+        android:padding="16dp"/>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

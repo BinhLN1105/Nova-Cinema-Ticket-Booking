@@ -10,7 +10,9 @@ import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
 
 import com.cinema.ticket_booking.service.AuthService;
+import com.cinema.ticket_booking.service.TokenBlacklistService;
 import com.cinema.ticket_booking.service.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,6 +28,7 @@ public class AuthController {
 
     private final AuthService authService;
     private final UserService userService;
+    private final TokenBlacklistService tokenBlacklistService;
 
     // GET /api/v1/auth/me
     @GetMapping("/me")
@@ -68,7 +71,13 @@ public class AuthController {
     // POST /api/v1/auth/logout
     @PostMapping("/logout")
     public ResponseEntity<ApiResponse<Void>> logout(
-            @Valid @RequestBody RefreshTokenRequest request) {
+            @Valid @RequestBody RefreshTokenRequest request,
+            HttpServletRequest httpRequest) {
+        // Blacklist the access token in Redis
+        String authHeader = httpRequest.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            tokenBlacklistService.blacklist(authHeader.substring(7));
+        }
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
     }

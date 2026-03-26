@@ -1,5 +1,7 @@
 package com.cinema.ticket_booking.ui;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import androidx.appcompat.app.AppCompatActivity;
@@ -25,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
             R.id.movieDetailFragment,
             R.id.selectShowtimeFragment,
             R.id.selectSeatFragment,
+            R.id.selectComboFragment,
             R.id.confirmBookingFragment,
             R.id.paymentFragment,
             R.id.bookingDetailFragment,
@@ -60,16 +63,62 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // ── Handle Deep Links ──
+        handleDeepLink(getIntent(), navController);
+
         navController.addOnDestinationChangedListener((ctrl, dest, args) -> {
             if (NO_BOTTOM_NAV.contains(dest.getId())) {
                 binding.bottomAppBar.setVisibility(View.GONE);
                 binding.bottomNav.setVisibility(View.GONE);
                 binding.fabTickets.hide();
+                binding.navHostFragment.setPadding(0, 0, 0, 0);
             } else {
                 binding.bottomAppBar.setVisibility(View.VISIBLE);
                 binding.bottomNav.setVisibility(View.VISIBLE);
                 binding.fabTickets.show();
+                int paddingBottom = (int) (80 * getResources().getDisplayMetrics().density);
+                binding.navHostFragment.setPadding(0, 0, 0, paddingBottom);
             }
         });
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        NavHostFragment navHost = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
+        if (navHost != null) {
+            handleDeepLink(intent, navHost.getNavController());
+        }
+    }
+
+    private void handleDeepLink(Intent intent, NavController navController) {
+        if (intent == null) return;
+
+        // 1. Handle URI deep links: novaticket://movies/{movieId}
+        Uri uri = intent.getData();
+        if (uri != null && "novaticket".equals(uri.getScheme()) && "movies".equals(uri.getHost())) {
+            String movieId = uri.getLastPathSegment();
+            if (movieId != null && !movieId.isEmpty()) {
+                Bundle args = new Bundle();
+                args.putString("movieId", movieId);
+                navController.navigate(R.id.movieDetailFragment, args);
+                return;
+            }
+        }
+
+        // 2. Handle FCM notification taps: type + targetId from data payload
+        String type = intent.getStringExtra("type");
+        String targetId = intent.getStringExtra("targetId");
+        if (type != null && targetId != null && !targetId.isEmpty()) {
+            if ("BOOKING_REMINDER".equals(type)) {
+                Bundle args = new Bundle();
+                args.putString("bookingId", targetId);
+                navController.navigate(R.id.bookingDetailFragment, args);
+            }
+            // Clear extras so it doesn't re-trigger
+            intent.removeExtra("type");
+            intent.removeExtra("targetId");
+        }
     }
 }

@@ -3,21 +3,29 @@ package com.cinema.ticket_booking.ui.home;
 import androidx.lifecycle.*;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
 import com.cinema.ticket_booking.data.model.response.PageResponse;
+import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.data.repository.MovieRepository;
+import com.cinema.ticket_booking.data.repository.VoucherRepository;
 import com.cinema.ticket_booking.util.Resource;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import javax.inject.Inject;
+
+import java.util.List;
 
 @HiltViewModel
 public class HomeViewModel extends ViewModel {
 
     private final MovieRepository movieRepository;
+    private final VoucherRepository voucherRepository;
     private final MutableLiveData<Resource<PageResponse<MovieSummary>>> nowShowing = new MutableLiveData<>();
     private final MutableLiveData<Resource<PageResponse<MovieSummary>>> comingSoon = new MutableLiveData<>();
+    private final MutableLiveData<Resource<List<VoucherSyncResponse>>> activeVouchers = new MutableLiveData<>();
+    private final MutableLiveData<Resource<PageResponse<MovieSummary>>> searchResults = new MutableLiveData<>();
 
     @Inject
-    public HomeViewModel(MovieRepository movieRepository) {
+    public HomeViewModel(MovieRepository movieRepository, VoucherRepository voucherRepository) {
         this.movieRepository = movieRepository;
+        this.voucherRepository = voucherRepository;
         loadMovies();
     }
 
@@ -27,6 +35,22 @@ public class HomeViewModel extends ViewModel {
 
     public LiveData<Resource<PageResponse<MovieSummary>>> getComingSoon() {
         return comingSoon;
+    }
+
+    public LiveData<Resource<List<VoucherSyncResponse>>> getActiveVouchers() {
+        return activeVouchers;
+    }
+
+    public LiveData<Resource<PageResponse<MovieSummary>>> getSearchResults() {
+        return searchResults;
+    }
+
+    public void searchMovies(String query) {
+        movieRepository.searchMovies(query, 0, 10).observeForever(searchResults::setValue);
+    }
+
+    public void clearSearch() {
+        searchResults.setValue(null);
     }
 
     public void refresh() {
@@ -42,5 +66,7 @@ public class HomeViewModel extends ViewModel {
                 .observeForever(nowShowing::setValue);
         movieRepository.getMovies("COMING_SOON", 0, 20)
                 .observeForever(comingSoon::setValue);
+        voucherRepository.getActiveVouchers()
+                .observeForever(activeVouchers::setValue);
     }
 }

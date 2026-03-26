@@ -2,9 +2,11 @@ package com.cinema.ticket_booking.data.repository;
 
 import androidx.lifecycle.*;
 import com.cinema.ticket_booking.data.model.request.BookingRequest;
+import com.cinema.ticket_booking.data.model.request.PaymentRequest;
 import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.network.ApiService;
 import com.cinema.ticket_booking.util.Resource;
+import com.cinema.ticket_booking.BuildConfig;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -112,8 +114,8 @@ public class BookingRepository {
     public LiveData<Resource<PaymentResponse>> createPayment(String bookingId) {
         MutableLiveData<Resource<PaymentResponse>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
-        com.cinema.ticket_booking.data.model.request.PaymentRequest req = new com.cinema.ticket_booking.data.model.request.PaymentRequest(
-                bookingId, "cinema://payment/result");
+        PaymentRequest req = new PaymentRequest(
+                bookingId, BuildConfig.BASE_URL + "payments/vnpay/callback?source=mobile");
         apiService.createPayment(req).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<PaymentResponse>> call,

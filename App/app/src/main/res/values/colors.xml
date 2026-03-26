@@ -68,4 +68,9 @@
     <!-- Card -->
     <color name="card_background">#FFFFFF</color>
     <color name="card_stroke">#E5E7EB</color>
+
+    <color name="on_primary_fixed">#FFFFFF</color>
+    <color name="error_dim">#FFB4AB</color>
+    <color name="surface_container">#F3F4F6</color>
+    <color name="on_secondary">#000000</color>
 </resources>

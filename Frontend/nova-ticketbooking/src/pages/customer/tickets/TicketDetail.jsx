@@ -3,9 +3,11 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck } from 'lucide-react'
-import { bookingApi } from '@/api/endpoints'
+import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck, Star } from 'lucide-react'
+import { bookingApi, reviewApi } from '@/api/endpoints'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
+import { Modal } from '@/components/common/ui/Modal'
+import { Button } from '@/components/common/ui/FormElements'
 import toast from 'react-hot-toast'
 
 export default function TicketDetail() {
@@ -23,6 +25,24 @@ export default function TicketDetail() {
     mutationFn: () => bookingApi.cancelRequest(id),
     onSuccess: () => { toast.success('Đã gửi yêu cầu huỷ vé. Vui lòng kiểm tra email của bạn để xác nhận.'); refetch() },
     onError: (err) => { toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi huỷ vé'); }
+  })
+
+  // Review State
+  const [isReviewOpen, setIsReviewOpen] = useState(false)
+  const [rating, setRating] = useState(10)
+  const [comment, setComment] = useState('')
+
+  const reviewMutation = useMutation({
+    mutationFn: () => reviewApi.create(booking.movieId, { rating, comment }),
+    onSuccess: () => {
+      toast.success('Cảm ơn bạn đã đánh giá phim!')
+      setIsReviewOpen(false)
+      // Optional: refetch to maybe hide the button if we know they reviewed, 
+      // but API doesn't return that directly in booking. Just keeping simple.
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Có lỗi khi gửi đánh giá')
+    }
   })
 
   const ticketUrl = `${window.location.origin}/tickets/${id}`
@@ -204,6 +224,16 @@ export default function TicketDetail() {
           </div>
         </div>
 
+        {/* Review Button */}
+        {booking.status === 'CHECKED_IN' && (
+          <button onClick={() => setIsReviewOpen(true)}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3
+              rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
+              hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25">
+             <Star className="w-5 h-5 fill-white" /> Đánh giá phim
+          </button>
+        )}
+
         {/* Cancel */}
         {booking.status === 'PAID' && (
           <button onClick={() => cancelMutation.mutate()}
@@ -215,6 +245,37 @@ export default function TicketDetail() {
           </button>
         )}
       </div>
+
+      <Modal open={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="Đánh giá phim">
+        <div className="space-y-4 pt-2">
+          <p className="text-sm font-medium text-gray-700">Chất lượng phim (Điểm: {rating}/10)</p>
+          <div className="flex items-center gap-1 justify-center py-2">
+            {[2, 4, 6, 8, 10].map((starValue) => (
+              <button key={starValue} type="button" onClick={() => setRating(starValue)}
+                className="p-1 transition-transform hover:scale-110">
+                <Star className={cn("w-8 h-8", rating >= starValue ? "fill-yellow-400 text-yellow-400" : "text-gray-300")} />
+              </button>
+            ))}
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-gray-700">Bình luận (tùy chọn)</label>
+            <textarea
+              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-gray-800"
+              placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+            />
+          </div>
+
+          <div className="pt-4 flex justify-end gap-3">
+            <Button variant="ghost" onClick={() => setIsReviewOpen(false)}>Hủy</Button>
+            <Button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending}>
+              {reviewMutation.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

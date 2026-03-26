@@ -5,6 +5,7 @@ import com.cinema.ticket_booking.mapper.ComboMapper;
 import com.cinema.ticket_booking.repository.ComboRepository;
 import com.cinema.ticket_booking.service.ComboService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ public class ComboServiceImpl implements ComboService {
     private final ComboMapper comboMapper;
 
     @Override
+    @Cacheable(value = "combos", key = "'available'")
     public List<ComboResponse> getAvailable() {
         return comboRepository.findByIsAvailableTrue()
                 .stream().map(comboMapper::toResponse).toList();

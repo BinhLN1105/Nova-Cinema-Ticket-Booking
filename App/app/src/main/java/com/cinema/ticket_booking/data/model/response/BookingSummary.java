@@ -15,6 +15,10 @@ public class BookingSummary {
     private String startTime;
     @SerializedName("cinemaName")
     private String cinemaName;
+    @SerializedName("screenName")
+    private String screenName;
+    @SerializedName("seats")
+    private String seats;
     @SerializedName("totalAmount")
     private double totalAmount;
     @SerializedName("status")
@@ -52,5 +56,13 @@ public class BookingSummary {
 
     public String getStatus() {
         return status;
+    }
+
+    public String getScreenName() {
+        return screenName;
+    }
+
+    public String getSeats() {
+        return seats;
     }
 }

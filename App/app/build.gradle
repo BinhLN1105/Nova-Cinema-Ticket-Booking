@@ -19,8 +19,8 @@ android {
 
     buildTypes {
         debug {
-            // 10.0.2.2 = localhost máy tính khi chạy trên Android Emulator
-            buildConfigField "String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\""
+            // Dùng IP máy tính thật khi test trên điện thoại (10.0.2.2 chỉ cho emulator)
+            buildConfigField "String", "BASE_URL", "\"http://192.168.1.3:8080/api/v1/\""
             debuggable true
         }
         release {

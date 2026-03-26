@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: nova-redis
+    ports:
+      - "6379:6379"
+    # Bật AOF để persist data khi restart container
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-novaRedis2026}
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-novaRedis2026}", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  redis_data:
+    driver: local

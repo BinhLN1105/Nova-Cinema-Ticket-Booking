@@ -9,45 +9,173 @@
     <!-- Top AppBar -->
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal" android:paddingTop="32dp" android:paddingBottom="16dp" android:paddingHorizontal="16dp" android:gravity="center_vertical"
-        android:background="@color/surface_glass">
+        android:background="#990E0E0E">
         <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
-            android:src="@drawable/ic_back" android:background="?selectableItemBackgroundBorderless" android:tint="@color/on_surface"/>
+            android:src="@drawable/ic_back" android:background="?selectableItemBackgroundBorderless" android:tint="@color/primary"/>
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="VOUCHER CỦA TÔI" android:textColor="@color/primary"
-            android:textSize="20sp" android:textStyle="bold" android:layout_marginStart="16dp"
-            android:textAllCaps="true"/>
+            android:text="QUẢN LÝ GIFTCARD" android:textColor="@color/primary"
+            android:textSize="18sp" android:textStyle="bold" android:layout_marginStart="8dp"
+            android:textAllCaps="true" android:letterSpacing="0.05"/>
     </LinearLayout>
+    
+    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#20201F"/>
 
-    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
-        <ProgressBar
-            android:id="@+id/progressBar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:indeterminateTint="@color/primary"
-            android:visibility="gone"/>
-
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clipToPadding="false"
+        android:paddingBottom="120dp">
+        
         <LinearLayout
-            android:id="@+id/tvEmpty"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:gravity="center"
-            android:layout_gravity="center"
-            android:visibility="gone">
-            <ImageView android:layout_width="80dp" android:layout_height="80dp"
-                android:src="@drawable/ic_ticket" android:tint="@color/on_surface_variant"
-                android:alpha="0.5" android:layout_marginBottom="16dp"/>
-            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                android:text="BẠN CHƯA CÓ VOUCHER NÀO" android:textColor="@color/on_surface_variant"
-                android:textSize="16sp" android:textStyle="bold" android:letterSpacing="0.05"/>
-        </LinearLayout>
+            android:padding="24dp">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvVouchers"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:padding="16dp"
-            android:clipToPadding="false"/>
-    </FrameLayout>
+            <!-- ── Nạp Giftcard Section ──────────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NẠP GIFTCARD"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Nhập mã voucher để cộng dồn vào số dư tài khoản của bạn."
+                android:textColor="@color/on_surface_variant"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp"
+                android:layout_marginBottom="16dp"/>
+                
+            <EditText
+                android:id="@+id/etVoucherCode"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/bg_bottom_nav_rounded"
+                android:backgroundTint="@color/surface_container_lowest"
+                android:hint="Nhập mã quà tặng tại đây..."
+                android:textColorHint="#80adaaaa"
+                android:textColor="@color/on_surface"
+                android:paddingHorizontal="24dp"
+                android:textSize="14sp"
+                android:layout_marginBottom="16dp"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnApplyVoucher"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Nạp ngay"
+                android:textColor="@color/on_primary"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                app:backgroundTint="@color/primary"
+                app:cornerRadius="28dp"
+                android:layout_marginBottom="32dp"/>
+
+            <!-- ── Giftcard Của Tôi Section ──────────────── -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp">
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="GIFTCARD CỦA TÔI"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_surface"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Xem tất cả"
+                    android:textColor="@color/secondary"
+                    android:textSize="12sp"
+                    android:textStyle="bold"/>
+            </LinearLayout>
+
+            <FrameLayout android:layout_width="match_parent" android:layout_height="wrap_content">
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:indeterminateTint="@color/primary"
+                    android:visibility="gone"/>
+
+                <LinearLayout
+                    android:id="@+id/tvEmpty"
+                    android:layout_width="match_parent"
+                    android:layout_height="150dp"
+                    android:orientation="vertical"
+                    android:gravity="center"
+                    android:visibility="gone">
+                    <ImageView android:layout_width="64dp" android:layout_height="64dp"
+                        android:src="@drawable/ic_ticket" android:tint="@color/on_surface_variant"
+                        android:alpha="0.2" android:layout_marginBottom="8dp"/>
+                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Chưa có voucher nào" android:textColor="@color/on_surface_variant"
+                        android:textSize="14sp"/>
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvVouchers"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:layout_marginBottom="32dp"/>
+            </FrameLayout>
+
+            <!-- ── Mua Giftcard Mới Section ──────────────── -->
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MUA GIFTCARD MỚI"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                android:textColor="@color/on_surface"
+                android:layout_marginBottom="16dp"/>
+                
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="200dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
+                
+                <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
+                    <!-- Placeholder backgroundImage -->
+                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
+                        android:src="@drawable/ic_movie_placeholder" android:scaleType="centerCrop"/>
+                    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#66000000"/>
+                    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_gradient_bottom"/>
+                    
+                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                        android:orientation="vertical" android:layout_gravity="bottom" android:padding="24dp">
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="SPECIAL EDITION" android:textColor="@color/primary"
+                            android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.1"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Tặng Trải Nghiệm Cinema" android:textColor="@color/on_surface"
+                            android:textSize="20sp" android:textStyle="bold" android:layout_marginTop="4dp" android:layout_marginBottom="12dp"/>
+                            
+                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="100K" android:textColor="@color/on_surface" android:textSize="10sp" android:textStyle="bold"
+                                android:background="@drawable/bg_chip_outline" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:layout_marginEnd="8dp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="200K" android:textColor="@color/on_surface" android:textSize="10sp" android:textStyle="bold"
+                                android:background="@drawable/bg_chip_outline" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:layout_marginEnd="8dp"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                                android:text="MUA NGAY" android:textColor="@color/on_primary" android:textSize="10sp" android:textStyle="bold"
+                                android:background="@drawable/bg_chip_filled" android:backgroundTint="@color/primary" android:paddingHorizontal="12dp" android:paddingVertical="4dp"/>
+                        </LinearLayout>
+                    </LinearLayout>
+                </FrameLayout>
+            </androidx.cardview.widget.CardView>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
 </LinearLayout>

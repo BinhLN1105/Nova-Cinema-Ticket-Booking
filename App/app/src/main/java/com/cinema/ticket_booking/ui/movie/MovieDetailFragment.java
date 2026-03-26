@@ -17,6 +17,7 @@ import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.databinding.FragmentMovieDetailBinding;
+import com.cinema.ticket_booking.ui.booking.SelectShowtimeViewModel;
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
 
@@ -100,6 +101,7 @@ public class MovieDetailFragment extends Fragment {
                             sb.append(g.getName()).append("  ");
                         binding.tvGenres.setText(sb.toString().trim());
                     }
+                    SelectShowtimeViewModel.pendingMoviePoster = m.getPosterUrl();
                     Glide.with(this).load(m.getPosterUrl())
                             .placeholder(R.drawable.ic_movie_placeholder)
                             .into(binding.ivPoster);

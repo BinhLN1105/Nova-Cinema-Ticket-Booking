@@ -41,7 +41,7 @@
 
     <fragment android:id="@+id/searchFragment"
         android:name="com.cinema.ticket_booking.ui.search.SearchFragment"
-        android:label="Tìm kiếm">
+        android:label="Rạp chiếu">
         <action android:id="@+id/action_search_to_movieDetail" app:destination="@id/movieDetailFragment"/>
     </fragment>
 
@@ -49,6 +49,7 @@
         android:name="com.cinema.ticket_booking.ui.booking.BookingHistoryFragment"
         android:label="Vé của tôi">
         <action android:id="@+id/action_history_to_bookingDetail" app:destination="@id/bookingDetailFragment"/>
+        <action android:id="@+id/action_history_to_payment" app:destination="@id/paymentFragment"/>
     </fragment>
 
     <fragment android:id="@+id/profileFragment"
@@ -79,7 +80,13 @@
         android:name="com.cinema.ticket_booking.ui.booking.SelectSeatFragment"
         android:label="Chọn ghế">
         <argument android:name="showtimeId" app:argType="string"/>
-        <action android:id="@+id/action_selectSeat_to_confirmBooking" app:destination="@id/confirmBookingFragment"/>
+        <action android:id="@+id/action_selectSeat_to_selectCombo" app:destination="@id/selectComboFragment"/>
+    </fragment>
+
+    <fragment android:id="@+id/selectComboFragment"
+        android:name="com.cinema.ticket_booking.ui.booking.SelectComboFragment"
+        android:label="Bắp nước">
+        <action android:id="@+id/action_selectCombo_to_confirmBooking" app:destination="@id/confirmBookingFragment"/>
     </fragment>
 
     <fragment android:id="@+id/confirmBookingFragment"
@@ -100,6 +107,7 @@
         android:name="com.cinema.ticket_booking.ui.booking.BookingDetailFragment"
         android:label="Chi tiết vé">
         <argument android:name="bookingId" app:argType="string"/>
+        <action android:id="@+id/action_bookingDetail_to_payment" app:destination="@id/paymentFragment"/>
     </fragment>
 
     <fragment android:id="@+id/notificationFragment"

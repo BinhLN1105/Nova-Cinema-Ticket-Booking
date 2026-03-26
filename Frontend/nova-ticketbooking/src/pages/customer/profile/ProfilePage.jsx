@@ -13,6 +13,7 @@ import toast from 'react-hot-toast'
 import { TopUpModal } from './TopUpModal'
 import { GiftCardTab } from '@/components/customer/GiftCardTab'
 import { useSearchParams, useNavigate } from 'react-router-dom'
+import { requestFirebaseToken } from '@/utils/firebase'
 
 const TIER_THRESHOLDS = {
   BRONZE: { min: 0, max: 500, next: 'SILVER', label: 'Bạc' },
@@ -49,6 +50,8 @@ export default function ProfilePage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const hasHandledTopup = useRef(false)
+  const [isPushEnabled, setIsPushEnabled] = useState(!!user?.fcmToken)
+  const [isTogglingPush, setIsTogglingPush] = useState(false)
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup')
@@ -80,6 +83,31 @@ export default function ProfilePage() {
     queryFn: () => notificationApi.getAll(0),
     enabled: activeTab === 'notifications',
   })
+
+  // Handle Push Toggle
+  const handleTogglePush = async () => {
+    if (isTogglingPush) return
+    setIsTogglingPush(true)
+    try {
+      if (!isPushEnabled) {
+        const token = await requestFirebaseToken()
+        if (token) {
+          setIsPushEnabled(true)
+          setUser({ ...user, fcmToken: token })
+          toast.success('Đã bật thông báo push')
+        }
+      } else {
+        await api.patch('/users/me/fcm-token', { fcmToken: null })
+        setIsPushEnabled(false)
+        setUser({ ...user, fcmToken: null })
+        toast.success('Đã tắt thông báo push')
+      }
+    } catch (err) {
+      toast.error('Có lỗi xảy ra khi thay đổi trạng thái thông báo')
+    } finally {
+      setIsTogglingPush(false)
+    }
+  }
 
   // Update profile via API
   const updateMutation = useMutation({
@@ -373,22 +401,71 @@ export default function ProfilePage() {
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="skeleton h-16 rounded-2xl" />
                 ))
-              ) : !notifData?.content?.length ? (
-                <div className="card-cinema p-10 text-center">
-                  <Bell className="w-12 h-12 text-cinema-600 mx-auto mb-3" />
-                  <p className="text-cinema-400">Chưa có thông báo nào</p>
-                </div>
               ) : (
-                notifData.content.map(n => (
-                  <div key={n.id} className={cn(
-                    'card-cinema p-4',
-                    !n.read && 'border-l-2 border-l-brand-500'
-                  )}>
-                    <p className="text-white text-sm font-medium">{n.title}</p>
-                    <p className="text-cinema-400 text-xs mt-1">{n.message}</p>
-                    <p className="text-cinema-500 text-xs mt-1.5">{formatDate(n.createdAt)}</p>
+                <div className="space-y-4">
+                  {/* Push Permission Toggle - Moved outside condition so it's always visible */}
+                  <div className="card-cinema p-4 flex items-center justify-between border-brand-500/20 bg-brand-500/5">
+                    <div>
+                      <p className="text-sm font-bold text-white">Tính năng thông báo</p>
+                      <p className="text-xs text-cinema-400">Nhận nhắc nhở lịch chiếu và ưu đãi ngay trên trình duyệt</p>
+                    </div>
+                    <button type="button" 
+                      onClick={handleTogglePush}
+                      disabled={isTogglingPush}
+                      className={cn(
+                        "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none",
+                        isPushEnabled ? 'bg-brand-500' : 'bg-cinema-700',
+                        isTogglingPush && 'opacity-50 cursor-not-allowed'
+                      )}>
+                      {isTogglingPush ? (
+                        <span className="flex items-center justify-center w-full">
+                          <Loader2 className="w-3 h-3 text-white animate-spin" />
+                        </span>
+                      ) : (
+                        <span className={cn(
+                          "inline-block h-4 w-4 rounded-full bg-white shadow-md transition-transform duration-200",
+                          isPushEnabled ? 'translate-x-6' : 'translate-x-1'
+                        )} />
+                      )}
+                    </button>
                   </div>
-                ))
+
+                  {isPushEnabled && (
+                    <div className="flex justify-end">
+                      <button 
+                        onClick={async () => {
+                          try {
+                            await api.post('/notifications/test')
+                            toast.success('Yêu cầu gửi thông báo test thành công!')
+                          } catch (err) {
+                            toast.error('Không thể gửi thông báo test')
+                          }
+                        }}
+                        className="text-xs bg-white/5 border border-brand-500/30 text-brand-400 px-3 py-1.5 rounded-lg hover:bg-brand-500/10 transition-all font-medium"
+                      >
+                        Gửi thử thông báo
+                      </button>
+                    </div>
+                  )}
+
+                  {!notifData?.content?.length ? (
+                    <div className="card-cinema p-10 text-center">
+                      <Bell className="w-12 h-12 text-cinema-600 mx-auto mb-3" />
+                      <p className="text-cinema-400">Chưa có thông báo nào</p>
+                    </div>
+                  ) : (
+                    notifData.content.map(n => (
+                      <div key={n.id} className={cn(
+                        'card-cinema p-4',
+                        !n.read && 'border-l-2 border-l-brand-500'
+                      )}>
+                        <p className="text-white text-sm font-medium">{n.title}</p>
+                        <p className="text-cinema-400 text-xs mt-1">{n.message}</p>
+                        <p className="text-cinema-500 text-xs mt-1.5">{formatDate(n.createdAt)}</p>
+                      </div>
+                    ))
+                  )}
+                </div>
               )}
             </div>
           )}

@@ -16,6 +16,8 @@ import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.BookingMapper;
 import com.cinema.ticket_booking.repository.*;
+import com.cinema.ticket_booking.service.SeatLockService;
+import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
@@ -23,11 +25,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,9 +51,8 @@ public class BookingServiceImpl implements BookingService {
     private final TransactionRepository transactionRepository;
     private final BookingMapper bookingMapper;
     private final StaffProfileRepository staffProfileRepository;
-
-    @Value("${app.booking.pending-minutes:10}")
-    private int pendingMinutes;
+    private final SeatLockService seatLockService;
+    private final SystemConfigService systemConfigService;
 
     // ── Tạo booking ───────────────────────────────────────────────────────
 
@@ -81,18 +84,34 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Một số ghế không thuộc suất chiếu này");
         }
 
-        LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMinutes);
-        for (ShowtimeSeat ss : seats) {
-            if (ss.getStatus() != SeatStatus.AVAILABLE) {
-                throw new BadRequestException(
-                        "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
-                                + " đã được đặt hoặc đang bị giữ");
-            }
-            ss.setStatus(SeatStatus.LOCKED);
-            ss.setLockedBy(user);
-            ss.setLockedUntil(lockUntil);
+        long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+        int pendingMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
+        if (minutesToStart <= 15 && minutesToStart >= -10) {
+            pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
         }
-        showtimeSeatRepository.saveAll(seats);
+        LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
+
+        String tempBookingRef = UUID.randomUUID().toString(); // Use a temp booking code to lock
+        List<String> lockedSoFar = new ArrayList<>();
+        try {
+            for (ShowtimeSeat ss : seats) {
+                if (ss.getStatus() != SeatStatus.AVAILABLE) {
+                    throw new BadRequestException(
+                            "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
+                }
+                boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
+                        Duration.ofMinutes(pendingMins));
+                if (!locked) {
+                    throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
+                            + " đang được giữ bởi người khác");
+                }
+                lockedSoFar.add(ss.getId().toString());
+            }
+        } catch (Exception e) {
+            // Release the locks we acquired
+            seatLockService.releaseSeats(lockedSoFar);
+            throw e;
+        }
 
         // ── 2. Validate voucher ────────────────────────────────────────────
         BigDecimal seatTotal = seats.stream()
@@ -128,10 +147,11 @@ public class BookingServiceImpl implements BookingService {
         long pendingExp = totalAmount.divide(BigDecimal.valueOf(1000)).longValue();
 
         // ── 3. Tạo Booking ────────────────────────────────────────────────
+        String finalBookingCode = generateBookingCode();
         Booking booking = Booking.builder()
                 .user(user)
                 .showtime(showtime)
-                .bookingCode(generateBookingCode())
+                .bookingCode(finalBookingCode)
                 .voucher(voucher)
                 .discountAmount(discountAmount)
                 .totalAmount(totalAmount)
@@ -141,6 +161,12 @@ public class BookingServiceImpl implements BookingService {
                 .expAdded(false)
                 .build();
         booking = bookingRepository.save(booking);
+
+        // Update the Redis lock with final bookingId although it uses the same TTL
+        for (ShowtimeSeat ss : seats) {
+            seatLockService.lockSeat(ss.getId().toString(), booking.getId().toString(),
+                    Duration.ofMinutes(pendingMins));
+        }
 
         // ── 4. Tạo BookingItem + Ticket ───────────────────────────────────
         for (ShowtimeSeat ss : seats) {
@@ -176,9 +202,20 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BookingResponse.Summary> getMyBookings(UUID userId, Pageable pageable) {
-        return PageResponse.of(
-                bookingRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable)
-                        .map(bookingMapper::toSummary));
+        org.springframework.data.domain.Page<Booking> page = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId,
+                pageable);
+        List<BookingResponse.Summary> summaries = page.getContent().stream()
+                .map(booking -> {
+                    BookingResponse.Summary summary = bookingMapper.toSummary(booking);
+                    List<String> seats = bookingItemRepository.findByBookingIdWithSeat(booking.getId()).stream()
+                            .map(item -> item.getShowtimeSeat().getSeat().getRowLabel()
+                                    + String.valueOf(item.getShowtimeSeat().getSeat().getColNumber()))
+                            .toList();
+                    summary.setSeats(String.join(", ", seats));
+                    return summary;
+                }).toList();
+        return PageResponse
+                .of(new org.springframework.data.domain.PageImpl<>(summaries, pageable, page.getTotalElements()));
     }
 
     @Override
@@ -208,7 +245,7 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public UUID getEligibleBookingForReview(UUID userId, UUID movieId) {
-        return bookingRepository.findEligibleBookingForReview(userId, movieId, LocalDateTime.now())
+        return bookingRepository.findEligibleBookingForReview(userId, movieId)
                 .map(Booking::getId)
                 .orElse(null);
     }
@@ -221,10 +258,19 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public CheckInResponse checkIn(User staff, String qrCode) {
         Booking booking = bookingRepository.findByQrCode(qrCode)
-                .orElseThrow(() -> new BadRequestException("QR code không hợp lệ"));
+                .orElseGet(() -> bookingRepository.findByBookingCode(qrCode)
+                        .orElseThrow(() -> new BadRequestException("QR hoặc Mã đặt vé không tồn tại")));
 
+        if (booking.getStatus() == BookingStatus.CHECKED_IN) {
+            throw new BadRequestException("Đơn vé này đã được check-in trước đó");
+        }
         if (booking.getStatus() != BookingStatus.PAID) {
-            throw new BadRequestException("Đơn vé chưa được thanh toán");
+            throw new BadRequestException("Đơn vé chưa thanh toán hoặc đã huỷ/hết hạn");
+        }
+
+        LocalDateTime showTimeStart = booking.getShowtime().getStartTime();
+        if (!showTimeStart.toLocalDate().equals(LocalDateTime.now().toLocalDate())) {
+            throw new BadRequestException("Suất chiếu không thuộc ngày hôm nay");
         }
 
         // ── Cinema validation ─────────────────────────────────────────────
@@ -237,7 +283,7 @@ public class BookingServiceImpl implements BookingService {
                         if (!profile.getCinema().getId().equals(bookingCinemaId)) {
                             throw new BadRequestException(
                                     "Bạn không có quyền quét vé cho rạp '" +
-                                    booking.getShowtime().getScreen().getCinema().getName() + "'");
+                                            booking.getShowtime().getScreen().getCinema().getName() + "'");
                         }
                     });
         }
@@ -252,6 +298,16 @@ public class BookingServiceImpl implements BookingService {
             }
         }
         ticketRepository.saveAll(tickets);
+
+        booking.setStatus(BookingStatus.CHECKED_IN);
+        if (!Boolean.TRUE.equals(booking.getExpAdded())) {
+            User bookingUser = booking.getUser();
+            long currentExp = bookingUser.getRewardPoints() != null ? bookingUser.getRewardPoints() : 0L;
+            bookingUser.setRewardPoints(currentExp + booking.getPendingExp());
+            userService.save(bookingUser);
+            booking.setExpAdded(true);
+        }
+        bookingRepository.save(booking);
 
         List<CheckInResponse.SeatItem> seatItems = tickets.stream().map(t -> CheckInResponse.SeatItem.builder()
                 .rowLabel(t.getBookingItem().getShowtimeSeat().getSeat().getRowLabel())
@@ -281,13 +337,17 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // Mark ghế → BOOKED
+        List<String> showtimeSeatIdsToRelease = new ArrayList<>();
         bookingItemRepository.findByBookingIdWithSeat(bookingId).forEach(item -> {
             ShowtimeSeat ss = item.getShowtimeSeat();
             ss.setStatus(SeatStatus.BOOKED);
             ss.setLockedBy(null);
             ss.setLockedUntil(null);
             showtimeSeatRepository.save(ss);
+            showtimeSeatIdsToRelease.add(ss.getId().toString());
         });
+
+        seatLockService.releaseSeats(showtimeSeatIdsToRelease);
 
         // Tạo QR code
         String qrContent = qrCodeService.generateQrContent(booking);
@@ -310,7 +370,7 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getStatus() != BookingStatus.PAID) {
             throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
         }
-        
+
         // Điều kiện huỷ vé: trước giờ chiếu 1 tiếng
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(1))) {
@@ -335,7 +395,8 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
             throw new BadRequestException("Mã xác nhận huỷ vé không hợp lệ");
         }
-        if (booking.getCancellationTokenExpiry() != null && LocalDateTime.now().isAfter(booking.getCancellationTokenExpiry())) {
+        if (booking.getCancellationTokenExpiry() != null
+                && LocalDateTime.now().isAfter(booking.getCancellationTokenExpiry())) {
             throw new BadRequestException("Mã xác nhận huỷ vé đã hết hạn");
         }
         if (booking.getStatus() != BookingStatus.PAID) {
@@ -370,8 +431,6 @@ public class BookingServiceImpl implements BookingService {
                 .build();
         transactionRepository.save(transaction);
     }
-
-
 
     // ── Private ───────────────────────────────────────────────────────────
 

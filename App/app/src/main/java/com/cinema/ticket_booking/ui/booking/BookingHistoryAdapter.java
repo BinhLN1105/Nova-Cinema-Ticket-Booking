@@ -12,6 +12,7 @@ import java.util.List;
 public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAdapter.VH> {
     public interface Listener {
         void onClick(String bookingId);
+        void onPayClick(String bookingId);
     }
 
     private final List<BookingSummary> items;
@@ -48,18 +49,55 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
 
         void bind(BookingSummary s) {
             b.tvMovieTitle.setText(s.getMovieTitle());
-            b.tvCinema.setText(s.getCinemaName());
-            b.tvShowtime.setText(s.getStartTime());
-            b.tvTotal.setText(String.format("%,.0fđ", s.getTotalAmount()));
-            b.tvStatus.setText(s.getStatus());
-            int color = switch (s.getStatus()) {
-                case "PAID" -> R.color.seat_available;
-                case "PENDING" -> R.color.tertiary;
-                default -> R.color.error;
-            };
-            b.tvStatus.setTextColor(b.getRoot().getContext().getColor(color));
+            b.tvCinema.setText("CineNoir " + s.getCinemaName());
+            
+            // Format time
+            String rawTime = s.getStartTime();
+            if (rawTime != null) {
+                try {
+                    java.text.SimpleDateFormat sdfIn;
+                    if (rawTime.contains("T")) {
+                        sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
+                    } else {
+                        sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                    }
+                    java.util.Date d = sdfIn.parse(rawTime);
+                    java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("dd/MM/yyyy • HH:mm", java.util.Locale.getDefault());
+                    b.tvShowtime.setText(sdfOut.format(d));
+                } catch (Exception e) {
+                    b.tvShowtime.setText(rawTime);
+                }
+            } else {
+                b.tvShowtime.setText("N/A");
+            }
+            
+            // Format Seat
+            String screen = s.getScreenName() != null ? s.getScreenName() : "";
+            String seats = s.getSeats() != null ? s.getSeats() : "";
+            
+            if (seats.isEmpty() && screen.isEmpty()) {
+                b.tvSeat.setText("Mã vé: " + (s.getBookingCode() != null ? s.getBookingCode() : "N/A"));
+            } else {
+                b.tvSeat.setText(screen + " - " + seats);
+            }
+            
+            // We can optionally show total amount or status if we want
+            // b.tvTotal.setText(String.format("%,.0fđ", s.getTotalAmount()));
+            
             Glide.with(b.ivPoster.getContext()).load(s.getMoviePosterUrl())
                     .placeholder(R.drawable.ic_movie_placeholder).into(b.ivPoster);
+                    
+            if ("PENDING".equalsIgnoreCase(s.getStatus())) {
+                b.btnViewTicket.setText("THANH TOÁN");
+                b.btnViewTicket.setIconResource(0);
+                b.btnViewTicket.setBackgroundTintList(android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.error)));
+                b.btnViewTicket.setOnClickListener(v -> listener.onPayClick(s.getId()));
+            } else {
+                b.btnViewTicket.setText("VÉ ĐIỆN TỬ");
+                b.btnViewTicket.setIconResource(R.drawable.ic_qr_code);
+                b.btnViewTicket.setBackgroundTintList(android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.primary)));
+                b.btnViewTicket.setOnClickListener(v -> listener.onClick(s.getId()));
+            }
             b.getRoot().setOnClickListener(v -> listener.onClick(s.getId()));
         }
     }

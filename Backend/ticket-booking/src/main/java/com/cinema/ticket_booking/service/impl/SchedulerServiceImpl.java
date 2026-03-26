@@ -7,6 +7,7 @@ import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.BookingItemRepository;
 import com.cinema.ticket_booking.repository.ShowtimeSeatRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
+import com.cinema.ticket_booking.service.NotificationService;
 import com.cinema.ticket_booking.service.SchedulerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ public class SchedulerServiceImpl implements SchedulerService {
     private final BookingRepository bookingRepository;
     private final BookingItemRepository bookingItemRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final NotificationService notificationService;
 
     /**
      * Mỗi 1 phút: giải phóng ghế LOCKED đã hết hạn giữ chỗ.
@@ -49,12 +51,9 @@ public class SchedulerServiceImpl implements SchedulerService {
     @Scheduled(cron = "0 */2 * * * *")
     @Transactional
     public void expireOverdueBookings() {
-        // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE
-        List<Booking> toExpire = bookingRepository
-                .findByUserIdAndStatus(null, BookingStatus.PENDING)
-                .stream()
-                .filter(b -> b.getExpiresAt().isBefore(LocalDateTime.now()))
-                .toList();
+        // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE (không dùng filter(null) nữa)
+        List<Booking> toExpire = bookingRepository.findByStatusAndExpiresAtBefore(
+                BookingStatus.PENDING, LocalDateTime.now());
 
         // 2. Giải phóng ghế của từng booking
         for (Booking booking : toExpire) {
@@ -85,5 +84,41 @@ public class SchedulerServiceImpl implements SchedulerService {
     public void cleanExpiredRefreshTokens() {
         refreshTokenRepository.deleteAllExpiredBefore(LocalDateTime.now());
         log.info("[Scheduler] Đã dọn dẹp refresh token hết hạn");
+    }
+
+    /**
+     * Mỗi 5 phút: nhắc nhở khách hàng có suất chiếu sắp bắt đầu (trong 40-45 phút).
+     * - Dùng [from, to) → tránh lọt lưới boundary condition.
+     * - DB thực hiện lọc thời gian → không load tất cả vé PAID lên RAM.
+     * - Bỏ readOnly vì notificationService.sendPromotion() có INSERT vào DB.
+     */
+    @Scheduled(cron = "0 */5 * * * *")
+    @Transactional
+    public void sendShowtimeReminders() {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime from = now.plusMinutes(40);
+        LocalDateTime to = now.plusMinutes(45);
+
+        // DB lọc trực tiếp: startTime >= from AND startTime < to
+        List<Booking> upcomingBookings = bookingRepository.findUpcomingBookings(
+                BookingStatus.PAID, from, to);
+
+        for (Booking booking : upcomingBookings) {
+            String movieTitle = booking.getShowtime().getMovie().getTitle();
+            try {
+                notificationService.sendPromotion(
+                        booking.getUser(),
+                        "Sắp đến giờ chiếu! ⏰",
+                        "Phim \"" + movieTitle + "\" sẽ bắt đầu sau khoảng 45 phút. Hãy đến rạp chuẩn bị bắp nước nhé!",
+                        booking.getId());
+            } catch (Exception e) {
+                // Catch từng vé để 1 vé lỗi không làm chết cả vòng lặp
+                log.error("[Scheduler] Lỗi gửi thông báo cho booking {}: {}", booking.getId(), e.getMessage());
+            }
+        }
+
+        if (!upcomingBookings.isEmpty()) {
+            log.info("[Scheduler] Đã gửi {} nhắc nhở suất chiếu sắp tới", upcomingBookings.size());
+        }
     }
 }

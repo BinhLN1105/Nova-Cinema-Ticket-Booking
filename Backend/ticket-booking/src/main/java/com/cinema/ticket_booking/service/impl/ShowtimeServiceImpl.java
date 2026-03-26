@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.ShowtimeRequest;
+import com.cinema.ticket_booking.dto.request.OverrideSeatPriceRequest;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
@@ -10,8 +11,10 @@ import com.cinema.ticket_booking.model.Screen;
 import com.cinema.ticket_booking.model.Seat;
 import com.cinema.ticket_booking.model.Showtime;
 import com.cinema.ticket_booking.model.ShowtimeSeat;
+import com.cinema.ticket_booking.model.PricingRule;
 import com.cinema.ticket_booking.enums.SeatStatus;
 import com.cinema.ticket_booking.enums.ShowtimeStatus;
+import com.cinema.ticket_booking.enums.PricingRuleType;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.SeatMapper;
@@ -24,6 +27,8 @@ import com.cinema.ticket_booking.repository.ScreenRepository;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.ShowtimeService;
+import com.cinema.ticket_booking.service.SeatLockService;
+import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -32,9 +37,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -50,6 +57,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final CinemaService cinemaService;
     private final ShowtimeMapper showtimeMapper;
     private final SeatMapper seatMapper;
+    private final SystemConfigService systemConfigService;
+    private final SeatLockService seatLockService;
 
     // ── Query ─────────────────────────────────────────────────────────────
 
@@ -57,6 +66,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Transactional(readOnly = true)
     public List<ShowtimeSyncResponse> getShowtimesForSync(String movieTitle, UUID movieId, String cinemaName,
             LocalDate date) {
+        int allowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
         return showtimeRepository.findAll().stream()
                 .filter(s -> date == null || s.getStartTime().toLocalDate().equals(date))
                 .filter(s -> movieId == null || s.getMovie().getId().equals(movieId))
@@ -64,7 +74,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                         || s.getMovie().getTitle().toLowerCase().contains(movieTitle.toLowerCase()))
                 .filter(s -> cinemaName == null
                         || s.getScreen().getCinema().getName().toLowerCase().contains(cinemaName.toLowerCase()))
-                .filter(s -> s.getStartTime().isAfter(java.time.LocalDateTime.now()))
+                .filter(s -> s.getStartTime().plusMinutes(allowance).isAfter(LocalDateTime.now()))
                 .map(s -> ShowtimeSyncResponse.builder()
                         .id(s.getId())
                         .movieId(s.getMovie().getId())
@@ -80,8 +90,11 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getByMovieAndDate(UUID movieId, LocalDate date) {
+        int allowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
         return showtimeRepository.findByMovieAndDate(movieId, date)
-                .stream().map(s -> {
+                .stream()
+                .filter(s -> s.getStartTime().plusMinutes(allowance).isAfter(LocalDateTime.now()))
+                .map(s -> {
                     ShowtimeResponse r = showtimeMapper.toResponse(s);
                     r.setAvailableSeats(showtimeSeatRepository
                             .countByShowtimeIdAndStatus(s.getId(), SeatStatus.AVAILABLE));
@@ -92,8 +105,11 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     @Transactional(readOnly = true)
     public List<ShowtimeResponse> getByMovieCinemaAndDate(UUID movieId, UUID cinemaId, LocalDate date) {
+        int allowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
         return showtimeRepository.findByMovieAndCinemaAndDate(movieId, cinemaId, date)
-                .stream().map(s -> {
+                .stream()
+                .filter(s -> s.getStartTime().plusMinutes(allowance).isAfter(LocalDateTime.now()))
+                .map(s -> {
                     ShowtimeResponse r = showtimeMapper.toResponse(s);
                     r.setAvailableSeats(showtimeSeatRepository
                             .countByShowtimeIdAndStatus(s.getId(), SeatStatus.AVAILABLE));
@@ -116,11 +132,23 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     public SeatMapResponse getSeatMap(UUID showtimeId) {
         Showtime showtime = findById(showtimeId);
         List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeIdWithSeat(showtimeId);
+
+        List<String> validSeatIds = seats.stream().map(s -> s.getId().toString()).collect(Collectors.toList());
+        List<String> lockedSeatIds = seatLockService.getLockedSeats(validSeatIds);
+
+        List<SeatMapResponse.SeatItem> mappedSeats = seats.stream().map(seat -> {
+            var seatItem = seatMapper.toSeatItem(seat);
+            if (seatItem.getStatus() == SeatStatus.AVAILABLE && lockedSeatIds.contains(seat.getId().toString())) {
+                seatItem.setStatus(SeatStatus.LOCKED);
+            }
+            return seatItem;
+        }).toList();
+
         return SeatMapResponse.builder()
                 .showtimeId(showtimeId.toString())
                 .totalRows(showtime.getScreen().getTotalRows())
                 .totalCols(showtime.getScreen().getTotalCols())
-                .seats(seats.stream().map(seatMapper::toSeatItem).toList())
+                .seats(mappedSeats)
                 .build();
     }
 
@@ -190,7 +218,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     @Override
     public void overrideSeatPrices(UUID showtimeId,
-            com.cinema.ticket_booking.dto.request.OverrideSeatPriceRequest request) {
+            OverrideSeatPriceRequest request) {
         findById(showtimeId); // Ensure showtime exists
         List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeAndIds(showtimeId,
                 request.getShowtimeSeatIds());
@@ -209,7 +237,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     private void generateShowtimeSeats(Showtime showtime, Screen screen, BigDecimal basePrice) {
         List<Seat> seats = seatRepository.findByScreenIdAndIsActiveTrueOrderByRowLabelAscColNumberAsc(screen.getId());
-        List<com.cinema.ticket_booking.model.PricingRule> activeRules = pricingRuleRepository
+        List<PricingRule> activeRules = pricingRuleRepository
                 .findByIsActiveTrueOrderByPriorityAsc();
 
         // 1. Áp dụng Rule theo Ngày, Giờ, hoặc Sự kiện (Áp dụng chung cho cả phòng)
@@ -229,9 +257,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     private BigDecimal applyTimeRules(BigDecimal basePrice, Showtime showtime,
-            List<com.cinema.ticket_booking.model.PricingRule> rules) {
+            List<PricingRule> rules) {
         BigDecimal price = basePrice;
-        for (com.cinema.ticket_booking.model.PricingRule rule : rules) {
+        for (PricingRule rule : rules) {
             boolean apply = false;
             switch (rule.getRuleType()) {
                 case DAY_OF_WEEK:
@@ -244,9 +272,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                     String[] times = rule.getConditionValue().split("-");
                     if (times.length == 2) {
                         try {
-                            java.time.LocalTime start = java.time.LocalTime.parse(times[0]);
-                            java.time.LocalTime end = java.time.LocalTime.parse(times[1]);
-                            java.time.LocalTime showTimeTime = showtime.getStartTime().toLocalTime();
+                            LocalTime start = LocalTime.parse(times[0]);
+                            LocalTime end = LocalTime.parse(times[1]);
+                            LocalTime showTimeTime = showtime.getStartTime().toLocalTime();
                             if (!showTimeTime.isBefore(start) && !showTimeTime.isAfter(end)) {
                                 apply = true;
                             }
@@ -282,10 +310,10 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     }
 
     private BigDecimal applySeatRules(BigDecimal timeAdjustedPrice, Seat seat,
-            List<com.cinema.ticket_booking.model.PricingRule> rules) {
+            List<PricingRule> rules) {
         BigDecimal price = timeAdjustedPrice;
-        for (com.cinema.ticket_booking.model.PricingRule rule : rules) {
-            if (rule.getRuleType() == com.cinema.ticket_booking.enums.PricingRuleType.SEAT_TYPE) {
+        for (PricingRule rule : rules) {
+            if (rule.getRuleType() == PricingRuleType.SEAT_TYPE) {
                 if (seat.getSeatType().name().equalsIgnoreCase(rule.getConditionValue())) {
                     price = calculateAdjustment(price, rule);
                 }
@@ -294,7 +322,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         return price;
     }
 
-    private BigDecimal calculateAdjustment(BigDecimal currentPrice, com.cinema.ticket_booking.model.PricingRule rule) {
+    private BigDecimal calculateAdjustment(BigDecimal currentPrice, PricingRule rule) {
         switch (rule.getAdjustmentType()) {
             case PERCENTAGE:
                 // Giảm/tăng %

@@ -19,6 +19,7 @@ public class ConfirmBookingFragment extends Fragment {
 
     private FragmentConfirmBookingBinding binding;
     private ConfirmBookingViewModel viewModel;
+    private android.os.CountDownTimer countDownTimer;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -36,6 +37,31 @@ public class ConfirmBookingFragment extends Fragment {
         binding.tvCinemaName.setText(SelectShowtimeViewModel.pendingCinemaName);
         binding.tvShowtimeTime.setText(SelectShowtimeViewModel.pendingShowtimeTime);
         binding.tvSeatCount.setText(SelectSeatViewModel.pendingSeatIds.size() + " ghế");
+
+        int cbCount = 0;
+        for (Integer qty : SelectComboViewModel.pendingCombos.values()) {
+            cbCount += qty;
+        }
+        binding.tvComboCount.setText(cbCount + " phần");
+
+        // Format and set date
+        String dateStr = SelectShowtimeViewModel.pendingShowDate;
+        if (dateStr != null) {
+            try {
+                java.util.Date date = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(dateStr);
+                binding.tvShowDate.setText(new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(date));
+            } catch (Exception e) {
+                binding.tvShowDate.setText(dateStr);
+            }
+        }
+
+        if (SelectShowtimeViewModel.pendingMoviePoster != null) {
+            com.bumptech.glide.Glide.with(this)
+                    .load(SelectShowtimeViewModel.pendingMoviePoster)
+                    .placeholder(R.drawable.ic_movie_placeholder)
+                    .into(binding.ivPoster);
+        }
+
         updatePriceSummary();
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
@@ -59,26 +85,8 @@ public class ConfirmBookingFragment extends Fragment {
             viewModel.confirmBooking(SelectShowtimeViewModel.pendingShowtimeId);
         });
 
+        startCountdown();
         setupObservers(view);
-        setupComboList();
-    }
-
-    private void setupComboList() {
-        viewModel.getCombos().observe(getViewLifecycleOwner(), resource -> {
-            if (resource.isSuccess() && resource.data != null) {
-                binding.rvCombos.setLayoutManager(new LinearLayoutManager(requireContext()));
-                binding.rvCombos.setAdapter(new ComboAdapter(resource.data,
-                        comboId -> {
-                            viewModel.addCombo(comboId);
-                            updatePriceSummary();
-                        },
-                        comboId -> {
-                            viewModel.removeCombo(comboId);
-                            updatePriceSummary();
-                        },
-                        viewModel.getSelectedCombos()));
-            }
-        });
     }
 
     private void setupObservers(View view) {
@@ -92,6 +100,12 @@ public class ConfirmBookingFragment extends Fragment {
                 updatePriceSummary();
             } else if (resource.isError()) {
                 Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+            }
+        });
+        
+        viewModel.getCombos().observe(getViewLifecycleOwner(), resource -> {
+            if (resource != null && resource.isSuccess()) {
+                updatePriceSummary();
             }
         });
 
@@ -120,17 +134,44 @@ public class ConfirmBookingFragment extends Fragment {
     }
 
     private void updatePriceSummary() {
-        double subtotal = SelectSeatViewModel.pendingTotalAmount;
+        double subtotal = SelectSeatViewModel.pendingTotalAmount + viewModel.calculateComboTotal();
         double discount = viewModel.calculateDiscount(subtotal);
         double total = subtotal - discount;
-        binding.tvSubtotal.setText(String.format("%,.0fđ", subtotal));
-        binding.tvDiscount.setText(discount > 0 ? "-" + String.format("%,.0fđ", discount) : "0đ");
-        binding.tvTotal.setText(String.format("%,.0fđ", total));
+        binding.tvSubtotal.setText(String.format("%,.0f", subtotal));
+        binding.tvDiscount.setText(discount > 0 ? "-" + String.format("%,.0f", discount) : "0");
+        binding.tvTotal.setText(String.format("%,.0f", total));
+    }
+
+    private void startCountdown() {
+        // 5 minutes = 300,000 ms
+        long duration = 5 * 60 * 1000;
+        countDownTimer = new android.os.CountDownTimer(duration, 1000) {
+            @Override
+            public void onTick(long millisUntilFinished) {
+                if (binding == null) return;
+                long minutes = millisUntilFinished / 1000 / 60;
+                long seconds = (millisUntilFinished / 1000) % 60;
+                binding.tvTimer.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds));
+            }
+
+            @Override
+            public void onFinish() {
+                if (getContext() != null && binding != null) {
+                    Toast.makeText(requireContext(), "Hết thời gian giữ vé", Toast.LENGTH_LONG).show();
+                    // Go back to select seat or movie detail
+                    Navigation.findNavController(requireView()).popBackStack();
+                }
+            }
+        }.start();
     }
 
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (countDownTimer != null) {
+            countDownTimer.cancel();
+            countDownTimer = null;
+        }
         binding = null;
     }
 }

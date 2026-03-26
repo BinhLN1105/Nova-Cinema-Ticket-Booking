@@ -47,4 +47,12 @@ public class NotificationController {
         notificationService.markAllAsRead(currentUser.getId());
         return ResponseEntity.ok(ApiResponse.success(null, "Đã đánh dấu đọc tất cả"));
     }
+
+    // POST /api/v1/notifications/test — gửi thông báo test cho bản thân
+    @PostMapping("/test")
+    public ResponseEntity<ApiResponse<Void>> testNotification(
+            @AuthenticationPrincipal User currentUser) {
+        notificationService.sendTestNotification(currentUser);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã gửi thông báo test. Hãy kiểm tra trình duyệt!"));
+    }
 }

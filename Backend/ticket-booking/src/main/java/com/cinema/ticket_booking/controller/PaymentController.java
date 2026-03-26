@@ -52,8 +52,17 @@ public class PaymentController {
         public void vnpayCallback(@RequestParam Map<String, String> params, HttpServletResponse response) throws IOException {
                 paymentService.handleVnpayCallback(params);
                 String responseCode = params.get("vnp_ResponseCode");
-                String status = "00".equals(responseCode) ? "success" : "failed";
-                response.sendRedirect(frontendUrl + "/booking/result?status=" + status);
+                String source = params.get("source");
+
+                if ("mobile".equals(source)) {
+                        // Mobile app → redirect về deep link để WebView chặn
+                        String deepLink = "cinema://payment/result?vnp_ResponseCode=" + responseCode;
+                        response.sendRedirect(deepLink);
+                } else {
+                        // Web frontend
+                        String status = "00".equals(responseCode) ? "success" : "failed";
+                        response.sendRedirect(frontendUrl + "/booking/result?status=" + status);
+                }
         }
 
         // GET /api/v1/payments/booking/{bookingId} — xem trạng thái thanh toán

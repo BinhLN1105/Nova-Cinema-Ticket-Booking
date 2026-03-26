@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.controller;
 
 import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
+import com.cinema.ticket_booking.dto.request.FcmTokenRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
@@ -40,8 +41,8 @@ public class UserController {
     @PatchMapping("/me/fcm-token")
     public ResponseEntity<ApiResponse<Void>> updateFcmToken(
             @AuthenticationPrincipal User currentUser,
-            @RequestParam String token) {
-        userService.updateFcmToken(currentUser.getId(), token);
+            @Valid @RequestBody FcmTokenRequest request) {
+        userService.updateFcmToken(currentUser.getId(), request.getFcmToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật FCM token thành công"));
     }
 

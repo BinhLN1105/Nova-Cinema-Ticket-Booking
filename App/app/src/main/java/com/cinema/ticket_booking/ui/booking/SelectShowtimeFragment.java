@@ -106,6 +106,7 @@ public class SelectShowtimeFragment extends Fragment {
                             SelectShowtimeViewModel.pendingMovieTitle = showtime.getMovieTitle();
                             SelectShowtimeViewModel.pendingShowtimeTime = showtime.getStartTime();
                             SelectShowtimeViewModel.pendingCinemaName = showtime.getCinemaName();
+                            SelectShowtimeViewModel.pendingShowDate = viewModel.getSelectedDate().getValue();
                             Bundle args = new Bundle();
                             args.putString("showtimeId", showtime.getId());
                             Navigation.findNavController(view)

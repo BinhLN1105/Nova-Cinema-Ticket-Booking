@@ -42,6 +42,16 @@ public class VoucherFragment extends Fragment {
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(v).navigateUp());
         binding.rvVouchers.setLayoutManager(new LinearLayoutManager(requireContext()));
 
+        binding.btnApplyVoucher.setOnClickListener(v -> {
+            String code = binding.etVoucherCode.getText() != null ? binding.etVoucherCode.getText().toString().trim() : "";
+            if (code.isEmpty()) {
+                android.widget.Toast.makeText(requireContext(), "Vui lòng nhập mã voucher", android.widget.Toast.LENGTH_SHORT).show();
+            } else {
+                android.widget.Toast.makeText(requireContext(), "Tính năng nạp thẻ đang được phát triển!", android.widget.Toast.LENGTH_SHORT).show();
+                binding.etVoucherCode.setText("");
+            }
+        });
+
         binding.progressBar.setVisibility(View.VISIBLE);
         viewModel.loadVouchers();
 

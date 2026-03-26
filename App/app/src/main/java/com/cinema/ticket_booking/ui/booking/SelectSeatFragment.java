@@ -38,9 +38,26 @@ public class SelectSeatFragment extends Fragment {
             viewModel.loadSeatMap(showtimeId);
         }
 
+        String rawTime = SelectShowtimeViewModel.pendingShowtimeTime;
+        String displayTime = rawTime;
+        if (rawTime != null) {
+            try {
+                java.text.SimpleDateFormat sdfIn;
+                if (rawTime.contains("T")) {
+                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
+                } else {
+                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                }
+                java.util.Date d = sdfIn.parse(rawTime);
+                java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("HH:mm - dd/MM/yyyy", java.util.Locale.getDefault());
+                displayTime = sdfOut.format(d);
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
         binding.tvShowtimeInfo.setText(
-                SelectShowtimeViewModel.pendingMovieTitle + " • " +
-                        SelectShowtimeViewModel.pendingShowtimeTime);
+                SelectShowtimeViewModel.pendingMovieTitle + " • " + displayTime);
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
         binding.btnConfirm.setOnClickListener(v -> {
@@ -50,7 +67,7 @@ public class SelectSeatFragment extends Fragment {
             }
             SelectSeatViewModel.pendingSeatIds = new ArrayList<>(viewModel.getSelectedSeatIds());
             SelectSeatViewModel.pendingTotalAmount = viewModel.calculateTotal(currentSeatMap);
-            Navigation.findNavController(view).navigate(R.id.action_selectSeat_to_confirmBooking);
+            Navigation.findNavController(view).navigate(R.id.action_selectSeat_to_selectCombo);
         });
 
         viewModel.getSeatMap().observe(getViewLifecycleOwner(), resource -> {

@@ -17,6 +17,7 @@ public interface BookingItemRepository extends JpaRepository<BookingItem, UUID> 
                 SELECT bi FROM BookingItem bi
                 JOIN FETCH bi.showtimeSeat ss
                 JOIN FETCH ss.seat s
+                LEFT JOIN FETCH bi.ticket t
                 WHERE bi.booking.id = :bookingId
                 ORDER BY s.rowLabel, s.colNumber
             """)

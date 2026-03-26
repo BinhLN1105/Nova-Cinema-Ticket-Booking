@@ -11,6 +11,7 @@ import com.cinema.ticket_booking.mapper.VoucherMapper;
 import com.cinema.ticket_booking.repository.VoucherRepository;
 import com.cinema.ticket_booking.service.VoucherService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ public class VoucherServiceImpl implements VoucherService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "promotions", key = "'active_vouchers'")
     public List<VoucherSyncResponse> getActiveVouchersForSync() {
         return voucherRepository.findAll().stream()
                 .filter(v -> v.getIsActive() && java.time.LocalDateTime.now().isBefore(v.getValidTo()))

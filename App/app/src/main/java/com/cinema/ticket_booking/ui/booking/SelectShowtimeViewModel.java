@@ -18,12 +18,15 @@ public class SelectShowtimeViewModel extends ViewModel {
     private final MutableLiveData<Resource<List<CinemaResponse>>> cinemas = new MutableLiveData<>();
     private final MutableLiveData<String> selectedDate = new MutableLiveData<>();
     private final MutableLiveData<String> selectedCinemaId = new MutableLiveData<>();
+    private String movieId;
 
     // Booking state shared sang SelectSeat
     public static String pendingShowtimeId;
     public static String pendingMovieTitle;
     public static String pendingShowtimeTime;
     public static String pendingCinemaName;
+    public static String pendingMoviePoster;
+    public static String pendingShowDate;
 
     @Inject
     public SelectShowtimeViewModel(ShowtimeRepository showtimeRepo, CinemaRepository cinemaRepo) {
@@ -54,18 +57,22 @@ public class SelectShowtimeViewModel extends ViewModel {
 
     public void selectDate(String date) {
         selectedDate.setValue(date);
-        loadShowtimes(null);
+        loadShowtimes(movieId);
     }
 
     public void selectCinema(String cinemaId) {
         selectedCinemaId.setValue(cinemaId);
-        loadShowtimes(cinemaId);
+        loadShowtimes(movieId);
     }
 
     public void loadShowtimes(String movieId) {
+        if (movieId != null) {
+            this.movieId = movieId;
+        }
+        if (this.movieId == null) return; // guard: không gọi API nếu chưa có movieId
         String date = selectedDate.getValue();
         String cinema = selectedCinemaId.getValue();
-        showtimeRepo.getShowtimes(movieId, cinema, date).observeForever(showtimes::setValue);
+        showtimeRepo.getShowtimes(this.movieId, cinema, date).observeForever(showtimes::setValue);
     }
 
     public List<String> getNext7Days() {

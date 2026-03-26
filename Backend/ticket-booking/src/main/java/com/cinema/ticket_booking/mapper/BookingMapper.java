@@ -29,6 +29,7 @@ public interface BookingMapper {
     @Mapping(target = "moviePosterUrl", source = "showtime.movie.posterUrl")
     @Mapping(target = "startTime", source = "showtime.startTime")
     @Mapping(target = "cinemaName", source = "showtime.screen.cinema.name")
+    @Mapping(target = "screenName", source = "showtime.screen.name")
     BookingResponse.Summary toSummary(Booking booking);
 
     @Mapping(target = "showtimeSeatId", expression = "java(item.getShowtimeSeat().getId().toString())")

@@ -3,14 +3,21 @@ package com.cinema.ticket_booking.dto.response;
 import com.cinema.ticket_booking.enums.BookingStatus;
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.io.Serializable;
+
 @Data
 @Builder
-public class BookingResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class BookingResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String id;
     private String bookingCode;
@@ -45,7 +52,10 @@ public class BookingResponse {
 
     @Data
     @Builder
-    public static class SeatItem {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SeatItem implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String showtimeSeatId;
         private Character rowLabel;
         private Integer colNumber;
@@ -55,7 +65,10 @@ public class BookingResponse {
 
     @Data
     @Builder
-    public static class ComboItem {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ComboItem implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String comboId;
         private String comboName;
         private Integer quantity;
@@ -66,13 +79,18 @@ public class BookingResponse {
     // Tóm tắt ngắn dùng cho danh sách lịch sử đặt vé
     @Data
     @Builder
-    public static class Summary {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Summary implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String id;
         private String bookingCode;
         private String movieTitle;
         private String moviePosterUrl;
         private LocalDateTime startTime;
         private String cinemaName;
+        private String screenName;
+        private String seats;
         private BigDecimal totalAmount;
         private BookingStatus status;
         private LocalDateTime createdAt;

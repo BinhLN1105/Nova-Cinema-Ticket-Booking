@@ -142,6 +142,12 @@ export const promotionApi = {
   toggleActive: (id)  => api.patch(`/admin/promotions/${id}/toggle`),
 };
 
+// ── System Configs ────────────────────────────
+export const systemConfigApi = {
+  getAll: () => api.get('/admin/configs'),
+  update: (key, value, description) => api.put(`/admin/configs/${key}`, { value, description }),
+};
+
 // ── Pricing Rules ─────────────────────────────
 export const ruleApi = {
   getAll: (params) => api.get('/admin/pricing-rules', params),

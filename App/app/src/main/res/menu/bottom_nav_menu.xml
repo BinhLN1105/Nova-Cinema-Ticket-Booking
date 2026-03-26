@@ -5,7 +5,7 @@
         android:title="Home" />
     <item android:id="@+id/searchFragment"
         android:icon="@drawable/ic_search"
-        android:title="Search" />
+        android:title="Rạp" />
     
     <!-- Dummy item for FAB spacing -->
     <item android:id="@+id/dummyItem"

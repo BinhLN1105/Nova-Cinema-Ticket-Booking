@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.controller;
 import com.cinema.ticket_booking.dto.request.VoucherRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
+import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.service.VoucherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,14 @@ public class VoucherController {
             @RequestParam String code) {
         return ResponseEntity.ok(ApiResponse.success(
                 voucherService.getSummaryByCode(code), "Mã hợp lệ"));
+    }
+
+    // GET /api/v1/vouchers/active
+    // Cho màn home hiển thị khuyến mãi
+    @GetMapping("/active")
+    public ResponseEntity<ApiResponse<java.util.List<VoucherSyncResponse>>> getActiveVouchers() {
+        return ResponseEntity.ok(ApiResponse.success(
+                voucherService.getActiveVouchersForSync(), "Lấy danh sách khuyến mãi thành công"));
     }
 
     // POST /api/v1/vouchers [ADMIN]

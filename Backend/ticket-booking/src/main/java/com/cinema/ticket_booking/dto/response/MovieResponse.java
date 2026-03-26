@@ -3,15 +3,22 @@ package com.cinema.ticket_booking.dto.response;
 import com.cinema.ticket_booking.enums.MovieStatus;
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.io.Serializable;
+
 @Data
 @Builder
-public class MovieResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class MovieResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String id;
     private String title;
@@ -35,7 +42,10 @@ public class MovieResponse {
     // Tóm tắt ngắn cho list (không cần description, cast)
     @Data
     @Builder
-    public static class Summary {
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class Summary implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String id;
         private String title;
         private String posterUrl;

@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.di;
 import com.cinema.ticket_booking.BuildConfig;
 import com.cinema.ticket_booking.network.ApiService;
 import com.cinema.ticket_booking.network.AuthInterceptor;
+import com.cinema.ticket_booking.network.TokenAuthenticator;
 
 import javax.inject.Singleton;
 import dagger.Module;
@@ -21,12 +22,14 @@ public class NetworkModule {
 
     @Provides
     @Singleton
-    public OkHttpClient provideOkHttpClient(AuthInterceptor authInterceptor) {
+    public OkHttpClient provideOkHttpClient(AuthInterceptor authInterceptor,
+                                             TokenAuthenticator tokenAuthenticator) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
                 .readTimeout(30, TimeUnit.SECONDS)
                 .writeTimeout(30, TimeUnit.SECONDS)
-                .addInterceptor(authInterceptor);
+                .addInterceptor(authInterceptor)
+                .authenticator(tokenAuthenticator);
 
         // Chỉ log khi debug
         if (BuildConfig.DEBUG) {

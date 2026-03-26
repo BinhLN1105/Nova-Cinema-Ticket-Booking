@@ -22,6 +22,11 @@ public class UserResponse {
     @SerializedName("cinemaName")
     private String cinemaName;
 
+    @SerializedName("currentTierMinPoints")
+    private Long currentTierMinPoints;
+    @SerializedName("nextTierMinPoints")
+    private Long nextTierMinPoints;
+
     public String getId() {
         return id;
     }
@@ -56,5 +61,13 @@ public class UserResponse {
 
     public String getCinemaName() {
         return cinemaName;
+    }
+
+    public Long getCurrentTierMinPoints() {
+        return currentTierMinPoints;
+    }
+
+    public Long getNextTierMinPoints() {
+        return nextTierMinPoints;
     }
 }

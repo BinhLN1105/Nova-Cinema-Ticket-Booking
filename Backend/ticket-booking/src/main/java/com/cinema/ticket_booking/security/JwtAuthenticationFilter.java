@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.security;
 
 import com.cinema.ticket_booking.service.JwtService;
+import com.cinema.ticket_booking.service.TokenBlacklistService;
 import com.cinema.ticket_booking.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -26,6 +27,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UserRepository userRepository;
+    private final TokenBlacklistService tokenBlacklistService;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -40,6 +42,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
+
+        // Check if token has been blacklisted (user logged out)
+        try {
+            if (tokenBlacklistService.isBlacklisted(token)) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to check token blacklist in Redis: {}. Proceeding anyway.", e.getMessage());
+        }
 
         if (!jwtService.isTokenValid(token)) {
             filterChain.doFilter(request, response);
@@ -69,3 +81,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
     }
 }
+

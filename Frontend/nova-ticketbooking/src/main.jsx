@@ -3,7 +3,7 @@ import ReactDOM from "react-dom/client";
 import { RouterProvider } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { Toaster } from "react-hot-toast";
+import { Toaster, toast } from "react-hot-toast";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { router } from "@/router";
 import { useThemeStore } from "@/stores/themeStore";
@@ -26,6 +26,19 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Service Worker registration is now handled in utils/firebase.js during token request
+
+
+// Lắng nghe thông báo foreground (nhẹ nhàng bằng toast)
+import { onMessageListener } from "@/utils/firebase";
+onMessageListener().then(payload => {
+  console.log("Foreground notification:", payload);
+  toast(payload.notification.body, {
+    icon: '🎬',
+    style: { borderRadius: '10px', background: '#333', color: '#fff' }
+  });
+}).catch(err => console.log('failed: ', err));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

@@ -34,3 +34,4 @@ build/
 
 ### Environment Variables ###
 src/main/resources/.env
+src/main/resources/novaTicket-serviceAccountKey.json

@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { Bell, Shield, Palette, Globe, Save, ChevronRight } from 'lucide-react'
 import { AdminCard, PageHeader } from '@/components/common/ui/AdminTable'
 import { Field, Input, Switch, Button } from '@/components/common/ui/FormElements'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { systemConfigApi } from '@/api/endpoints'
 import toast from 'react-hot-toast'
 
 const TABS = [
@@ -13,6 +15,46 @@ const TABS = [
 
 export default function SettingsPage() {
   const [activeTab, setTab] = useState('general')
+  const queryClient = useQueryClient()
+
+  // Lấy system configs từ backend
+  const { data: configsRes, isLoading: isLoadingConfigs } = useQuery({
+    queryKey: ['system-configs'],
+    queryFn: () => systemConfigApi.getAll()
+  })
+
+  const configs = configsRes?.data || {}
+
+  const updateConfigMutation = useMutation({
+    mutationFn: ({ key, value, description }) => systemConfigApi.update(key, value, description),
+    onSuccess: () => {
+      toast.success('Đã lưu cấu hình')
+      queryClient.invalidateQueries(['system-configs'])
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
+  })
+
+  // Local state form để edit
+  const [localConfigs, setLocalConfigs] = useState({})
+
+  // Update local config when data is fetched
+  if (Object.keys(localConfigs).length === 0 && Object.keys(configs).length > 0) {
+    setLocalConfigs(configs)
+  }
+
+  const handleConfigChange = (key, value) => {
+    setLocalConfigs(prev => ({ ...prev, [key]: value }))
+  }
+
+  const handleSaveConfigs = () => {
+    // Save altered configs
+    Object.keys(localConfigs).forEach(key => {
+      if (configs[key] !== localConfigs[key]) {
+        updateConfigMutation.mutate({ key, value: localConfigs[key], description: "" })
+      }
+    })
+  }
+
   const [notifSettings, setNotif] = useState({
     emailBooking:  true,
     emailPromo:    false,
@@ -20,7 +62,7 @@ export default function SettingsPage() {
     pushPromo:     true,
   })
 
-  const save = () => toast.success('Đã lưu cài đặt')
+  const save = () => toast.success('Tính năng lưu đang được phát triển')
 
   return (
     <div className="space-y-6">
@@ -61,17 +103,28 @@ export default function SettingsPage() {
               <Field label="Hotline">
                 <Input defaultValue="1900 1234" type="tel" />
               </Field>
-              <Field label="URL website">
-                <Input defaultValue="https://novaticket.vn" type="url" />
-              </Field>
-              <Field label="Số ghế tối đa / lần đặt">
-                <Input defaultValue="8" type="number" min={1} max={20} />
-              </Field>
-              <Field label="Thời gian giữ ghế (phút)">
-                <Input defaultValue="10" type="number" min={5} max={30} />
-              </Field>
+              
+              <h2 className="font-bold text-gray-900 text-lg font-display pt-4 border-t border-gray-100 mt-4">Cấu hình tham số hệ thống</h2>
+              {isLoadingConfigs ? <div className="text-gray-500">Đang tải...</div> : (
+                <>
+                  <Field label="Thời gian giữ ghế mặc định (Phút) [DEFAULT_SEAT_HOLD_TIME]">
+                    <Input value={localConfigs['DEFAULT_SEAT_HOLD_TIME'] || ''} type="number" onChange={(e) => handleConfigChange('DEFAULT_SEAT_HOLD_TIME', e.target.value)} />
+                  </Field>
+                  <Field label="Thời gian giữ ghế sát giờ chiếu (Phút) [LATE_SEAT_HOLD_TIME]">
+                    <Input value={localConfigs['LATE_SEAT_HOLD_TIME'] || ''} type="number" onChange={(e) => handleConfigChange('LATE_SEAT_HOLD_TIME', e.target.value)} />
+                  </Field>
+                  <Field label="Cho phép đặt vé trễ (Phút) [LATE_BOOKING_ALLOWANCE_MINS]">
+                    <Input value={localConfigs['LATE_BOOKING_ALLOWANCE_MINS'] || ''} type="number" onChange={(e) => handleConfigChange('LATE_BOOKING_ALLOWANCE_MINS', e.target.value)} />
+                  </Field>
+                  <Field label="Tỉ lệ phạt No-show (% EXP bớt lại) [NO_SHOW_EXP_PENALTY_PERCENT]">
+                    <Input value={localConfigs['NO_SHOW_EXP_PENALTY_PERCENT'] || ''} type="number" onChange={(e) => handleConfigChange('NO_SHOW_EXP_PENALTY_PERCENT', e.target.value)} />
+                  </Field>
+                </>
+              )}
               <div className="pt-2 border-t border-gray-100">
-                <Button onClick={save} leftIcon={<Save className="w-4 h-4" />}>Lưu cài đặt</Button>
+                <Button onClick={handleSaveConfigs} disabled={updateConfigMutation.isLoading} leftIcon={<Save className="w-4 h-4" />}>
+                  {updateConfigMutation.isLoading ? 'Đang lưu...' : 'Lưu cấu hình hệ thống'}
+                </Button>
               </div>
             </AdminCard>
           )}

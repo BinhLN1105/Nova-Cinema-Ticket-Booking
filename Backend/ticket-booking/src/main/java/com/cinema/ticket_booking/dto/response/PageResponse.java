@@ -2,9 +2,13 @@ package com.cinema.ticket_booking.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.springframework.data.domain.Page;
 
 import java.util.List;
+
+import java.io.Serializable;
 
 /**
  * Wrapper chuẩn hoá response phân trang cho tất cả API.
@@ -12,7 +16,10 @@ import java.util.List;
  */
 @Data
 @Builder
-public class PageResponse<T> {
+@NoArgsConstructor
+@AllArgsConstructor
+public class PageResponse<T> implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private List<T> content;
     private int page; // Trang hiện tại (bắt đầu từ 0)

@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.ui.home;
 
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
+import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
 import java.util.List;
 
 import android.os.Bundle;
@@ -11,15 +12,23 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.GridLayoutManager;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentHomeBinding;
 import dagger.hilt.android.AndroidEntryPoint;
+
+import android.os.Handler;
+import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 
 @AndroidEntryPoint
 public class HomeFragment extends Fragment {
 
     private FragmentHomeBinding binding;
     private HomeViewModel viewModel;
+    private final Handler searchHandler = new Handler(Looper.getMainLooper());
+    private Runnable searchRunnable;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -37,13 +46,15 @@ public class HomeFragment extends Fragment {
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         binding.rvComingSoon.setLayoutManager(
                 new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rvSearchResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
 
         viewModel.getNowShowing().observe(getViewLifecycleOwner(), resource -> {
             switch (resource.status) {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data != null && resource.data.getContent() != null && !resource.data.getContent().isEmpty()) {
+                    if (resource.data != null && resource.data.getContent() != null
+                            && !resource.data.getContent().isEmpty()) {
                         List<MovieSummary> movies = resource.data.getContent();
                         MovieAdapter adapter = new MovieAdapter(movies,
                                 movieId -> navigateToDetail(view, movieId));
@@ -81,6 +92,16 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        viewModel.getActiveVouchers().observe(getViewLifecycleOwner(), resource -> {
+            if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
+                binding.cvPromo.setVisibility(View.VISIBLE);
+                VoucherSyncResponse promo = resource.data.get(0);
+                binding.tvPromoText.setText(promo.getCode() + "\\n" + promo.getDescription());
+            } else {
+                binding.cvPromo.setVisibility(View.GONE);
+            }
+        });
+
         // SwipeRefresh
         binding.swipeRefresh.setOnRefreshListener(() -> {
             viewModel.loadHomeData();
@@ -88,12 +109,45 @@ public class HomeFragment extends Fragment {
         });
 
         // Chatbot FAB
-        if (binding.btnChatbot != null) {
-            binding.btnChatbot
-                    .setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.action_home_to_chatbot));
-        }
+        // Search Debounce Logic
+        binding.etSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
-        binding.etSearch.setOnClickListener(v -> Navigation.findNavController(view).navigate(R.id.searchFragment));
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                if (searchRunnable != null) {
+                    searchHandler.removeCallbacks(searchRunnable);
+                }
+
+                String query = s.toString().trim();
+                if (query.isEmpty()) {
+                    binding.rvSearchResults.setVisibility(View.GONE);
+                    viewModel.clearSearch();
+                } else if (query.length() >= 2) {
+                    searchRunnable = () -> viewModel.searchMovies(query);
+                    searchHandler.postDelayed(searchRunnable, 500); // 500ms Debounce
+                }
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        viewModel.getSearchResults().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null || resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) {
+                return;
+            }
+            if (resource.isSuccess() && resource.data != null && !resource.data.getContent().isEmpty()) {
+                binding.rvSearchResults.setVisibility(View.VISIBLE);
+                binding.rvSearchResults.setAdapter(new MovieAdapter(resource.data.getContent(),
+                        movieId -> navigateToDetail(view, movieId)));
+            } else {
+                binding.rvSearchResults.setVisibility(View.GONE);
+            }
+        });
     }
 
     private void navigateToDetail(View view, String movieId) {

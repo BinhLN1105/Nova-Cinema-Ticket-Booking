@@ -4,6 +4,8 @@ import com.cinema.ticket_booking.data.model.request.*;
 import com.cinema.ticket_booking.data.model.response.*;
 
 import java.util.List;
+import java.util.Map;
+
 import retrofit2.Call;
 import retrofit2.http.*;
 
@@ -111,6 +113,9 @@ public interface ApiService {
                         @Query("page") int page,
                         @Query("size") int size);
 
+        @GET("vouchers/active")
+        Call<ApiResponse<List<VoucherSyncResponse>>> getActiveVouchers();
+
         // ── Combo ─────────────────────────────────────────────────────────────
         @GET("combos")
         Call<ApiResponse<List<ComboResponse>>> getCombos();
@@ -127,7 +132,7 @@ public interface ApiService {
 
         // ── GiftCard ─────────────────────────────────────────────────────
         @POST("gift-cards/redeem")
-        Call<ApiResponse<GiftCardResponse>> redeemGiftCard(@Body java.util.Map<String, String> body);
+        Call<ApiResponse<GiftCardResponse>> redeemGiftCard(@Body Map<String, String> body);
 
         @GET("gift-cards/me")
         Call<ApiResponse<PageResponse<GiftCardResponse>>> getMyGiftCards(
@@ -148,8 +153,8 @@ public interface ApiService {
 
         // ── Chatbot ───────────────────────────────────────────────────────────
         @POST("chatbot/chat")
-        Call<ApiResponse<java.util.Map<String, String>>> chatWithAi(@Body ChatRequest request);
+        Call<ApiResponse<Map<String, String>>> chatWithAi(@Body ChatRequest request);
 
         @POST("chatbot/session/clear")
-        Call<ApiResponse<java.util.Map<String, String>>> clearChatSession();
+        Call<ApiResponse<Map<String, String>>> clearChatSession();
 }

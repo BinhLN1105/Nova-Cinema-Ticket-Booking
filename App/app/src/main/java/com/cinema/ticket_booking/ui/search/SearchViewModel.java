@@ -2,30 +2,27 @@ package com.cinema.ticket_booking.ui.search;
 
 import androidx.lifecycle.*;
 import com.cinema.ticket_booking.data.model.response.*;
-import com.cinema.ticket_booking.data.repository.MovieRepository;
+import com.cinema.ticket_booking.data.repository.CinemaRepository;
 import com.cinema.ticket_booking.util.Resource;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import javax.inject.Inject;
+import java.util.List;
 
 @HiltViewModel
 public class SearchViewModel extends ViewModel {
-    private final MovieRepository repo;
-    private final MutableLiveData<Resource<PageResponse<MovieSummary>>> results = new MutableLiveData<>();
+    private final CinemaRepository repo;
+    private final MutableLiveData<Resource<List<CinemaResponse>>> cinemas = new MutableLiveData<>();
 
     @Inject
-    public SearchViewModel(MovieRepository repo) {
+    public SearchViewModel(CinemaRepository repo) {
         this.repo = repo;
     }
 
-    public LiveData<Resource<PageResponse<MovieSummary>>> getResults() {
-        return results;
+    public LiveData<Resource<List<CinemaResponse>>> getCinemas() {
+        return cinemas;
     }
 
-    public void search(String q) {
-        repo.searchMovies(q, 0, 20).observeForever(results::setValue);
-    }
-
-    public void clearResults() {
-        results.setValue(null);
+    public void loadCinemas(String city) {
+        repo.getCinemas(city).observeForever(cinemas::setValue);
     }
 }

@@ -13,6 +13,8 @@ import com.cinema.ticket_booking.repository.GenreRepository;
 import com.cinema.ticket_booking.repository.MovieRepository;
 import com.cinema.ticket_booking.service.MovieService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,6 +35,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "movies_now_showing", key = "#genre == null ? 'all' : #genre")
     public List<MovieSyncResponse> getNowShowingForSync(String genre) {
         return movieRepository.findAll().stream()
                 .filter(m -> m.getStatus() == MovieStatus.NOW_SHOWING)
@@ -50,6 +53,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "movies_now_showing", key = "'page_' + #status.name() + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
     public PageResponse<MovieResponse.Summary> getByStatus(MovieStatus status, Pageable pageable) {
         return PageResponse.of(
                 movieRepository.findByStatus(status, pageable).map(movieMapper::toSummary));
@@ -76,6 +80,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public MovieResponse create(MovieRequest request) {
         Movie movie = movieMapper.toEntity(request);
         movie.setGenres(resolveGenres(request.getGenreIds()));
@@ -83,6 +88,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public MovieResponse update(UUID id, MovieRequest request) {
         Movie movie = findById(id);
         movieMapper.updateEntity(request, movie);
@@ -93,6 +99,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public void delete(UUID id) {
         Movie movie = findById(id);
         movie.setStatus(MovieStatus.ENDED);

@@ -9,13 +9,13 @@
     <color name="on_primary_container">#410002</color>
 
     <!-- Background & Surface -->
-    <color name="background">#000000</color>
-    <color name="surface">#121212</color>
-    <color name="surface_variant">#262626</color>
-    <color name="surface_container_lowest">#000000</color>
-    <color name="surface_container_low">#131313</color>
-    <color name="surface_container_high">#20201F</color>
-    <color name="surface_container_highest">#262626</color>
+    <color name="background">#0A0F1D</color>
+    <color name="surface">#111827</color>
+    <color name="surface_variant">#1F2937</color>
+    <color name="surface_container_lowest">#05080F</color>
+    <color name="surface_container_low">#0A0F1D</color>
+    <color name="surface_container_high">#1F2937</color>
+    <color name="surface_container_highest">#374151</color>
     
     <!-- On Colors & Text -->
     <color name="on_background">#FFFFFF</color>
@@ -61,11 +61,16 @@
     <color name="divider">#333333</color>
 
     <!-- Bottom nav -->
-    <color name="bottom_nav_background">#1A1A1A</color>
+    <color name="bottom_nav_background">#0A0F1D</color>
     <color name="bottom_nav_active">#E50914</color>
-    <color name="bottom_nav_inactive">#A0A0A0</color>
+    <color name="bottom_nav_inactive">#9CA3AF</color>
 
     <!-- Card -->
-    <color name="card_background">#262626</color>
-    <color name="card_stroke">#333333</color>
+    <color name="card_background">#111827</color>
+    <color name="card_stroke">#374151</color>
+
+    <color name="on_primary_fixed">#FFFFFF</color>
+    <color name="error_dim">#FFB4AB</color>
+    <color name="surface_container">#111827</color>
+    <color name="on_secondary">#FFFFFF</color>
 </resources>

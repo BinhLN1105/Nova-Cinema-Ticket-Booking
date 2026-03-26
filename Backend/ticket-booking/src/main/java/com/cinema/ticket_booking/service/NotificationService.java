@@ -19,4 +19,6 @@ public interface NotificationService {
     void sendBookingConfirm(Booking booking);
 
     void sendPromotion(User user, String title, String body, UUID refId);
+
+    void sendTestNotification(User user);
 }

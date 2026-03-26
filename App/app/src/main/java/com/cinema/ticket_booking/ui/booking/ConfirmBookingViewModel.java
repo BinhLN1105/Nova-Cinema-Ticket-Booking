@@ -64,14 +64,6 @@ public class ConfirmBookingViewModel extends ViewModel {
         voucher.setValue(null);
     }
 
-    public void addCombo(String comboId) {
-        selectedCombos.merge(comboId, 1, Integer::sum);
-    }
-
-    public void removeCombo(String comboId) {
-        selectedCombos.computeIfPresent(comboId, (k, v) -> v > 1 ? v - 1 : null);
-    }
-
     public double calculateDiscount(double subtotal) {
         if (appliedVoucher == null)
             return 0;
@@ -80,9 +72,22 @@ public class ConfirmBookingViewModel extends ViewModel {
         return appliedVoucher.getDiscountValue();
     }
 
+    public double calculateComboTotal() {
+        double total = 0;
+        if (combos.getValue() != null && combos.getValue().isSuccess() && combos.getValue().data != null) {
+            for (ComboResponse combo : combos.getValue().data) {
+                Integer qty = SelectComboViewModel.pendingCombos.get(combo.getId());
+                if (qty != null && qty > 0) {
+                    total += combo.getPrice() * qty;
+                }
+            }
+        }
+        return total;
+    }
+
     public void confirmBooking(String showtimeId) {
         List<BookingRequest.ComboItem> comboItems = new ArrayList<>();
-        for (Map.Entry<String, Integer> e : selectedCombos.entrySet())
+        for (Map.Entry<String, Integer> e : SelectComboViewModel.pendingCombos.entrySet())
             comboItems.add(new BookingRequest.ComboItem(e.getKey(), e.getValue()));
 
         String voucherCode = appliedVoucher != null ? appliedVoucher.getCode() : null;

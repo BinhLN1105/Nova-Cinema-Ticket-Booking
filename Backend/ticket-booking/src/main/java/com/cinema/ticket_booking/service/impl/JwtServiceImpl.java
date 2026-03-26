@@ -71,6 +71,16 @@ public class JwtServiceImpl implements JwtService {
         return getClaims(token).get("role", String.class);
     }
 
+    @Override
+    public long getRemainingExpiration(String token) {
+        try {
+            Date expiration = getClaims(token).getExpiration();
+            return Math.max(0, expiration.getTime() - System.currentTimeMillis());
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     // ── Private ───────────────────────────────────────────────────────────
 
     private Claims getClaims(String token) {

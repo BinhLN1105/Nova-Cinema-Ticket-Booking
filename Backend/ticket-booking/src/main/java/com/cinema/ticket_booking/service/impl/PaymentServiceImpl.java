@@ -243,7 +243,7 @@ public class PaymentServiceImpl implements PaymentService {
     private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
         Map<String, String> filtered = new TreeMap<>();
         params.forEach((k, v) -> {
-            if (!k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType")) {
+            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType")) {
                 filtered.put(k, v);
             }
         });

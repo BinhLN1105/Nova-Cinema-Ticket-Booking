@@ -67,6 +67,7 @@ export function getNext7Days() {
 export const BOOKING_STATUS = {
   PENDING: { label: "Chờ thanh toán", color: "gold" },
   PAID: { label: "Đã thanh toán", color: "green" },
+  CHECKED_IN: { label: "Đã vào rạp", color: "blue" },
   CANCELLED: { label: "Đã hủy", color: "red" },
   EXPIRED: { label: "Hết hạn", color: "gray" },
 };

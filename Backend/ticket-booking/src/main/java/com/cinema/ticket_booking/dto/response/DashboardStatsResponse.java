@@ -11,11 +11,14 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+import java.io.Serializable;
+
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class DashboardStatsResponse {
+public class DashboardStatsResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private BigDecimal totalRevenue;
     private double revenueChange; // phần trăm thay đổi so với tháng trước
@@ -30,21 +33,27 @@ public class DashboardStatsResponse {
 
     @Data
     @AllArgsConstructor
-    public static class RevenueByDay {
+    @NoArgsConstructor
+    public static class RevenueByDay implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String date; // "YYYY-MM-DD"
         private BigDecimal revenue;
     }
 
     @Data
     @AllArgsConstructor
-    public static class TopMovie {
+    @NoArgsConstructor
+    public static class TopMovie implements Serializable {
+        private static final long serialVersionUID = 1L;
         private MovieSlim movie;
         private long bookings;
         private BigDecimal revenue;
 
         @Data
         @AllArgsConstructor
-        public static class MovieSlim {
+        @NoArgsConstructor
+        public static class MovieSlim implements Serializable {
+            private static final long serialVersionUID = 1L;
             private String id;
             private String title;
             private String posterUrl;
@@ -53,8 +62,10 @@ public class DashboardStatsResponse {
 
     @Data
     @AllArgsConstructor
+    @NoArgsConstructor
     @Builder
-    public static class RecentBooking {
+    public static class RecentBooking implements Serializable {
+        private static final long serialVersionUID = 1L;
         private String id;
         private String bookingCode;
         private String movieTitle;

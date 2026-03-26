@@ -7,6 +7,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
@@ -27,6 +28,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         Optional<Booking> findByQrCode(String qrCode);
 
         // Lịch sử đặt vé của user (phân trang)
+        @EntityGraph(attributePaths = { "showtime.movie", "showtime.screen.cinema" })
         Page<Booking> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
         // Đơn đặt vé của user theo trạng thái
@@ -38,6 +40,9 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         // Admin: xem booking theo suất chiếu
         List<Booking> findByShowtimeId(UUID showtimeId);
 
+        // Tìm booking theo trạng thái và thời gian hết hạn (dùng cho Scheduler)
+        List<Booking> findByStatusAndExpiresAtBefore(BookingStatus status, LocalDateTime now);
+
         // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
         @Modifying
         @Query("""
@@ -48,40 +53,39 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
                         """)
         int expireOverdueBookings(@Param("now") LocalDateTime now);
 
+        // ── Scheduler: tìm booking sắp đến giờ chiếu để gửi nhắc nhở ───────
+        @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.showtime.startTime >= :fromTime AND b.showtime.startTime < :toTime")
+        List<Booking> findUpcomingBookings(
+                        @Param("status") BookingStatus status,
+                        @Param("fromTime") LocalDateTime fromTime,
+                        @Param("toTime") LocalDateTime toTime);
+
         // Lấy booking hợp lệ để review phim (Verified Purchase Review)
-        // Điều kiện: Booking PAID, VÀ (suất chiếu đã bắt đầu HOẶC có ít nhất 1 vé đã check-in)
+        // Điều kiện: Booking PAID, VÀ (suất chiếu đã bắt đầu HOẶC có ít nhất 1 vé đã
+        // check-in)
         @Query(value = """
-                SELECT b.* FROM bookings b
-                JOIN showtimes s ON b.showtime_id = s.id
-                WHERE b.user_id = :userId
-                  AND s.movie_id = :movieId
-                  AND b.status = 'PAID'
-                  AND (
-                      s.start_time <= :now
-                      OR EXISTS (
-                          SELECT 1 FROM tickets t 
-                          WHERE t.booking_id = b.id AND t.is_used = true
-                      )
-                  )
-                ORDER BY b.created_at DESC LIMIT 1
-            """, nativeQuery = true)
+                            SELECT b.* FROM bookings b
+                            JOIN showtimes s ON b.showtime_id = s.id
+                            WHERE b.user_id = :userId
+                              AND s.movie_id = :movieId
+                              AND b.status = 'CHECKED_IN'
+                            ORDER BY b.created_at DESC LIMIT 1
+                        """, nativeQuery = true)
         Optional<Booking> findEligibleBookingForReview(
-                @Param("userId") UUID userId,
-                @Param("movieId") UUID movieId,
-                @Param("now") LocalDateTime now);
+                        @Param("userId") UUID userId,
+                        @Param("movieId") UUID movieId);
 
         // ── Exp Conversion ───────────────────────────────────────────────────
-        
+
         @Query("""
-            SELECT b FROM Booking b 
-            WHERE b.status = :status 
-            AND b.expAdded = false 
-            AND b.showtime.startTime < :thresholdDate
-        """)
+                            SELECT b FROM Booking b
+                            WHERE b.status = :status
+                            AND b.expAdded = false
+                            AND b.showtime.startTime < :thresholdDate
+                        """)
         List<Booking> findBookingsForExpConversion(
-            @Param("status") BookingStatus status,
-            @Param("thresholdDate") LocalDateTime thresholdDate
-        );
+                        @Param("status") BookingStatus status,
+                        @Param("thresholdDate") LocalDateTime thresholdDate);
 
         // ── Dashboard Admin Queries ──────────────────────────────────────────
 

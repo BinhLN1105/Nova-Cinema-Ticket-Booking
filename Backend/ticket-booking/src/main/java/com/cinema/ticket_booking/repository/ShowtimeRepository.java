@@ -17,61 +17,64 @@ import java.util.UUID;
 @Repository
 public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
 
-    // Lấy lịch chiếu của 1 phim theo ngày
-    @Query("""
-                SELECT s FROM Showtime s
-                WHERE s.movie.id = :movieId
-                  AND CAST(s.startTime AS date) = :date
-                  AND s.status = 'SCHEDULED'
-                ORDER BY s.startTime
-            """)
-    List<Showtime> findByMovieAndDate(
-            @Param("movieId") UUID movieId,
-            @Param("date") LocalDate date);
+        // Lấy lịch chiếu của 1 phim theo ngày
+        @Query("""
+                            SELECT s FROM Showtime s
+                            WHERE s.movie.id = :movieId
+                              AND CAST(s.startTime AS date) = :date
+                              AND s.status = 'SCHEDULED'
+                            ORDER BY s.startTime
+                        """)
+        List<Showtime> findByMovieAndDate(
+                        @Param("movieId") UUID movieId,
+                        @Param("date") LocalDate date);
 
-    // Lấy lịch chiếu của 1 phim tại 1 rạp theo ngày
-    @Query("""
-                SELECT s FROM Showtime s
-                WHERE s.movie.id = :movieId
-                  AND s.screen.cinema.id = :cinemaId
-                  AND CAST(s.startTime AS date) = :date
-                  AND s.status = 'SCHEDULED'
-                ORDER BY s.startTime
-            """)
-    List<Showtime> findByMovieAndCinemaAndDate(
-            @Param("movieId") UUID movieId,
-            @Param("cinemaId") UUID cinemaId,
-            @Param("date") LocalDate date);
+        // Lấy lịch chiếu của 1 phim tại 1 rạp theo ngày
+        @Query("""
+                            SELECT s FROM Showtime s
+                            WHERE s.movie.id = :movieId
+                              AND s.screen.cinema.id = :cinemaId
+                              AND CAST(s.startTime AS date) = :date
+                              AND s.status = 'SCHEDULED'
+                            ORDER BY s.startTime
+                        """)
+        List<Showtime> findByMovieAndCinemaAndDate(
+                        @Param("movieId") UUID movieId,
+                        @Param("cinemaId") UUID cinemaId,
+                        @Param("date") LocalDate date);
 
-    // Lấy suất chiếu đang diễn ra hoặc sắp bắt đầu (dùng cho Scheduler cập nhật
-    // status)
-    @Query("""
-                SELECT s FROM Showtime s
-                WHERE s.status = 'SCHEDULED'
-                  AND s.startTime <= :now
-            """)
-    List<Showtime> findShowtimesToMarkOngoing(@Param("now") LocalDateTime now);
+        // Lấy suất chiếu đang diễn ra hoặc sắp bắt đầu (dùng cho Scheduler cập nhật
+        // status)
+        @Query("""
+                            SELECT s FROM Showtime s
+                            WHERE s.status = 'SCHEDULED'
+                              AND s.startTime <= :now
+                        """)
+        List<Showtime> findShowtimesToMarkOngoing(@Param("now") LocalDateTime now);
 
-    // Kiểm tra xung đột lịch phòng chiếu (tránh đặt 2 suất trùng giờ)
-    @Query("""
-                SELECT COUNT(s) > 0 FROM Showtime s
-                WHERE s.screen.id = :screenId
-                  AND s.status != 'CANCELLED'
-                  AND s.startTime < :endTime
-                  AND s.endTime > :startTime
-            """)
-    boolean existsConflict(
-            @Param("screenId") UUID screenId,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime);
+        // Kiểm tra xung đột lịch phòng chiếu (tránh đặt 2 suất trùng giờ)
+        @Query("""
+                            SELECT COUNT(s) > 0 FROM Showtime s
+                            WHERE s.screen.id = :screenId
+                              AND s.status != 'CANCELLED'
+                              AND s.startTime < :endTime
+                              AND s.endTime > :startTime
+                        """)
+        boolean existsConflict(
+                        @Param("screenId") UUID screenId,
+                        @Param("startTime") LocalDateTime startTime,
+                        @Param("endTime") LocalDateTime endTime);
 
-    @Query("SELECT s FROM Showtime s WHERE s.screen.cinema.id = :cinemaId AND CAST(s.startTime AS date) = :date")
-    Page<Showtime> findByCinemaIdAndDate(@Param("cinemaId") UUID cinemaId, @Param("date") LocalDate date,
-            Pageable pageable);
+        @Query("SELECT s FROM Showtime s WHERE s.screen.cinema.id = :cinemaId AND CAST(s.startTime AS date) = :date")
+        Page<Showtime> findByCinemaIdAndDate(@Param("cinemaId") UUID cinemaId, @Param("date") LocalDate date,
+                        Pageable pageable);
 
-    @Query("SELECT s FROM Showtime s WHERE s.screen.cinema.id = :cinemaId")
-    Page<Showtime> findByCinemaId(@Param("cinemaId") UUID cinemaId, Pageable pageable);
+        @Query("SELECT s FROM Showtime s WHERE s.screen.cinema.id = :cinemaId")
+        Page<Showtime> findByCinemaId(@Param("cinemaId") UUID cinemaId, Pageable pageable);
 
-    @Query("SELECT s FROM Showtime s WHERE CAST(s.startTime AS date) = :date")
-    Page<Showtime> findByDate(@Param("date") LocalDate date, Pageable pageable);
+        @Query("SELECT s FROM Showtime s WHERE CAST(s.startTime AS date) = :date")
+        Page<Showtime> findByDate(@Param("date") LocalDate date, Pageable pageable);
+
+        @Query("SELECT s FROM Showtime s WHERE s.status = com.cinema.ticket_booking.enums.ShowtimeStatus.SCHEDULED AND s.startTime <= :cutoffTime")
+        List<Showtime> findExpiredScheduledShowtimes(@Param("cutoffTime") LocalDateTime cutoffTime);
 }

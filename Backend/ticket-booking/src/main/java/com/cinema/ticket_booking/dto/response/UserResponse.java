@@ -5,12 +5,19 @@ import com.cinema.ticket_booking.enums.MembershipTier;
 import com.cinema.ticket_booking.enums.UserRole;
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+import java.io.Serializable;
+
 @Data
 @Builder
-public class UserResponse {
+@NoArgsConstructor
+@AllArgsConstructor
+public class UserResponse implements Serializable {
+    private static final long serialVersionUID = 1L;
 
     private String id;
     private String email;
@@ -23,6 +30,8 @@ public class UserResponse {
     private Long rewardPoints;
     private Long availableExp;
     private MembershipTier membershipTier;
+    private Long currentTierMinPoints;
+    private Long nextTierMinPoints;
     private LocalDateTime createdAt;
     /** Chỉ có giá trị khi role == STAFF, null với CUSTOMER/ADMIN */
     private String cinemaId;
