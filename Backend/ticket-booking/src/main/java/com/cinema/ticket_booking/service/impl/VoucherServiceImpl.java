@@ -12,8 +12,11 @@ import com.cinema.ticket_booking.repository.VoucherRepository;
 import com.cinema.ticket_booking.service.VoucherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -27,6 +30,13 @@ public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
     private final VoucherMapper voucherMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<VoucherResponse> getAll(Pageable pageable) {
+        Page<Voucher> page = voucherRepository.findAll(pageable);
+        return PageResponse.of(page.map(voucherMapper::toResponse));
+    }
 
     // ── ADMIN ─────────────────────────────────────────────────────────────
 
@@ -104,6 +114,14 @@ public class VoucherServiceImpl implements VoucherService {
         Voucher v = voucherRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Voucher không tồn tại"));
         return voucherMapper.toSummary(v);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        if (!voucherRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Voucher", id);
+        }
+        voucherRepository.deleteById(id);
     }
 
     @Override

@@ -4,10 +4,13 @@ import com.cinema.ticket_booking.dto.response.BookingResponse;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.BookingCombo;
 import com.cinema.ticket_booking.model.BookingItem;
+
+import java.math.BigDecimal;
+
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", imports = { BigDecimal.class })
 public interface BookingMapper {
 
     @Mapping(target = "id", expression = "java(booking.getId().toString())")
@@ -22,6 +25,7 @@ public interface BookingMapper {
     @Mapping(target = "seats", ignore = true) // service tự map
     @Mapping(target = "combos", ignore = true) // service tự map
     @Mapping(target = "subtotal", ignore = true) // service tính
+    @Mapping(target = "screenType", ignore = true) // service tính từ getScreenTypeName()
     BookingResponse toResponse(Booking booking);
 
     @Mapping(target = "id", expression = "java(booking.getId().toString())")
@@ -30,6 +34,8 @@ public interface BookingMapper {
     @Mapping(target = "startTime", source = "showtime.startTime")
     @Mapping(target = "cinemaName", source = "showtime.screen.cinema.name")
     @Mapping(target = "screenName", source = "showtime.screen.name")
+    @Mapping(target = "screenType", ignore = true) // service tính từ getScreenTypeName()
+    @Mapping(target = "seats", ignore = true) // service tự map chuỗi "A1, A2..."
     BookingResponse.Summary toSummary(Booking booking);
 
     @Mapping(target = "showtimeSeatId", expression = "java(item.getShowtimeSeat().getId().toString())")
@@ -41,6 +47,6 @@ public interface BookingMapper {
 
     @Mapping(target = "comboId", expression = "java(bc.getCombo().getId().toString())")
     @Mapping(target = "comboName", source = "combo.name")
-    @Mapping(target = "subtotal", expression = "java(bc.getUnitPrice().multiply(java.math.BigDecimal.valueOf(bc.getQuantity())))")
+    @Mapping(target = "subtotal", expression = "java(bc.getUnitPrice().multiply(BigDecimal.valueOf(bc.getQuantity())))")
     BookingResponse.ComboItem toComboItem(BookingCombo bc);
 }

@@ -12,7 +12,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -95,11 +94,31 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         @Query(value = "SELECT COUNT(*) FROM bookings WHERE status = 'PAID'", nativeQuery = true)
         long countTotalBookings();
 
-        @Query(value = "SELECT DATE(created_at) as date, SUM(total_amount) as revenue " +
-                        "FROM bookings " +
-                        "WHERE status = 'PAID' AND created_at >= CURRENT_DATE - INTERVAL '6 days' " +
-                        "GROUP BY DATE(created_at) ORDER BY date ASC", nativeQuery = true)
-        List<RevenueByDayProjection> getRevenueByDay();
+        @Query(value = """
+        SELECT
+            TO_CHAR(b.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') as date,
+            SUM(b.total_amount) as revenue,
+            COUNT(b.id) as bookingCount
+        FROM bookings b
+        WHERE b.created_at >= :startDate
+          AND b.status IN ('PAID', 'CHECKED_IN', 'CANCELLED')
+        GROUP BY 1
+        ORDER BY 1
+    """, nativeQuery = true)
+    List<RevenueByDayProjection> getRevenueByDay(@Param("startDate") LocalDateTime startDate);
+
+    @Query(value = """
+        SELECT 
+            TO_CHAR(b.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM') as date,
+            SUM(b.total_amount) as revenue,
+            COUNT(b.id) as bookingCount
+        FROM bookings b
+        WHERE b.created_at >= :startDate
+          AND b.status IN ('PAID', 'CHECKED_IN', 'CANCELLED')
+        GROUP BY 1
+        ORDER BY 1
+    """, nativeQuery = true)
+    List<RevenueByDayProjection> getRevenueByMonth(@Param("startDate") LocalDateTime startDate);
 
         @Query(value = "SELECT m.id as id, m.title as title, m.poster_url as posterUrl, " +
                         "COUNT(b.id) as tickets, SUM(b.total_amount) as rev " +
@@ -125,9 +144,11 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
         // ── Projections ───────────────────────────────────────────────────────
 
         interface RevenueByDayProjection {
-                LocalDate getDate();
+                Object getDate();
 
                 BigDecimal getRevenue();
+
+                Long getBookingCount();
         }
 
         interface TopMovieProjection {

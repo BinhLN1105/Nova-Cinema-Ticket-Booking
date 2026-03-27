@@ -35,7 +35,8 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -65,27 +66,49 @@ public class AdminController {
     @GetMapping("/dashboard/revenue")
     public ResponseEntity<ApiResponse<List<RevenueByDay>>> getRevenue(
             @RequestParam(defaultValue = "month") String period) {
-        List<BookingRepository.RevenueByDayProjection> data = bookingRepository.getRevenueByDay();
-        List<RevenueByDay> result = new ArrayList<>();
+        
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startDate;
+        boolean isYearly = "year".equals(period);
 
-        int days = switch (period) {
-            case "week" -> 6;
-            case "year" -> 364;
-            default -> 29;
+        int units = switch (period) {
+            case "week" -> 7;
+            case "year" -> 12;
+            default -> 30; // month
         };
 
-        LocalDate today = LocalDate.now();
-        for (int i = days; i >= 0; i--) {
-            LocalDate d = today.minusDays(i);
-            BigDecimal dayRev = BigDecimal.ZERO;
+        if (isYearly) {
+            startDate = now.minusMonths(units - 1).withDayOfMonth(1).with(LocalTime.MIN);
+        } else {
+            startDate = now.minusDays(units - 1).with(LocalTime.MIN);
+        }
+
+        List<BookingRepository.RevenueByDayProjection> data = isYearly 
+            ? bookingRepository.getRevenueByMonth(startDate)
+            : bookingRepository.getRevenueByDay(startDate);
+
+        List<RevenueByDay> result = new ArrayList<>();
+        DateTimeFormatter formatter = isYearly ? DateTimeFormatter.ofPattern("yyyy-MM") : DateTimeFormatter.ISO_DATE;
+
+        for (int i = 0; i < units; i++) {
+            String targetDateStr = isYearly 
+                ? now.minusMonths(units - 1 - i).format(formatter)
+                : now.minusDays(units - 1 - i).format(formatter);
+
+            BigDecimal rev = BigDecimal.ZERO;
+            Long count = 0L;
+
             for (BookingRepository.RevenueByDayProjection row : data) {
-                if (row.getDate() != null && row.getDate().equals(d.toString())) {
-                    dayRev = row.getRevenue();
+                String rowDate = row.getDate() != null ? row.getDate().toString() : "";
+                if (rowDate.equals(targetDateStr)) {
+                    rev = row.getRevenue();
+                    count = row.getBookingCount() != null ? row.getBookingCount() : 0L;
                     break;
                 }
             }
-            result.add(new RevenueByDay(d.format(DateTimeFormatter.ISO_DATE), dayRev));
+            result.add(new RevenueByDay(targetDateStr, rev, count));
         }
+
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

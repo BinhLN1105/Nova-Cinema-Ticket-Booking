@@ -10,6 +10,8 @@ public interface UserMapper {
     @Mapping(target = "id", expression = "java(user.getId().toString())")
     @Mapping(target = "cinemaId", ignore = true)
     @Mapping(target = "cinemaName", ignore = true)
+    @Mapping(target = "currentTierMinPoints", ignore = true)
+    @Mapping(target = "nextTierMinPoints", ignore = true)
     UserResponse toResponse(User user);
 
     @AfterMapping

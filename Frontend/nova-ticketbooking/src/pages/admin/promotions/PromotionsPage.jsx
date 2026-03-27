@@ -97,20 +97,6 @@ function UsageBar({ used, limit }) {
   )
 }
 
-// ─── MOCK data for demo (replace with API) ────
-const MOCK_VOUCHERS = [
-  { id: '1', code: 'NOVA20',     description: 'Giảm 20% tối đa 50K cho đơn từ 100K', discountType: 'PERCENTAGE', discountValue: 20, minOrder: 100000, maxDiscount: 50000, usageLimit: 500, usedCount: 123, startDate: '2024-01-01', endDate: '2024-12-31', applicableTo: 'ALL',           isActive: true },
-  { id: '2', code: 'WELCOME50K', description: 'Giảm 50.000đ vé đầu tiên',            discountType: 'FIXED',      discountValue: 50000, minOrder: 100000, maxDiscount: null, usageLimit: 1000, usedCount: 456, startDate: '2024-01-01', endDate: '2024-06-30', applicableTo: 'FIRST_BOOKING', isActive: true },
-  { id: '3', code: 'IMAX15',     description: 'Giảm 15% suất IMAX',                  discountType: 'PERCENTAGE', discountValue: 15, minOrder: 150000, maxDiscount: 30000, usageLimit: 200, usedCount: 198, startDate: '2024-03-01', endDate: '2024-03-31', applicableTo: 'MOVIE',         isActive: false },
-  { id: '4', code: 'VIP30',      description: 'Ưu đãi 30% cho thành viên VIP',       discountType: 'PERCENTAGE', discountValue: 30, minOrder: 200000, maxDiscount: 100000, usageLimit: 100, usedCount: 12, startDate: '2024-04-01', endDate: '2024-12-31', applicableTo: 'ALL',           isActive: true },
-]
-
-const MOCK_PROMOS = [
-  { id: '1', title: 'Mùa hè rực rỡ — Giảm đến 30%', description: 'Ưu đãi đặc biệt mùa hè...', imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-06-01', endDate: '2024-08-31', targetUrl: '/movies', priority: 10, isActive: true },
-  { id: '2', title: 'Combo gia đình cuối tuần',       description: 'Đặt 4 vé tặng 1 combo...',  imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-01-01', endDate: '2024-12-31', targetUrl: '/movies', priority: 5,  isActive: true },
-  { id: '3', title: 'Flashsale thứ 3 hàng tuần',     description: 'Mỗi thứ 3 giảm 25%...',     imageUrl: 'https://via.placeholder.com/400x200', startDate: '2024-01-01', endDate: '2024-12-31', targetUrl: '/movies', priority: 8,  isActive: false },
-]
-
 const APPLICABLE_LABELS = { ALL: 'Tất cả', MOVIE: 'Phim cụ thể', FIRST_BOOKING: 'Đặt vé lần đầu' }
 
 // ═══════════════════════════════════════════════
@@ -166,30 +152,80 @@ function VouchersTab() {
   const [deleteTarget, setDelete]   = useState(null)
   const qc = useQueryClient()
 
-  // Using mock data — replace with API
-  const vouchers = MOCK_VOUCHERS.filter(v =>
+  // API Queries
+  const { data: voucherList, isLoading } = useQuery({
+    queryKey: ['admin', 'vouchers'],
+    queryFn: adminVoucherApi.getAll
+  })
+
+  const vouchers = (voucherList?.content ?? []).filter(v =>
     v.code.includes(search.toUpperCase()) ||
     v.description.toLowerCase().includes(search.toLowerCase())
   )
 
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: adminVoucherApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'vouchers'])
+      toast.success('Tạo voucher thành công')
+      setShowForm(false)
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => adminVoucherApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'vouchers'])
+      toast.success('Đã cập nhật voucher')
+      setShowForm(false)
+    }
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: adminVoucherApi.toggleActive,
+    onSuccess: () => qc.invalidateQueries(['admin', 'vouchers'])
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: adminVoucherApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'vouchers'])
+      toast.success('Đã xóa voucher')
+      setDelete(null)
+    }
+  })
+
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: zodResolver(voucherSchema),
-    defaultValues: { discountType: 'PERCENTAGE', applicableTo: 'ALL', minOrder: 0, usageLimit: 100, priority: 5 },
+    defaultValues: { discountType: 'PERCENTAGE', applicableTo: 'ALL', minOrder: 0, usageLimit: 100 },
   })
   const discountType = watch('discountType')
 
   const openCreate = () => { setEditTarget(null); reset({ discountType: 'PERCENTAGE', applicableTo: 'ALL', minOrder: 0, usageLimit: 100 }); setShowForm(true) }
-  const openEdit   = (v) => { setEditTarget(v); reset(v); setShowForm(true) }
+  const openEdit   = (v) => { 
+    setEditTarget(v); 
+    // Format dates for input[type="date"]
+    reset({
+      ...v,
+      startDate: v.startDate?.split('T')[0],
+      endDate: v.endDate?.split('T')[0]
+    }); 
+    setShowForm(true) 
+  }
 
   const onSubmit = (data) => {
-    toast.success(editTarget ? 'Đã cập nhật voucher' : 'Tạo voucher thành công')
-    setShowForm(false)
+    if (editTarget) {
+      updateMutation.mutate({ id: editTarget.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
   }
 
   // Stats
-  const activeCount = MOCK_VOUCHERS.filter(v => v.isActive).length
-  const totalUsed   = MOCK_VOUCHERS.reduce((s, v) => s + v.usedCount, 0)
-  const nearExpiry  = MOCK_VOUCHERS.filter(v => v.usedCount / v.usageLimit >= 0.9).length
+  const activeCount = (voucherList?.content ?? []).filter(v => v.isActive).length
+  const totalUsed   = (voucherList?.content ?? []).reduce((s, v) => s + (v.usedCount || 0), 0)
+  const nearExpiry  = (voucherList?.content ?? []).filter(v => v.usageLimit > 0 && (v.usedCount / v.usageLimit >= 0.9)).length
 
   const columns = [
     {
@@ -246,7 +282,8 @@ function VouchersTab() {
             className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Chỉnh sửa">
             <Edit2 className="w-4 h-4" />
           </button>
-          <button onClick={() => toast.success(`Đã ${v.isActive ? 'tạm dừng' : 'kích hoạt'} voucher`)}
+          <button onClick={() => toggleMutation.mutate(v.id)}
+            disabled={toggleMutation.isPending}
             className={cn('p-2 rounded-lg transition-all', v.isActive ? 'hover:bg-amber-50 text-amber-400' : 'hover:bg-green-50 text-green-400')}
             title={v.isActive ? 'Tạm dừng' : 'Kích hoạt'}>
             {v.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
@@ -265,7 +302,7 @@ function VouchersTab() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Tổng voucher',   value: MOCK_VOUCHERS.length, icon: Ticket,     bg: 'bg-blue-50',   text: 'text-blue-500' },
+          { label: 'Tổng voucher',   value: (voucherList?.content ?? []).length, icon: Ticket,     bg: 'bg-blue-50',   text: 'text-blue-500' },
           { label: 'Đang hoạt động', value: activeCount,          icon: CheckCircle2,bg: 'bg-green-50', text: 'text-green-500' },
           { label: 'Lượt sử dụng',  value: totalUsed.toLocaleString(), icon: Users, bg: 'bg-purple-50', text: 'text-purple-500' },
           { label: 'Gần hết lượt',  value: nearExpiry,            icon: TrendingUp,  bg: 'bg-red-50',   text: 'text-red-500' },
@@ -288,6 +325,7 @@ function VouchersTab() {
           <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate} size="sm">Tạo Voucher</Button>
         </div>
         <Table columns={columns} data={vouchers} rowKey={v => v.id}
+          isLoading={isLoading}
           emptyMessage="Chưa có voucher nào" emptyIcon="🎟️" />
       </AdminCard>
 
@@ -372,7 +410,7 @@ function VouchersTab() {
 
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending}>
               {editTarget ? 'Lưu thay đổi' : 'Tạo Voucher'}
             </Button>
           </div>
@@ -381,7 +419,8 @@ function VouchersTab() {
 
       <ConfirmDialog
         open={!!deleteTarget} onClose={() => setDelete(null)}
-        onConfirm={() => { toast.success('Đã xóa voucher'); setDelete(null) }}
+        onConfirm={() => deleteMutation.mutate(deleteTarget.id)}
+        isLoading={deleteMutation.isPending}
         title="Xóa Voucher?" confirmLabel="Xóa"
         message={`Bạn có chắc muốn xóa voucher "${deleteTarget?.code}"? Người dùng đang có mã này sẽ không dùng được nữa.`}
       />
@@ -394,6 +433,48 @@ function PromotionsTab() {
   const [showForm, setShowForm]     = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDelete]   = useState(null)
+  const qc = useQueryClient()
+
+  // API Queries
+  const { data: promoList, isLoading } = useQuery({
+    queryKey: ['admin', 'promotions'],
+    queryFn: promotionApi.getAll
+  })
+
+  const promotions = promoList?.content ?? []
+
+  // Mutations
+  const createMutation = useMutation({
+    mutationFn: promotionApi.create,
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'promotions'])
+      toast.success('Tạo khuyến mãi thành công')
+      setShowForm(false)
+    }
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }) => promotionApi.update(id, data),
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'promotions'])
+      toast.success('Đã cập nhật khuyến mãi')
+      setShowForm(false)
+    }
+  })
+
+  const toggleMutation = useMutation({
+    mutationFn: promotionApi.toggleActive,
+    onSuccess: () => qc.invalidateQueries(['admin', 'promotions'])
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: promotionApi.delete,
+    onSuccess: () => {
+      qc.invalidateQueries(['admin', 'promotions'])
+      toast.success('Đã xóa khuyến mãi')
+      setDelete(null)
+    }
+  })
 
   const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
     resolver: zodResolver(promoSchema),
@@ -401,86 +482,104 @@ function PromotionsTab() {
   })
 
   const openCreate = () => { setEditTarget(null); reset({ priority: 5 }); setShowForm(true) }
-  const openEdit   = (p) => { setEditTarget(p); reset(p); setShowForm(true) }
+  const openEdit   = (p) => { 
+    setEditTarget(p); 
+    reset({
+      ...p,
+      startDate: p.startDate?.split('T')[0],
+      endDate: p.endDate?.split('T')[0]
+    }); 
+    setShowForm(true) 
+  }
 
   const onSubmit = (data) => {
-    toast.success(editTarget ? 'Đã cập nhật khuyến mãi' : 'Tạo khuyến mãi thành công')
-    setShowForm(false)
+    if (editTarget) {
+      updateMutation.mutate({ id: editTarget.id, data })
+    } else {
+      createMutation.mutate(data)
+    }
   }
 
   return (
     <div className="space-y-5">
       <div className="flex justify-between items-center">
-        <p className="text-sm text-gray-500">{MOCK_PROMOS.length} chương trình khuyến mãi</p>
+        <p className="text-sm text-gray-500">{promotions.length} chương trình khuyến mãi</p>
         <Button leftIcon={<Plus className="w-4 h-4" />} onClick={openCreate} size="sm">
           Tạo khuyến mãi
         </Button>
       </div>
 
       {/* Promo cards grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {MOCK_PROMOS.map((promo, i) => (
-          <motion.div key={promo.id}
-            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.07 }}
-            className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
+      {isLoading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {[1,2,3].map(i => <div key={i} className="skeleton h-64 rounded-2xl" />)}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {promotions.map((promo, i) => (
+            <motion.div key={promo.id}
+              initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.07 }}
+              className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden group">
 
-            {/* Image */}
-            <div className="relative h-36 bg-gradient-to-br from-brand-50 to-purple-50 overflow-hidden">
-              {promo.imageUrl ? (
-                <img src={promo.imageUrl} alt={promo.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <Tag className="w-12 h-12 text-brand-200" />
+              {/* Image */}
+              <div className="relative h-36 bg-gradient-to-br from-brand-50 to-purple-50 overflow-hidden">
+                {promo.imageUrl ? (
+                  <img src={promo.imageUrl} alt={promo.title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Tag className="w-12 h-12 text-brand-200" />
+                  </div>
+                )}
+                {/* Active badge */}
+                <div className="absolute top-2 right-2">
+                  <StatusBadge label={promo.isActive ? 'Đang chạy' : 'Tạm dừng'} color={promo.isActive ? 'green' : 'gray'} />
                 </div>
-              )}
-              {/* Active badge */}
-              <div className="absolute top-2 right-2">
-                <StatusBadge label={promo.isActive ? 'Đang chạy' : 'Tạm dừng'} color={promo.isActive ? 'green' : 'gray'} />
+                {/* Priority badge */}
+                <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-sm text-white text-xs
+                  px-2 py-0.5 rounded-full font-medium">
+                  Ưu tiên {promo.priority}
+                </div>
               </div>
-              {/* Priority badge */}
-              <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-sm text-white text-xs
-                px-2 py-0.5 rounded-full font-medium">
-                Ưu tiên {promo.priority}
-              </div>
-            </div>
 
-            {/* Content */}
-            <div className="p-4">
-              <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1">{promo.title}</h3>
-              <p className="text-gray-400 text-xs line-clamp-2 mb-3">{promo.description}</p>
-              <div className="flex items-center justify-between text-xs text-gray-400">
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-3 h-3" />
-                  {formatDate(promo.startDate)} – {formatDate(promo.endDate)}
-                </span>
+              {/* Content */}
+              <div className="p-4">
+                <h3 className="font-bold text-gray-900 text-sm line-clamp-1 mb-1">{promo.title}</h3>
+                <p className="text-gray-400 text-xs line-clamp-2 mb-3">{promo.description}</p>
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="w-3 h-3" />
+                    {formatDate(promo.startDate)} – {formatDate(promo.endDate)}
+                  </span>
+                </div>
+                {/* Actions */}
+                <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
+                  <button onClick={() => openEdit(promo)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
+                    text-xs font-medium text-blue-600 hover:bg-blue-50 transition-all">
+                    <Edit2 className="w-3.5 h-3.5" /> Sửa
+                  </button>
+                  <button onClick={() => toggleMutation.mutate(promo.id)}
+                    disabled={toggleMutation.isPending}
+                    className={cn(
+                      'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      promo.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
+                    )}>
+                    {promo.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
+                    {promo.isActive ? 'Tắt' : 'Bật'}
+                  </button>
+                  <button onClick={() => setDelete(promo)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
+                    text-xs font-medium text-red-500 hover:bg-red-50 transition-all">
+                    <Trash2 className="w-3.5 h-3.5" /> Xóa
+                  </button>
+                </div>
               </div>
-              {/* Actions */}
-              <div className="flex gap-2 mt-3 pt-3 border-t border-gray-100">
-                <button onClick={() => openEdit(promo)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
-                  text-xs font-medium text-blue-600 hover:bg-blue-50 transition-all">
-                  <Edit2 className="w-3.5 h-3.5" /> Sửa
-                </button>
-                <button onClick={() => toast.success(`Đã ${promo.isActive ? 'tạm dừng' : 'kích hoạt'}`)}
-                  className={cn(
-                    'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all',
-                    promo.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
-                  )}>
-                  {promo.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
-                  {promo.isActive ? 'Tắt' : 'Bật'}
-                </button>
-                <button onClick={() => setDelete(promo)}
-                  className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
-                  text-xs font-medium text-red-500 hover:bg-red-50 transition-all">
-                  <Trash2 className="w-3.5 h-3.5" /> Xóa
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
+            </motion.div>
+          ))}
+        </div>
+      )}
 
       {/* Form Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)}
@@ -494,7 +593,7 @@ function PromotionsTab() {
             <Textarea {...register('description')} error={!!errors.description} rows={3}
               placeholder="Nội dung chi tiết chương trình khuyến mãi..." />
           </Field>
-          <Field label="URL ảnh banner" error={errors.imageUrl?.message}>
+          <Field label="URL ảnh banner" error={errors.imageUrl?.message} info="Đường dẫn đến hình ảnh hiển thị trên ứng dụng/website.">
             <Input {...register('imageUrl')} error={!!errors.imageUrl}
               placeholder="https://example.com/banner.jpg" type="url" />
           </Field>
@@ -511,16 +610,16 @@ function PromotionsTab() {
             <Field label="Ngày kết thúc" required error={errors.endDate?.message}>
               <Input {...register('endDate')} type="date" error={!!errors.endDate} />
             </Field>
-            <Field label="Link đích (URL)" error={errors.targetUrl?.message}>
+            <Field label="Link đích (URL)" error={errors.targetUrl?.message} info="Người dùng sẽ được chuyển hướng đến trang này khi nhấn vào banner.">
               <Input {...register('targetUrl')} placeholder="/movies hoặc /movies?promo=xxx" />
             </Field>
-            <Field label="Độ ưu tiên (0–100)" error={errors.priority?.message}>
+            <Field label="Độ ưu tiên (0–100)" error={errors.priority?.message} info="Thứ tự hiển thị (số lớn hơn sẽ ưu tiên hiện trước).">
               <Input {...register('priority')} type="number" min={0} max={100} placeholder="5" />
             </Field>
           </div>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
-            <Button type="submit" className="flex-1">
+            <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending}>
               {editTarget ? 'Lưu thay đổi' : 'Tạo khuyến mãi'}
             </Button>
           </div>
@@ -529,7 +628,8 @@ function PromotionsTab() {
 
       <ConfirmDialog
         open={!!deleteTarget} onClose={() => setDelete(null)}
-        onConfirm={() => { toast.success('Đã xóa khuyến mãi'); setDelete(null) }}
+        onConfirm={() => deleteMutation.mutate(deleteTarget.id)}
+        isLoading={deleteMutation.isPending}
         title="Xóa khuyến mãi?" confirmLabel="Xóa"
         message={`Xóa khuyến mãi "${deleteTarget?.title}"?`}
       />

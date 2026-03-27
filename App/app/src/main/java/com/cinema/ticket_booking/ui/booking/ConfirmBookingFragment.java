@@ -85,7 +85,20 @@ public class ConfirmBookingFragment extends Fragment {
             viewModel.confirmBooking(SelectShowtimeViewModel.pendingShowtimeId);
         });
 
-        startCountdown();
+        // Khởi tạo đếm ngược dựa trên expireTime từ Bundle
+        if (getArguments() != null) {
+            long expireTime = getArguments().getLong("expireTime", 0);
+            long remaining = expireTime - System.currentTimeMillis();
+            if (remaining > 0) {
+                startCountdown(remaining);
+            } else {
+                Toast.makeText(requireContext(), "Hết thời gian giữ vé!", Toast.LENGTH_LONG).show();
+                Navigation.findNavController(view).popBackStack(R.id.selectSeatFragment, false);
+            }
+        } else {
+            // Fallback nếu không có bundle (không nên xảy ra)
+            startCountdown(5 * 60 * 1000);
+        }
         setupObservers(view);
     }
 
@@ -142,9 +155,7 @@ public class ConfirmBookingFragment extends Fragment {
         binding.tvTotal.setText(String.format("%,.0f", total));
     }
 
-    private void startCountdown() {
-        // 5 minutes = 300,000 ms
-        long duration = 5 * 60 * 1000;
+    private void startCountdown(long duration) {
         countDownTimer = new android.os.CountDownTimer(duration, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {

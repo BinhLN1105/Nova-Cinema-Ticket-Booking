@@ -1,9 +1,11 @@
 package com.cinema.ticket_booking.service;
 
 import com.cinema.ticket_booking.dto.request.VoucherRequest;
+import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
 import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.model.Voucher;
+import org.springframework.data.domain.Pageable;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -24,6 +26,10 @@ public interface VoucherService {
     VoucherResponse.Summary getSummaryByCode(String code);
 
     Voucher findById(UUID id);
+    
+    PageResponse<VoucherResponse> getAll(Pageable pageable);
+
+    void delete(UUID id);
 
     List<VoucherSyncResponse> getActiveVouchersForSync();
 }

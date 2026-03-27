@@ -31,6 +31,7 @@ public class BookingResponse implements Serializable {
     private String cinemaName;
     private String cinemaAddress;
     private String screenName;
+    private String screenType;
 
     // Ghế đã đặt
     private List<SeatItem> seats;
@@ -90,6 +91,7 @@ public class BookingResponse implements Serializable {
         private LocalDateTime startTime;
         private String cinemaName;
         private String screenName;
+        private String screenType;
         private String seats;
         private BigDecimal totalAmount;
         private BookingStatus status;

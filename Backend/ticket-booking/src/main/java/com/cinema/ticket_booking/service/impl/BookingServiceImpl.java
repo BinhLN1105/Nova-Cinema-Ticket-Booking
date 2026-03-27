@@ -6,6 +6,7 @@ import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import com.cinema.ticket_booking.service.QrCodeService;
 import com.cinema.ticket_booking.service.EmailService;
+import com.cinema.ticket_booking.service.PricingEngineService;
 import com.cinema.ticket_booking.dto.request.BookingRequest;
 import com.cinema.ticket_booking.dto.response.BookingResponse;
 import com.cinema.ticket_booking.dto.response.CheckInResponse;
@@ -19,7 +20,6 @@ import com.cinema.ticket_booking.repository.*;
 import com.cinema.ticket_booking.service.SeatLockService;
 import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +31,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -53,6 +52,9 @@ public class BookingServiceImpl implements BookingService {
     private final StaffProfileRepository staffProfileRepository;
     private final SeatLockService seatLockService;
     private final SystemConfigService systemConfigService;
+    private final PricingEngineService pricingEngineService;
+    private final UserVoucherRepository userVoucherRepository;
+    private final PricingRuleRepository pricingRuleRepository;
 
     // ── Tạo booking ───────────────────────────────────────────────────────
 
@@ -113,10 +115,16 @@ public class BookingServiceImpl implements BookingService {
             throw e;
         }
 
-        // ── 2. Validate voucher ────────────────────────────────────────────
-        BigDecimal seatTotal = seats.stream()
-                .map(ShowtimeSeat::getPrice)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        // ── 2. Tính tiền vé bằng PricingEngine ─────────────────────────────
+        List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
+        List<BigDecimal> finalSeatPrices = new ArrayList<>();
+        BigDecimal seatTotal = BigDecimal.ZERO;
+
+        for (ShowtimeSeat ss : seats) {
+            BigDecimal dynamicPrice = pricingEngineService.calculateFinalSeatPrice(showtime, ss.getSeat(), showtime.getBasePrice(), activeRules);
+            finalSeatPrices.add(dynamicPrice);
+            seatTotal = seatTotal.add(dynamicPrice);
+        }
 
         BigDecimal comboTotal = BigDecimal.ZERO;
         List<BookingComboData> comboDataList = new ArrayList<>();
@@ -169,11 +177,13 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // ── 4. Tạo BookingItem + Ticket ───────────────────────────────────
-        for (ShowtimeSeat ss : seats) {
+        for (int i = 0; i < seats.size(); i++) {
+            ShowtimeSeat ss = seats.get(i);
+            BigDecimal seatPrice = finalSeatPrices.get(i);
             BookingItem item = BookingItem.builder()
                     .booking(booking)
                     .showtimeSeat(ss)
-                    .seatPrice(ss.getPrice())
+                    .seatPrice(seatPrice)
                     .build();
             item = bookingItemRepository.save(item);
 
@@ -212,6 +222,7 @@ public class BookingServiceImpl implements BookingService {
                                     + String.valueOf(item.getShowtimeSeat().getSeat().getColNumber()))
                             .toList();
                     summary.setSeats(String.join(", ", seats));
+                    summary.setScreenType(getScreenTypeName(booking));
                     return summary;
                 }).toList();
         return PageResponse
@@ -355,9 +366,14 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.PAID);
         bookingRepository.save(booking);
 
-        // Tăng usedCount voucher
+        // Tăng usedCount voucher và đánh dấu used trong ví
         if (booking.getVoucher() != null) {
             voucherService.incrementUsedCount(booking.getVoucher().getId());
+            userVoucherRepository.findByUserIdAndVoucherId(booking.getUser().getId(), booking.getVoucher().getId())
+                .ifPresent(uv -> {
+                    uv.setIsUsed(true);
+                    userVoucherRepository.save(uv);
+                });
         }
     }
 
@@ -454,6 +470,7 @@ public class BookingServiceImpl implements BookingService {
             List<BookingComboData> combos, BigDecimal subtotal) {
         BookingResponse response = bookingMapper.toResponse(booking);
         response.setSubtotal(subtotal);
+        response.setScreenType(getScreenTypeName(booking));
 
         response.setSeats(seats.stream().map(ss -> BookingResponse.SeatItem.builder()
                 .showtimeSeatId(ss.getId().toString())
@@ -478,6 +495,15 @@ public class BookingServiceImpl implements BookingService {
     public Booking findById(UUID id) {
         return bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Đơn đặt vé", id));
+    }
+
+    private String getScreenTypeName(Booking booking) {
+        if (booking.getShowtime() != null && 
+            booking.getShowtime().getScreen() != null && 
+            booking.getShowtime().getScreen().getScreenType() != null) {
+            return booking.getShowtime().getScreen().getScreenType().name();
+        }
+        return "STANDARD";
     }
 
     private record BookingComboData(Combo combo, Integer quantity, BigDecimal unitPrice) {

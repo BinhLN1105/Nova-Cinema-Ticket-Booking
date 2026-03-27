@@ -36,8 +36,9 @@ public class DashboardStatsResponse implements Serializable {
     @NoArgsConstructor
     public static class RevenueByDay implements Serializable {
         private static final long serialVersionUID = 1L;
-        private String date; // "YYYY-MM-DD"
+        private String date; // "YYYY-MM-DD" or "YYYY-MM"
         private BigDecimal revenue;
+        private Long bookingCount;
     }
 
     @Data

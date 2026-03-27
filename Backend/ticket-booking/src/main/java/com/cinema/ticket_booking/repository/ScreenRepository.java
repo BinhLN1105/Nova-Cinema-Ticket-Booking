@@ -9,6 +9,9 @@ import java.util.UUID;
 
 @Repository
 public interface ScreenRepository extends JpaRepository<Screen, UUID> {
-    // Lấy tất cả phòng chiếu của một rạp
-    List<Screen> findByCinemaIdAndIsActiveTrue(UUID cinemaId);
+    // Cho người dùng (Chỉ lấy phòng đang hoạt động và chưa bị xóa)
+    List<Screen> findByCinemaIdAndIsActiveTrueAndIsDeletedFalse(UUID cinemaId);
+
+    // Cho Admin (Lấy tất cả phòng chiếu chưa bị xóa, bao gồm cả phòng đang bảo trì)
+    List<Screen> findByCinemaIdAndIsDeletedFalse(UUID cinemaId);
 }

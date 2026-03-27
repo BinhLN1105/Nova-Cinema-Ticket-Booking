@@ -65,6 +65,9 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
                         @Param("startTime") LocalDateTime startTime,
                         @Param("endTime") LocalDateTime endTime);
 
+        // Kiểm tra xem phòng chiếu đã từng có lịch chiếu nào chưa (dùng cho Xóa cứng)
+        boolean existsByScreenId(UUID screenId);
+
         @Query("SELECT s FROM Showtime s WHERE s.screen.cinema.id = :cinemaId AND CAST(s.startTime AS date) = :date")
         Page<Showtime> findByCinemaIdAndDate(@Param("cinemaId") UUID cinemaId, @Param("date") LocalDate date,
                         Pageable pageable);

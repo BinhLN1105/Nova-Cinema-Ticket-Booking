@@ -22,4 +22,6 @@ public class ScreenRequest {
 
     @Min(value = 1, message = "Số cột phải lớn hơn 0")
     private Integer totalCols;
+
+    private Boolean isActive;
 }

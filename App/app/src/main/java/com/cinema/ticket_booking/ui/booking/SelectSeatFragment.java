@@ -21,6 +21,7 @@ public class SelectSeatFragment extends Fragment {
     private SelectSeatViewModel viewModel;
     private String showtimeId;
     private SeatMapResponse currentSeatMap;
+    private long expireTime = 0;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -59,7 +60,6 @@ public class SelectSeatFragment extends Fragment {
         binding.tvShowtimeInfo.setText(
                 SelectShowtimeViewModel.pendingMovieTitle + " • " + displayTime);
 
-        binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
         binding.btnConfirm.setOnClickListener(v -> {
             if (viewModel.getSelectedSeatIds().isEmpty()) {
                 Toast.makeText(requireContext(), "Vui lòng chọn ít nhất 1 ghế", Toast.LENGTH_SHORT).show();
@@ -67,7 +67,10 @@ public class SelectSeatFragment extends Fragment {
             }
             SelectSeatViewModel.pendingSeatIds = new ArrayList<>(viewModel.getSelectedSeatIds());
             SelectSeatViewModel.pendingTotalAmount = viewModel.calculateTotal(currentSeatMap);
-            Navigation.findNavController(view).navigate(R.id.action_selectSeat_to_selectCombo);
+            
+            Bundle bundle = new Bundle();
+            bundle.putLong("expireTime", expireTime);
+            Navigation.findNavController(view).navigate(R.id.action_selectSeat_to_selectCombo, bundle);
         });
 
         viewModel.getSeatMap().observe(getViewLifecycleOwner(), resource -> {
@@ -77,6 +80,7 @@ public class SelectSeatFragment extends Fragment {
                     binding.progressBar.setVisibility(View.GONE);
                     if (resource.data != null) {
                         currentSeatMap = resource.data;
+                        expireTime = System.currentTimeMillis() + (long) resource.data.getSeatHoldMins() * 60 * 1000;
                         renderSeatMap(resource.data);
                     }
                 }
@@ -93,66 +97,122 @@ public class SelectSeatFragment extends Fragment {
         if (seatMap.getSeats() == null)
             return;
 
-        // Group by row
-        Map<String, List<SeatMapResponse.SeatItem>> rows = new LinkedHashMap<>();
+        int totalRows = seatMap.getMaxGridRow() + 1;
+        int totalCols = seatMap.getMaxGridCol() + 1;
+
+        // Build lookup map: "gridRow_gridCol" -> SeatItem
+        Map<String, SeatMapResponse.SeatItem> seatGrid = new HashMap<>();
         for (SeatMapResponse.SeatItem seat : seatMap.getSeats()) {
-            rows.computeIfAbsent(seat.getRowLabel(), k -> new ArrayList<>()).add(seat);
+            seatGrid.put(seat.getGridRow() + "_" + seat.getGridCol(), seat);
         }
 
-        for (Map.Entry<String, List<SeatMapResponse.SeatItem>> entry : rows.entrySet()) {
+        int seatSize = (int) (getResources().getDisplayMetrics().density * 34);
+        int margin = (int) (getResources().getDisplayMetrics().density * 3);
+
+        for (int r = 0; r < totalRows; r++) {
+            // Check if this row has any seats. If NOT, skip rendering the entire row
+            boolean hasSeats = false;
+            String label = String.valueOf((char) ('A' + r));
+            for (int c = 0; c < totalCols; c++) {
+                SeatMapResponse.SeatItem s = seatGrid.get(r + "_" + c);
+                if (s != null) {
+                    hasSeats = true;
+                    if (s.getSeatLabel() != null && !s.getSeatLabel().isEmpty()) {
+                        label = String.valueOf(s.getSeatLabel().charAt(0));
+                    }
+                    break;
+                }
+            }
+            if (!hasSeats) continue;
+
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setGravity(android.view.Gravity.CENTER);
+            row.setPadding(0, margin, 0, margin);
 
-            // Row label
-            TextView rowLabel = new TextView(requireContext());
-            rowLabel.setText(entry.getKey());
-            rowLabel.setTextColor(getResources().getColor(R.color.on_surface_variant, null));
-            rowLabel.setMinWidth(48);
-            rowLabel.setGravity(android.view.Gravity.CENTER);
-            row.addView(rowLabel);
+            // Left label
+            TextView rowLabelLeft = new TextView(requireContext());
+            rowLabelLeft.setText(label);
+            rowLabelLeft.setTextColor(getResources().getColor(R.color.on_surface_variant, null));
+            rowLabelLeft.setTypeface(null, android.graphics.Typeface.BOLD);
+            rowLabelLeft.setMinWidth((int) (getResources().getDisplayMetrics().density * 40));
+            rowLabelLeft.setGravity(android.view.Gravity.CENTER);
+            row.addView(rowLabelLeft);
 
-            for (SeatMapResponse.SeatItem seat : entry.getValue()) {
-                TextView seatBtn = new TextView(requireContext());
-                seatBtn.setText(String.valueOf(seat.getColNumber()));
-                seatBtn.setGravity(android.view.Gravity.CENTER);
-                seatBtn.setTextSize(10f);
+            for (int c = 0; c < totalCols; c++) {
+                SeatMapResponse.SeatItem seat = seatGrid.get(r + "_" + c);
 
-                int size = (int) (getResources().getDisplayMetrics().density * 32);
-                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(size, size);
-                lp.setMargins(4, 4, 4, 4);
-                seatBtn.setLayoutParams(lp);
+                if (seat != null) {
+                    TextView seatBtn = new TextView(requireContext());
+                    String seatText = seat.getSeatLabel() != null && seat.getSeatLabel().length() > 1
+                            ? seat.getSeatLabel().substring(1)
+                            : String.valueOf(seat.getColNumber());
+                    
+                    seatBtn.setText(seatText);
+                    seatBtn.setGravity(android.view.Gravity.CENTER);
+                    seatBtn.setTextSize(10f);
 
-                updateSeatColor(seatBtn, seat, false);
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(seatSize, seatSize);
+                    lp.setMargins(margin, 0, margin, 0);
+                    seatBtn.setLayoutParams(lp);
 
-                seatBtn.setOnClickListener(v -> {
-                    boolean toggled = viewModel.toggleSeat(seat);
-                    if (toggled) {
-                        boolean isSelected = viewModel.getSelectedSeatIds().contains(seat.getShowtimeSeatId());
-                        updateSeatColor(seatBtn, seat, isSelected);
-                        updateSummary();
-                    }
-                });
-                row.addView(seatBtn);
+                    updateSeatButtonStyle(seatBtn, seat, false);
+
+                    seatBtn.setOnClickListener(v -> {
+                        boolean toggled = viewModel.toggleSeat(seat);
+                        if (toggled) {
+                            boolean isSelected = viewModel.getSelectedSeatIds().contains(seat.getShowtimeSeatId());
+                            updateSeatButtonStyle(seatBtn, seat, isSelected);
+                            updateSummary();
+                        }
+                    });
+                    row.addView(seatBtn);
+                } else {
+                    View spacer = new View(requireContext());
+                    LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(seatSize, seatSize);
+                    lp.setMargins(margin, 0, margin, 0);
+                    spacer.setLayoutParams(lp);
+                    row.addView(spacer);
+                }
             }
+            // Right label
+            TextView rowLabelRight = new TextView(requireContext());
+            rowLabelRight.setText(label);
+            rowLabelRight.setTextColor(getResources().getColor(R.color.on_surface_variant, null));
+            rowLabelRight.setMinWidth((int) (getResources().getDisplayMetrics().density * 40));
+            rowLabelRight.setGravity(android.view.Gravity.CENTER);
+            row.addView(rowLabelRight);
+
             binding.seatContainer.addView(row);
         }
         updateSummary();
     }
 
-    private void updateSeatColor(TextView tv, SeatMapResponse.SeatItem seat, boolean selected) {
-        int color;
+    private void updateSeatButtonStyle(TextView tv, SeatMapResponse.SeatItem seat, boolean selected) {
+        int colorRes;
         if (selected)
-            color = R.color.seat_selected;
+            colorRes = R.color.seat_selected;
         else if ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus()))
-            color = R.color.seat_booked;
+            colorRes = R.color.seat_booked;
         else if ("VIP".equals(seat.getSeatType()))
-            color = R.color.seat_vip;
+            colorRes = R.color.seat_vip;
         else if ("COUPLE".equals(seat.getSeatType()))
-            color = R.color.seat_couple;
+            colorRes = R.color.seat_couple;
         else
-            color = R.color.seat_available;
-        tv.setBackgroundColor(getResources().getColor(color, null));
+            colorRes = R.color.seat_available;
+
+        int color = getResources().getColor(colorRes, null);
+        
+        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        gd.setColor(color);
+        float radius = getResources().getDisplayMetrics().density * 6;
+        gd.setCornerRadius(radius);
+        
+        if (!selected && !"BOOKED".equals(seat.getStatus())) {
+            gd.setStroke(2, getResources().getColor(R.color.outline_variant, null));
+        }
+
+        tv.setBackground(gd);
         tv.setTextColor(getResources().getColor(android.R.color.white, null));
     }
 

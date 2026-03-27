@@ -11,6 +11,7 @@ import {
   Select,
 } from "@/components/common/ui/FormElements";
 import toast from "react-hot-toast";
+import SeatBuilderModal from "./SeatBuilderModal";
 
 const SCREEN_TYPES = [
   { value: "STANDARD", label: "Tiêu chuẩn (2D)" },
@@ -33,6 +34,8 @@ export default function ScreensModal({ open, onClose, cinema }) {
   });
 
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleteType, setDeleteType] = useState("soft");
+  const [builderScreen, setBuilderScreen] = useState(null);
 
   // Focus effect when opening form
   useEffect(() => {
@@ -47,7 +50,7 @@ export default function ScreensModal({ open, onClose, cinema }) {
 
   const { data: screens = [], isLoading } = useQuery({
     queryKey: ["admin-screens", cinema?.id],
-    queryFn: () => cinemaApi.getScreens(cinema.id),
+    queryFn: () => cinemaApi.getScreensForAdmin(cinema.id),
     select: (r) => r || [],
     enabled: !!cinema?.id && open,
   });
@@ -65,12 +68,15 @@ export default function ScreensModal({ open, onClose, cinema }) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => cinemaApi.deleteScreen(cinema.id, id),
+    mutationFn: ({ id, type }) => cinemaApi.deleteScreen(cinema.id, id, type),
     onSuccess: () => {
       toast.success("Đã xoá phòng chiếu");
       qc.invalidateQueries({ queryKey: ["admin-screens", cinema?.id] });
       setDeleteTarget(null);
     },
+    onError: (error) => {
+      toast.error(error.response?.data?.message || "Lỗi khi xóa phòng chiếu");
+    }
   });
 
   const handleSave = () => {
@@ -119,6 +125,13 @@ export default function ScreensModal({ open, onClose, cinema }) {
       className: "text-right",
       render: (s) => (
         <div className="flex items-center justify-end gap-2">
+          <button
+            onClick={() => setBuilderScreen(s)}
+            className="p-1.5 text-gray-400 hover:text-purple-600 transition-colors"
+            title="Thiết kế ghế"
+          >
+            <span className="text-sm">🎨</span>
+          </button>
           <button
             onClick={() => openEdit(s)}
             className="p-1.5 text-gray-400 hover:text-brand-600 transition-colors"
@@ -252,14 +265,77 @@ export default function ScreensModal({ open, onClose, cinema }) {
         </div>
       </Modal>
 
-      <ConfirmDialog
+      <Modal
         open={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
-        onConfirm={() => deleteMutation.mutate(deleteTarget.id)}
-        loading={deleteMutation.isPending}
-        title="Xoá phòng chiếu?"
-        confirmLabel="Xoá"
-        message={`Bạn có chắc muốn xoá phòng chiếu "${deleteTarget?.name}"? Hệ thống sẽ cập nhật trạng thái đã xoá.`}
+        title="Xoá phòng chiếu"
+        size="md"
+      >
+        <div className="p-6 space-y-4">
+          <p className="text-gray-600">
+            Bạn đang chọn xoá phòng chiếu <span className="font-semibold text-gray-900">{deleteTarget?.name}</span>. Vui lòng chọn phương thức:
+          </p>
+
+          <div className="space-y-3 mt-4">
+            <label className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === 'soft' ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'}`}>
+              <div className="h-5 flex items-center">
+                <input
+                  type="radio"
+                  name="deleteType"
+                  value="soft"
+                  checked={deleteType === 'soft'}
+                  onChange={() => setDeleteType('soft')}
+                  className="w-4 h-4 text-brand-600 focus:ring-brand-600 border-gray-300"
+                />
+              </div>
+              <div className="ml-3">
+                <span className="block text-sm font-medium text-gray-900">🗃️ Đưa vào thùng rác (Xoá mềm)</span>
+                <span className="block text-sm text-gray-500 mt-1">Phòng chiếu sẽ bị ẩn hoàn toàn khỏi danh sách nhưng lịch sử doanh thu vẫn được giữ lại nguyên vẹn.</span>
+              </div>
+            </label>
+
+            <label className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === 'hard' ? 'border-red-500 bg-red-50/50' : 'border-gray-200'}`}>
+              <div className="h-5 flex items-center">
+                <input
+                  type="radio"
+                  name="deleteType"
+                  value="hard"
+                  checked={deleteType === 'hard'}
+                  onChange={() => setDeleteType('hard')}
+                  className="w-4 h-4 text-red-600 focus:ring-red-600 border-gray-300"
+                />
+              </div>
+              <div className="ml-3">
+                <span className="block text-sm font-medium text-red-700">🧹 Xoá vĩnh viễn (Xoá cứng)</span>
+                <span className="block text-sm text-gray-500 mt-1">Xóa sạch khỏi hệ thống. Chỉ áp dụng cho phòng mới tạo do nhầm lẫn. Bị CHẶN nếu phòng đã có vé đặt.</span>
+              </div>
+            </label>
+          </div>
+
+          <div className="flex gap-3 pt-4 mt-6">
+            <Button
+              variant="ghost"
+              onClick={() => setDeleteTarget(null)}
+              className="flex-1"
+            >
+              Huỷ bỏ
+            </Button>
+            <Button
+              onClick={() => deleteMutation.mutate({ id: deleteTarget.id, type: deleteType })}
+              loading={deleteMutation.isPending}
+              className={`flex-1 ${deleteType === 'hard' ? '!bg-red-600 hover:!bg-red-700 !text-white' : ''}`}
+            >
+              Xác nhận xoá
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <SeatBuilderModal
+        open={!!builderScreen}
+        onClose={() => setBuilderScreen(null)}
+        cinema={cinema}
+        screen={builderScreen}
       />
     </>
   );

@@ -14,7 +14,6 @@ import com.cinema.ticket_booking.model.ShowtimeSeat;
 import com.cinema.ticket_booking.model.PricingRule;
 import com.cinema.ticket_booking.enums.SeatStatus;
 import com.cinema.ticket_booking.enums.ShowtimeStatus;
-import com.cinema.ticket_booking.enums.PricingRuleType;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.SeatMapper;
@@ -26,6 +25,7 @@ import com.cinema.ticket_booking.repository.PricingRuleRepository;
 import com.cinema.ticket_booking.repository.ScreenRepository;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
+import com.cinema.ticket_booking.service.PricingEngineService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import com.cinema.ticket_booking.service.SeatLockService;
 import com.cinema.ticket_booking.service.SystemConfigService;
@@ -37,7 +37,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -59,6 +58,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final SeatMapper seatMapper;
     private final SystemConfigService systemConfigService;
     private final SeatLockService seatLockService;
+    private final PricingEngineService pricingEngineService;
 
     // ── Query ─────────────────────────────────────────────────────────────
 
@@ -132,6 +132,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     public SeatMapResponse getSeatMap(UUID showtimeId) {
         Showtime showtime = findById(showtimeId);
         List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeIdWithSeat(showtimeId);
+        List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
 
         List<String> validSeatIds = seats.stream().map(s -> s.getId().toString()).collect(Collectors.toList());
         List<String> lockedSeatIds = seatLockService.getLockedSeats(validSeatIds);
@@ -141,6 +142,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             if (seatItem.getStatus() == SeatStatus.AVAILABLE && lockedSeatIds.contains(seat.getId().toString())) {
                 seatItem.setStatus(SeatStatus.LOCKED);
             }
+            // Recalculate price dynamically
+            BigDecimal finalPrice = pricingEngineService.calculateFinalSeatPrice(showtime, seat.getSeat(), showtime.getBasePrice(), activeRules);
+            seatItem.setPrice(finalPrice);
             return seatItem;
         }).toList();
 
@@ -237,105 +241,17 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     private void generateShowtimeSeats(Showtime showtime, Screen screen, BigDecimal basePrice) {
         List<Seat> seats = seatRepository.findByScreenIdAndIsActiveTrueOrderByRowLabelAscColNumberAsc(screen.getId());
-        List<PricingRule> activeRules = pricingRuleRepository
-                .findByIsActiveTrueOrderByPriorityAsc();
+        List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
 
-        // 1. Áp dụng Rule theo Ngày, Giờ, hoặc Sự kiện (Áp dụng chung cho cả phòng)
-        BigDecimal timeAdjustedPrice = applyTimeRules(basePrice, showtime, activeRules);
-
-        // 2. Từng ghế áp dụng Rule theo Loại Ghế
         List<ShowtimeSeat> showtimeSeats = seats.stream().map(seat -> {
-            BigDecimal finalPrice = applySeatRules(timeAdjustedPrice, seat, activeRules);
+            BigDecimal finalPrice = pricingEngineService.calculateFinalSeatPrice(showtime, seat, basePrice, activeRules);
             return ShowtimeSeat.builder()
                     .showtime(showtime)
                     .seat(seat)
                     .status(SeatStatus.AVAILABLE)
-                    .price(finalPrice)
+                    .price(finalPrice) // Snapshot price at creation
                     .build();
         }).toList();
         showtimeSeatRepository.saveAll(showtimeSeats);
-    }
-
-    private BigDecimal applyTimeRules(BigDecimal basePrice, Showtime showtime,
-            List<PricingRule> rules) {
-        BigDecimal price = basePrice;
-        for (PricingRule rule : rules) {
-            boolean apply = false;
-            switch (rule.getRuleType()) {
-                case DAY_OF_WEEK:
-                    if (showtime.getStartTime().getDayOfWeek().name().equalsIgnoreCase(rule.getConditionValue())) {
-                        apply = true;
-                    }
-                    break;
-                case TIME_FRAME:
-                    // Format ví dụ: "22:00-23:59"
-                    String[] times = rule.getConditionValue().split("-");
-                    if (times.length == 2) {
-                        try {
-                            LocalTime start = LocalTime.parse(times[0]);
-                            LocalTime end = LocalTime.parse(times[1]);
-                            LocalTime showTimeTime = showtime.getStartTime().toLocalTime();
-                            if (!showTimeTime.isBefore(start) && !showTimeTime.isAfter(end)) {
-                                apply = true;
-                            }
-                        } catch (Exception e) {
-                            // Bỏ qua lỗi parse rule
-                        }
-                    }
-                    break;
-                case DATE_RANGE:
-                    // Format: "2024-04-30,2024-05-01"
-                    String[] dates = rule.getConditionValue().split(",");
-                    if (dates.length == 2) {
-                        try {
-                            LocalDate startDate = LocalDate.parse(dates[0]);
-                            LocalDate endDate = LocalDate.parse(dates[1]);
-                            LocalDate showDate = showtime.getStartTime().toLocalDate();
-                            if (!showDate.isBefore(startDate) && !showDate.isAfter(endDate)) {
-                                apply = true;
-                            }
-                        } catch (Exception e) {
-                        }
-                    }
-                    break;
-                default:
-                    break;
-            }
-
-            if (apply) {
-                price = calculateAdjustment(price, rule);
-            }
-        }
-        return price;
-    }
-
-    private BigDecimal applySeatRules(BigDecimal timeAdjustedPrice, Seat seat,
-            List<PricingRule> rules) {
-        BigDecimal price = timeAdjustedPrice;
-        for (PricingRule rule : rules) {
-            if (rule.getRuleType() == PricingRuleType.SEAT_TYPE) {
-                if (seat.getSeatType().name().equalsIgnoreCase(rule.getConditionValue())) {
-                    price = calculateAdjustment(price, rule);
-                }
-            }
-        }
-        return price;
-    }
-
-    private BigDecimal calculateAdjustment(BigDecimal currentPrice, PricingRule rule) {
-        switch (rule.getAdjustmentType()) {
-            case PERCENTAGE:
-                // Giảm/tăng %
-                BigDecimal multiplier = BigDecimal.ONE.add(rule.getAdjustmentValue().divide(BigDecimal.valueOf(100)));
-                return currentPrice.multiply(multiplier);
-            case FIXED_AMOUNT:
-                // Cộng/trừ tiền trực tiếp
-                return currentPrice.add(rule.getAdjustmentValue());
-            case MULTIPLIER:
-                // Nhân hệ số
-                return currentPrice.multiply(rule.getAdjustmentValue());
-            default:
-                return currentPrice;
-        }
     }
 }

@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.model;
 
 import com.cinema.ticket_booking.enums.DiscountType;
+import com.cinema.ticket_booking.enums.VoucherApplicableTo;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -62,6 +63,11 @@ public class Voucher {
     @Column(name = "valid_to", nullable = false)
     private LocalDateTime validTo;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "applicable_to", nullable = false, length = 30)
+    @Builder.Default
+    private VoucherApplicableTo applicableTo = VoucherApplicableTo.ALL;
+
     @Column(name = "is_active")
     @Builder.Default
     private Boolean isActive = true;
@@ -81,8 +87,8 @@ public class Voucher {
         }
         // PERCENTAGE
         BigDecimal discount = orderAmount
-            .multiply(discountValue)
-            .divide(BigDecimal.valueOf(100));
+                .multiply(discountValue)
+                .divide(BigDecimal.valueOf(100));
         if (maxDiscount != null && discount.compareTo(maxDiscount) > 0) {
             return maxDiscount;
         }

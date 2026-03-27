@@ -22,6 +22,8 @@ public class BookingResponse {
     private String cinemaAddress;
     @SerializedName("screenName")
     private String screenName;
+    @SerializedName("screenType")
+    private String screenType;
     @SerializedName("subtotal")
     private double subtotal;
     @SerializedName("discountAmount")
@@ -67,6 +69,10 @@ public class BookingResponse {
 
     public String getScreenName() {
         return screenName;
+    }
+
+    public String getScreenType() {
+        return screenType;
     }
 
     public double getTotalAmount() {

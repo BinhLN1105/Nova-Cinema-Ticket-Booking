@@ -19,9 +19,13 @@ public class SeatMapResponse {
     private String showtimeId;
     private Integer totalRows;
     private Integer totalCols;
+    private Integer maxGridRow;
+    private Integer maxGridCol;
 
     // Danh sách tất cả ghế trong phòng với trạng thái hiện tại
     private List<SeatItem> seats;
+
+    private Integer seatHoldMins;
 
     @Data
     @Builder
@@ -30,6 +34,9 @@ public class SeatMapResponse {
         private String seatId;
         private Character rowLabel;
         private Integer colNumber;
+        private Integer gridRow;       // Vị trí hàng trên ma trận ảo
+        private Integer gridCol;       // Vị trí cột trên ma trận ảo
+        private String seatLabel;      // Nhãn hiển thị: "A1", "VIP-5"
         private SeatType seatType;
         private SeatStatus status; // AVAILABLE | LOCKED | BOOKED
         private BigDecimal price;

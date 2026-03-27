@@ -41,7 +41,11 @@ export const cinemaApi = {
   delete: (id) => api.delete(`/cinemas/${id}`),
   createScreen: (cinemaId, data) => api.post(`/cinemas/${cinemaId}/screens`, data),
   updateScreen: (cinemaId, screenId, data) => api.put(`/cinemas/${cinemaId}/screens/${screenId}`, data),
-  deleteScreen: (cinemaId, screenId) => api.delete(`/cinemas/${cinemaId}/screens/${screenId}`),
+  deleteScreen: (cinemaId, screenId, type = "soft") => api.delete(`/cinemas/${cinemaId}/screens/${screenId}?type=${type}`),
+  getScreensForAdmin: (cinemaId) => api.get(`/cinemas/${cinemaId}/admin/screens`),
+  // Seat Layout Builder
+  getScreenSeats: (cinemaId, screenId) => api.get(`/cinemas/${cinemaId}/screens/${screenId}/seats`),
+  saveCustomLayout: (cinemaId, screenId, data) => api.put(`/cinemas/${cinemaId}/screens/${screenId}/seats`, data),
 };
 
 // ── Showtimes ─────────────────────────────────
@@ -61,6 +65,7 @@ export const showtimeApi = {
 // ── Vouchers ──────────────────────────────────
 export const voucherApi = {
   validate: (code) => api.post("/vouchers/validate", { code }),
+  getActive: () => api.get("/vouchers/active"),
 };
 
 // ── Bookings ──────────────────────────────────

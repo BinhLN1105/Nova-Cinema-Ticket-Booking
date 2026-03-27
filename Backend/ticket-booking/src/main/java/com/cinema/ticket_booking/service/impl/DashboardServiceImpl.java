@@ -16,6 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,19 +50,23 @@ public class DashboardServiceImpl implements DashboardService {
             double bookingChange = 8.4;
 
             // 2. Revenue by day (last 7 days)
-            List<BookingRepository.RevenueByDayProjection> revData = bookingRepository.getRevenueByDay();
+            LocalDateTime startDate = LocalDateTime.now().minusDays(6).with(LocalTime.MIN);
+            List<BookingRepository.RevenueByDayProjection> revData = bookingRepository.getRevenueByDay(startDate);
             List<RevenueByDay> revenueByDay = new ArrayList<>();
             LocalDate today = LocalDate.now();
             for (int i = 6; i >= 0; i--) {
                 LocalDate d = today.minusDays(i);
                 BigDecimal dayRev = BigDecimal.ZERO;
+                Long dayCount = 0L;
                 for (BookingRepository.RevenueByDayProjection row : revData) {
-                    if (row.getDate() != null && row.getDate().equals(d)) {
+                    String rowDate = row.getDate() != null ? row.getDate().toString() : "";
+                    if (rowDate.equals(d.toString())) {
                         dayRev = row.getRevenue();
+                        dayCount = row.getBookingCount() != null ? row.getBookingCount() : 0L;
                         break;
                     }
                 }
-                revenueByDay.add(new RevenueByDay(d.format(DateTimeFormatter.ISO_DATE), dayRev));
+                revenueByDay.add(new RevenueByDay(d.format(DateTimeFormatter.ISO_DATE), dayRev, dayCount));
             }
 
             // 3. Top Movies

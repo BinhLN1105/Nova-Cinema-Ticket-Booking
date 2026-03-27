@@ -4,7 +4,7 @@ import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer
 } from 'recharts'
-import { TrendingUp, Calendar, Film, DollarSign } from 'lucide-react'
+import { TrendingUp, Calendar, Film, DollarSign, Ticket } from 'lucide-react'
 import { dashboardApi } from '@/api/endpoints'
 import { AdminCard, PageHeader } from '@/components/common/ui/AdminTable'
 import { formatCurrency, formatCompactCurrency, formatDate } from '@/utils'
@@ -153,20 +153,26 @@ export default function ReportsPage() {
       </div>
 
       {/* Bookings bar chart */}
-      <AdminCard className="p-6">
-        <h2 className="font-bold text-gray-900 mb-1 font-display">Số vé bán theo ngày</h2>
-        <p className="text-sm text-gray-400 mb-5">Thống kê lượng vé theo từng ngày trong kỳ</p>
+      <AdminCard className="p-6 shadow-glow-red/5">
+        <div className="flex items-center gap-2 mb-1">
+          <Ticket className="w-4 h-4 text-brand-500" />
+          <h2 className="font-bold text-gray-900 font-display">Số vé bán theo thời gian</h2>
+        </div>
+        <p className="text-sm text-gray-400 mb-5">Thống kê lượng vé theo từng ngày/tháng trong kỳ</p>
         {revLoading ? (
           <div className="h-48 bg-gray-50 rounded-xl animate-pulse" />
         ) : (
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={revenue ?? []} barSize={24}>
               <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" vertical={false} />
-              <XAxis dataKey="date" tickFormatter={d => formatDate(d, 'dd/MM')}
+              <XAxis dataKey="date" tickFormatter={d => formatDate(d, period === 'year' ? 'MM/yy' : 'dd/MM')}
                 tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ borderRadius: 10, border: 'none', fontSize: 12 }} />
-              <Bar dataKey="revenue" fill="#E50914" fillOpacity={0.85} radius={[6, 6, 0, 0]} name="Doanh thu" />
+              <Tooltip 
+                formatter={(v) => [v, 'Số vé']}
+                contentStyle={{ borderRadius: 10, border: 'none', fontSize: 12, boxShadow: '0 4px 20px rgba(0,0,0,0.08)' }} 
+              />
+              <Bar dataKey="bookingCount" fill="#E50914" fillOpacity={0.85} radius={[6, 6, 0, 0]} name="Số vé" />
             </BarChart>
           </ResponsiveContainer>
         )}

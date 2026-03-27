@@ -10,6 +10,16 @@ public class SeatMapResponse {
     private int totalRows;
     @SerializedName("totalCols")
     private int totalCols;
+
+    @SerializedName("maxGridRow")
+    private int maxGridRow;
+
+    @SerializedName("maxGridCol")
+    private int maxGridCol;
+
+    @SerializedName("seatHoldMins")
+    private int seatHoldMins;
+
     @SerializedName("seats")
     private List<SeatItem> seats;
 
@@ -25,6 +35,18 @@ public class SeatMapResponse {
         return totalCols;
     }
 
+    public int getMaxGridRow() {
+        return maxGridRow;
+    }
+
+    public int getMaxGridCol() {
+        return maxGridCol;
+    }
+
+    public int getSeatHoldMins() {
+        return seatHoldMins;
+    }
+
     public List<SeatItem> getSeats() {
         return seats;
     }
@@ -38,6 +60,12 @@ public class SeatMapResponse {
         private String rowLabel;
         @SerializedName("colNumber")
         private int colNumber;
+        @SerializedName("gridRow")
+        private int gridRow;
+        @SerializedName("gridCol")
+        private int gridCol;
+        @SerializedName("seatLabel")
+        private String seatLabel;
         @SerializedName("seatType")
         private String seatType;
         @SerializedName("status")
@@ -55,6 +83,18 @@ public class SeatMapResponse {
 
         public int getColNumber() {
             return colNumber;
+        }
+
+        public int getGridRow() {
+            return gridRow;
+        }
+
+        public int getGridCol() {
+            return gridCol;
+        }
+
+        public String getSeatLabel() {
+            return seatLabel;
         }
 
         public String getSeatType() {

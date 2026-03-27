@@ -17,6 +17,8 @@ public class BookingSummary {
     private String cinemaName;
     @SerializedName("screenName")
     private String screenName;
+    @SerializedName("screenType")
+    private String screenType;
     @SerializedName("seats")
     private String seats;
     @SerializedName("totalAmount")
@@ -60,6 +62,10 @@ public class BookingSummary {
 
     public String getScreenName() {
         return screenName;
+    }
+
+    public String getScreenType() {
+        return screenType;
     }
 
     public String getSeats() {

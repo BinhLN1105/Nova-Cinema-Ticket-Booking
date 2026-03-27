@@ -3,6 +3,8 @@ package com.cinema.ticket_booking.ui.home;
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
 import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
+import com.cinema.ticket_booking.data.model.response.PromotionResponse;
+import androidx.viewpager2.widget.ViewPager2;
 import java.util.List;
 
 import android.os.Bundle;
@@ -29,6 +31,8 @@ public class HomeFragment extends Fragment {
     private HomeViewModel viewModel;
     private final Handler searchHandler = new Handler(Looper.getMainLooper());
     private Runnable searchRunnable;
+    private final Handler bannerHandler = new Handler(Looper.getMainLooper());
+    private Runnable bannerRunnable;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
@@ -92,13 +96,23 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        viewModel.getActiveVouchers().observe(getViewLifecycleOwner(), resource -> {
+        viewModel.getActivePromotions().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
-                binding.cvPromo.setVisibility(View.VISIBLE);
-                VoucherSyncResponse promo = resource.data.get(0);
-                binding.tvPromoText.setText(promo.getCode() + "\\n" + promo.getDescription());
+                binding.cvPromoContainer.setVisibility(View.VISIBLE);
+                
+                PromotionAdapter promotionAdapter = new PromotionAdapter(resource.data, promotion -> {
+                    // Optional: Handle click, e.g., open a dialog or a link
+                });
+                binding.vpPromotions.setAdapter(promotionAdapter);
+                
+                // Auto-scroll logic
+                setupAutoScrollForBanners(resource.data.size());
+                
             } else {
-                binding.cvPromo.setVisibility(View.GONE);
+                binding.cvPromoContainer.setVisibility(View.GONE);
+                if (bannerRunnable != null) {
+                    bannerHandler.removeCallbacks(bannerRunnable);
+                }
             }
         });
 
@@ -150,6 +164,27 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private void setupAutoScrollForBanners(int size) {
+        if (size <= 1) return; // No need to scroll if only 1 banner
+
+        bannerRunnable = () -> {
+            int currentItem = binding.vpPromotions.getCurrentItem();
+            int nextItem = (currentItem + 1) % size;
+            binding.vpPromotions.setCurrentItem(nextItem, true);
+        };
+
+        bannerHandler.postDelayed(bannerRunnable, 4000);
+
+        binding.vpPromotions.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                bannerHandler.removeCallbacks(bannerRunnable);
+                bannerHandler.postDelayed(bannerRunnable, 4000);
+            }
+        });
+    }
+
     private void navigateToDetail(View view, String movieId) {
         Bundle args = new Bundle();
         args.putString("movieId", movieId);
@@ -159,6 +194,9 @@ public class HomeFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (bannerRunnable != null) {
+            bannerHandler.removeCallbacks(bannerRunnable);
+        }
         binding = null;
     }
 }

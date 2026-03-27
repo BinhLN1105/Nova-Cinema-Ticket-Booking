@@ -98,6 +98,9 @@ dependencies {
     // Lottie — Animation (loading, success...)
     implementation libs.lottie
 
+    // ZoomLayout — Zoom & Pan for custom views
+    implementation 'com.otaliastudios:zoomlayout:1.9.0'
+
     // Testing
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit

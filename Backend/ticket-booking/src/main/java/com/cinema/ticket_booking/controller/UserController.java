@@ -5,13 +5,18 @@ import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
 import com.cinema.ticket_booking.dto.request.FcmTokenRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
+import com.cinema.ticket_booking.dto.response.VoucherResponse;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.UserService;
+import com.cinema.ticket_booking.service.UserVoucherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/v1/users")
@@ -19,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+    private final UserVoucherService userVoucherService;
 
     // GET /api/v1/users/me
     @GetMapping("/me")
@@ -53,5 +59,22 @@ public class UserController {
             @Valid @RequestBody ChangePasswordRequest request) {
         userService.changePassword(currentUser.getId(), request);
         return ResponseEntity.ok(ApiResponse.success(null, "Đổi mật khẩu thành công"));
+    }
+
+    // POST /api/v1/users/me/vouchers/{voucherId}
+    @PostMapping("/me/vouchers/{voucherId}")
+    public ResponseEntity<ApiResponse<Void>> saveVoucher(
+            @AuthenticationPrincipal User currentUser,
+            @PathVariable UUID voucherId) {
+        userVoucherService.saveVoucher(currentUser.getId(), voucherId);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã lưu mã ưu đãi vào ví"));
+    }
+
+    // GET /api/v1/users/me/vouchers
+    @GetMapping("/me/vouchers")
+    public ResponseEntity<ApiResponse<List<VoucherResponse>>> getMyVouchers(
+            @AuthenticationPrincipal User currentUser) {
+        return ResponseEntity.ok(ApiResponse.success(
+                userVoucherService.getMyVouchers(currentUser.getId())));
     }
 }

@@ -1,8 +1,11 @@
 package com.cinema.ticket_booking.dto.response;
 
 import com.cinema.ticket_booking.enums.DiscountType;
+import com.cinema.ticket_booking.enums.VoucherApplicableTo;
 import lombok.Builder;
 import lombok.Data;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -11,6 +14,8 @@ import java.io.Serializable;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class VoucherResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -23,13 +28,15 @@ public class VoucherResponse implements Serializable {
     private BigDecimal minOrder;
     private Integer usageLimit;
     private Integer usedCount;
-    private LocalDateTime validFrom;
-    private LocalDateTime validTo;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
+    private VoucherApplicableTo applicableTo;
     private Boolean isActive;
 
-    // Tóm tắt hiển thị cho user (không lộ usedCount, usageLimit)
     @Data
     @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
     public static class Summary implements Serializable {
         private static final long serialVersionUID = 1L;
         private String code;
@@ -38,6 +45,6 @@ public class VoucherResponse implements Serializable {
         private BigDecimal discountValue;
         private BigDecimal maxDiscount;
         private BigDecimal minOrder;
-        private LocalDateTime validTo;
+        private LocalDateTime endDate;
     }
 }

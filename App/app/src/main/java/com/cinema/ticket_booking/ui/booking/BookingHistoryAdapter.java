@@ -50,6 +50,7 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
         void bind(BookingSummary s) {
             b.tvMovieTitle.setText(s.getMovieTitle());
             b.tvCinema.setText("CineNoir " + s.getCinemaName());
+            b.tvFormat.setText(formatScreenType(s.getScreenType()));
             
             // Format time
             String rawTime = s.getStartTime();
@@ -99,6 +100,17 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                 b.btnViewTicket.setOnClickListener(v -> listener.onClick(s.getId()));
             }
             b.getRoot().setOnClickListener(v -> listener.onClick(s.getId()));
+        }
+
+        private String formatScreenType(String rawType) {
+            if (rawType == null) return "2D";
+            switch (rawType.toUpperCase()) {
+                case "STANDARD": return "2D";
+                case "THREE_D": return "3D";
+                case "IMAX": return "IMAX";
+                case "FOUR_DX": return "4DX";
+                default: return rawType;
+            }
         }
     }
 }

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useMutation } from '@tanstack/react-query'
-import { X, Loader2 } from 'lucide-react'
-import { ruleApi } from '@/api/endpoints'
+import { useMutation, useQuery } from '@tanstack/react-query'
+import { ruleApi, promotionApi } from '@/api/endpoints'
+import { Modal } from '@/components/common/ui/Modal'
+import { Field, Input, Select, Button, Switch } from '@/components/common/ui/FormElements'
 import toast from 'react-hot-toast'
 
 export default function PricingRuleModal({ rule, onClose, onSuccess }) {
@@ -41,6 +41,14 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
     }
   })
 
+  // Lấy danh sách khuyến mãi
+  const { data: promoData } = useQuery({
+    queryKey: ['admin-all-promotions'],
+    queryFn: () => promotionApi.getAll({ page: 0, size: 1000 }),
+    enabled: formData.ruleType === 'PROMOTION'
+  })
+  const promotions = Array.isArray(promoData) ? promoData : (promoData?.content || [])
+
   const handleSubmit = (e) => {
     e.preventDefault()
     if (!formData.name.trim()) return toast.error('Vui lòng nhập tên quy tắc')
@@ -49,94 +57,114 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
   }
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-          className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-        
-        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-          className="card-cinema w-full max-w-lg relative z-10 p-6">
-          <button onClick={onClose} className="absolute right-4 top-4 p-2 text-cinema-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors">
-            <X className="w-5 h-5" />
-          </button>
+    <Modal 
+      open={true} 
+      onClose={onClose}
+      title={rule ? 'Cập nhật quy tắc giá' : 'Thêm quy tắc mới'}
+      description="Cấu hình tự động điều chỉnh giá vé dựa trên các điều kiện cụ thể."
+      size="lg"
+    >
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Field label="Tên quy tắc" required>
+          <Input 
+            value={formData.name} 
+            onChange={e => setFormData({ ...formData, name: e.target.value })}
+            placeholder="VD: Thứ 3 vui vẻ, Lễ 30/4..." 
+          />
+        </Field>
 
-          <h3 className="text-xl font-bold text-white mb-6">
-            {rule ? 'Cập nhật quy tắc' : 'Thêm quy tắc mới'}
-          </h3>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Loại điều kiện" required>
+            <Select 
+              value={formData.ruleType} 
+              onChange={e => setFormData({ ...formData, ruleType: e.target.value })}
+              options={[
+                { value: 'DAY_OF_WEEK', label: '📅 Thứ trong tuần' },
+                { value: 'TIME_FRAME',  label: '⏰ Khung giờ' },
+                { value: 'DATE_RANGE',  label: '🎉 Sự kiện / Khoảng ngày' },
+                { value: 'SEAT_TYPE',   label: '💺 Loại ghế' },
+                { value: 'PROMOTION',   label: '🎁 Chương trình KM' },
+              ]} 
+            />
+          </Field>
+          <Field label="Giá trị điều kiện" required>
+            {formData.ruleType === 'PROMOTION' ? (
+              <Select 
+                value={formData.conditionValue}
+                onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
+                options={[
+                  { value: '', label: '-- Chọn khuyến mãi --' },
+                  ...promotions.map(p => ({ value: p.id, label: p.title }))
+                ]}
+              />
+            ) : (
+              <Input 
+                value={formData.conditionValue} 
+                onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
+                placeholder={
+                  formData.ruleType === 'DAY_OF_WEEK' ? 'MONDAY, TUESDAY...' :
+                  formData.ruleType === 'TIME_FRAME' ? '22:00-23:59' :
+                  formData.ruleType === 'SEAT_TYPE' ? 'VIP, COUPLE...' :
+                  'YYYY-MM-DD'
+                } 
+              />
+            )}
+          </Field>
+        </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-cinema-300 mb-1.5">Tên quy tắc</label>
-              <input type="text" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })}
-                className="input-cinema w-full" placeholder="VD: Thứ 3 vui vẻ..." />
-            </div>
+        <div className="grid grid-cols-2 gap-4">
+          <Field label="Loại điều chỉnh" required>
+            <Select 
+              value={formData.adjustmentType} 
+              onChange={e => setFormData({ ...formData, adjustmentType: e.target.value })}
+              options={[
+                { value: 'PERCENTAGE',   label: '% Phần trăm' },
+                { value: 'FIXED_AMOUNT', label: '₫ Số tiền (VND)' },
+                { value: 'MULTIPLIER',   label: '✖️ Hệ số nhân' },
+              ]} 
+            />
+          </Field>
+          <Field label="Mức điều chỉnh" required>
+            <Input 
+              type="number" 
+              step="0.01" 
+              value={formData.adjustmentValue} 
+              onChange={e => setFormData({ ...formData, adjustmentValue: Number(e.target.value) })}
+              placeholder="VD: -10, 1.5, 20000" 
+            />
+          </Field>
+        </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-cinema-300 mb-1.5">Loại điều kiện</label>
-                <select value={formData.ruleType} onChange={e => setFormData({ ...formData, ruleType: e.target.value })}
-                  className="input-cinema w-full">
-                  <option value="DAY_OF_WEEK">Thứ trong tuần</option>
-                  <option value="TIME_FRAME">Khung giờ</option>
-                  <option value="DATE_RANGE">Sự kiện / Khoảng ngày</option>
-                  <option value="SEAT_TYPE">Loại ghế</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-cinema-300 mb-1.5">Giá trị điều kiện</label>
-                <input type="text" value={formData.conditionValue} onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
-                  className="input-cinema w-full" placeholder={
-                    formData.ruleType === 'DAY_OF_WEEK' ? 'MONDAY, TUESDAY...' :
-                    formData.ruleType === 'TIME_FRAME' ? '22:00-23:59' :
-                    formData.ruleType === 'SEAT_TYPE' ? 'VIP, COUPLE...' :
-                    '2024-04-30,2024-05-01'
-                  } />
-              </div>
-            </div>
+        <Field label="Độ ưu tiên" info="Số nhỏ hơn sẽ được ưu tiên áp dụng trước.">
+          <Input 
+            type="number" 
+            value={formData.priority} 
+            onChange={e => setFormData({ ...formData, priority: Number(e.target.value) })} 
+          />
+        </Field>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-cinema-300 mb-1.5">Loại điều chỉnh</label>
-                <select value={formData.adjustmentType} onChange={e => setFormData({ ...formData, adjustmentType: e.target.value })}
-                  className="input-cinema w-full">
-                  <option value="PERCENTAGE">Phần trăm (%)</option>
-                  <option value="FIXED_AMOUNT">Khoản tiền (VND)</option>
-                  <option value="MULTIPLIER">Hệ số nhân (x)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-cinema-300 mb-1.5">Mức điều chỉnh</label>
-                <input type="number" step="0.01" value={formData.adjustmentValue} onChange={e => setFormData({ ...formData, adjustmentValue: Number(e.target.value) })}
-                  className="input-cinema w-full" placeholder="VD: -10, 1.5, 20000" />
-              </div>
-            </div>
+        <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl border border-gray-100">
+          <div>
+            <p className="text-sm font-bold text-gray-900">Kích hoạt quy tắc</p>
+            <p className="text-xs text-gray-500">Tắt để ngừng áp dụng quy tắc này ngay lập tức</p>
+          </div>
+          <Switch 
+            checked={formData.isActive} 
+            onChange={checked => setFormData({ ...formData, isActive: checked })} 
+          />
+        </div>
 
-            <div>
-              <label className="block text-sm font-medium text-cinema-300 mb-1.5">Độ ưu tiên (Số nhỏ ưu tiên xử lý trước)</label>
-              <input type="number" value={formData.priority} onChange={e => setFormData({ ...formData, priority: Number(e.target.value) })}
-                className="input-cinema w-full" />
-            </div>
-
-            <div className="flex items-center gap-2 mt-2">
-              <input type="checkbox" id="isActive" checked={formData.isActive} onChange={e => setFormData({ ...formData, isActive: e.target.checked })}
-                className="w-4 h-4 rounded border-white/20 bg-cinema-800 text-brand-500 focus:ring-brand-500 focus:ring-offset-cinema-900" />
-              <label htmlFor="isActive" className="text-sm text-cinema-300 cursor-pointer">Kích hoạt quy tắc</label>
-            </div>
-
-            <div className="flex justify-end gap-3 pt-6 border-t border-white/5">
-              <button type="button" onClick={onClose}
-                className="px-5 py-2.5 rounded-xl font-medium text-cinema-300 hover:text-white hover:bg-white/5 transition-colors">
-                Huỷ
-              </button>
-              <button type="submit" disabled={mutation.isPending}
-                className="btn bg-brand-500 hover:bg-brand-600 text-white px-6 py-2.5 rounded-xl disabled:opacity-50 flex items-center gap-2">
-                {mutation.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {rule ? 'Cập nhật' : 'Thêm mới'}
-              </button>
-            </div>
-          </form>
-        </motion.div>
-      </div>
-    </AnimatePresence>
+        <div className="flex gap-3 pt-2">
+          <Button variant="ghost" className="flex-1" onClick={onClose} type="button">Hủy</Button>
+          <Button 
+            className="flex-1" 
+            type="submit" 
+            isLoading={mutation.isPending}
+          >
+            {rule ? 'Lưu thay đổi' : 'Thêm mới'}
+          </Button>
+        </div>
+      </form>
+    </Modal>
   )
 }

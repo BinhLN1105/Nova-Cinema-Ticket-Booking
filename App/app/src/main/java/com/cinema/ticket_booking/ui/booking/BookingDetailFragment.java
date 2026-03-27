@@ -77,6 +77,7 @@ public class BookingDetailFragment extends Fragment {
                     binding.tvMovieTitle.setText(b.getMovieTitle());
                     binding.tvCinema.setText("CineNoir " + b.getCinemaName());
                     binding.tvScreen.setText(b.getScreenName());
+                    binding.tvFormat.setText(formatScreenType(b.getScreenType()));
                     
                     // Format showtime
                     String rawTime = b.getStartTime();
@@ -242,6 +243,17 @@ public class BookingDetailFragment extends Fragment {
         cached.status = binding.tvStatus.getText().toString();
         cached.seats = binding.tvSeats.getText().toString();
         ticketCacheManager.saveTicket(cached);
+    }
+
+    private String formatScreenType(String rawType) {
+        if (rawType == null) return "2D";
+        switch (rawType.toUpperCase()) {
+            case "STANDARD": return "2D";
+            case "THREE_D": return "3D";
+            case "IMAX": return "IMAX";
+            case "FOUR_DX": return "4DX";
+            default: return rawType;
+        }
     }
 
     @Override

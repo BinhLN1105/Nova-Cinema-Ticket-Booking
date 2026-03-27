@@ -1,10 +1,12 @@
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { Play, Star, Clock, ChevronRight, Ticket, Zap } from 'lucide-react'
 import { useMovies } from '@/hooks'
 import { cn, formatDate, getRatedColor } from '@/utils'
 import { useTranslation } from 'react-i18next'
+import { useQuery } from '@tanstack/react-query'
+import { promotionApi } from '@/api/endpoints'
 
 // ── Skeleton ──────────────────────────────────
 function MovieSkeleton() {
@@ -106,7 +108,7 @@ function Hero({ featured }) {
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0])
 
   return (
-    <section ref={ref} className="relative min-h-[92vh] flex items-end overflow-hidden">
+    <section ref={ref} className="relative min-h-[92vh] flex items-end overflow-hidden bg-cinema-900">
       {/* Parallax bg */}
       <motion.div style={{ y }} className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br
@@ -189,15 +191,112 @@ function Hero({ featured }) {
   )
 }
 
+// ── Promotions Carousel ───────────────────────
+function PromotionsCarousel() {
+  const { data: response, isLoading, error } = useQuery({
+    queryKey: ['promotions', 'active'],
+    queryFn: () => promotionApi.getActive()
+  });
+
+  if (error) {
+    console.error("Promotion Error:", error);
+  }
+
+  const promotions = response || [];
+  
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Auto-play logic
+  useEffect(() => {
+    if (promotions.length <= 1 || isHovered) return;
+    
+    const timer = setInterval(() => {
+      setCurrentIndex((current) => (current + 1) % promotions.length);
+    }, 4000); // Change banner every 4 seconds
+
+    return () => clearInterval(timer);
+  }, [promotions.length, isHovered]);
+
+  if (isLoading || promotions.length === 0) return null;
+
+  return (
+    <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+      <div 
+        className="relative overflow-hidden rounded-3xl aspect-[3/1] md:aspect-[4/1] bg-surface-lowest group cursor-pointer"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentIndex}
+            src={promotions[currentIndex].imageUrl}
+            alt={promotions[currentIndex].title}
+            className="w-full h-full object-cover"
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -50 }}
+            transition={{ duration: 0.5, ease: "easeInOut" }}
+            onClick={() => {
+              if (promotions[currentIndex].targetUrl) {
+                window.location.href = promotions[currentIndex].targetUrl;
+              }
+            }}
+          />
+        </AnimatePresence>
+
+        {/* Navigation Dots */}
+        {promotions.length > 1 && (
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {promotions.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentIndex(i)}
+                className={cn(
+                  "w-2 h-2 rounded-full transition-all duration-300",
+                  currentIndex === i ? "w-6 bg-brand-500" : "bg-white/50 hover:bg-white/80"
+                )}
+                aria-label={`Go to slide ${i + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </section>
+  )
+}
+
 // ── Main Page ─────────────────────────────────
 export default function HomePage() {
   const { t } = useTranslation()
   const { nowShowing, comingSoon } = useMovies()
   const featured = nowShowing.data?.content?.[0]
 
+  useEffect(() => {
+  }, [featured, nowShowing.status]);
+
+  if (nowShowing.isLoading) {
+    return (
+      <div className="pt-24 space-y-16 bg-cinema-900 min-h-screen">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+           <div className="h-[60vh] rounded-3xl skeleton" />
+        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
+          <div className="h-8 w-48 skeleton mb-8" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => <MovieSkeleton key={i} />)}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    <>
+    <div className="bg-cinema-900 min-h-screen">
       <Hero featured={featured} />
+
+      {/* Promotions Banner AutoPlay Carousel */}
+      <PromotionsCarousel />
 
       {/* Now Showing */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
@@ -267,6 +366,6 @@ export default function HomePage() {
           </div>
         </motion.div>
       </section>
-    </>
+    </div>
   )
 }

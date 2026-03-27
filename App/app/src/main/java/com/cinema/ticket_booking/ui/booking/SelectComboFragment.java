@@ -40,13 +40,23 @@ public class SelectComboFragment extends Fragment {
 
         binding.btnSkip.setOnClickListener(v -> {
             SelectComboViewModel.pendingCombos.clear();
-            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking);
+            
+            Bundle bundle = new Bundle();
+            if (getArguments() != null) {
+                bundle.putLong("expireTime", getArguments().getLong("expireTime"));
+            }
+            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
         });
 
         binding.btnContinue.setOnClickListener(v -> {
             SelectComboViewModel.pendingCombos.clear();
             SelectComboViewModel.pendingCombos.putAll(viewModel.getSelectedCombos());
-            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking);
+            
+            Bundle bundle = new Bundle();
+            if (getArguments() != null) {
+                bundle.putLong("expireTime", getArguments().getLong("expireTime"));
+            }
+            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
         });
 
         binding.rvCombos.setLayoutManager(new LinearLayoutManager(requireContext()));

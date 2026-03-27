@@ -2,9 +2,11 @@ package com.cinema.ticket_booking.controller;
 
 import com.cinema.ticket_booking.dto.request.CinemaRequest;
 import com.cinema.ticket_booking.dto.request.ScreenRequest;
+import com.cinema.ticket_booking.dto.request.ScreenSeatLayoutRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.CinemaResponse;
 import com.cinema.ticket_booking.dto.response.ScreenResponse;
+import com.cinema.ticket_booking.model.Seat;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.ScreenService;
 import jakarta.validation.Valid;
@@ -15,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -75,6 +78,14 @@ public class CinemaController {
         return ResponseEntity.ok(ApiResponse.success(screenService.getByCinema(cinemaId)));
     }
 
+    // GET /api/v1/cinemas/{cinemaId}/admin/screens [ADMIN]
+    @GetMapping("/{cinemaId}/admin/screens")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<ScreenResponse>>> getScreensForAdmin(
+            @PathVariable UUID cinemaId) {
+        return ResponseEntity.ok(ApiResponse.success(screenService.getByCinemaForAdmin(cinemaId)));
+    }
+
     // POST /api/v1/cinemas/{cinemaId}/screens [ADMIN]
     @PostMapping("/{cinemaId}/screens")
     @PreAuthorize("hasRole('ADMIN')")
@@ -103,8 +114,40 @@ public class CinemaController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> deleteScreen(
             @PathVariable UUID cinemaId,
-            @PathVariable UUID screenId) {
-        screenService.delete(screenId);
+            @PathVariable UUID screenId,
+            @RequestParam(defaultValue = "soft") String type) {
+        screenService.delete(screenId, type);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã xoá phòng chiếu"));
+    }
+
+    // ── Seat Layout (Custom Builder) ──────────────────────────────────────
+
+    // GET /api/v1/cinemas/{cinemaId}/screens/{screenId}/seats [ADMIN]
+    @GetMapping("/{cinemaId}/screens/{screenId}/seats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getScreenSeats(
+            @PathVariable UUID cinemaId,
+            @PathVariable UUID screenId) {
+        List<Seat> seats = screenService.getSeats(screenId);
+        List<Map<String, Object>> result = seats.stream().map(s -> Map.<String, Object>of(
+                "id", s.getId().toString(),
+                "gridRow", s.getGridRow(),
+                "gridCol", s.getGridCol(),
+                "seatLabel", s.getSeatLabel(),
+                "seatType", s.getSeatType().name()
+        )).toList();
+        return ResponseEntity.ok(ApiResponse.success(result));
+    }
+
+    // PUT /api/v1/cinemas/{cinemaId}/screens/{screenId}/seats [ADMIN]
+    @PutMapping("/{cinemaId}/screens/{screenId}/seats")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> saveCustomLayout(
+            @PathVariable UUID cinemaId,
+            @PathVariable UUID screenId,
+            @Valid @RequestBody ScreenSeatLayoutRequest request) {
+        request.setScreenId(screenId.toString());
+        screenService.saveCustomLayout(request);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã lưu bố trí ghế thành công"));
     }
 }

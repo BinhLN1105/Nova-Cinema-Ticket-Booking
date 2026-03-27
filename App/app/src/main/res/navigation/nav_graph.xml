@@ -86,12 +86,14 @@
     <fragment android:id="@+id/selectComboFragment"
         android:name="com.cinema.ticket_booking.ui.booking.SelectComboFragment"
         android:label="Bắp nước">
+        <argument android:name="expireTime" app:argType="long" android:defaultValue="0L" />
         <action android:id="@+id/action_selectCombo_to_confirmBooking" app:destination="@id/confirmBookingFragment"/>
     </fragment>
 
     <fragment android:id="@+id/confirmBookingFragment"
         android:name="com.cinema.ticket_booking.ui.booking.ConfirmBookingFragment"
         android:label="Xác nhận đặt vé">
+        <argument android:name="expireTime" app:argType="long" android:defaultValue="0L" />
         <action android:id="@+id/action_confirmBooking_to_payment" app:destination="@id/paymentFragment"/>
     </fragment>
 

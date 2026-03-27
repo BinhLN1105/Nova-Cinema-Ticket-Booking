@@ -151,6 +151,10 @@ public interface ApiService {
         @PATCH("notifications/read-all")
         Call<ApiResponse<Void>> markAllAsRead();
 
+        // ── Promotion ─────────────────────────────────────────────────────────
+        @GET("promotions/active")
+        Call<ApiResponse<List<PromotionResponse>>> getActivePromotions();
+
         // ── Chatbot ───────────────────────────────────────────────────────────
         @POST("chatbot/chat")
         Call<ApiResponse<Map<String, String>>> chatWithAi(@Body ChatRequest request);

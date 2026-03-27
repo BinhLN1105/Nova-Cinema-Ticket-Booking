@@ -6,51 +6,11 @@ import { Tag, Ticket, Copy, CheckCircle2, Clock, ArrowRight, Percent, DollarSign
 import { promotionApi, voucherApi } from '@/api/endpoints'
 import { formatDate, formatCurrency, cn } from '@/utils'
 
-// ─── Mock data (thay bằng API) ────────────────
-const ACTIVE_PROMOTIONS = [
-  {
-    id: '1',
-    title: 'Mùa hè rực rỡ',
-    subtitle: 'Giảm đến 30% tất cả suất chiếu',
-    description: 'Chào mừng mùa hè! Đặt vé bất kỳ suất chiếu nào từ 01/06 – 31/08 và nhận ngay ưu đãi giảm giá hấp dẫn. Áp dụng cho tất cả thành viên NovaTicket.',
-    imageUrl: 'https://images.unsplash.com/photo-1489599849927-2ee91cede3ba?w=800&q=80',
-    endDate: '2024-08-31',
-    voucherCode: 'SUMMER30',
-    gradient: 'from-orange-600/80 to-red-800/80',
-    tag: 'Nổi bật',
-    tagColor: 'bg-amber-400 text-amber-900',
-  },
-  {
-    id: '2',
-    title: 'Combo gia đình cuối tuần',
-    subtitle: 'Đặt 4 vé + tặng ngay 1 combo bắp nước',
-    description: 'Mỗi cuối tuần là thời gian của gia đình! Đặt 4 vé trở lên cho 1 suất chiếu bất kỳ, hệ thống sẽ tự động cộng thêm 1 combo bắp nước vào đơn hàng của bạn.',
-    imageUrl: 'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=800&q=80',
-    endDate: '2024-12-31',
-    voucherCode: null,
-    gradient: 'from-blue-800/80 to-indigo-900/80',
-    tag: 'Cuối tuần',
-    tagColor: 'bg-blue-400 text-blue-900',
-  },
-  {
-    id: '3',
-    title: 'Flashsale thứ 3',
-    subtitle: 'Mỗi thứ 3 hàng tuần — Giảm 25%',
-    description: 'Thứ 3 là ngày vui của tín đồ điện ảnh NovaTicket! Áp dụng tự động khi đặt vé vào thứ 3 bất kỳ trong tuần, không cần nhập mã.',
-    imageUrl: 'https://images.unsplash.com/photo-1440404653325-ab127d49abc1?w=800&q=80',
-    endDate: '2024-12-31',
-    voucherCode: null,
-    gradient: 'from-purple-700/80 to-pink-800/80',
-    tag: 'Mỗi tuần',
-    tagColor: 'bg-purple-400 text-purple-900',
-  },
-]
-
-const PUBLIC_VOUCHERS = [
-  { id: '1', code: 'NOVA20',     discountType: 'PERCENTAGE', discountValue: 20, minOrder: 100000, maxDiscount: 50000, description: 'Giảm 20% tối đa 50.000đ cho mọi đơn hàng từ 100.000đ', applicableTo: 'ALL',           endDate: '2024-12-31', usageRemaining: 377 },
-  { id: '2', code: 'WELCOME50K', discountType: 'FIXED',      discountValue: 50000, minOrder: 100000, maxDiscount: null, description: 'Giảm 50.000đ — Chỉ dùng cho lần đặt vé đầu tiên', applicableTo: 'FIRST_BOOKING',  endDate: '2024-06-30', usageRemaining: 544 },
-  { id: '3', code: 'VIP30',      discountType: 'PERCENTAGE', discountValue: 30, minOrder: 200000, maxDiscount: 100000, description: 'Giảm 30% tối đa 100.000đ — Ưu đãi thành viên VIP', applicableTo: 'ALL',           endDate: '2024-12-31', usageRemaining: 88 },
-  { id: '4', code: 'FIRSTAPP',   discountType: 'FIXED',      discountValue: 30000, minOrder: 80000, maxDiscount: null, description: 'Giảm 30.000đ khi đặt vé lần đầu qua ứng dụng',    applicableTo: 'FIRST_BOOKING',  endDate: '2024-09-30', usageRemaining: 215 },
+// ─── Default fallback styles ────────────────
+const DEFAULT_PROMO_STYLES = [
+  { gradient: 'from-orange-600/80 to-red-800/80', tag: 'Nổi bật', tagColor: 'bg-amber-400 text-amber-900' },
+  { gradient: 'from-blue-800/80 to-indigo-900/80', tag: 'Mới', tagColor: 'bg-blue-400 text-blue-900' },
+  { gradient: 'from-purple-700/80 to-pink-800/80', tag: 'Hot', tagColor: 'bg-purple-400 text-purple-900' },
 ]
 
 const APPLICABLE_LABELS = {
@@ -58,6 +18,7 @@ const APPLICABLE_LABELS = {
   FIRST_BOOKING: { label: 'Đặt vé lần đầu', color: 'bg-purple-50 text-purple-600 border-purple-200' },
   MOVIE:         { label: 'Phim cụ thể',      color: 'bg-amber-50 text-amber-600 border-amber-200' },
 }
+
 
 // ─── Copy Button ──────────────────────────────
 function CopyButton({ code }) {
@@ -210,6 +171,19 @@ function VoucherCard({ voucher, index }) {
 export default function PromotionsPage() {
   const [activeCategory, setCategory] = useState('all')
 
+  const { data: promotionsResponse, isLoading: isLoadingPromos } = useQuery({
+    queryKey: ['active-promotions'],
+    queryFn: () => promotionApi.getActive(),
+  })
+
+  const { data: vouchersResponse, isLoading: isLoadingVouchers } = useQuery({
+    queryKey: ['active-vouchers'],
+    queryFn: () => voucherApi.getActive(),
+  })
+
+  const promotions = promotionsResponse || []
+  const vouchers = vouchersResponse || []
+
   const CATEGORIES = [
     { id: 'all',        label: 'Tất cả' },
     { id: 'vouchers',   label: '🎟️ Mã Voucher' },
@@ -217,7 +191,9 @@ export default function PromotionsPage() {
     { id: 'combo',      label: '🍿 Combo ưu đãi' },
   ]
 
-  const filteredPromos = activeCategory === 'all' ? ACTIVE_PROMOTIONS : ACTIVE_PROMOTIONS.slice(0, 1)
+  // Filter logic (if backend doesn't support categories yet, we show all)
+  const filteredPromos = promotions
+
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-20">
@@ -259,48 +235,55 @@ export default function PromotionsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {ACTIVE_PROMOTIONS.map((promo, i) => (
-              <motion.div key={promo.id}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative overflow-hidden rounded-2xl border border-white/8
-                  hover:border-white/20 transition-all duration-500 cursor-pointer"
-              >
-                {/* Image */}
-                <div className="relative h-44 overflow-hidden">
-                  <img src={promo.imageUrl} alt={promo.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
-                  <div className={cn('absolute inset-0 bg-gradient-to-t', promo.gradient)} />
+            {isLoadingPromos ? (
+              // Loading skeletons
+              [1, 2, 3].map(i => (
+                <div key={i} className="h-64 bg-white/5 animate-pulse rounded-2xl border border-white/10" />
+              ))
+            ) : filteredPromos.length > 0 ? (
+              filteredPromos.map((promo, i) => {
+                const style = DEFAULT_PROMO_STYLES[i % DEFAULT_PROMO_STYLES.length]
+                return (
+                  <motion.div key={promo.id}
+                    initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="group relative overflow-hidden rounded-2xl border border-white/8
+                      hover:border-white/20 transition-all duration-500 cursor-pointer"
+                  >
+                    {/* Image */}
+                    <div className="relative h-44 overflow-hidden">
+                      <img src={promo.imageUrl} alt={promo.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                      <div className={cn('absolute inset-0 bg-gradient-to-t', style.gradient)} />
 
-                  {/* Tag */}
-                  <span className={cn('absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full', promo.tagColor)}>
-                    {promo.tag}
-                  </span>
-
-                  {/* Voucher code pill on image */}
-                  {promo.voucherCode && (
-                    <div className="absolute bottom-3 right-3">
-                      <CopyButton code={promo.voucherCode} />
+                      {/* Tag */}
+                      <span className={cn('absolute top-3 left-3 text-xs font-bold px-2.5 py-1 rounded-full', style.tagColor)}>
+                        {style.tag}
+                      </span>
                     </div>
-                  )}
-                </div>
 
-                {/* Content */}
-                <div className="p-4 bg-cinema-800/80 backdrop-blur-sm">
-                  <h3 className="font-display font-bold text-white text-base mb-0.5">{promo.title}</h3>
-                  <p className="text-brand-400 text-sm font-medium mb-2">{promo.subtitle}</p>
-                  <p className="text-cinema-400 text-xs line-clamp-2 mb-3">{promo.description}</p>
+                    {/* Content */}
+                    <div className="p-4 bg-cinema-800/80 backdrop-blur-sm">
+                      <h3 className="font-display font-bold text-white text-base mb-0.5">{promo.title}</h3>
+                      <p className="text-brand-400 text-sm font-medium mb-2">{promo.subtitle || 'Ưu đãi hấp dẫn'}</p>
+                      <p className="text-cinema-400 text-xs line-clamp-2 mb-3">{promo.description}</p>
 
-                  <div className="flex items-center justify-between">
-                    <Countdown endDate={promo.endDate} />
-                    <Link to="/movies"
-                      className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors">
-                      Đặt vé ngay <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                      <div className="flex items-center justify-between">
+                        <Countdown endDate={promo.endDate} />
+                        <Link to={promo.targetUrl || "/movies"}
+                          className="flex items-center gap-1 text-xs text-brand-400 hover:text-brand-300 font-medium transition-colors">
+                          Xem chi tiết <ArrowRight className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })
+            ) : (
+              <div className="col-span-full py-20 text-center text-cinema-500 border border-dashed border-white/10 rounded-3xl">
+                Hiện tại chưa có chương trình khuyến mãi nào.
+              </div>
+            )}
           </div>
         </section>
 
@@ -324,9 +307,29 @@ export default function PromotionsPage() {
           </div>
 
           <div className="space-y-3">
-            {PUBLIC_VOUCHERS.map((v, i) => (
-              <VoucherCard key={v.id} voucher={v} index={i} />
-            ))}
+            {isLoadingVouchers ? (
+              [1, 2].map(i => (
+                <div key={i} className="h-24 bg-white/5 animate-pulse rounded-2xl" />
+              ))
+            ) : vouchers.length > 0 ? (
+              vouchers.map((v, i) => (
+                <VoucherCard 
+                  key={v.id} 
+                  voucher={{
+                    ...v,
+                    endDate: v.validTo,
+                    // Map or fallback fields that might be missing in SyncResponse
+                    usageRemaining: v.usageRemaining ?? 999,
+                    applicableTo: v.applicableTo ?? 'ALL'
+                  }} 
+                  index={i} 
+                />
+              ))
+            ) : (
+              <div className="py-10 text-center text-cinema-500 bg-white/5 rounded-3xl border border-dashed border-white/10">
+                Chưa có mã voucher công khai nào.
+              </div>
+            )}
           </div>
         </section>
 

@@ -213,28 +213,22 @@
                     android:clipToPadding="false"
                     android:layout_marginBottom="24dp"/>
 
-                <!-- Promo Banner -->
+                <!-- Auto-playing Promo Banner Carousel -->
                 <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/cvPromo"
+                    android:id="@+id/cvPromoContainer"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
+                    android:layout_height="160dp"
                     android:layout_marginHorizontal="24dp"
                     android:layout_marginBottom="32dp"
                     app:cardCornerRadius="24dp"
                     android:visibility="gone"
                     app:cardBackgroundColor="@color/surface_container_lowest">
-                    <!-- Optional: Add static promo content or image here -->
-                    <TextView
-                        android:id="@+id/tvPromoText"
+                    
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/vpPromotions"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:text="Extra 20% OFF\nwith VNPay"
-                        android:textColor="@color/white"
-                        android:textStyle="bold"
-                        android:textSize="18sp"
-                        android:gravity="center_vertical|start"
-                        android:padding="24dp"
-                        android:background="@color/secondary" />
+                        android:layout_height="match_parent" />
+                        
                 </com.google.android.material.card.MaterialCardView>
 
                 <!-- Sắp chiếu -->

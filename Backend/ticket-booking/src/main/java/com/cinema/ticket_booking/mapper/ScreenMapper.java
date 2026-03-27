@@ -15,12 +15,10 @@ public interface ScreenMapper {
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cinema", ignore = true) // service inject Cinema entity
-    @Mapping(target = "isActive", ignore = true)
     Screen toEntity(ScreenRequest request);
 
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "cinema", ignore = true)
-    @Mapping(target = "isActive", ignore = true)
     void updateEntity(ScreenRequest request, @MappingTarget Screen screen);
 }

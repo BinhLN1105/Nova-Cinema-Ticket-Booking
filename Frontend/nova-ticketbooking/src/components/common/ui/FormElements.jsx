@@ -1,4 +1,5 @@
 import { forwardRef, InputHTMLAttributes, SelectHTMLAttributes, TextareaHTMLAttributes, ReactNode } from 'react'
+import { Info } from 'lucide-react'
 import { cn } from '@/utils'
 
 // ── Label ─────────────────────────────────────
@@ -18,10 +19,25 @@ export function FieldError({ message }) {
 }
 
 // ── Field wrapper ─────────────────────────────
-export function Field({ label, required, error, children, htmlFor }) {
+export function Field({ label, required, info, error, children, htmlFor, className }) {
   return (
-    <div>
-      {label && <Label required={required} htmlFor={htmlFor}>{label}</Label>}
+    <div className={cn('space-y-1.5', className)}>
+      {label && (
+        <div className="flex items-center gap-1.5">
+          <Label required={required} htmlFor={htmlFor}>{label}</Label>
+          {info && (
+            <div className="group relative flex items-center">
+              <Info className="w-3.5 h-3.5 text-gray-400 cursor-help hover:text-brand-500 transition-colors" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                <div className="bg-slate-900 shadow-2xl text-white text-[11px] px-3 py-2 rounded-xl w-48 text-center leading-relaxed">
+                  {info}
+                  <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-slate-900" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
       {children}
       <FieldError message={error} />
     </div>
@@ -156,7 +172,8 @@ export function SearchInput({ value, onChange, placeholder = 'Tìm kiếm...', c
 }
 
 // ── Button variants ───────────────────────────
-export function Button({ variant = 'primary', size = 'md', loading, leftIcon, children, className, disabled, ...props }) {
+export function Button({ variant = 'primary', size = 'md', loading, isLoading, leftIcon, children, className, disabled, ...props }) {
+  const isBtnLoading = loading || isLoading
   const VAR = {
     primary:   'bg-brand-500 hover:bg-brand-600 text-white shadow-sm',
     secondary: 'bg-blue-500 hover:bg-blue-600 text-white shadow-sm',
@@ -170,7 +187,7 @@ export function Button({ variant = 'primary', size = 'md', loading, leftIcon, ch
   }
   return (
     <button
-      disabled={disabled || loading}
+      disabled={disabled || isBtnLoading}
       className={cn(
         'inline-flex items-center justify-center font-semibold transition-all duration-200',
         'focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:ring-offset-2',
@@ -179,7 +196,7 @@ export function Button({ variant = 'primary', size = 'md', loading, leftIcon, ch
       )}
       {...props}
     >
-      {loading ? (
+      {isBtnLoading ? (
         <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
       ) : leftIcon}
       {children}
