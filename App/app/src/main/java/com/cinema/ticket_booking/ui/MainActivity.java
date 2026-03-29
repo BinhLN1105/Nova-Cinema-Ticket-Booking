@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.*;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
+import androidx.core.splashscreen.SplashScreen;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.ActivityMainBinding;
 import com.cinema.ticket_booking.util.ThemeManager;
@@ -40,6 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        SplashScreen.installSplashScreen(this);
         ThemeManager.applyTheme(this);   // ← phải gọi TRƯỚC setContentView để tránh flicker
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());

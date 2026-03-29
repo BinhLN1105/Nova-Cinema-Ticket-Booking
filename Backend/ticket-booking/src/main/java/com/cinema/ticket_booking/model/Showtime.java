@@ -11,7 +11,10 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "showtimes")
+@Table(name = "showtimes", indexes = {
+    @Index(name = "idx_showtime_status_end", columnList = "status, end_time"),
+    @Index(name = "idx_showtime_start_time", columnList = "start_time")
+})
 @Getter
 @Setter
 @NoArgsConstructor

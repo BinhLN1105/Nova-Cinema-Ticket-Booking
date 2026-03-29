@@ -131,11 +131,9 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
         if (!hasSeats) continue;
 
         const rowLetter = String.fromCharCode(currentRowCharCode);
-        let currentSeatNumber = 1;
         for (let c = 0; c < newGrid[r].length; c++) {
           if (newGrid[r][c].type !== "EMPTY") {
-            newGrid[r][c].label = `${rowLetter}${currentSeatNumber}`;
-            currentSeatNumber++;
+            newGrid[r][c].label = `${rowLetter}${c + 1}`;
           } else {
             newGrid[r][c].label = ""; // Xoá nhãn nếu là ô trống
           }

@@ -23,6 +23,10 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.Arrays;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import com.cinema.ticket_booking.service.SystemConfigService;
 
 @Service // Bắt buộc phải có ở file Impl
 @RequiredArgsConstructor
@@ -32,6 +36,7 @@ public class MovieServiceImpl implements MovieService {
     private final MovieRepository movieRepository;
     private final GenreRepository genreRepository;
     private final MovieMapper movieMapper;
+    private final SystemConfigService systemConfigService;
 
     @Override
     @Transactional(readOnly = true)
@@ -77,6 +82,43 @@ public class MovieServiceImpl implements MovieService {
     public List<MovieResponse.Summary> getNowShowingByCinema(UUID cinemaId) {
         return movieRepository.findNowShowingByCinema(cinemaId)
                 .stream().map(movieMapper::toSummary).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<MovieResponse.Summary> getFeaturedMovies() {
+        String mode = systemConfigService.getConfig("HERO_SECTION_MODE", "TOP_SALES");
+        List<Movie> movies;
+
+        switch (mode.toUpperCase()) {
+            case "TOP_RATING":
+                movies = movieRepository.findTop10ByStatusOrderByAvgRatingDesc(MovieStatus.NOW_SHOWING);
+                break;
+            case "NEW_RELEASE":
+                movies = movieRepository.findAll(PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "releaseDate")))
+                        .getContent();
+                break;
+            case "MANUAL":
+                String ids = systemConfigService.getConfig("HERO_SECTION_IDS", "");
+                if (ids.isEmpty()) {
+                    movies = movieRepository.findTop10ByStatusOrderByAvgRatingDesc(MovieStatus.NOW_SHOWING);
+                } else {
+                    List<UUID> uuidList = Arrays.stream(ids.split(","))
+                            .map(String::trim)
+                            .filter(s -> !s.isEmpty())
+                            .map(UUID::fromString)
+                            .toList();
+                    movies = movieRepository.findAllById(uuidList);
+                }
+                break;
+            case "TOP_SALES":
+            default:
+                // Fallback to Now Showing if sales metric is not yet implemented
+                movies = movieRepository.findByStatus(MovieStatus.NOW_SHOWING, PageRequest.of(0, 5)).getContent();
+                break;
+        }
+
+        return movies.stream().limit(5).map(movieMapper::toSummary).toList();
     }
 
     @Override

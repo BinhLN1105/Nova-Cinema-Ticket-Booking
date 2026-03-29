@@ -48,6 +48,15 @@ public class Booking {
     @Builder.Default
     private BigDecimal discountAmount = BigDecimal.ZERO;
 
+    // Số tiền được giảm từ Khuyến mãi hệ thống (Dynamic Pricing)
+    @Column(name = "promotion_discount_amount", precision = 12, scale = 2)
+    @Builder.Default
+    private BigDecimal promotionDiscountAmount = BigDecimal.ZERO;
+
+    // Tên chương trình khuyến mãi đã áp dụng
+    @Column(name = "applied_promotion_name", length = 100)
+    private String appliedPromotionName;
+
     // 1 QR Code duy nhất cho toàn bộ đơn hàng (thay vì 1 QR/ghế)
     // Nội dung: mã hoá JSON {bookingId, bookingCode, checksum} bằng HMAC-SHA256
     @Column(name = "qr_code", columnDefinition = "TEXT", unique = true)

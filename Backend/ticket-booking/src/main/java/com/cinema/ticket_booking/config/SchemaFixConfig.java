@@ -3,97 +3,206 @@ package com.cinema.ticket_booking.config;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.context.annotation.Bean;
+import org.springframework.cache.Cache;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.cache.RedisCacheManager;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
- * Temporary config to fix NULL version columns for existing records.
- * This can be deleted after the first successful run.
+ * Cấu hình bảo trì Database và Cache khi khởi động.
  */
 @Configuration
 @RequiredArgsConstructor
 @Slf4j
-public class SchemaFixConfig {
+public class SchemaFixConfig implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
+    private final RedisCacheManager cacheManager;
+    private final RedisConnectionFactory connectionFactory;
 
-    @Bean
-    public CommandLineRunner fixNullVersions() {
-        return args -> {
-            log.info("[SchemaFix] Checking for data integrity issues...");
+    @Override
+    public void run(String... args) throws Exception {
+        log.info("[SchemaFix] Bắt đầu kiểm tra và bảo trì hệ thống...");
 
-            // 1. Fix NULL versions and numeric columns (Existing logic)
+        // 1. ƯU TIÊN HÀNG ĐẦU: Dọn dẹp Cache và giải phóng ghế để có thể test ngay
+        flushRedis();
+        unlockAllSeats();
+        
+        clearCache("movies_now_showing");
+        clearCache("movies_coming_soon");
+        clearCache("promotions");
+        clearCache("combos");
+        clearCache("system_configs");
+
+        // 2. Sửa lỗi dữ liệu NULL cho các cột quan trọng
+        try {
             jdbcTemplate.execute("UPDATE users SET version = 0 WHERE version IS NULL");
             jdbcTemplate.execute("UPDATE users SET reward_points = 0 WHERE reward_points IS NULL");
             jdbcTemplate.execute("UPDATE users SET available_exp = 0 WHERE available_exp IS NULL");
             jdbcTemplate.execute("UPDATE users SET membership_tier = 'BRONZE' WHERE membership_tier IS NULL");
             jdbcTemplate.execute("UPDATE bookings SET version = 0 WHERE version IS NULL");
+            jdbcTemplate.execute("UPDATE bookings SET pending_exp = 0 WHERE pending_exp IS NULL");
             jdbcTemplate.execute("UPDATE screens SET is_deleted = false WHERE is_deleted IS NULL");
             jdbcTemplate.execute("UPDATE promotions SET is_active = true WHERE is_active IS NULL");
-            jdbcTemplate.execute("UPDATE promotions SET start_date = CURRENT_TIMESTAMP - INTERVAL '1 day' WHERE start_date IS NULL OR start_date > CURRENT_TIMESTAMP");
-            jdbcTemplate.execute("UPDATE promotions SET end_date = CURRENT_TIMESTAMP + INTERVAL '30 days' WHERE end_date IS NULL OR end_date < CURRENT_TIMESTAMP");
-            jdbcTemplate.execute("UPDATE vouchers SET is_active = true WHERE is_active IS NULL");
-            jdbcTemplate.execute("UPDATE vouchers SET valid_to = CURRENT_TIMESTAMP + INTERVAL '90 days' WHERE valid_to IS NULL OR valid_to < CURRENT_TIMESTAMP");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi cập nhật dữ liệu NULL: {}", e.getMessage());
+        }
 
-            // 2. Programmatic Migration for 'seats' table Grid columns
-            // We do this because ddl-auto=update fails to add NOT NULL columns to existing
-            // data
+        // 3. Bảo trì bảng Seats (Grid columns)
+        ensureGridColumns();
+
+        // 4. Cập nhật Constraint cho Pricing Rules
+        updatePricingRulesConstraint();
+
+        // 5. Thêm các cột Bundle cho Pricing Rules (Dynamic Pricing Engine)
+        ensurePricingRulesBundleColumns();
+        
+        // 6. Thêm các cột Khuyến mãi cho Đơn hàng (Persistence Promotion)
+        ensureBookingPromotionColumns();
+
+        // 7. Cập nhật Constraint cho trạng thái Booking (Tránh lỗi CHECKED_IN)
+        updateBookingStatusConstraint();
+
+        log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
+    }
+
+    private void clearCache(String cacheName) {
+        try {
+            Cache cache = cacheManager.getCache(cacheName);
+            if (cache != null) {
+                cache.clear();
+                log.info("[SchemaFix] Đã xóa cache: {}", cacheName);
+            }
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể xóa cache {}: {}", cacheName, e.getMessage());
+        }
+    }
+
+    private void ensureGridColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'seats'...");
+            jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS grid_row INT");
+            jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS grid_col INT");
+            jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS seat_label VARCHAR(10)");
+
+            int migrated = jdbcTemplate.update(
+                    "UPDATE seats SET " +
+                    "  grid_row = ASCII(row_label) - 65, " +
+                    "  grid_col = col_number - 1, " +
+                    "  seat_label = row_label || CAST(col_number AS TEXT) " +
+                    "WHERE grid_row IS NULL OR grid_col IS NULL");
+
+            if (migrated > 0) log.info("[SchemaFix] Đã chuyển đổi {} ghế sang dạng grid", migrated);
+
+            jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_row SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_col SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN seat_label SET NOT NULL");
+        } catch (Exception e) {
+            log.error("[SchemaFix] Lỗi khi bảo trì bảng seats: {}", e.getMessage());
+        }
+    }
+
+    private void updatePricingRulesConstraint() {
+        try {
+            log.info("[SchemaFix] Cập nhật ràng buộc cho bảng 'pricing_rules'...");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules DROP CONSTRAINT IF EXISTS pricing_rules_rule_type_check");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ADD CONSTRAINT pricing_rules_rule_type_check " +
+                    "CHECK (rule_type IN ('DAY_OF_WEEK', 'TIME_FRAME', 'DATE_RANGE', 'SEAT_TYPE', 'PROMOTION'))");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể cập nhật constraint pricing_rules: {}", e.getMessage());
+        }
+    }
+
+    private void ensurePricingRulesBundleColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra các cột Bundle cho 'pricing_rules'...");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS target_type VARCHAR(20)");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS min_ticket_qty INTEGER");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ADD COLUMN IF NOT EXISTS min_combo_qty INTEGER");
+
+            jdbcTemplate.execute("UPDATE pricing_rules SET target_type = 'TICKET' WHERE target_type IS NULL");
+            jdbcTemplate.execute("UPDATE pricing_rules SET min_ticket_qty = 0 WHERE min_ticket_qty IS NULL");
+            jdbcTemplate.execute("UPDATE pricing_rules SET min_combo_qty = 0 WHERE min_combo_qty IS NULL");
+
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ALTER COLUMN target_type SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ALTER COLUMN min_ticket_qty SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE pricing_rules ALTER COLUMN min_combo_qty SET NOT NULL");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi cập nhật cột Bundle: {}", e.getMessage());
+        }
+    }
+
+    private void ensureBookingPromotionColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra các cột Khuyến mãi cho 'bookings'...");
+            
             try {
-                log.info("[SchemaFix] Ensuring 'seats' table has grid columns...");
-
-                // Add columns as NULLABLE first
-                jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS grid_row INT");
-                jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS grid_col INT");
-                jdbcTemplate.execute("ALTER TABLE seats ADD COLUMN IF NOT EXISTS seat_label VARCHAR(10)");
-
-                // Migrate data for existing records
-                int migrated = jdbcTemplate.update(
-                        "UPDATE seats SET " +
-                                "  grid_row = ASCII(row_label) - 65, " +
-                                "  grid_col = col_number - 1, " +
-                                "  seat_label = row_label || CAST(col_number AS TEXT) " +
-                                "WHERE grid_row IS NULL OR grid_col IS NULL");
-
-                if (migrated > 0) {
-                    log.info("[SchemaFix] Migrated {} existing seats to grid layout", migrated);
-                }
-
-                // Now set NOT NULL (ignore if already set)
-                jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_row SET NOT NULL");
-                jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_col SET NOT NULL");
-                jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN seat_label SET NOT NULL");
-
-                // Add Unique Constraint if not exists
-                try {
-                    jdbcTemplate.execute(
-                            "ALTER TABLE seats ADD CONSTRAINT uk_seat_screen_grid UNIQUE (screen_id, grid_row, grid_col)");
-                    log.info("[SchemaFix] Created unique constraint uk_seat_screen_grid");
-                } catch (Exception e) {
-                    // Constraint likely already exists
-                }
-
-                // 3. Update pricing_rules check constraint for 'PROMOTION' type
-                try {
-                    log.info("[SchemaFix] Updating pricing_rules check constraint for 'PROMOTION'...");
-                    // Drop the old constraint (PostgreSQL specific name usually generated by
-                    // Hibernate)
-                    jdbcTemplate.execute(
-                            "ALTER TABLE pricing_rules DROP CONSTRAINT IF EXISTS pricing_rules_rule_type_check");
-
-                    // Re-add with new enum value
-                    jdbcTemplate.execute("ALTER TABLE pricing_rules ADD CONSTRAINT pricing_rules_rule_type_check " +
-                            "CHECK (rule_type IN ('DAY_OF_WEEK', 'TIME_FRAME', 'DATE_RANGE', 'SEAT_TYPE', 'PROMOTION'))");
-                    log.info("[SchemaFix] Successfully updated pricing_rules check constraint.");
-                } catch (Exception e) {
-                    log.warn("[SchemaFix] Could not update pricing_rules constraint: {}", e.getMessage());
-                }
-
+                jdbcTemplate.execute("SET statement_timeout = 60000");
             } catch (Exception e) {
-                log.error("[SchemaFix] Failed to migrate schema: {}", e.getMessage());
+                log.debug("Không thể tăng statement_timeout: {}", e.getMessage());
             }
 
-            log.info("[SchemaFix] Data integrity check and migration completed.");
-        };
+            try {
+                jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS promotion_discount_amount NUMERIC(12,2) DEFAULT 0");
+                log.info("[SchemaFix] Đã đảm bảo cột 'promotion_discount_amount' tồn tại.");
+            } catch (Exception e) {
+                log.warn("[SchemaFix] Lỗi khi thêm cột promotion_discount_amount: {}", e.getMessage());
+            }
+
+            try {
+                jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_promotion_name VARCHAR(255)");
+                log.info("[SchemaFix] Đã đảm bảo cột 'applied_promotion_name' tồn tại.");
+            } catch (Exception e) {
+                log.warn("[SchemaFix] Lỗi khi thêm cột applied_promotion_name: {}", e.getMessage());
+            }
+
+            try {
+                jdbcTemplate.execute("UPDATE bookings SET promotion_discount_amount = 0 WHERE promotion_discount_amount IS NULL");
+            } catch (Exception e) {
+                log.debug("Bỏ qua lỗi cập nhật NULL promotion_discount_amount");
+            }
+            
+            log.info("[SchemaFix] Hoàn tất tiến trình bảo trì bảng 'bookings'.");
+        } catch (Exception e) {
+            log.error("[SchemaFix] Lỗi tổng quát khi bảo trì bookings: {}", e.getMessage());
+        }
+    }
+
+    private void updateBookingStatusConstraint() {
+        try {
+            log.info("[SchemaFix] Cập nhật ràng buộc trạng thái cho bảng 'bookings'...");
+            jdbcTemplate.execute("ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_status_check");
+            jdbcTemplate.execute("ALTER TABLE bookings ADD CONSTRAINT bookings_status_check " +
+                    "CHECK (status IN ('PENDING', 'PAID', 'CHECKED_IN', 'CANCELLED', 'EXPIRED'))");
+            log.info("[SchemaFix] Đã cập nhật thành công danh sách trạng thái hợp lệ cho Booking.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể cập nhật constraint bookings_status: {}", e.getMessage());
+        }
+    }
+    
+    private void unlockAllSeats() {
+        try {
+            log.info("[SchemaFix] Đang giải phóng toàn bộ ghế đang bị khóa (LOCKED) trên hệ thống...");
+            // Chuyển toàn bộ ghế từ LOCKED sang AVAILABLE
+            int unlocked = jdbcTemplate.update("UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
+            if (unlocked > 0) {
+                log.info("[SchemaFix] Đã giải phóng thành công {} ghế đang bị khóa.", unlocked);
+            } else {
+                log.info("[SchemaFix] Không có ghế nào đang bị khóa cần giải phóng.");
+            }
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi giải phóng ghế: {}", e.getMessage());
+        }
+    }
+
+    private void flushRedis() {
+        try {
+            log.info("[SchemaFix] Đang thực hiện FLUSH Redis để tránh lỗi Serialization...");
+            connectionFactory.getConnection().serverCommands().flushDb();
+            log.info("[SchemaFix] Đã dọn dẹp xong toàn bộ Redis DB.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể flush Redis: {}", e.getMessage());
+        }
     }
 }

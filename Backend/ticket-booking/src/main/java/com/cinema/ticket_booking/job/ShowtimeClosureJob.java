@@ -11,6 +11,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -22,29 +23,29 @@ public class ShowtimeClosureJob {
     private final SystemConfigService systemConfigService;
 
     /**
-     * Chạy mỗi 5 phút. Tìm các suất chiếu đang SCHEDULED nhưng đã qua giờ chiếu + LATE_BOOKING_ALLOWANCE_MINS.
-     * Chuyển trạng thái sang ONGOING.
+     * Chạy mỗi 1 phút. Cập nhật trạng thái suất chiếu dựa trên thời gian thực tế.
      */
-    @Scheduled(fixedRate = 300000) // 5 minutes in milliseconds
+    @Scheduled(fixedRate = 60000) // 1 minute
     @Transactional
-    public void autoCloseShowtimes() {
-        log.info("Starting Auto-Close Showtimes Job...");
-
+    public void autoUpdateShowtimeStatuses() {
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         int lateAllowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
-        LocalDateTime cutoffTime = LocalDateTime.now().minusMinutes(lateAllowance);
+        LocalDateTime nowMinusAllowance = now.minusMinutes(lateAllowance);
 
-        List<Showtime> expiredShowtimes = showtimeRepository.findExpiredScheduledShowtimes(cutoffTime);
-        int count = 0;
-
-        for (Showtime showtime : expiredShowtimes) {
-            showtime.setStatus(ShowtimeStatus.ONGOING);
-            count++;
+        // 1. Chuyển sang ONGOING (Hết giờ đặt vé nhưng đang trong giờ chiếu)
+        List<Showtime> toOngoing = showtimeRepository.findShowtimesToMarkOngoing(nowMinusAllowance, now);
+        if (!toOngoing.isEmpty()) {
+            toOngoing.forEach(s -> s.setStatus(ShowtimeStatus.ONGOING));
+            showtimeRepository.saveAll(toOngoing);
+            log.info("Marked {} showtimes as ONGOING", toOngoing.size());
         }
 
-        if (count > 0) {
-            showtimeRepository.saveAll(expiredShowtimes);
+        // 2. Chuyển sang FINISHED (Đã quá giờ kết thúc)
+        List<Showtime> toFinished = showtimeRepository.findShowtimesToMarkFinished(now);
+        if (!toFinished.isEmpty()) {
+            toFinished.forEach(s -> s.setStatus(ShowtimeStatus.FINISHED));
+            showtimeRepository.saveAll(toFinished);
+            log.info("Marked {} showtimes as FINISHED", toFinished.size());
         }
-
-        log.info("Finished Auto-Close Showtimes Job. Closed {} showtimes.", count);
     }
 }

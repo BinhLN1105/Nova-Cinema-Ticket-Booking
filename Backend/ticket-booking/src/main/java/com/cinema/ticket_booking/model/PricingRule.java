@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.model;
 
 import com.cinema.ticket_booking.enums.AdjustmentType;
+import com.cinema.ticket_booking.enums.PricingRuleTarget;
 import com.cinema.ticket_booking.enums.PricingRuleType;
 import jakarta.persistence.*;
 import lombok.*;
@@ -41,6 +42,22 @@ public class PricingRule {
     // Giá trị điều chỉnh (vd: -10 cho giảm 10%, 1.5 cho x1.5 giá, 20000 cho +20k)
     @Column(name = "adjustment_value", precision = 12, scale = 2, nullable = false)
     private BigDecimal adjustmentValue;
+
+    // Mục tiêu áp dụng: TICKET, COMBO, hoặc ORDER_TOTAL
+    @Enumerated(EnumType.STRING)
+    @Column(name = "target_type", nullable = false)
+    @Builder.Default
+    private PricingRuleTarget targetType = PricingRuleTarget.TICKET;
+
+    // Số lượng vé tối thiểu để áp dụng rule này (hỗ trợ Bundle)
+    @Column(name = "min_ticket_qty", nullable = false)
+    @Builder.Default
+    private Integer minTicketQty = 0;
+
+    // Số lượng Combo tối thiểu để áp dụng rule này (hỗ trợ Bundle)
+    @Column(name = "min_combo_qty", nullable = false)
+    @Builder.Default
+    private Integer minComboQty = 0;
 
     // Độ ưu tiên xử lý, số nhỏ xử lý trước. (Để áp dụng % trước/sau cộng tiền)
     @Column(name = "priority", nullable = false)

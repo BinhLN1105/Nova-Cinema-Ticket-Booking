@@ -6,6 +6,7 @@ import { showtimeApi } from '@/api/endpoints'
 import { useBookingStore } from '@/stores/bookingStore'
 import { formatCurrency, cn } from '@/utils'
 import { useEffect } from 'react'
+import BookingTimer from '@/components/common/ui/BookingTimer'
 
 export default function SelectComboPage() {
   const navigate = useNavigate()
@@ -40,6 +41,11 @@ export default function SelectComboPage() {
             <h1 className="font-display text-2xl font-bold text-white">Chọn Bắp nước</h1>
             <p className="text-cinema-300 text-sm">Thêm hương vị cho buổi xem phim của bạn</p>
           </div>
+        </div>
+
+        {/* Timer */}
+        <div className="mb-8">
+          <BookingTimer />
         </div>
 
         {/* Combo List */}

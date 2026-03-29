@@ -30,5 +30,7 @@ public class PromotionResponse {
 
     Boolean isActive;
 
+    Boolean isPopup;
+
     LocalDateTime createdAt;
 }

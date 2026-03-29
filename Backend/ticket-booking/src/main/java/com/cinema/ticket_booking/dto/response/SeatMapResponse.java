@@ -39,6 +39,10 @@ public class SeatMapResponse {
         private String seatLabel;      // Nhãn hiển thị: "A1", "VIP-5"
         private SeatType seatType;
         private SeatStatus status; // AVAILABLE | LOCKED | BOOKED
-        private BigDecimal price;
+        private BigDecimal price; // Giá cuối sau khi áp dụng các quy tắc
+        private BigDecimal basePrice; // Giá gốc ban đầu
+        private BigDecimal discountAmount; // Số tiền giảm từ Promotion
+        private String appliedPromotionName; // Tên chương trình khuyến mãi áp dụng
     }
+
 }

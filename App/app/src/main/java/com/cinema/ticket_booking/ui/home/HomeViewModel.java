@@ -25,6 +25,8 @@ public class HomeViewModel extends ViewModel {
     private final MutableLiveData<Resource<List<VoucherSyncResponse>>> activeVouchers = new MutableLiveData<>();
     private final MutableLiveData<Resource<List<PromotionResponse>>> activePromotions = new MutableLiveData<>();
     private final MutableLiveData<Resource<PageResponse<MovieSummary>>> searchResults = new MutableLiveData<>();
+    private final MutableLiveData<Resource<List<MovieSummary>>> featuredMovies = new MutableLiveData<>();
+    private final MutableLiveData<Resource<PromotionResponse>> popupPromotion = new MutableLiveData<>();
 
     @Inject
     public HomeViewModel(MovieRepository movieRepository, VoucherRepository voucherRepository, PromotionRepository promotionRepository) {
@@ -54,6 +56,14 @@ public class HomeViewModel extends ViewModel {
         return searchResults;
     }
 
+    public LiveData<Resource<List<MovieSummary>>> getFeaturedMovies() {
+        return featuredMovies;
+    }
+
+    public LiveData<Resource<PromotionResponse>> getPopupPromotion() {
+        return popupPromotion;
+    }
+
     public void searchMovies(String query) {
         movieRepository.searchMovies(query, 0, 10).observeForever(searchResults::setValue);
     }
@@ -79,5 +89,9 @@ public class HomeViewModel extends ViewModel {
                 .observeForever(activeVouchers::setValue);
         promotionRepository.getActivePromotions()
                 .observeForever(activePromotions::setValue);
+        movieRepository.getFeaturedMovies()
+                .observeForever(featuredMovies::setValue);
+        promotionRepository.getPopupPromotion()
+                .observeForever(popupPromotion::setValue);
     }
 }

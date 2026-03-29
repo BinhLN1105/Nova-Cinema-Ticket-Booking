@@ -2,7 +2,9 @@ package com.cinema.ticket_booking.data.model.response;
 
 import com.google.gson.annotations.SerializedName;
 
-public class PromotionResponse {
+import java.io.Serializable;
+
+public class PromotionResponse implements Serializable {
     @SerializedName("id")
     private String id;
 

@@ -125,4 +125,25 @@ public class MovieRepository {
         });
         return result;
     }
+
+    public LiveData<Resource<List<MovieSummary>>> getFeaturedMovies() {
+        MutableLiveData<Resource<List<MovieSummary>>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.getFeaturedMovies().enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<MovieSummary>>> call,
+                    Response<ApiResponse<List<MovieSummary>>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
+                    result.setValue(Resource.success(response.body().getData()));
+                else
+                    result.setValue(Resource.error("Tải phim nổi bật thất bại"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<MovieSummary>>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
 }

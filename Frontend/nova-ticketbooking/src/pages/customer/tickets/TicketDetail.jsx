@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
-import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck, Star } from 'lucide-react'
+import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck, Star, Eye, EyeOff } from 'lucide-react'
 import { bookingApi, reviewApi } from '@/api/endpoints'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import { Modal } from '@/components/common/ui/Modal'
@@ -14,6 +14,7 @@ export default function TicketDetail() {
   const { id } = useParams()
   const navigate = useNavigate()
   const [copied, setCopied] = useState(false)
+  const [showCode, setShowCode] = useState(false)
 
   const { data: booking, refetch, isLoading } = useQuery({
     queryKey: ['booking', id],
@@ -29,11 +30,16 @@ export default function TicketDetail() {
 
   // Review State
   const [isReviewOpen, setIsReviewOpen] = useState(false)
-  const [rating, setRating] = useState(10)
+  const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
 
   const reviewMutation = useMutation({
-    mutationFn: () => reviewApi.create(booking.movieId, { rating, comment }),
+    mutationFn: () => reviewApi.create({ 
+      movieId: booking.movieId, 
+      bookingId: id,
+      rating, 
+      comment 
+    }),
     onSuccess: () => {
       toast.success('Cảm ơn bạn đã đánh giá phim!')
       setIsReviewOpen(false)
@@ -83,6 +89,12 @@ export default function TicketDetail() {
   if (!booking) return null
   const badge = getStatusBadge(booking.status)
 
+  const maskCode = (code) => {
+    if (!code) return ''
+    if (code.length <= 8) return code
+    return `${code.substring(0, 6)}********`
+  }
+
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-16">
       <div className="max-w-md mx-auto px-4 sm:px-6">
@@ -111,31 +123,49 @@ export default function TicketDetail() {
                     {badge.label}
                   </span>
                 </div>
-                <div className="mt-3 space-y-1.5 text-sm text-cinema-300">
+                <div className="mt-3 space-y-1.5 text-sm text-cinema-100">
                   <p className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5" /> {booking.cinemaName}
+                    <MapPin className="w-3.5 h-3.5 text-cinema-400" /> {booking.cinemaName}
                   </p>
                   <p className="flex items-center gap-1.5">
-                    <Monitor className="w-3.5 h-3.5" /> {booking.screenName}
+                    <Monitor className="w-3.5 h-3.5 text-cinema-400" /> {booking.screenName}
                   </p>
                   <p className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5" /> {formatDateTime(booking.startTime)}
+                    <Clock className="w-3.5 h-3.5 text-cinema-400" /> {formatDateTime(booking.startTime)}
                   </p>
                 </div>
               </div>
             </div>
 
-            {/* Seats */}
-            <div className="p-3 rounded-xl bg-cinema-800/60">
-              <p className="text-cinema-400 text-xs mb-2 uppercase tracking-wider">Ghế</p>
-              <div className="flex flex-wrap gap-2">
-                {booking.seats.map((s, i) => (
-                  <span key={i} className="px-3 py-1.5 rounded-lg bg-brand-500/15
-                    border border-brand-500/30 text-brand-400 text-sm font-mono font-bold">
-                    {s.rowLabel}{s.colNumber}
-                  </span>
-                ))}
+            {/* Seats & Combos */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="p-3 rounded-xl bg-cinema-800/60 border border-white/5">
+                <p className="text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Ghế</p>
+                <div className="flex flex-wrap gap-2">
+                  {booking.seats.map((s, i) => (
+                    <span key={i} className="px-3 py-1.5 rounded-lg bg-brand-500/10
+                      border border-brand-500/30 text-brand-400 text-sm font-mono font-bold shadow-sm shadow-brand-500/10">
+                      {s.rowLabel}{s.colNumber}
+                    </span>
+                  ))}
+                </div>
               </div>
+
+              {booking.combos && booking.combos.length > 0 && (
+                <div className="p-3 rounded-xl bg-cinema-800/60 border border-white/5">
+                  <p className="text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Combo / Bắp nước</p>
+                  <div className="space-y-1.5">
+                    {booking.combos.map((c, i) => (
+                      <div key={i} className="flex justify-between items-center text-sm">
+                        <span className="text-cinema-200">{c.comboName}</span>
+                        <span className="px-2 py-0.5 rounded bg-brand-500/15 text-brand-400 font-bold border border-brand-500/20">
+                          x{c.quantity}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -156,10 +186,20 @@ export default function TicketDetail() {
                 <div className="p-4 rounded-2xl bg-white mb-3">
                   <QRCodeSVG value={booking.qrCode} size={160} />
                 </div>
-                <p className="text-cinema-400 text-xs text-center">
+                <p className="text-cinema-200 text-xs text-center font-medium">
                   Xuất trình mã QR này tại quầy để check-in
                 </p>
-                <p className="text-cinema-600 font-mono text-xs mt-1">{booking.bookingCode}</p>
+                <div className="mt-2 flex items-center justify-center gap-2">
+                  <p className="text-cinema-400 font-mono text-sm tracking-wider">
+                    {showCode ? booking.bookingCode : maskCode(booking.bookingCode)}
+                  </p>
+                  <button 
+                    onClick={() => setShowCode(!showCode)}
+                    className="p-1 text-cinema-500 hover:text-brand-400 transition-colors"
+                  >
+                    {showCode ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
 
                 {/* Share buttons */}
                 <div className="w-full mt-5 pt-4 border-t border-cinema-700/50">
@@ -246,35 +286,50 @@ export default function TicketDetail() {
         )}
       </div>
 
-      <Modal open={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="Đánh giá phim">
-        <div className="space-y-4 pt-2">
-          <p className="text-sm font-medium text-gray-700">Chất lượng phim (Điểm: {rating}/10)</p>
+      {/* Review Modal */}
+      <Modal open={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="Đánh giá phim" theme="dark">
+        <form 
+          onSubmit={(e) => { e.preventDefault(); reviewMutation.mutate(); }} 
+          className="space-y-4 pt-2"
+        >
+          <p className="text-sm font-medium text-cinema-200">Chất lượng phim (Điểm: {rating}/5)</p>
           <div className="flex items-center gap-1 justify-center py-2">
-            {[2, 4, 6, 8, 10].map((starValue) => (
-              <button key={starValue} type="button" onClick={() => setRating(starValue)}
-                className="p-1 transition-transform hover:scale-110">
-                <Star className={cn("w-8 h-8", rating >= starValue ? "fill-yellow-400 text-yellow-400" : "text-gray-300")} />
+            {[1, 2, 3, 4, 5].map((starValue) => (
+              <button
+                key={starValue} type="button"
+                onClick={() => setRating(starValue)}
+                className="p-1 transition-transform hover:scale-110 focus:outline-none"
+              >
+                <Star className={cn('w-8 h-8 transition-colors', 
+                  rating >= starValue ? 'text-gold-400 fill-current' : 'text-cinema-600'
+                )} />
               </button>
             ))}
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-medium text-gray-700">Bình luận (tùy chọn)</label>
+            <label className="text-sm font-medium text-cinema-200">Bình luận (tùy chọn)</label>
             <textarea
-              className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-gray-800"
+              className="w-full px-4 py-3 bg-cinema-800/80 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-white"
               placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
+              maxLength={1000}
             />
+            <div className="text-right text-xs text-cinema-400 mt-1">
+              {comment.length}/1000
+            </div>
           </div>
 
-          <div className="pt-4 flex justify-end gap-3">
-            <Button variant="ghost" onClick={() => setIsReviewOpen(false)}>Hủy</Button>
-            <Button onClick={() => reviewMutation.mutate()} disabled={reviewMutation.isPending}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
+            <button type="button" onClick={() => setIsReviewOpen(false)} className="px-5 py-2.5 rounded-xl font-medium text-white hover:bg-white/5 transition-colors">
+              Hủy
+            </button>
+            <button type="submit" disabled={reviewMutation.isPending} className="px-5 py-2.5 rounded-xl font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {reviewMutation.isPending ? 'Đang gửi...' : 'Gửi đánh giá'}
-            </Button>
+            </button>
           </div>
-        </div>
+        </form>
       </Modal>
     </div>
   )

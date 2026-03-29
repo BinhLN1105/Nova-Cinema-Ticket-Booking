@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Bell, Shield, Palette, Globe, Save, ChevronRight } from 'lucide-react'
+import { Bell, Shield, Palette, Globe, Save, ChevronRight, Layout } from 'lucide-react'
 import { AdminCard, PageHeader } from '@/components/common/ui/AdminTable'
-import { Field, Input, Switch, Button } from '@/components/common/ui/FormElements'
+import { Field, Input, Switch, Button, Select } from '@/components/common/ui/FormElements'
+import MoviePicker from '@/components/admin/MoviePicker'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { systemConfigApi } from '@/api/endpoints'
 import toast from 'react-hot-toast'
@@ -11,6 +12,7 @@ const TABS = [
   { id: 'notifications', label: 'Thông báo',      icon: Bell },
   { id: 'security',      label: 'Bảo mật',        icon: Shield },
   { id: 'appearance',    label: 'Giao diện',      icon: Palette },
+  { id: 'home',          label: 'Trang chủ',      icon: Layout },
 ]
 
 export default function SettingsPage() {
@@ -208,6 +210,46 @@ export default function SettingsPage() {
                 <Switch label="Chế độ compact" description="Thu gọn khoảng cách để hiển thị nhiều nội dung hơn" checked={false} onChange={() => {}} />
               </div>
               <Button onClick={save} leftIcon={<Save className="w-4 h-4" />}>Lưu giao diện</Button>
+            </AdminCard>
+          )}
+
+          {activeTab === 'home' && (
+            <AdminCard className="p-6 space-y-6">
+              <h2 className="font-bold text-gray-900 text-lg font-display">Cấu hình Trang chủ (Android)</h2>
+              <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700 leading-relaxed">
+                Thiết lập cách hiển thị phim trên Banner nổi bật (Hero Banner) của ứng dụng di động.
+              </div>
+
+              <Field label="Chế độ hiển thị Banner" info="Lựa chọn tiêu chí để hệ thống tự động lọc 5 phim lên đầu trang chủ.">
+                <Select 
+                  value={localConfigs['HERO_SECTION_MODE'] || 'TOP_RATING'} 
+                  onChange={(e) => handleConfigChange('HERO_SECTION_MODE', e.target.value)}
+                  options={[
+                    { value: 'TOP_SALES',   label: '🔥 Top Sales (Bán chạy nhất)' },
+                    { value: 'TOP_RATING',   label: '⭐ Top Rating (Đánh giá cao nhất)' },
+                    { value: 'NEW_RELEASE', label: '🆕 New Release (Phim mới nhất)' },
+                    { value: 'MANUAL',      label: '🖱️ Manual (Admin tự chọn phim)' },
+                  ]} 
+                />
+              </Field>
+
+              {localConfigs['HERO_SECTION_MODE'] === 'MANUAL' && (
+                <Field label="Danh sách phim tự chọn" info="Tìm kiếm và chọn các bộ phim bạn muốn hiển thị cố định.">
+                  <MoviePicker 
+                    value={localConfigs['HERO_SECTION_IDS'] || ''} 
+                    onChange={(val) => handleConfigChange('HERO_SECTION_IDS', val)} 
+                  />
+                </Field>
+              )}
+
+              <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
+                <p className="text-xs text-gray-400 max-w-xs">
+                  * Thay đổi sẽ có hiệu lực ngay lập tức khi người dùng làm mới trang chủ trên ứng dụng.
+                </p>
+                <Button onClick={handleSaveConfigs} disabled={updateConfigMutation.isLoading} leftIcon={<Save className="w-4 h-4" />}>
+                  {updateConfigMutation.isLoading ? 'Đang lưu...' : 'Lưu cấu hình trang chủ'}
+                </Button>
+              </div>
             </AdminCard>
           )}
         </div>

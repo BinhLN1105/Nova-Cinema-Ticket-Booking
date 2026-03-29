@@ -25,6 +25,7 @@ public class BookingResponse implements Serializable {
 
     // Thông tin suất chiếu
     private String showtimeId;
+    private String movieId;
     private String movieTitle;
     private String moviePosterUrl;
     private LocalDateTime startTime;
@@ -40,10 +41,14 @@ public class BookingResponse implements Serializable {
     private List<ComboItem> combos;
 
     // Thanh toán
-    private BigDecimal subtotal; // Tổng trước giảm giá
+    private BigDecimal subtotal; // Tổng vé + combo (sau khuyến mãi hệ thống, trước voucher)
+    private BigDecimal totalOriginalAmount; // Tổng giá niêm yết ban đầu
+    private BigDecimal promotionDiscountAmount; // Số tiền được giảm từ hệ thống
+    private String appliedPromotionName; // Tên chương trình khuyến mãi hệ thống đã áp dụng
     private String voucherCode;
-    private BigDecimal discountAmount;
-    private BigDecimal totalAmount; // Tổng sau giảm giá
+    private BigDecimal discountAmount; // Số tiền giảm từ voucher
+    private BigDecimal totalAmount; // Tổng sau cùng
+
 
     // QR Code (chỉ có khi status = PAID)
     private String qrCode;

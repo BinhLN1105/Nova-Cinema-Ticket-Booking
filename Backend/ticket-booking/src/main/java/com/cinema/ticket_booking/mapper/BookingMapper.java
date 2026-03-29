@@ -15,6 +15,7 @@ public interface BookingMapper {
 
     @Mapping(target = "id", expression = "java(booking.getId().toString())")
     @Mapping(target = "showtimeId", expression = "java(booking.getShowtime().getId().toString())")
+    @Mapping(target = "movieId", expression = "java(getMovieIdFromBooking(booking))")
     @Mapping(target = "movieTitle", source = "showtime.movie.title")
     @Mapping(target = "moviePosterUrl", source = "showtime.movie.posterUrl")
     @Mapping(target = "startTime", source = "showtime.startTime")
@@ -26,6 +27,9 @@ public interface BookingMapper {
     @Mapping(target = "combos", ignore = true) // service tự map
     @Mapping(target = "subtotal", ignore = true) // service tính
     @Mapping(target = "screenType", ignore = true) // service tính từ getScreenTypeName()
+    @Mapping(target = "totalOriginalAmount", ignore = true)
+    @Mapping(target = "promotionDiscountAmount", ignore = true)
+    @Mapping(target = "appliedPromotionName", ignore = true)
     BookingResponse toResponse(Booking booking);
 
     @Mapping(target = "id", expression = "java(booking.getId().toString())")
@@ -49,4 +53,11 @@ public interface BookingMapper {
     @Mapping(target = "comboName", source = "combo.name")
     @Mapping(target = "subtotal", expression = "java(bc.getUnitPrice().multiply(BigDecimal.valueOf(bc.getQuantity())))")
     BookingResponse.ComboItem toComboItem(BookingCombo bc);
+
+    default String getMovieIdFromBooking(Booking booking) {
+        if (booking != null && booking.getShowtime() != null && booking.getShowtime().getMovie() != null) {
+            return booking.getShowtime().getMovie().getId().toString();
+        }
+        return null;
+    }
 }

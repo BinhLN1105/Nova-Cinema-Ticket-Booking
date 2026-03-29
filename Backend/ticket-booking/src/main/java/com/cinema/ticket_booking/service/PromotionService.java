@@ -13,6 +13,8 @@ public interface PromotionService {
     PageResponse<PromotionResponse> getAll(Pageable pageable);
 
     List<PromotionResponse> getActivePromotions();
+    
+    PromotionResponse getPopupPromotion();
 
     PromotionResponse getById(UUID id);
 

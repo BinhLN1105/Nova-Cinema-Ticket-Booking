@@ -29,4 +29,6 @@ public class PromotionRequest {
     Integer priority = 0;
 
     Boolean isActive = true;
+
+    Boolean isPopup = false;
 }

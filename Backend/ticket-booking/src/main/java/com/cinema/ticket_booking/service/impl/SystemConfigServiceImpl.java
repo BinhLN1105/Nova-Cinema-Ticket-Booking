@@ -26,6 +26,7 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         createIfMissing("DEFAULT_SEAT_HOLD_TIME", "10", "Thời gian giữ ghế mặc định (phút)");
         createIfMissing("LATE_SEAT_HOLD_TIME", "3", "Thời gian giữ ghế cực ngắn khi đặt vé sát giờ chiếu (phút)");
         createIfMissing("LATE_BOOKING_ALLOWANCE_MINS", "10", "Cho phép đặt vé sau giờ chiếu tối đa (phút)");
+        createIfMissing("CLEANUP_TIME_MINUTES", "15", "Thời gian dọn phòng sau mỗi suất chiếu (phút)");
         createIfMissing("NO_SHOW_EXP_PENALTY_PERCENT", "0",
                 "Phần trăm trừ EXP nếu người dùng mua vé nhưng không check-in (0-100)");
     }

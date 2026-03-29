@@ -17,6 +17,8 @@ public interface MovieService {
     PageResponse<MovieResponse.Summary> search(String title, Pageable pageable);
 
     MovieResponse getById(UUID id);
+    
+    List<MovieResponse.Summary> getFeaturedMovies();
 
     List<MovieResponse.Summary> getNowShowingByCinema(UUID cinemaId);
 

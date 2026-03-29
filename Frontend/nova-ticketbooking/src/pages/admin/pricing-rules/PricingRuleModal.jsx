@@ -12,6 +12,9 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
     conditionValue: 'MONDAY',
     adjustmentType: 'PERCENTAGE',
     adjustmentValue: 0,
+    targetType: 'TICKET',
+    minTicketQty: 0,
+    minComboQty: 0,
     priority: 0,
     isActive: true
   })
@@ -24,6 +27,9 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
         conditionValue: rule.conditionValue,
         adjustmentType: rule.adjustmentType,
         adjustmentValue: rule.adjustmentValue,
+        targetType: rule.targetType || 'TICKET',
+        minTicketQty: rule.minTicketQty || 0,
+        minComboQty: rule.minComboQty || 0,
         priority: rule.priority,
         isActive: rule.isActive
       })
@@ -97,16 +103,89 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
                   ...promotions.map(p => ({ value: p.id, label: p.title }))
                 ]}
               />
+            ) : formData.ruleType === 'DAY_OF_WEEK' ? (
+              <Select 
+                value={formData.conditionValue}
+                onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
+                options={[
+                  { value: 'MONDAY',    label: 'Thứ Hai' },
+                  { value: 'TUESDAY',   label: 'Thứ Ba' },
+                  { value: 'WEDNESDAY', label: 'Thứ Tư' },
+                  { value: 'THURSDAY',  label: 'Thứ Năm' },
+                  { value: 'FRIDAY',    label: 'Thứ Sáu' },
+                  { value: 'SATURDAY',  label: 'Thứ Bảy' },
+                  { value: 'SUNDAY',    label: 'Chủ Nhật' },
+                ]}
+              />
+            ) : formData.ruleType === 'SEAT_TYPE' ? (
+              <Select 
+                value={formData.conditionValue}
+                onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
+                options={[
+                  { value: 'STANDARD', label: 'Ghế Thường' },
+                  { value: 'VIP',      label: 'Ghế VIP' },
+                  { value: 'COUPLE',   label: 'Ghế Đôi' },
+                ]}
+              />
+            ) : formData.ruleType === 'DATE_RANGE' ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 w-8">Từ:</span>
+                  <Input 
+                    type="date"
+                    className="flex-1"
+                    value={formData.conditionValue.split(',')[0] || ''} 
+                    onChange={e => {
+                      const parts = formData.conditionValue.split(',')
+                      setFormData({ ...formData, conditionValue: `${e.target.value},${parts[1] || ''}` })
+                    }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 w-8">Đến:</span>
+                  <Input 
+                    type="date"
+                    className="flex-1"
+                    value={formData.conditionValue.split(',')[1] || ''} 
+                    onChange={e => {
+                      const parts = formData.conditionValue.split(',')
+                      setFormData({ ...formData, conditionValue: `${parts[0] || ''},${e.target.value}` })
+                    }}
+                  />
+                </div>
+              </div>
+            ) : formData.ruleType === 'TIME_FRAME' ? (
+              <div className="flex flex-col gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 w-8">Từ:</span>
+                  <Input 
+                    type="time" 
+                    className="flex-1"
+                    value={formData.conditionValue.split('-')[0] || ''} 
+                    onChange={e => {
+                      const parts = formData.conditionValue.split('-')
+                      setFormData({ ...formData, conditionValue: `${e.target.value}-${parts[1] || ''}` })
+                    }}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase font-bold text-gray-400 w-8">Đến:</span>
+                  <Input 
+                    type="time"
+                    className="flex-1"
+                    value={formData.conditionValue.split('-')[1] || ''} 
+                    onChange={e => {
+                      const parts = formData.conditionValue.split('-')
+                      setFormData({ ...formData, conditionValue: `${parts[0] || ''}-${e.target.value}` })
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
               <Input 
                 value={formData.conditionValue} 
                 onChange={e => setFormData({ ...formData, conditionValue: e.target.value })}
-                placeholder={
-                  formData.ruleType === 'DAY_OF_WEEK' ? 'MONDAY, TUESDAY...' :
-                  formData.ruleType === 'TIME_FRAME' ? '22:00-23:59' :
-                  formData.ruleType === 'SEAT_TYPE' ? 'VIP, COUPLE...' :
-                  'YYYY-MM-DD'
-                } 
+                placeholder="Nhập giá trị điều kiện..." 
               />
             )}
           </Field>
@@ -134,6 +213,50 @@ export default function PricingRuleModal({ rule, onClose, onSuccess }) {
             />
           </Field>
         </div>
+        
+        {formData.ruleType === 'PROMOTION' && (
+          <div className="p-4 bg-orange-50/50 rounded-2xl border border-orange-100 space-y-4">
+             <Field label="🎯 Mục tiêu áp dụng" required info="Quy tắc này sẽ giảm giá cho đối tượng nào?">
+                <Select 
+                  value={formData.targetType} 
+                  onChange={e => setFormData({ ...formData, targetType: e.target.value })}
+                  options={[
+                    { value: 'TICKET',      label: '🎟️ Chỉ giảm trên Vé' },
+                    { value: 'COMBO',       label: '🍿 Chỉ giảm trên Combo' },
+                    { value: 'ORDER_TOTAL', label: '💰 Giảm trên Tổng đơn' },
+                  ]} 
+                />
+              </Field>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(formData.targetType === 'TICKET' || formData.targetType === 'ORDER_TOTAL') && (
+                  <Field label="💺 Số lượng Ghế tối thiểu" info="Số lượng chỗ ngồi (vé lẻ) trong đơn hàng để được áp dụng.">
+                    <Input 
+                      type="number" 
+                      min="0"
+                      value={formData.minTicketQty} 
+                      onChange={e => setFormData({ ...formData, minTicketQty: Number(e.target.value) })} 
+                    />
+                  </Field>
+                )}
+                {(formData.targetType === 'COMBO' || formData.targetType === 'ORDER_TOTAL') && (
+                  <Field label="🍿 Số lượng Combo tối thiểu" info="Tổng số lượng các phần bắp nước trong đơn hàng để được áp dụng.">
+                    <Input 
+                      type="number" 
+                      min="0"
+                      value={formData.minComboQty} 
+                      onChange={e => setFormData({ ...formData, minComboQty: Number(e.target.value) })} 
+                    />
+                  </Field>
+                )}
+              </div>
+              {formData.targetType === 'ORDER_TOTAL' && (
+                <p className="text-[10px] text-orange-600 font-medium italic">
+                  * Hệ thống sẽ áp dụng giảm giá khi đơn hàng thỏa mãn ĐỒNG THỜI cả số lượng Ghế và Combo trên.
+                </p>
+              )}
+          </div>
+        )}
 
         <Field label="Độ ưu tiên" info="Số nhỏ hơn sẽ được ưu tiên áp dụng trước.">
           <Input 

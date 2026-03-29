@@ -12,7 +12,9 @@ const SIZE_MAP = {
   '2xl': 'max-w-2xl',
 }
 
-export function Modal({ open, onClose, title, description, children, size = 'md', className }) {
+export function Modal({ open, onClose, title, description, children, size = 'md', theme = 'light', className }) {
+  const isDark = theme === 'dark'
+
   // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
@@ -45,31 +47,39 @@ export function Modal({ open, onClose, title, description, children, size = 'md'
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
             transition={{ duration: 0.25, ease: [0.34, 1.1, 0.64, 1] }}
             className={cn(
-              'relative w-full bg-white rounded-2xl shadow-2xl',
+              'relative w-full rounded-2xl shadow-2xl flex flex-col max-h-[90vh]',
+              isDark ? 'bg-cinema-900 border border-white/10 shadow-black/50' : 'bg-white',
               SIZE_MAP[size], className
             )}
           >
             {/* Header */}
             {title && (
-              <div className="flex items-start justify-between gap-4 px-6 py-5 border-b border-gray-100">
+              <div className={cn(
+                "flex items-start justify-between gap-4 px-6 py-5 border-b flex-shrink-0",
+                isDark ? "border-white/5" : "border-gray-100"
+              )}>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900 font-display">{title}</h2>
-                  {description && <p className="text-sm text-gray-500 mt-0.5">{description}</p>}
+                  <h2 className={cn("text-lg font-bold font-display", isDark ? "text-white" : "text-gray-900")}>{title}</h2>
+                  {description && <p className={cn("text-sm mt-0.5", isDark ? "text-cinema-400" : "text-gray-500")}>{description}</p>}
                 </div>
                 <button onClick={onClose}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all flex-shrink-0">
+                  className={cn("p-1.5 rounded-lg transition-all flex-shrink-0",
+                    isDark ? "text-cinema-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                  )}>
                   <X className="w-5 h-5" />
                 </button>
               </div>
             )}
             {!title && (
               <button onClick={onClose}
-                className="absolute top-4 right-4 z-10 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-all">
+                className={cn("absolute top-4 right-4 z-10 p-1.5 rounded-lg transition-all",
+                  isDark ? "text-cinema-400 hover:text-white hover:bg-white/10" : "text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+                )}>
                 <X className="w-5 h-5" />
               </button>
             )}
             {/* Body */}
-            <div className="p-6">{children}</div>
+            <div className="p-6 overflow-y-auto custom-scrollbar">{children}</div>
           </motion.div>
         </div>
       )}

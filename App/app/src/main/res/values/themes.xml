@@ -37,9 +37,15 @@
         <item name="shapeAppearanceLargeComponent">@style/ShapeLarge</item>
     </style>
 
-    <!-- Splash screen -->
-    <style name="Theme.CinemaApp.Splash" parent="Theme.CinemaApp">
-        <item name="android:windowBackground">@color/background</item>
+    <!-- Native Splash screen API -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/background</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
+        <item name="postSplashScreenTheme">@style/Theme.CinemaApp</item>
+    </style>
+
+    <style name="Theme.CinemaApp.Splash" parent="Theme.App.Starting">
+        <!-- Legacy style now inherits from current one if needed -->
     </style>
 
     <!-- ════════════════════════════════

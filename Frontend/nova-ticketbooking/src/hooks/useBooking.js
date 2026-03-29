@@ -11,9 +11,16 @@ export function useBooking() {
   const createBookingMutation = useMutation({
     mutationFn: bookingApi.create,
     onSuccess: (booking) => {
+      console.log("Booking created successfully:", booking);
       window.scrollTo(0, 0);
-      store.reset();
-      navigate(`/booking/payment/${booking.id}`);
+      if (booking?.id) {
+        navigate(`/booking/payment/${booking.id}`);
+        // Delay reset để đảm bảo không mất state khi redirect
+        setTimeout(() => store.reset(), 500);
+      } else {
+        toast.error("Không tìm thấy mã đơn hàng trả về từ Backend");
+        console.error("Missing booking ID in response:", booking);
+      }
     },
     onError: (error) => {
       const msg = error.response?.data?.message || "Đặt vé thất bại, vui lòng thử lại";

@@ -6,6 +6,7 @@ import { ArrowLeft, Tag, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-rea
 import { showtimeApi, voucherApi } from '@/api/endpoints'
 import { useBooking } from '@/hooks'
 import { formatCurrency, formatDateTime, cn } from '@/utils'
+import BookingTimer from '@/components/common/ui/BookingTimer'
 
 export default function ConfirmBooking() {
   const navigate = useNavigate()
@@ -37,6 +38,21 @@ export default function ConfirmBooking() {
     }
   }
 
+  // ── Tính toán lại Tổng tiền (bao gồm Combo) để kích hoạt Khuyến mãi 20k ──
+  useEffect(() => {
+    if (combos) {
+      const comboTotal = Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
+        const combo = combos.find(c => c.id === id)
+        return acc + (combo ? combo.price * qty : 0)
+      }, 0);
+      
+      const ticketsTotal = booking.selectedSeats.reduce((sum, s) => sum + s.price, 0);
+      
+      // Cập nhật lại Store với tổng tiền trước khuyến mãi
+      booking.calculateTotals(ticketsTotal + comboTotal);
+    }
+  }, [combos, booking.selectedSeats, booking.selectedCombos]);
+
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-32">
       <div className="max-w-2xl mx-auto px-4 sm:px-6">
@@ -47,6 +63,11 @@ export default function ConfirmBooking() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <h1 className="font-display text-2xl font-bold text-white">Xác nhận đặt vé</h1>
+        </div>
+
+        {/* Timer */}
+        <div className="mb-8">
+          <BookingTimer />
         </div>
 
         <div className="space-y-4">
@@ -124,42 +145,62 @@ export default function ConfirmBooking() {
 
           {/* Price breakdown */}
           <div className="card-cinema p-5 space-y-3">
-            <div className="flex justify-between text-sm text-gray-300 font-medium">
-              <span>Tiền ghế ({booking.selectedSeats.length} ghế)</span>
-              <span className="text-white">{formatCurrency(booking.subtotal)}</span>
+            {/* Tiền vé gốc */}
+            <div className="flex justify-between text-sm text-gray-400 font-medium">
+              <span>Tiền vé (Gốc)</span>
+              <span className="text-white">{formatCurrency(booking.originalTotal || 0)}</span>
             </div>
-            {Object.keys(booking.selectedCombos).length > 0 && combos && (
-               <div className="flex justify-between text-sm text-gray-300 font-medium">
-                 <span>Tiền bắp nước</span>
-                 <span className="text-white">
-                   {formatCurrency(
-                     Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
-                       const combo = combos.find(c => c.id === id)
-                       return acc + (combo ? combo.price * qty : 0)
-                     }, 0)
-                   )}
-                 </span>
-               </div>
+
+            {/* Tiền bắp nước gốc (Chỉ hiện nếu có chọn) */}
+            {Object.keys(booking.selectedCombos).length > 0 && (
+              <div className="flex justify-between text-sm text-gray-400 font-medium">
+                <span>Bắp nước (Gốc)</span>
+                <span className="text-white">
+                  {formatCurrency(
+                    Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
+                      const combo = combos?.find(c => c.id === id)
+                      return acc + (combo ? combo.price * qty : 0)
+                    }, 0)
+                  )}
+                </span>
+              </div>
             )}
+
+            {/* Khuyến mãi hệ thống (Nếu có) */}
+            {booking.promotionDiscount > 0 && (
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-brand-400">
+                  🎁 {booking.appliedPromotionName || 'Khuyến mãi hệ thống'}
+                </span>
+                <span className="text-brand-400">- {formatCurrency(booking.promotionDiscount)}</span>
+              </div>
+            )}
+
+            {/* Voucher (Nếu có mã giảm giá được áp dụng) */}
             {booking.discount > 0 && (
-              <div className="flex justify-between text-sm font-medium">
-                <span className="text-gray-300">Giảm giá</span>
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-green-400">🎫 Giảm giá Voucher</span>
                 <span className="text-green-400">- {formatCurrency(booking.discount)}</span>
               </div>
             )}
-            <div className="h-px bg-white/5" />
-            <div className="flex justify-between font-bold">
-              <span className="text-white">Tổng cộng</span>
-              <span className="text-brand-400 text-lg">
-                {formatCurrency(
-                  booking.total + Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
-                    const combo = combos?.find(c => c.id === id)
-                    return acc + (combo ? combo.price * qty : 0)
-                  }, 0)
-                )}
-              </span>
+
+            <div className="h-px bg-white/5 my-2" />
+            
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase tracking-wider font-bold mb-0.5">Tổng cộng</p>
+                <p className="text-white text-xs font-medium opacity-50">
+                  Đã bao gồm thuế GTGT
+                </p>
+              </div>
+              <div className="text-right">
+                <span className="text-gold-400 text-2xl font-display font-bold">
+                  {formatCurrency(booking.total)}
+                </span>
+              </div>
             </div>
           </div>
+
         </div>
       </div>
 
@@ -175,12 +216,7 @@ export default function ConfirmBooking() {
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                Thanh toán {formatCurrency(
-                  booking.total + Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
-                    const combo = combos?.find(c => c.id === id)
-                    return acc + (combo ? combo.price * qty : 0)
-                  }, 0)
-                )}
+                Thanh toán {formatCurrency(booking.total)}
                 <ArrowRight className="w-5 h-5" />
               </span>
             )}

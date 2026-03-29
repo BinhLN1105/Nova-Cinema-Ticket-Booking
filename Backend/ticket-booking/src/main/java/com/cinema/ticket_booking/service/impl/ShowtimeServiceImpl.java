@@ -6,6 +6,7 @@ import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeSyncResponse;
+import com.cinema.ticket_booking.dto.PricingResult;
 import com.cinema.ticket_booking.model.Movie;
 import com.cinema.ticket_booking.model.Screen;
 import com.cinema.ticket_booking.model.Seat;
@@ -38,6 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.Duration;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -143,16 +146,31 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                 seatItem.setStatus(SeatStatus.LOCKED);
             }
             // Recalculate price dynamically
-            BigDecimal finalPrice = pricingEngineService.calculateFinalSeatPrice(showtime, seat.getSeat(), showtime.getBasePrice(), activeRules);
-            seatItem.setPrice(finalPrice);
+            PricingResult result = pricingEngineService.calculateFinalSeatPrice(showtime, seat.getSeat(),
+                    showtime.getBasePrice(), activeRules, 1, 0);
+            seatItem.setPrice(result.finalPrice());
+            seatItem.setBasePrice(showtime.getBasePrice());
+            seatItem.setDiscountAmount(result.discountAmount());
+            seatItem.setAppliedPromotionName(result.appliedPromotionName());
             return seatItem;
         }).toList();
+
+        // Tính toán thời gian giữ ghế linh hoạt
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        long minutesToStart = Duration.between(now, showtime.getStartTime()).toMinutes();
+        int seatHoldMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
+
+        // Nếu phim sắp chiếu (trong 15p), rút ngắn thời gian giữ ghế xuống 3p
+        if (minutesToStart <= 15 && minutesToStart >= -10) {
+            seatHoldMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
+        }
 
         return SeatMapResponse.builder()
                 .showtimeId(showtimeId.toString())
                 .totalRows(showtime.getScreen().getTotalRows())
                 .totalCols(showtime.getScreen().getTotalCols())
                 .seats(mappedSeats)
+                .seatHoldMins(seatHoldMins)
                 .build();
     }
 
@@ -160,14 +178,23 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     @Override
     public ShowtimeResponse create(ShowtimeRequest request) {
+        // Validation: Phải là tương lai (Múi giờ VN)
+        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        if (request.getStartTime().isBefore(now.plusMinutes(5))) {
+            throw new BadRequestException("Suất chiếu phải bắt đầu sau ít nhất 5 phút kể từ hiện tại");
+        }
+
         Movie movie = movieService.findById(UUID.fromString(request.getMovieId()));
         Screen screen = screenRepository.findById(UUID.fromString(request.getScreenId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Phòng chiếu", request.getScreenId()));
 
-        LocalDateTime endTime = request.getStartTime().plusMinutes(movie.getDuration() + 15); // +15 phút dọn phòng
+        // Lấy thời gian dọn phòng từ cấu hình (đã được Cache)
+        int cleanupMins = systemConfigService.getIntConfig("CLEANUP_TIME_MINUTES", 15);
+        LocalDateTime endTime = request.getStartTime().plusMinutes(movie.getDuration() + cleanupMins);
 
         if (showtimeRepository.existsConflict(screen.getId(), request.getStartTime(), endTime)) {
-            throw new BadRequestException("Phòng chiếu đã có suất chiếu trong khung giờ này");
+            throw new BadRequestException("Phòng chiếu đã có suất chiếu khác trong khung giờ này (bao gồm "
+                    + cleanupMins + " phút dọn phòng)");
         }
 
         Showtime showtime = Showtime.builder()
@@ -244,14 +271,16 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
 
         List<ShowtimeSeat> showtimeSeats = seats.stream().map(seat -> {
-            BigDecimal finalPrice = pricingEngineService.calculateFinalSeatPrice(showtime, seat, basePrice, activeRules);
+            PricingResult result = pricingEngineService.calculateFinalSeatPrice(showtime, seat, basePrice,
+                    activeRules, 1, 0);
             return ShowtimeSeat.builder()
                     .showtime(showtime)
                     .seat(seat)
                     .status(SeatStatus.AVAILABLE)
-                    .price(finalPrice) // Snapshot price at creation
+                    .price(result.finalPrice()) // Snapshot price at creation
                     .build();
         }).toList();
         showtimeSeatRepository.saveAll(showtimeSeats);
     }
+
 }

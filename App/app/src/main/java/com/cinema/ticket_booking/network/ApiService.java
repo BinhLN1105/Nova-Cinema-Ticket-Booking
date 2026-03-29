@@ -161,4 +161,11 @@ public interface ApiService {
 
         @POST("chatbot/session/clear")
         Call<ApiResponse<Map<String, String>>> clearChatSession();
+
+        // ── Home Layout ──────────────────────────────────────────────────────────
+        @GET("home/featured-movies")
+        Call<ApiResponse<List<MovieSummary>>> getFeaturedMovies();
+
+        @GET("home/popup-promotion")
+        Call<ApiResponse<PromotionResponse>> getPopupPromotion();
 }

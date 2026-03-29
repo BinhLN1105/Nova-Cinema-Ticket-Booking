@@ -42,4 +42,25 @@ public class PromotionRepository {
         });
         return r;
     }
+
+    public LiveData<Resource<PromotionResponse>> getPopupPromotion() {
+        MutableLiveData<Resource<PromotionResponse>> r = new MutableLiveData<>();
+        r.setValue(Resource.loading());
+        api.getPopupPromotion().enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<PromotionResponse>> c,
+                    Response<ApiResponse<PromotionResponse>> res) {
+                if (res.isSuccessful() && res.body() != null && res.body().isSuccess())
+                    r.setValue(Resource.success(res.body().getData()));
+                else
+                    r.setValue(Resource.error("Không lấy được popup khuyến mãi"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<PromotionResponse>> c, Throwable t) {
+                r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return r;
+    }
 }

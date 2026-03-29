@@ -13,8 +13,8 @@ import GanttTimeline from './GanttTimeline'
 const STATUS_BADGE = {
   SCHEDULED:  { label: 'Sắp chiếu',   cls: 'bg-blue-50 text-blue-600 border-blue-100' },
   ONGOING:    { label: 'Đang chiếu',   cls: 'bg-green-50 text-green-600 border-green-100' },
-  COMPLETED:  { label: 'Đã chiếu',     cls: 'bg-gray-50 text-gray-500 border-gray-100' },
-  CANCELLED:  { label: 'Đã huỷ',       cls: 'bg-red-50 text-red-500 border-red-100' },
+  FINISHED:    { label: 'Đã chiếu',     cls: 'bg-gray-100 text-gray-400 border-gray-200' },
+  CANCELLED:   { label: 'Đã huỷ',       cls: 'bg-red-50 text-red-500 border-red-100' },
 }
 
 function CinemaShowtimesList({ cinema, onOpenCreate, onOpenDelete }) {

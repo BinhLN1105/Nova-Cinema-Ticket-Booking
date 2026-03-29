@@ -17,4 +17,6 @@ public interface PromotionRepository extends JpaRepository<Promotion, UUID> {
            "(p.endDate IS NULL OR p.endDate >= :now) " +
            "ORDER BY p.priority DESC")
     List<Promotion> findActivePromotions(LocalDateTime now);
+    
+    java.util.Optional<Promotion> findFirstByIsPopupTrueAndIsActiveTrueOrderByCreatedAtDesc();
 }

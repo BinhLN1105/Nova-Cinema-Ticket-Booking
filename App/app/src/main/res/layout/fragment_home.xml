@@ -57,26 +57,7 @@
                         app:layout_constraintBottom_toBottomOf="parent" /> -->
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- Movie Search Bar -->
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-                    android:layout_width="match_parent"
-                    android:layout_height="60dp"
-                    android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="8dp"
-                    android:layout_marginBottom="8dp"
-                    android:hint="Search Movies..."
-                    app:startIconDrawable="@drawable/ic_search"
-                    app:boxStrokeColor="@color/primary"
-                    app:hintTextColor="@color/on_surface_variant">
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/etSearch"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:textColor="@color/on_surface"
-                        android:imeOptions="actionSearch"
-                        android:inputType="text" />
-                </com.google.android.material.textfield.TextInputLayout>
+                <!-- Hero Section (Static placeholder mimicking design) -->
 
                 <!-- Hero Section (Static placeholder mimicking design) -->
                 <androidx.constraintlayout.widget.ConstraintLayout
@@ -84,13 +65,10 @@
                     android:layout_height="350dp"
                     android:background="@color/surface_container_lowest">
                     
-                    <ImageView
-                        android:id="@+id/ivHero"
+                    <androidx.viewpager2.widget.ViewPager2
+                        android:id="@+id/vpHero"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:scaleType="centerCrop"
-                        android:src="@drawable/placeholder_hero"
-                        android:alpha="0.8" />
+                        android:layout_height="match_parent" />
                         
                     <View
                         android:layout_width="match_parent"
@@ -211,7 +189,29 @@
                     android:layout_marginTop="16dp"
                     android:paddingHorizontal="24dp"
                     android:clipToPadding="false"
-                    android:layout_marginBottom="24dp"/>
+                    android:layout_marginBottom="24dp"
+                    android:nestedScrollingEnabled="false"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="horizontal"
+                    tools:listitem="@layout/item_movie_card" />
+                
+                <!-- Ưu đãi & Khuyến mãi Title -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="24dp"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center_vertical">
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Ưu đãi &amp; Khuyến mãi" 
+                        android:textColor="@color/on_background"
+                        android:textSize="20sp" 
+                        android:textStyle="bold"/>
+                </LinearLayout>
 
                 <!-- Auto-playing Promo Banner Carousel -->
                 <com.google.android.material.card.MaterialCardView
@@ -219,7 +219,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="160dp"
                     android:layout_marginHorizontal="24dp"
-                    android:layout_marginBottom="32dp"
+                    android:layout_marginBottom="12dp"
                     app:cardCornerRadius="24dp"
                     android:visibility="gone"
                     app:cardBackgroundColor="@color/surface_container_lowest">
@@ -230,6 +230,17 @@
                         android:layout_height="match_parent" />
                         
                 </com.google.android.material.card.MaterialCardView>
+
+                <!-- Dot Indicator for Promo Banners -->
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayoutPromo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="32dp"
+                    app:tabBackground="@drawable/tab_indicator" 
+                    app:tabGravity="center"
+                    app:tabIndicatorHeight="0dp"
+                    app:tabRippleColor="@null" />
 
                 <!-- Sắp chiếu -->
                 <LinearLayout
@@ -262,7 +273,11 @@
                     android:layout_marginTop="16dp"
                     android:paddingHorizontal="24dp"
                     android:clipToPadding="false"
-                    android:layout_marginBottom="32dp"/>
+                    android:layout_marginBottom="32dp"
+                    android:nestedScrollingEnabled="false"
+                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+                    android:orientation="horizontal"
+                    tools:listitem="@layout/item_movie_card" />
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
@@ -286,16 +301,59 @@
         app:fabSize="mini"
         android:contentDescription="Chat AI"/>
 
-    <!-- Overlay Search Results -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSearchResults"
+    <!-- Search Dim Background (Top Level) -->
+    <View
+        android:id="@+id/viewSearchDim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="140dp"
-        android:background="#E60A0F1D"
-        android:elevation="12dp"
+        android:background="#80000000"
         android:visibility="gone"
-        android:clipToPadding="false"
-        android:padding="16dp"/>
+        android:elevation="10dp"/>
+
+    <!-- Search Overlay Container (Optimized for Phase 3) -->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/searchOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:elevation="11dp"
+        android:visibility="visible">
+
+        <!-- Sticky Search Bar -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilSearch"
+            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:layout_marginHorizontal="16dp"
+            android:layout_marginTop="72dp"
+            android:hint="Search Movies..."
+            app:startIconDrawable="@drawable/ic_search"
+            app:boxStrokeColor="@color/primary"
+            app:hintTextColor="@color/on_surface_variant"
+            app:layout_constraintTop_toTopOf="parent">
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etSearch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/on_surface"
+                android:imeOptions="actionSearch"
+                android:inputType="text" />
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- Overlay Search Results -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSearchResults"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@color/background"
+            android:visibility="gone"
+            android:clipToPadding="false"
+            android:padding="16dp"
+            app:layout_constrainedHeight="true"
+            app:layout_constraintHeight_max="500dp"
+            app:layout_constraintTop_toBottomOf="@id/tilSearch"
+            app:layout_constraintBottom_toBottomOf="parent"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

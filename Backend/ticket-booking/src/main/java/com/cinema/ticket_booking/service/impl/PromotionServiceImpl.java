@@ -42,6 +42,14 @@ public class PromotionServiceImpl implements PromotionService {
 
     @Override
     @Transactional(readOnly = true)
+    public PromotionResponse getPopupPromotion() {
+        return promotionRepository.findFirstByIsPopupTrueAndIsActiveTrueOrderByCreatedAtDesc()
+                .map(promotionMapper::toResponse)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PromotionResponse getById(UUID id) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Khuyến mãi", id));
@@ -51,6 +59,9 @@ public class PromotionServiceImpl implements PromotionService {
     @Override
     public PromotionResponse create(PromotionRequest request) {
         Promotion promotion = promotionMapper.toEntity(request);
+        if (Boolean.TRUE.equals(promotion.getIsPopup())) {
+            handleSinglePopupSelection(null);
+        }
         return promotionMapper.toResponse(promotionRepository.save(promotion));
     }
 
@@ -58,8 +69,26 @@ public class PromotionServiceImpl implements PromotionService {
     public PromotionResponse update(UUID id, PromotionRequest request) {
         Promotion promotion = promotionRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Khuyến mãi", id));
+        
+        boolean wasPopup = Boolean.TRUE.equals(promotion.getIsPopup());
         promotionMapper.updateEntity(request, promotion);
+        
+        if (Boolean.TRUE.equals(promotion.getIsPopup()) && !wasPopup) {
+            handleSinglePopupSelection(id);
+        }
+        
         return promotionMapper.toResponse(promotionRepository.save(promotion));
+    }
+
+    private void handleSinglePopupSelection(UUID currentId) {
+        // Find existing popup and disable it
+        promotionRepository.findFirstByIsPopupTrueAndIsActiveTrueOrderByCreatedAtDesc()
+            .ifPresent(existing -> {
+                if (currentId == null || !existing.getId().equals(currentId)) {
+                    existing.setIsPopup(false);
+                    promotionRepository.save(existing);
+                }
+            });
     }
 
     @Override

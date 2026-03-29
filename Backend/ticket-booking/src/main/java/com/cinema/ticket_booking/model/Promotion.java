@@ -47,6 +47,10 @@ public class Promotion {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(name = "is_popup", nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean isPopup = false;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 

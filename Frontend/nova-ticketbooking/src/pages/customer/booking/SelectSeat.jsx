@@ -2,10 +2,12 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Monitor } from 'lucide-react'
+import { useState, useEffect } from 'react'
 import { showtimeApi } from '@/api/endpoints'
 import { useBookingStore } from '@/stores/bookingStore'
 import { formatCurrency, cn } from '@/utils'
 import { PageLoader } from '@/components/common/feedback/PageLoader'
+import BookingTimer from '@/components/common/ui/BookingTimer'
 
 const SEAT_TYPE_COLORS = {
   STANDARD: 'border-green-500/50 bg-green-500/10 hover:bg-green-500/30',
@@ -50,13 +52,19 @@ function SeatButton({ seat, isSelected, onToggle }) {
 export default function SelectSeatPage() {
   const { showtimeId } = useParams()
   const navigate = useNavigate()
-  const { selectedSeats, toggleSeat, selectedShowtime, total } = useBookingStore()
+  const { selectedSeats, toggleSeat, selectedShowtime, total, expiryTime, setExpiryTime } = useBookingStore()
 
   const { data: seatMap, isLoading } = useQuery({
     queryKey: ['seatmap', showtimeId],
     queryFn: () => showtimeApi.getSeatMap(showtimeId),
     enabled: !!showtimeId,
   })
+
+  useEffect(() => {
+    if (seatMap?.seatHoldMins && !expiryTime) {
+      setExpiryTime(Date.now() + seatMap.seatHoldMins * 60 * 1000)
+    }
+  }, [seatMap, expiryTime, setExpiryTime])
 
   if (isLoading || !seatMap) return <PageLoader />
 
@@ -86,6 +94,11 @@ export default function SelectSeatPage() {
           </div>
         </div>
 
+        {/* Timer */}
+        <div className="mb-8">
+          <BookingTimer />
+        </div>
+
         {/* Screen indicator */}
         <div className="relative mb-10">
           <div className="h-1 rounded-full bg-gradient-to-r from-transparent via-brand-500/60 to-transparent mx-8 mb-2" />
@@ -96,17 +109,32 @@ export default function SelectSeatPage() {
 
         {/* Seat map */}
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          className="overflow-x-auto pb-4 scrollbar-cinema">
-          <div className="inline-block min-w-max">
-            <div className="space-y-2">
+          className="overflow-x-auto pb-6 scrollbar-cinema">
+          <div className="flex flex-col items-center min-w-max px-12">
+            <div className="space-y-3">
               {Object.entries(rows).map(([rowLabel, seats]) => (
-                <div key={rowLabel} className="flex items-center gap-2">
-                  <span className="w-6 text-cinema-500 text-xs font-bold text-right">{rowLabel}</span>
-                  <div className="flex gap-1.5 flex-wrap">
-                    {seats.sort((a, b) => a.colNumber - b.colNumber).map(seat => (
-                      <SeatButton key={seat.showtimeSeatId} seat={seat}
-                        isSelected={selectedSeats.some(s => s.showtimeSeatId === seat.showtimeSeatId)}
-                        onToggle={() => toggleSeat(seat)} />
+                <div key={rowLabel} className="flex items-center gap-4">
+                  <span className="w-6 text-cinema-500 text-sm font-bold text-right shrink-0">{rowLabel}</span>
+                  <div 
+                    className="grid gap-2"
+                    style={{ 
+                      gridTemplateColumns: `repeat(${seatMap.totalCols}, 2.25rem)`,
+                    }}
+                  >
+                    {seats.map(seat => (
+                      <div 
+                        key={seat.showtimeSeatId}
+                        style={{ 
+                          gridColumnStart: seat.colNumber,
+                          gridColumnEnd: seat.seatType === 'COUPLE' ? `span 2` : 'auto'
+                        }}
+                      >
+                        <SeatButton 
+                          seat={seat}
+                          isSelected={selectedSeats.some(s => s.showtimeSeatId === seat.showtimeSeatId)}
+                          onToggle={() => toggleSeat(seat)}
+                        />
+                      </div>
                     ))}
                   </div>
                 </div>

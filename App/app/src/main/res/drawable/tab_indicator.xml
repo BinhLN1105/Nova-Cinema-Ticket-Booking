@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Active Dot (Selected) -->
+    <item android:state_selected="true">
+        <shape android:shape="rectangle">
+            <corners android:radius="4dp" />
+            <solid android:color="@color/primary" />
+            <size android:width="24dp" android:height="8dp" />
+        </shape>
+    </item>
+    
+    <!-- Inactive Dot (Default) -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#D1D5DB" />
+            <size android:width="8dp" android:height="8dp" />
+        </shape>
+    </item>
+</selector>

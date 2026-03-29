@@ -38,6 +38,7 @@ const promoSchema = z.object({
   endDate:     z.string().min(1, 'Chọn ngày kết thúc'),
   targetUrl:   z.string().optional(),
   priority:    z.coerce.number().min(0).max(100),
+  isPopup:     z.boolean().default(false),
 })
 
 // ─── Voucher type badge ───────────────────────
@@ -541,6 +542,13 @@ function PromotionsTab() {
                   px-2 py-0.5 rounded-full font-medium">
                   Ưu tiên {promo.priority}
                 </div>
+                {/* Popup indicator */}
+                {promo.isPopup && (
+                  <div className="absolute bottom-2 right-2 bg-brand-500 text-white text-[10px]
+                    px-2 py-1 rounded-full font-bold shadow-lg animate-pulse border border-white/20">
+                    POPUP
+                  </div>
+                )}
               </div>
 
               {/* Content */}
@@ -617,6 +625,9 @@ function PromotionsTab() {
               <Input {...register('priority')} type="number" min={0} max={100} placeholder="5" />
             </Field>
           </div>
+          <Field label="Cấu hình Popup" info="Nếu bật, banner này sẽ hiện lên dạng Popup khi người dùng mở App. Chỉ một banner được chọn làm popup tại một thời điểm.">
+            <Switch checked={watch('isPopup')} onChange={v => reset({ ...watch(), isPopup: v })} label="Hiển thị làm Popup" />
+          </Field>
           <div className="flex gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
             <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending}>

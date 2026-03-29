@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.dto.request;
 
 import com.cinema.ticket_booking.enums.AdjustmentType;
+import com.cinema.ticket_booking.enums.PricingRuleTarget;
 import com.cinema.ticket_booking.enums.PricingRuleType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -25,6 +26,9 @@ public class PricingRuleRequest {
     @NotNull(message = "Giá trị điều chỉnh không được để trống")
     private BigDecimal adjustmentValue;
 
+    private PricingRuleTarget targetType = PricingRuleTarget.TICKET;
+    private Integer minTicketQty = 0;
+    private Integer minComboQty = 0;
     private Integer priority = 0;
     private Boolean isActive = true;
 }

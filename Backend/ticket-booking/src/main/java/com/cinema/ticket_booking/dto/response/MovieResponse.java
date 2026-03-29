@@ -49,6 +49,7 @@ public class MovieResponse implements Serializable {
         private String id;
         private String title;
         private String posterUrl;
+        private String director;
         private Integer duration;
         private String rated;
         private LocalDate releaseDate;

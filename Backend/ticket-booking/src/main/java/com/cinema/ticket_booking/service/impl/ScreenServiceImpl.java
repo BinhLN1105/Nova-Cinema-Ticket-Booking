@@ -95,16 +95,12 @@ public class ScreenServiceImpl implements ScreenService {
     public void saveCustomLayout(ScreenSeatLayoutRequest request) {
         Screen screen = findById(UUID.fromString(request.getScreenId()));
 
-        // Chặn sửa layout nếu phòng có suất chiếu SCHEDULED trong tương lai
-        boolean hasScheduled = showtimeRepository.existsConflict(
-                screen.getId(),
-                LocalDateTime.now(),
-                LocalDateTime.now().plusYears(10) // far future
-        );
-        if (hasScheduled) {
+        // Chặn sửa layout nếu phòng đã từng được dùng cho bất kỳ suất chiếu nào (tránh FK violation)
+        boolean hasHistory = showtimeRepository.existsByScreenId(screen.getId());
+        if (hasHistory) {
             throw new BadRequestException(
-                    "Không thể thay đổi bố trí ghế khi phòng chiếu có suất chiếu đang hoạt động. " +
-                            "Vui lòng hủy tất cả suất chiếu trước.");
+                    "Không thể thay đổi bố trí ghế khi phòng chiếu đã có lịch sử suất chiếu (kể cả đã kết thúc). " +
+                            "Để thay đổi sơ đồ, vui lòng tạo 'Phòng Mới' hoặc xóa các suất chiếu liên quan trước.");
         }
 
         // Xóa toàn bộ ghế cũ (Sử dụng orphanRemoval = true để thực hiện Hard Delete thật sự)

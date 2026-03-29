@@ -11,6 +11,7 @@ import com.cinema.ticket_booking.dto.request.BookingRequest;
 import com.cinema.ticket_booking.dto.response.BookingResponse;
 import com.cinema.ticket_booking.dto.response.CheckInResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
+import com.cinema.ticket_booking.dto.PricingResult;
 import com.cinema.ticket_booking.model.*;
 import com.cinema.ticket_booking.enums.*;
 import com.cinema.ticket_booking.exception.BadRequestException;
@@ -23,6 +24,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Page;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -31,6 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -115,19 +119,28 @@ public class BookingServiceImpl implements BookingService {
             throw e;
         }
 
-        // ── 2. Tính tiền vé bằng PricingEngine ─────────────────────────────
+        // ── 2. Tính toán Giá nền (sau khi áp dụng Thứ/Giờ/Loại ghế) ─────────
         List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
-        List<BigDecimal> finalSeatPrices = new ArrayList<>();
-        BigDecimal seatTotal = BigDecimal.ZERO;
+        List<BigDecimal> baseSeatPrices = new ArrayList<>();
+        BigDecimal totalTicketBasePrice = BigDecimal.ZERO;
 
         for (ShowtimeSeat ss : seats) {
-            BigDecimal dynamicPrice = pricingEngineService.calculateFinalSeatPrice(showtime, ss.getSeat(), showtime.getBasePrice(), activeRules);
-            finalSeatPrices.add(dynamicPrice);
-            seatTotal = seatTotal.add(dynamicPrice);
+            // Chỉ lấy giá sau khi đã tính các quy tắc cơ bản (không tính Khuyến mãi ở bước
+            // này)
+            PricingResult baseResult = pricingEngineService.calculateFinalSeatPrice(
+                    showtime, ss.getSeat(), showtime.getBasePrice(), activeRules, seats.size(), 0);
+
+            // Note: Chúng ta cần giá 'đã qua điều chỉnh khung giờ/loại ghế' nhưng CHƯA trừ
+            // khuyến mãi.
+            // Thuật toán Vô địch sẽ tính mức giảm dựa trên giá đã điều chỉnh này.
+            BigDecimal adjustedBase = baseResult.finalPrice().add(baseResult.discountAmount());
+            baseSeatPrices.add(adjustedBase);
+            totalTicketBasePrice = totalTicketBasePrice.add(adjustedBase);
         }
 
-        BigDecimal comboTotal = BigDecimal.ZERO;
+        BigDecimal totalComboBasePrice = BigDecimal.ZERO;
         List<BookingComboData> comboDataList = new ArrayList<>();
+        int totalComboQty = 0;
 
         if (request.getCombos() != null) {
             for (BookingRequest.ComboItem item : request.getCombos()) {
@@ -135,13 +148,23 @@ public class BookingServiceImpl implements BookingService {
                         .orElseThrow(() -> new ResourceNotFoundException("Combo", item.getComboId()));
                 if (!combo.getIsAvailable())
                     throw new BadRequestException("Combo '" + combo.getName() + "' hiện không có sẵn");
+
                 BigDecimal subtotal = combo.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-                comboTotal = comboTotal.add(subtotal);
+                totalComboBasePrice = totalComboBasePrice.add(subtotal);
+                totalComboQty += item.getQuantity();
                 comboDataList.add(new BookingComboData(combo, item.getQuantity(), combo.getPrice()));
             }
         }
 
-        BigDecimal subtotal = seatTotal.add(comboTotal);
+        // ── 3. Chạy thuật toán 'Nhà Vô Địch' cho Khuyến mãi ────────────────
+        PricingResult bestPromo = pricingEngineService.calculateBestOrderPromotion(
+                showtime, seats.size(), totalComboQty, totalTicketBasePrice, totalComboBasePrice, activeRules);
+
+        BigDecimal promotionDiscount = bestPromo.discountAmount();
+        String appliedPromoName = bestPromo.appliedPromotionName();
+        BigDecimal seatOriginalTotal = totalTicketBasePrice; // Tổng giá vé sau khi áp dụng rules cơ bản (Thứ/Giờ)
+
+        BigDecimal subtotal = totalTicketBasePrice.add(totalComboBasePrice).subtract(promotionDiscount);
         BigDecimal discountAmount = BigDecimal.ZERO;
         Voucher voucher = null;
 
@@ -162,6 +185,8 @@ public class BookingServiceImpl implements BookingService {
                 .bookingCode(finalBookingCode)
                 .voucher(voucher)
                 .discountAmount(discountAmount)
+                .promotionDiscountAmount(promotionDiscount)
+                .appliedPromotionName(appliedPromoName)
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
                 .expiresAt(lockUntil)
@@ -179,7 +204,10 @@ public class BookingServiceImpl implements BookingService {
         // ── 4. Tạo BookingItem + Ticket ───────────────────────────────────
         for (int i = 0; i < seats.size(); i++) {
             ShowtimeSeat ss = seats.get(i);
-            BigDecimal seatPrice = finalSeatPrices.get(i);
+            // Quan trọng: Lưu giá vé đã tính các quy tắc cơ bản (Thành tiền tạm tính của
+            // vé)
+            // Khuyến mãi hệ thống sẽ được trừ ở cấp độ tổng đơn hàng (promotionDiscount)
+            BigDecimal seatPrice = baseSeatPrices.get(i);
             BookingItem item = BookingItem.builder()
                     .booking(booking)
                     .showtimeSeat(ss)
@@ -205,14 +233,15 @@ public class BookingServiceImpl implements BookingService {
                     .build());
         }
 
-        return buildFullResponse(booking, seats, comboDataList, subtotal);
+        return buildFullResponse(booking, seats, comboDataList, subtotal, seatOriginalTotal.add(totalComboBasePrice),
+                promotionDiscount, appliedPromoName);
     }
 
     // ── Lịch sử đặt vé ───────────────────────────────────────────────────
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BookingResponse.Summary> getMyBookings(UUID userId, Pageable pageable) {
-        org.springframework.data.domain.Page<Booking> page = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId,
+        Page<Booking> page = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId,
                 pageable);
         List<BookingResponse.Summary> summaries = page.getContent().stream()
                 .map(booking -> {
@@ -226,7 +255,7 @@ public class BookingServiceImpl implements BookingService {
                     return summary;
                 }).toList();
         return PageResponse
-                .of(new org.springframework.data.domain.PageImpl<>(summaries, pageable, page.getTotalElements()));
+                .of(new PageImpl<>(summaries, pageable, page.getTotalElements()));
     }
 
     @Override
@@ -244,11 +273,23 @@ public class BookingServiceImpl implements BookingService {
         List<BookingComboData> combos = bookingComboRepository.findByBookingId(bookingId)
                 .stream().map(bc -> new BookingComboData(bc.getCombo(), bc.getQuantity(), bc.getUnitPrice())).toList();
 
-        BigDecimal subtotal = seats.stream().map(ShowtimeSeat::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add)
-                .add(combos.stream().map(c -> c.unitPrice.multiply(BigDecimal.valueOf(c.quantity)))
-                        .reduce(BigDecimal.ZERO, BigDecimal::add));
+        BigDecimal seatOriginalTotal = seats.stream().map(s -> booking.getShowtime().getBasePrice())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal comboTotal = combos.stream().map(c -> c.unitPrice.multiply(BigDecimal.valueOf(c.quantity)))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        return buildFullResponse(booking, seats, combos, subtotal);
+        // Lấy thông tin khuyến mãi hệ thống an toàn (Null-safe cho đơn hàng cũ)
+        BigDecimal promotionDiscount = Objects.requireNonNullElse(booking.getPromotionDiscountAmount(),
+                BigDecimal.ZERO);
+        String appliedPromoName = booking.getAppliedPromotionName();
+
+        // subtotal là tổng tiền sau khi đã trừ khuyến mãi hệ thống (để voucher tính
+        // toán dựa trên mức này)
+        BigDecimal subtotal = seats.stream().map(ShowtimeSeat::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add)
+                .add(comboTotal).subtract(promotionDiscount);
+
+        return buildFullResponse(booking, seats, combos, subtotal, seatOriginalTotal.add(comboTotal),
+                promotionDiscount, appliedPromoName);
     }
 
     // ── Review Eligibility ────────────────────────────────────────────────
@@ -314,7 +355,9 @@ public class BookingServiceImpl implements BookingService {
         if (!Boolean.TRUE.equals(booking.getExpAdded())) {
             User bookingUser = booking.getUser();
             long currentExp = bookingUser.getRewardPoints() != null ? bookingUser.getRewardPoints() : 0L;
-            bookingUser.setRewardPoints(currentExp + booking.getPendingExp());
+            long pendingExp = booking.getPendingExp() != null ? booking.getPendingExp() : 0L;
+            
+            bookingUser.setRewardPoints(currentExp + pendingExp);
             userService.save(bookingUser);
             booking.setExpAdded(true);
         }
@@ -370,10 +413,10 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getVoucher() != null) {
             voucherService.incrementUsedCount(booking.getVoucher().getId());
             userVoucherRepository.findByUserIdAndVoucherId(booking.getUser().getId(), booking.getVoucher().getId())
-                .ifPresent(uv -> {
-                    uv.setIsUsed(true);
-                    userVoucherRepository.save(uv);
-                });
+                    .ifPresent(uv -> {
+                        uv.setIsUsed(true);
+                        userVoucherRepository.save(uv);
+                    });
         }
     }
 
@@ -467,9 +510,13 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private BookingResponse buildFullResponse(Booking booking, List<ShowtimeSeat> seats,
-            List<BookingComboData> combos, BigDecimal subtotal) {
+            List<BookingComboData> combos, BigDecimal subtotal, BigDecimal originalTotal,
+            BigDecimal promotionDiscount, String appliedPromoName) {
         BookingResponse response = bookingMapper.toResponse(booking);
         response.setSubtotal(subtotal);
+        response.setTotalOriginalAmount(originalTotal);
+        response.setPromotionDiscountAmount(promotionDiscount);
+        response.setAppliedPromotionName(appliedPromoName);
         response.setScreenType(getScreenTypeName(booking));
 
         response.setSeats(seats.stream().map(ss -> BookingResponse.SeatItem.builder()
@@ -498,9 +545,9 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private String getScreenTypeName(Booking booking) {
-        if (booking.getShowtime() != null && 
-            booking.getShowtime().getScreen() != null && 
-            booking.getShowtime().getScreen().getScreenType() != null) {
+        if (booking.getShowtime() != null &&
+                booking.getShowtime().getScreen() != null &&
+                booking.getShowtime().getScreen().getScreenType() != null) {
             return booking.getShowtime().getScreen().getScreenType().name();
         }
         return "STANDARD";

@@ -18,5 +18,8 @@ public interface SeatMapper {
     @Mapping(target = "seatType", source = "seat.seatType")
     @Mapping(target = "status", source = "status")
     @Mapping(target = "price", source = "price")
+    @Mapping(target = "basePrice", ignore = true)
+    @Mapping(target = "discountAmount", ignore = true)
+    @Mapping(target = "appliedPromotionName", ignore = true)
     SeatMapResponse.SeatItem toSeatItem(ShowtimeSeat ss);
 }

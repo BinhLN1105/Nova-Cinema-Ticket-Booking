@@ -12,7 +12,7 @@ const ROW_HEIGHT = 52
 const STATUS_COLORS = {
   SCHEDULED: { bg: 'bg-blue-500', text: 'text-white', border: 'border-blue-600' },
   ONGOING:   { bg: 'bg-green-500', text: 'text-white', border: 'border-green-600' },
-  COMPLETED: { bg: 'bg-gray-400', text: 'text-white', border: 'border-gray-500' },
+  FINISHED:  { bg: 'bg-gray-200', text: 'text-gray-500', border: 'border-gray-300' },
   CANCELLED: { bg: 'bg-red-400', text: 'text-white', border: 'border-red-500' },
 }
 

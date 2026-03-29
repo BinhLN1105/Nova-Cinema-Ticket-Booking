@@ -32,24 +32,13 @@ export default function MovieDetailPage() {
     queryFn: () => movieApi.canReview(id).then(res => res.data),
     enabled: !!user && !!id,
   })
-  const canReview = canReviewObj?.data || false
+  const canReviewBookingId = canReviewObj?.data || null
+  const canReview = !!canReviewBookingId
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
-
-  // Hàm load booking thỏa mãn điều kiện để truyền bookingId vào API review
-  // Nhưng reviewApi.create yêu cầu data { movieId, bookingId, rating, comment }
-  // Chúng ta cần lấy bookingId. BookingRepository.isEligibleForReview không trả về bookingId.
-  // Wait, reviewApi.create requires a bookingId... it's easier to just fetch `bookingApi.getMyAll` 
-  // and find the paid booking for this movie, OR we can modify backend to auto-detect bookingId.
-  // Actually, to make it simple without altering backend again, let's fetch my bookings here:
-  const { data: myBookingsData } = useQuery({
-    queryKey: ['bookings', 'me'],
-    queryFn: () => bookingApi.getMyAll(0, 100).then(res => res.data.data.content),
-    enabled: isReviewModalOpen,
-  })
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()
@@ -57,20 +46,15 @@ export default function MovieDetailPage() {
       return toast.error('Vui lòng nhập nhận xét')
     }
 
-    // Tìm booking PAID cho phim này
-    const validBooking = myBookingsData?.find(b => 
-      b.movieTitle === movie.title && b.status === "PAID"
-    )
-
-    if (!validBooking) {
+    if (!canReviewBookingId) {
       return toast.error('Không tìm thấy giao dịch hợp lệ để đánh giá.')
     }
 
     setIsSubmittingReview(true)
     try {
-      await reviewApi.create(id, {
+      await reviewApi.create({
         movieId: id,
-        bookingId: validBooking.id, // Using the booking ID we found
+        bookingId: canReviewBookingId,
         rating,
         comment
       })
@@ -292,42 +276,42 @@ export default function MovieDetailPage() {
       </div>
 
       {/* Review Modal */}
-      <Modal open={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Viết đánh giá của bạn">
-        <form onSubmit={handleSubmitReview} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-cinema-200 mb-2">Đánh giá sao</label>
-            <div className="flex gap-2">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <button
-                  key={i} type="button"
-                  onClick={() => setRating(i + 1)}
-                  className="focus:outline-none"
-                >
-                  <Star className={cn('w-8 h-8 transition-colors', 
-                    i < rating ? 'text-gold-400 fill-current' : 'text-cinema-600'
-                  )} />
-                </button>
-              ))}
-            </div>
+      <Modal open={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Đánh giá phim" theme="dark">
+        <form onSubmit={handleSubmitReview} className="space-y-4 pt-2">
+          <p className="text-sm font-medium text-cinema-200">Chất lượng phim (Điểm: {rating}/5)</p>
+          <div className="flex items-center gap-1 justify-center py-2">
+            {[1, 2, 3, 4, 5].map((starValue) => (
+              <button
+                key={starValue} type="button"
+                onClick={() => setRating(starValue)}
+                className="p-1 transition-transform hover:scale-110 focus:outline-none"
+              >
+                <Star className={cn('w-8 h-8 transition-colors', 
+                  rating >= starValue ? 'text-gold-400 fill-current' : 'text-cinema-600'
+                )} />
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-cinema-200 mb-2">Nhận xét chi tiết</label>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-cinema-200">Bình luận (tùy chọn)</label>
             <textarea
+              className="w-full px-4 py-3 bg-cinema-800/80 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-white"
+              placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
               value={comment}
               onChange={(e) => setComment(e.target.value)}
-              className="input w-full h-32 resize-none"
-              placeholder="Chia sẻ cảm nghĩ của bạn về bộ phim..."
               maxLength={1000}
             />
             <div className="text-right text-xs text-cinema-400 mt-1">
               {comment.length}/1000
             </div>
           </div>
+
           <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsReviewModalOpen(false)} className="btn-ghost">
+            <button type="button" onClick={() => setIsReviewModalOpen(false)} className="px-5 py-2.5 rounded-xl font-medium text-white hover:bg-white/5 transition-colors">
               Hủy
             </button>
-            <button type="submit" disabled={isSubmittingReview} className="btn-primary">
+            <button type="submit" disabled={isSubmittingReview} className="px-5 py-2.5 rounded-xl font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
               {isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
             </button>
           </div>
