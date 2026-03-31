@@ -101,9 +101,13 @@
     <string name="retry">Thử lại</string>
     <string name="loading">Đang tải...</string>
 
+    <!-- Splash Screen -->
+    <string name="slogan_main">HƠN CẢ MỘT TẤM VÉ...</string>
+    <string name="slogan_sub">NOVA TICKET - CHẠM VÀO THẾ GIỚI CẢM XÚC</string>
+
     <!-- Social login -->
     <!-- Lấy từ Google Cloud Console → OAuth → Web application Client ID -->
-    <string name="google_web_client_id">123750513829-7tgfpg45nkapneid483k8t03polnimpu.apps.googleusercontent.com</string>
+    <string name="google_web_client_id">123750513829-v6o1fj0rudil1r17dooq8ul6sa3f314v.apps.googleusercontent.com</string>
     <!-- Lấy từ Facebook Developers → App Settings → Basic -->
     <string name="facebook_app_id">1425414802373273</string>
     <string name="facebook_client_token">df642732746d142bf40fac51788de044</string>

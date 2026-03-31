@@ -10,6 +10,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.*;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentSelectSeatBinding;
 import java.util.*;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -62,7 +63,7 @@ public class SelectSeatFragment extends Fragment {
 
         binding.btnConfirm.setOnClickListener(v -> {
             if (viewModel.getSelectedSeatIds().isEmpty()) {
-                Toast.makeText(requireContext(), "Vui lòng chọn ít nhất 1 ghế", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng chọn ít nhất 1 ghế");
                 return;
             }
             SelectSeatViewModel.pendingSeatIds = new ArrayList<>(viewModel.getSelectedSeatIds());
@@ -86,7 +87,7 @@ public class SelectSeatFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });

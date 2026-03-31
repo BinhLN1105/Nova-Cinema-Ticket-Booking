@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.VoucherSummary;
 import com.cinema.ticket_booking.databinding.FragmentVoucherBinding;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 
 import java.util.List;
 
@@ -45,9 +46,9 @@ public class VoucherFragment extends Fragment {
         binding.btnApplyVoucher.setOnClickListener(v -> {
             String code = binding.etVoucherCode.getText() != null ? binding.etVoucherCode.getText().toString().trim() : "";
             if (code.isEmpty()) {
-                android.widget.Toast.makeText(requireContext(), "Vui lòng nhập mã voucher", android.widget.Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập mã voucher");
             } else {
-                android.widget.Toast.makeText(requireContext(), "Tính năng nạp thẻ đang được phát triển!", android.widget.Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showSuccess(binding.getRoot(), "Tính năng nạp thẻ đang được phát triển!");
                 binding.etVoucherCode.setText("");
             }
         });

@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -34,7 +35,7 @@ public class ScannerFragment extends Fragment {
             new ScanContract(),
             result -> {
                 if (result.getContents() == null) {
-                    Toast.makeText(requireContext(), "Đã huỷ quét", Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showSuccess(binding.getRoot(), "Đã huỷ quét");
                 } else {
                     String qrCode = result.getContents();
                     binding.progressBar.setVisibility(View.VISIBLE);
@@ -70,7 +71,7 @@ public class ScannerFragment extends Fragment {
                 showResult(resource.data);
             } else if (resource.status == Resource.Status.ERROR) {
                 binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), resource.message, Toast.LENGTH_LONG).show();
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
                 binding.tvCheckInStatus.setText("LỖI: \n" + resource.message);
                 binding.tvCheckInStatus.setTextColor(getResources().getColor(R.color.error, null));
                 binding.tvMovieTitle.setText("");

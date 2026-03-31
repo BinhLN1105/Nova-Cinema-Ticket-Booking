@@ -4,12 +4,14 @@ import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
 import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.data.model.response.PromotionResponse;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.google.android.material.tabs.TabLayoutMediator;
 import androidx.viewpager2.widget.ViewPager2;
 import java.util.List;
 
 import android.os.Bundle;
 import android.view.*;
+import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -49,28 +51,24 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
-        binding.rvNowShowing.setLayoutManager(
-                new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
-        binding.rvComingSoon.setLayoutManager(
-                new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rvMovies.setLayoutManager(new GridLayoutManager(requireContext(), 2));
         binding.rvSearchResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
 
-        viewModel.getNowShowing().observe(getViewLifecycleOwner(), resource -> {
-            switch (resource.status) {
-                case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
-                case SUCCESS -> {
-                    binding.progressBar.setVisibility(View.GONE);
-                    if (resource.data != null && resource.data.getContent() != null
-                            && !resource.data.getContent().isEmpty()) {
-                        List<MovieSummary> movies = resource.data.getContent();
-                        MovieAdapter adapter = new MovieAdapter(movies,
-                                movieId -> navigateToDetail(view, movieId));
-                        binding.rvNowShowing.setAdapter(adapter);
-                    }
-                }
-                case ERROR -> binding.progressBar.setVisibility(View.GONE);
+        // Mặc định khi vào app sẽ hiển thị danh sách phim Đang chiếu
+        observeMovies(true);
+
+        // Lắng nghe sự kiện chuyển Tab giữa "ĐANG CHIẾU" và "SẮP CHIẾU"
+        binding.tabLayoutMovies.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                // tab.getPosition() == 0 là Tab Đang chiếu, 1 là Tab Sắp chiếu
+                observeMovies(tab.getPosition() == 0);
             }
+            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
+            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
         });
+
+
 
         viewModel.getFeaturedMovies().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
@@ -111,13 +109,7 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        viewModel.getComingSoon().observe(getViewLifecycleOwner(), resource -> {
-            if (resource.isSuccess() && resource.data != null) {
-                MovieAdapter adapter = new MovieAdapter(resource.data.getContent(),
-                        movieId -> navigateToDetail(view, movieId));
-                binding.rvComingSoon.setAdapter(adapter);
-            }
-        });
+
 
         viewModel.getActivePromotions().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
@@ -125,15 +117,15 @@ public class HomeFragment extends Fragment {
                 binding.tabLayoutPromo.setVisibility(View.VISIBLE);
                 
                 PromotionAdapter promotionAdapter = new PromotionAdapter(resource.data, promotion -> {
-                    // Optional: Handle click
+                    // Xử lý khi người dùng bấm vào banner khuyến mãi (nếu cần)
                 });
                 binding.vpPromotions.setAdapter(promotionAdapter);
                 
-                // Initialize Dot Indicators
+                // Kết nối TabLayout với ViewPager2 để hiển thị các dấu chấm (Dot Indicator)
                 new TabLayoutMediator(binding.tabLayoutPromo, binding.vpPromotions, 
                     (tab, position) -> {}).attach();
                 
-                // Auto-scroll logic
+                // Thiết lập tự động chuyển banner sau mỗi 4 giây
                 setupAutoScrollForBanners(resource.data.size());
                 
             } else {
@@ -145,15 +137,33 @@ public class HomeFragment extends Fragment {
             }
         });
 
-        // SwipeRefresh
+        // Xử lý làm mới dữ liệu khi kéo từ trên xuống
         binding.swipeRefresh.setOnRefreshListener(() -> {
             viewModel.loadHomeData();
             binding.swipeRefresh.setRefreshing(false);
         });
 
-        // Chatbot FAB
-        // Search Debounce Logic
-        // Search Overlay Logic
+        // Điều hướng từ các nút trên Header (Thanh tiêu đề)
+        binding.btnNotification.setOnClickListener(v -> 
+            Navigation.findNavController(v).navigate(R.id.notificationFragment));
+        
+        binding.ivUserAvatar.setOnClickListener(v -> 
+            Navigation.findNavController(v).navigate(R.id.profileFragment));
+
+        binding.btnLocation.setOnClickListener(v -> 
+            SnackbarHelper.showSuccess(binding.getRoot(), "Bộ lọc địa điểm sẽ sớm ra mắt!"));
+
+        // Xử lý các sự kiện bấm nhanh (Quick Booking) - Hiện tại hiển thị thông báo chờ
+        binding.btnQuickMovie.setOnClickListener(v -> 
+            SnackbarHelper.showSuccess(binding.getRoot(), "Vui lòng chọn phim..."));
+        binding.btnQuickCinema.setOnClickListener(v -> 
+            SnackbarHelper.showSuccess(binding.getRoot(), "Vui lòng chọn rạp..."));
+        binding.btnQuickDate.setOnClickListener(v -> 
+            SnackbarHelper.showSuccess(binding.getRoot(), "Vui lòng chọn ngày..."));
+        binding.btnQuickSubmit.setOnClickListener(v -> 
+            SnackbarHelper.showSuccess(binding.getRoot(), "Tính năng đặt vé nhanh sẽ sớm ra mắt!"));
+        
+        // Xử lý logic tìm kiếm (Search) với Debounce để giảm tải cho Server
         binding.etSearch.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
                 binding.viewSearchDim.setVisibility(View.VISIBLE);
@@ -163,11 +173,12 @@ public class HomeFragment extends Fragment {
             }
         });
 
+        // Đóng vùng tìm kiếm khi bấm vào vùng mờ (Dim Background)
         binding.viewSearchDim.setOnClickListener(v -> {
             binding.etSearch.clearFocus();
             binding.viewSearchDim.setVisibility(View.GONE);
             binding.rvSearchResults.setVisibility(View.GONE);
-            // Hide keyboard
+            // Ẩn bàn phím ảo
             View view1 = requireActivity().getCurrentFocus();
             if (view1 != null) {
                 android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
@@ -259,10 +270,28 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private void observeMovies(boolean nowShowing) {
+        if (nowShowing) {
+            viewModel.getNowShowing().observe(getViewLifecycleOwner(), resource -> {
+                if (resource.isSuccess() && resource.data != null) {
+                    binding.rvMovies.setAdapter(new MovieAdapter(resource.data.getContent(),
+                            movieId -> navigateToDetail(requireView(), movieId)));
+                }
+            });
+        } else {
+            viewModel.getComingSoon().observe(getViewLifecycleOwner(), resource -> {
+                if (resource.isSuccess() && resource.data != null) {
+                    binding.rvMovies.setAdapter(new MovieAdapter(resource.data.getContent(),
+                            movieId -> navigateToDetail(requireView(), movieId)));
+                }
+            });
+        }
+    }
+
     private void navigateToDetail(View view, String movieId) {
         Bundle args = new Bundle();
         args.putString("movieId", movieId);
-        Navigation.findNavController(view).navigate(R.id.action_home_to_movieDetail, args);
+        Navigation.findNavController(view).navigate(R.id.movieDetailFragment, args);
     }
 
     @Override

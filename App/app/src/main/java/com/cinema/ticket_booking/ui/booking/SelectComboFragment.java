@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.ui.booking;
 
 import android.os.Bundle;
 import android.view.*;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
@@ -78,7 +79,7 @@ public class SelectComboFragment extends Fragment {
                 binding.rvCombos.setAdapter(adapter);
                 updateTotal();
             } else if (resource.isError()) {
-                Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
     }

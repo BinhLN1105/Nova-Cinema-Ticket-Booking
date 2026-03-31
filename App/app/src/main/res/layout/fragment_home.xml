@@ -7,10 +7,95 @@
     android:layout_height="match_parent"
     android:background="@color/background">
 
+    <!-- Thanh tiêu đề cố định hoặc tự động ẩn (Sticky Header) -->
+    <com.google.android.material.appbar.AppBarLayout
+        android:id="@+id/appBarLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@android:color/transparent"
+        app:elevation="0dp">
+
+        <androidx.appcompat.widget.Toolbar
+            android:id="@+id/toolbar"
+            android:layout_width="match_parent"
+            android:layout_height="?attr/actionBarSize"
+            app:layout_scrollFlags="scroll|enterAlways"
+            android:paddingHorizontal="16dp"
+            android:background="@color/surface_container">
+            
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                
+                <com.google.android.material.textfield.TextInputLayout
+                    android:id="@+id/layoutSearch"
+                    android:layout_width="0dp"
+                    android:layout_height="40dp"
+                    android:layout_weight="1"
+                    android:layout_marginEnd="8dp"
+                    app:hintEnabled="false"
+                    app:startIconDrawable="@drawable/ic_search"
+                    app:startIconTint="@color/on_surface_variant"
+                    app:boxStrokeWidth="0dp"
+                    app:boxStrokeWidthFocused="0dp"
+                    style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
+                    <com.google.android.material.textfield.TextInputEditText
+                        android:id="@+id/etSearch"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:padding="0dp"
+                        android:hint="Tìm phim..."
+                        android:textSize="12sp"
+                        android:background="@drawable/bg_search_box"
+                        android:imeOptions="actionSearch"
+                        android:inputType="text"/>
+                </com.google.android.material.textfield.TextInputLayout>
+
+                <ImageView
+                    android:id="@+id/btnLocation"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_location"
+                    app:tint="@color/on_surface_variant" />
+
+                <TextView
+                    android:id="@+id/tvCurrentLocation"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="HCM"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:layout_marginEnd="8dp"/>
+
+                <ImageView
+                    android:id="@+id/btnNotification"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_notification"
+                    app:tint="@color/on_surface"
+                    android:layout_marginEnd="8dp"/>
+
+                <com.google.android.material.imageview.ShapeableImageView
+                    android:id="@+id/ivUserAvatar"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:src="@drawable/ic_profile"
+                    app:tint="@color/on_surface_variant"
+                    app:shapeAppearanceOverlay="@style/ShapeAppearance.MaterialComponents.SmallComponent"
+                    android:scaleType="centerCrop" />
+            </LinearLayout>
+        </androidx.appcompat.widget.Toolbar>
+    </com.google.android.material.appbar.AppBarLayout>
+
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipeRefresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior">
 
         <androidx.core.widget.NestedScrollView
             android:layout_width="match_parent"
@@ -23,43 +108,7 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
-                <!-- Header -->
-                <androidx.constraintlayout.widget.ConstraintLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="64dp"
-                    android:paddingHorizontal="16dp"
-                    android:background="@color/surface_variant">
-
-
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="CINEMATIC"
-                        android:textColor="@color/primary"
-                        android:textSize="20sp"
-                        android:textStyle="bold|italic"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintStart_toStartOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent" />
-
-                    <!-- Search / Profile
-                    <ImageView
-                        android:id="@+id/etSearch"
-                        android:layout_width="40dp"
-                        android:layout_height="40dp"
-                        android:padding="8dp"
-                        android:src="@drawable/ic_search"
-                        app:tint="@color/on_surface"
-                        app:layout_constraintEnd_toEndOf="parent"
-                        app:layout_constraintTop_toTopOf="parent"
-                        app:layout_constraintBottom_toBottomOf="parent" /> -->
-                </androidx.constraintlayout.widget.ConstraintLayout>
-
-                <!-- Hero Section (Static placeholder mimicking design) -->
-
-                <!-- Hero Section (Static placeholder mimicking design) -->
+                <!-- Phần phim nổi bật (Hero Section) -->
                 <androidx.constraintlayout.widget.ConstraintLayout
                     android:layout_width="match_parent"
                     android:layout_height="350dp"
@@ -77,14 +126,15 @@
 
                     <TextView
                         android:id="@+id/tvHeroTitle"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:text=""
                         android:textColor="@color/white"
-                        android:textSize="28sp"
-                        android:textStyle="bold|italic"
-                        android:textAllCaps="true"
-                        android:layout_marginBottom="16dp"
+                        android:textSize="24sp"
+                        android:textStyle="bold"
+                        android:gravity="center"
+                        android:layout_marginHorizontal="32dp"
+                        android:layout_marginBottom="12dp"
                         app:layout_constraintBottom_toTopOf="@id/btnBookHero"
                         app:layout_constraintStart_toStartOf="parent"
                         app:layout_constraintEnd_toEndOf="parent"/>
@@ -93,7 +143,7 @@
                         android:id="@+id/btnBookHero"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="BOOK NOW"
+                        android:text="MUA VÉ NGAY"
                         android:textColor="@color/white"
                         app:backgroundTint="@color/primary"
                         app:cornerRadius="24dp"
@@ -103,181 +153,142 @@
                         app:layout_constraintEnd_toEndOf="parent" />
                 </androidx.constraintlayout.widget.ConstraintLayout>
 
-                <!-- Quick Booking Card -->
+                <!-- Thẻ đặt vé nhanh (Quick Booking Card) -->
                 <com.google.android.material.card.MaterialCardView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginHorizontal="16dp"
-                    android:layout_marginTop="-24dp"
+                    android:layout_marginTop="-32dp"
                     app:cardBackgroundColor="@color/surface_container_highest"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="20dp"
                     app:cardElevation="8dp">
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:orientation="vertical"
-                        android:padding="16dp">
-                        <TextView
-                            android:layout_width="match_parent"
+                        android:orientation="horizontal"
+                        android:padding="12dp"
+                        android:gravity="center_vertical">
+                        
+                        <LinearLayout
+                            android:id="@+id/btnQuickMovie"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:text="QUICK BOOKING"
-                            android:textColor="@color/primary"
-                            android:textStyle="bold"
-                            android:textSize="12sp"
-                            android:gravity="center"
-                            android:layout_marginBottom="16dp"/>
-                        <HorizontalScrollView
-                            android:layout_width="match_parent"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_movie" app:tint="@color/primary"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Phim" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/outline_variant"/>
+
+                        <LinearLayout
+                            android:id="@+id/btnQuickCinema"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:scrollbars="none">
-                            <LinearLayout
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:orientation="horizontal">
-                                <com.google.android.material.button.MaterialButton
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Select Movie"
-                                    android:textColor="@color/white"
-                                    app:strokeColor="@color/outline"
-                                    app:icon="@drawable/ic_movie"
-                                    app:cornerRadius="16dp"
-                                    android:layout_marginEnd="8dp"/>
-                                <com.google.android.material.button.MaterialButton
-                                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                                    android:layout_width="wrap_content"
-                                    android:layout_height="wrap_content"
-                                    android:text="Theater"
-                                    android:textColor="@color/white"
-                                    app:strokeColor="@color/outline"
-                                    app:cornerRadius="16dp" />
-                            </LinearLayout>
-                        </HorizontalScrollView>
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_location" app:tint="@color/primary"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rạp" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/outline_variant"/>
+
+                        <LinearLayout
+                            android:id="@+id/btnQuickDate"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:orientation="vertical"
+                            android:gravity="center">
+                            <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:rotation="90" app:tint="@color/primary"/>
+                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ngày" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                        </LinearLayout>
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnQuickSubmit"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="MUA"
+                            app:cornerRadius="12dp"
+                            android:layout_marginStart="8dp"
+                            app:paddingStart="12dp"
+                            app:paddingEnd="12dp"
+                            android:textSize="12sp"/>
                     </LinearLayout>
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Đang chiếu -->
-                <LinearLayout
+                <!-- Tab chọn danh sách: Đang chiếu | Sắp chiếu -->
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tabLayoutMovies"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:layout_marginTop="32dp"
-                    android:paddingHorizontal="24dp"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Now Showing" 
-                        android:textColor="@color/on_background"
-                        android:textSize="20sp" 
-                        android:textStyle="bold" />
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="SEE ALL"
-                        android:textColor="@color/primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
+                    android:layout_marginTop="24dp"
+                    android:background="@android:color/transparent"
+                    app:tabIndicatorColor="@color/primary"
+                    app:tabSelectedTextColor="@color/primary"
+                    app:tabTextColor="@color/on_surface_variant"
+                    app:tabIndicatorHeight="3dp"
+                    app:tabIndicatorFullWidth="false"
+                    app:tabTextAppearance="@style/TextApp.TabLabel">
+                    <com.google.android.material.tabs.TabItem android:text="ĐANG CHIẾU" />
+                    <com.google.android.material.tabs.TabItem android:text="SẮP CHIẾU" />
+                </com.google.android.material.tabs.TabLayout>
 
+                <!-- Lưới hiển thị danh sách phim -->
                 <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvNowShowing"
+                    android:id="@+id/rvMovies"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
-                    android:paddingHorizontal="24dp"
+                    android:paddingHorizontal="12dp"
                     android:clipToPadding="false"
-                    android:layout_marginBottom="24dp"
                     android:nestedScrollingEnabled="false"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    android:orientation="horizontal"
-                    tools:listitem="@layout/item_movie_card" />
-                
-                <!-- Ưu đãi & Khuyến mãi Title -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="24dp"
-                    android:layout_marginBottom="16dp"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Ưu đãi &amp; Khuyến mãi" 
-                        android:textColor="@color/on_background"
-                        android:textSize="20sp" 
-                        android:textStyle="bold"/>
-                </LinearLayout>
+                    app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+                    app:spanCount="2"
+                    tools:listitem="@layout/item_movie" />
 
-                <!-- Auto-playing Promo Banner Carousel -->
+                <!-- Khu vực Khuyến mãi & Vouchers -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="KHUYẾN MÃI HOT"
+                    android:textColor="@color/on_surface"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="32dp"
+                    android:layout_marginStart="24dp"
+                    android:layout_marginBottom="16dp"/>
+
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cvPromoContainer"
                     android:layout_width="match_parent"
                     android:layout_height="160dp"
                     android:layout_marginHorizontal="24dp"
-                    android:layout_marginBottom="12dp"
-                    app:cardCornerRadius="24dp"
+                    app:cardCornerRadius="20dp"
                     android:visibility="gone"
                     app:cardBackgroundColor="@color/surface_container_lowest">
-                    
                     <androidx.viewpager2.widget.ViewPager2
                         android:id="@+id/vpPromotions"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent" />
-                        
                 </com.google.android.material.card.MaterialCardView>
 
-                <!-- Dot Indicator for Promo Banners -->
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/tabLayoutPromo"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="12dp"
+                    android:layout_marginTop="8dp"
                     android:layout_marginBottom="32dp"
                     app:tabBackground="@drawable/tab_indicator" 
                     app:tabGravity="center"
                     app:tabIndicatorHeight="0dp"
-                    app:tabRippleColor="@null" />
-
-                <!-- Sắp chiếu -->
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:paddingHorizontal="24dp"
-                    android:gravity="center_vertical">
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="Coming Soon" 
-                        android:textColor="@color/on_background"
-                        android:textSize="20sp" 
-                        android:textStyle="bold"/>
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="NOTIFY ME"
-                        android:textColor="@color/primary"
-                        android:textSize="12sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <androidx.recyclerview.widget.RecyclerView
-                    android:id="@+id/rvComingSoon"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:paddingHorizontal="24dp"
-                    android:clipToPadding="false"
-                    android:layout_marginBottom="32dp"
-                    android:nestedScrollingEnabled="false"
-                    app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
-                    android:orientation="horizontal"
-                    tools:listitem="@layout/item_movie_card" />
+                    app:tabRippleColor="@null"
+                    app:tabPaddingStart="4dp"
+                    app:tabPaddingEnd="4dp"
+                    app:tabMinWidth="8dp"
+                    app:tabMaxWidth="24dp" />
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>
@@ -288,20 +299,19 @@
         android:visibility="gone" android:indeterminateTint="@color/primary"
         android:layout_gravity="center"/>
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/btnChatbot"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="bottom|end"
-        android:layout_marginEnd="16dp"
-        android:layout_marginBottom="96dp"
-        android:src="@drawable/ic_baseline_chat_24"
-        app:tint="@color/white"
-        app:backgroundTint="@color/primary"
-        app:fabSize="mini"
-        android:contentDescription="Chat AI"/>
+    <!-- Kết quả tìm kiếm (Search Results) -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rvSearchResults"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:background="@color/background"
+        android:visibility="gone"
+        android:elevation="11dp"
+        android:padding="12dp"
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
 
-    <!-- Search Dim Background (Top Level) -->
+    <!-- Lớp phủ mờ khi đang tìm kiếm (Search Dim Background) -->
     <View
         android:id="@+id/viewSearchDim"
         android:layout_width="match_parent"
@@ -309,51 +319,5 @@
         android:background="#80000000"
         android:visibility="gone"
         android:elevation="10dp"/>
-
-    <!-- Search Overlay Container (Optimized for Phase 3) -->
-    <androidx.constraintlayout.widget.ConstraintLayout
-        android:id="@+id/searchOverlay"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:elevation="11dp"
-        android:visibility="visible">
-
-        <!-- Sticky Search Bar -->
-        <com.google.android.material.textfield.TextInputLayout
-            android:id="@+id/tilSearch"
-            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
-            android:layout_width="match_parent"
-            android:layout_height="60dp"
-            android:layout_marginHorizontal="16dp"
-            android:layout_marginTop="72dp"
-            android:hint="Search Movies..."
-            app:startIconDrawable="@drawable/ic_search"
-            app:boxStrokeColor="@color/primary"
-            app:hintTextColor="@color/on_surface_variant"
-            app:layout_constraintTop_toTopOf="parent">
-            <com.google.android.material.textfield.TextInputEditText
-                android:id="@+id/etSearch"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:textColor="@color/on_surface"
-                android:imeOptions="actionSearch"
-                android:inputType="text" />
-        </com.google.android.material.textfield.TextInputLayout>
-
-        <!-- Overlay Search Results -->
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/rvSearchResults"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:background="@color/background"
-            android:visibility="gone"
-            android:clipToPadding="false"
-            android:padding="16dp"
-            app:layout_constrainedHeight="true"
-            app:layout_constraintHeight_max="500dp"
-            app:layout_constraintTop_toBottomOf="@id/tilSearch"
-            app:layout_constraintBottom_toBottomOf="parent"/>
-    </androidx.constraintlayout.widget.ConstraintLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

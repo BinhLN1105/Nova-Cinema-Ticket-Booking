@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.*;
 import android.webkit.*;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
@@ -69,12 +70,12 @@ public class PaymentFragment extends Fragment {
                     if (resource.data != null && resource.data.getPaymentUrl() != null) {
                         setupWebView(view, resource.data.getPaymentUrl());
                     } else {
-                        Toast.makeText(requireContext(), "Lỗi: Không nhận được link thanh toán", Toast.LENGTH_LONG).show();
+                        SnackbarHelper.showError(binding.getRoot(), "Lỗi: Không nhận được link thanh toán");
                     }
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), "Lỗi kết nối: " + resource.message, Toast.LENGTH_LONG).show();
+                    SnackbarHelper.showError(binding.getRoot(), "Lỗi kết nối: " + resource.message);
                 }
             }
         });
@@ -133,7 +134,7 @@ public class PaymentFragment extends Fragment {
                             }
                         } else {
                             // Cancelled or Failed
-                            Toast.makeText(requireContext(), "Giao dịch đã bị hủy hoặc thất bại", Toast.LENGTH_SHORT).show();
+                            SnackbarHelper.showError(binding.getRoot(), "Giao dịch đã bị hủy hoặc thất bại");
                             try {
                                 Navigation.findNavController(view).popBackStack();
                             } catch (Exception e) {
@@ -170,9 +171,8 @@ public class PaymentFragment extends Fragment {
                 if (req.isForMainFrame()) {
                     android.util.Log.e("PaymentFragment", "WebView error: " + error.getDescription());
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(),
-                            "Không thể tải trang thanh toán. Vui lòng kiểm tra kết nối mạng.",
-                            Toast.LENGTH_LONG).show();
+                    SnackbarHelper.showError(binding.getRoot(),
+                            "Không thể tải trang thanh toán. Vui lòng kiểm tra kết nối mạng.");
                 }
             }
 

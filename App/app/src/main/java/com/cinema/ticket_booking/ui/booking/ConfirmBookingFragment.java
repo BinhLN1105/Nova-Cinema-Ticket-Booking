@@ -10,6 +10,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.*;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentConfirmBookingBinding;
 import java.util.*;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -73,11 +74,17 @@ public class ConfirmBookingFragment extends Fragment {
                 viewModel.validateVoucher(code);
         });
         binding.btnClearVoucher.setOnClickListener(v -> {
+            final String lastCode = binding.etVoucher.getText().toString().trim();
             viewModel.clearVoucher();
             binding.etVoucher.setText("");
             binding.tvVoucherInfo.setVisibility(View.GONE);
             binding.btnClearVoucher.setVisibility(View.GONE);
             updatePriceSummary();
+            
+            SnackbarHelper.showWithAction(binding.getRoot(), "Đã gỡ mã giảm giá", "HOÀN TÁC", v2 -> {
+                binding.etVoucher.setText(lastCode);
+                viewModel.validateVoucher(lastCode);
+            });
         });
 
         // Xác nhận đặt vé
@@ -92,7 +99,7 @@ public class ConfirmBookingFragment extends Fragment {
             if (remaining > 0) {
                 startCountdown(remaining);
             } else {
-                Toast.makeText(requireContext(), "Hết thời gian giữ vé!", Toast.LENGTH_LONG).show();
+                SnackbarHelper.showError(binding.getRoot(), "Hết thời gian giữ vé!");
                 Navigation.findNavController(view).popBackStack(R.id.selectSeatFragment, false);
             }
         } else {
@@ -111,8 +118,9 @@ public class ConfirmBookingFragment extends Fragment {
                 binding.tvVoucherInfo.setVisibility(View.VISIBLE);
                 binding.btnClearVoucher.setVisibility(View.VISIBLE);
                 updatePriceSummary();
+                SnackbarHelper.showSuccess(binding.getRoot(), "Áp dụng mã giảm giá thành công!");
             } else if (resource.isError()) {
-                Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
         
@@ -140,7 +148,7 @@ public class ConfirmBookingFragment extends Fragment {
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
                     binding.btnConfirmBooking.setEnabled(true);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_LONG).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });
@@ -168,7 +176,7 @@ public class ConfirmBookingFragment extends Fragment {
             @Override
             public void onFinish() {
                 if (getContext() != null && binding != null) {
-                    Toast.makeText(requireContext(), "Hết thời gian giữ vé", Toast.LENGTH_LONG).show();
+                    SnackbarHelper.showError(binding.getRoot(), "Hết thời gian giữ vé");
                     // Go back to select seat or movie detail
                     Navigation.findNavController(requireView()).popBackStack();
                 }

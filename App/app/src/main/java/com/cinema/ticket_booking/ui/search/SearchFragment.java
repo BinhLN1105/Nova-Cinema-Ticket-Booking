@@ -9,6 +9,7 @@ import android.location.Location;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.*;
@@ -39,8 +40,7 @@ public class SearchFragment extends Fragment {
                 if (isGranted) {
                     getLastLocation();
                 } else {
-                    Toast.makeText(requireContext(), "Quyền vị trí bị từ chối. Mặc định là Hà Nội.", Toast.LENGTH_SHORT)
-                            .show();
+                    SnackbarHelper.showSuccess(binding.getRoot(), "Quyền vị trí bị từ chối. Mặc định là Hà Nội.");
                     viewModel.loadCinemas("Hà Nội");
                     binding.tvLocation.setText("Hà Nội ▼");
                 }
@@ -73,13 +73,13 @@ public class SearchFragment extends Fragment {
                         binding.rvCinemas.setVisibility(View.VISIBLE);
                         binding.rvCinemas.setAdapter(new CinemaAdapter(resource.data, cinema -> {
                             // Navigate to Cinema Details later if needed
-                            Toast.makeText(requireContext(), "Chọn " + cinema.getName(), Toast.LENGTH_SHORT).show();
+                            SnackbarHelper.showSuccess(binding.getRoot(), "Chọn " + cinema.getName());
                         }));
                     }
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });
@@ -118,7 +118,7 @@ public class SearchFragment extends Fragment {
             if (location != null) {
                 getCityFromLocation(location);
             } else {
-                Toast.makeText(requireContext(), "Không thể lấy vị trí hiện tại.", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Không thể lấy vị trí hiện tại.");
             }
         });
     }
@@ -142,7 +142,7 @@ public class SearchFragment extends Fragment {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        Toast.makeText(requireContext(), "Không thể xác định tên tỉnh thành.", Toast.LENGTH_SHORT).show();
+        SnackbarHelper.showError(binding.getRoot(), "Không thể xác định tên tỉnh thành.");
     }
 
     @Override

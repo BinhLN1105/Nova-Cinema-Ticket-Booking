@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.ui.auth;
 
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
@@ -35,7 +36,7 @@ public class RegisterFragment extends Fragment {
             String name = binding.etFullName.getText().toString().trim();
             String phone = binding.etPhone.getText().toString().trim();
             if (email.isEmpty() || password.isEmpty() || name.isEmpty()) {
-                Toast.makeText(requireContext(), "Vui lòng nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập đầy đủ thông tin");
                 return;
             }
             authViewModel.register(email, password, name, phone);
@@ -53,7 +54,7 @@ public class RegisterFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_LONG).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });

@@ -10,6 +10,7 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.*;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentSelectShowtimeBinding;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -116,7 +117,7 @@ public class SelectShowtimeFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });

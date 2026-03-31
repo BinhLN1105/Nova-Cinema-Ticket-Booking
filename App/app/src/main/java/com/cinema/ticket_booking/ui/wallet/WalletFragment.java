@@ -7,6 +7,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -52,7 +53,7 @@ public class WalletFragment extends Fragment {
         binding.btnRedeem.setOnClickListener(v -> {
             String code = binding.etGiftCode.getText().toString().trim();
             if (TextUtils.isEmpty(code)) {
-                Toast.makeText(requireContext(), "Vui lòng nhập mã thẻ quà tặng", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập mã thẻ quà tặng");
                 return;
             }
             binding.progressBar.setVisibility(View.VISIBLE);

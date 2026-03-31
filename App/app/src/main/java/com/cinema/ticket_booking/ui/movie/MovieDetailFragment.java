@@ -7,6 +7,7 @@ import android.view.*;
 import android.widget.EditText;
 import android.widget.RatingBar;
 import android.widget.Toast;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.*;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
@@ -57,7 +58,7 @@ public class MovieDetailFragment extends Fragment {
         });
         binding.btnWriteReview.setOnClickListener(v -> {
             if (!tokenManager.isLoggedIn()) {
-                Toast.makeText(requireContext(), "Vui lòng đăng nhập để viết đánh giá", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng đăng nhập để viết đánh giá");
                 return;
             }
             binding.progressBar.setVisibility(View.VISIBLE);
@@ -71,7 +72,7 @@ public class MovieDetailFragment extends Fragment {
                     if (resource.isSuccess() && resource.data != null) {
                         showWriteReviewDialog(resource.data);
                     } else {
-                        Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim trước khi đánh giá!", Toast.LENGTH_SHORT).show();
+                        SnackbarHelper.showError(binding.getRoot(), "Bạn cần mua vé và xem phim trước khi đánh giá!");
                     }
                 }
             });
@@ -113,7 +114,7 @@ public class MovieDetailFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });
@@ -135,10 +136,10 @@ public class MovieDetailFragment extends Fragment {
 
         viewModel.getCreateReviewResult().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess()) {
-                Toast.makeText(requireContext(), "Đã gửi đánh giá!", Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showSuccess(binding.getRoot(), "Đã gửi đánh giá!");
                 viewModel.loadReviews(movieId);
             } else if (resource.status == com.cinema.ticket_booking.util.Resource.Status.ERROR) {
-                Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
     }
@@ -155,7 +156,7 @@ public class MovieDetailFragment extends Fragment {
                     int rating = (int) ratingBar.getRating();
                     String comment = etComment.getText().toString().trim();
                     if (rating == 0) {
-                        Toast.makeText(requireContext(), "Vui lòng chọn số sao", Toast.LENGTH_SHORT).show();
+                        SnackbarHelper.showError(binding.getRoot(), "Vui lòng chọn số sao");
                         return;
                     }
                     viewModel.submitReview(movieId, bookingId, rating, comment);

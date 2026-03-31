@@ -108,7 +108,9 @@ public class ProfileFragment extends Fragment {
             binding.btnLogout.setStrokeColorResource(R.color.error);
             binding.btnLogout.setOnClickListener(v -> {
                 viewModel.logout();
-                updateUI(false);
+                // Khởi động lại ứng dụng để đưa người dùng về biểu đồ điều hướng (NavGraph) mặc định (Dành cho khách)
+                requireActivity().finish();
+                startActivity(new android.content.Intent(requireActivity(), com.cinema.ticket_booking.ui.MainActivity.class));
             });
 
             binding.btnNavHistory.setOnClickListener(

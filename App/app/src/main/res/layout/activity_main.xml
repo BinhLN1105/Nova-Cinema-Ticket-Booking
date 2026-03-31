@@ -7,7 +7,7 @@
     android:background="@color/background"
     android:fitsSystemWindows="true">
 
-    <!-- Nav Host -->
+    <!-- Vùng chứa các Fragment (Màn hình chính) -->
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
         android:name="androidx.navigation.fragment.NavHostFragment"
@@ -15,10 +15,9 @@
         android:layout_height="match_parent"
         android:paddingBottom="80dp"
         android:clipToPadding="false"
-        app:defaultNavHost="true"
-        app:navGraph="@navigation/nav_graph" />
+        app:defaultNavHost="true" />
 
-    <!-- Bottom App Bar (for FAB cradle only) -->
+    <!-- Thanh công cụ phía dưới (Chỉ dùng để tạo hiệu ứng bo cong cho nút Quét mã) -->
     <com.google.android.material.bottomappbar.BottomAppBar
         android:id="@+id/bottomAppBar"
         android:layout_width="match_parent"
@@ -32,7 +31,7 @@
         app:elevation="24dp"
         app:hideOnScroll="false" />
 
-    <!-- Bottom Navigation (standalone, on top of BottomAppBar) -->
+    <!-- Thanh điều hướng chính (Chứa các nút Trang chủ, Lịch chiếu, Tài khoản, v.v.) -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNav"
         android:layout_width="match_parent"
@@ -50,15 +49,30 @@
         app:itemPaddingBottom="4dp"
         app:menu="@menu/bottom_nav_menu" />
 
-    <!-- Floating Action Button for Tickets/QR -->
+    <!-- Nút Quét mã QR đa năng (Nằm ở chính giữa thanh điều hướng) -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fabTickets"
+        android:id="@+id/fabScanner"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:contentDescription="Tickets"
+        android:contentDescription="QR Scanner"
         app:backgroundTint="@color/primary"
         app:tint="@color/on_primary"
         app:layout_anchor="@id/bottomAppBar"
         app:maxImageSize="32dp"
         android:src="@drawable/ic_qr_code_scanner" />
+
+    <!-- Trợ lý ảo CineAI (Nút nổi có thể kéo thả, nằm ở lớp trên cùng) -->
+    <com.cinema.ticket_booking.util.DraggableFAB
+        android:id="@+id/aiFab"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="112dp"
+        android:src="@drawable/ic_baseline_chat_24"
+        app:backgroundTint="@color/secondary"
+        app:elevation="30dp"
+        app:fabSize="mini"
+        app:tint="@color/white" />
+
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

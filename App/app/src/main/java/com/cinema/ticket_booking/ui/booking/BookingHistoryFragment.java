@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.ui.booking;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -80,7 +81,7 @@ public class BookingHistoryFragment extends Fragment {
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
                     binding.swipeRefresh.setRefreshing(false);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });

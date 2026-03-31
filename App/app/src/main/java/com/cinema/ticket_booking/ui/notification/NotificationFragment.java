@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.ui.notification;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -32,7 +33,7 @@ public class NotificationFragment extends Fragment {
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
         binding.btnMarkAllRead.setOnClickListener(v -> {
             viewModel.markAllAsRead();
-            Toast.makeText(requireContext(), "Đã đánh dấu tất cả là đã đọc", Toast.LENGTH_SHORT).show();
+            SnackbarHelper.showSuccess(binding.getRoot(), "Đã đánh dấu tất cả là đã đọc");
         });
 
         viewModel.getNotifications().observe(getViewLifecycleOwner(), resource -> {
@@ -51,7 +52,7 @@ public class NotificationFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), resource.message, Toast.LENGTH_SHORT).show();
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }
             }
         });

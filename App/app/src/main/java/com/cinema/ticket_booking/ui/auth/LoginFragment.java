@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.ui.auth;
 
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -101,10 +102,10 @@ public class LoginFragment extends Fragment {
             if (idToken != null) {
                 authViewModel.loginWithGoogle(idToken);
             } else {
-                showError("Không lấy được Google token");
+                SnackbarHelper.showError(binding.getRoot(), "Không lấy được Google token");
             }
         } catch (ApiException e) {
-            showError("Google Sign-In thất bại: " + e.getStatusCode());
+            SnackbarHelper.showError(binding.getRoot(), "Google Sign-In thất bại: " + e.getStatusCode());
         }
     }
 
@@ -123,12 +124,12 @@ public class LoginFragment extends Fragment {
 
                     @Override
                     public void onCancel() {
-                        showError("Đăng nhập Facebook bị huỷ");
+                        SnackbarHelper.showError(binding.getRoot(), "Đăng nhập Facebook bị huỷ");
                     }
 
                     @Override
                     public void onError(@NonNull FacebookException error) {
-                        showError("Facebook Login thất bại: " + error.getMessage());
+                        SnackbarHelper.showError(binding.getRoot(), "Facebook Login thất bại: " + error.getMessage());
                     }
                 });
     }
@@ -142,7 +143,7 @@ public class LoginFragment extends Fragment {
             String password = binding.etPassword.getText().toString();
 
             if (email.isEmpty() || password.isEmpty()) {
-                showError("Vui lòng nhập đầy đủ email và mật khẩu");
+                SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập đầy đủ email và mật khẩu");
                 return;
             }
             authViewModel.login(email, password);
@@ -160,8 +161,8 @@ public class LoginFragment extends Fragment {
                 .navigate(R.id.action_login_to_register));
 
         // Quên mật khẩu
-        binding.tvForgotPassword.setOnClickListener(v -> Toast.makeText(requireContext(),
-                "Tính năng đang phát triển", Toast.LENGTH_SHORT).show());
+        binding.tvForgotPassword.setOnClickListener(v ->
+                SnackbarHelper.showSuccess(binding.getRoot(), "Tính năng đang phát triển"));
     }
 
     // ── Observers ─────────────────────────────────────────────────────────
@@ -192,13 +193,14 @@ public class LoginFragment extends Fragment {
     }
 
     private void showError(String message) {
-        Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show();
+        SnackbarHelper.showError(binding.getRoot(), message);
     }
 
     private void navigateToHome() {
-        int action = tokenManager.isStaffOrAdmin() ? R.id.action_login_to_scanner : R.id.action_login_to_home;
-        Navigation.findNavController(requireView())
-                .navigate(action);
+        // Làm mới (Restart) lại Activity để MainActivity thiết lập lại NavGraph dựa trên Vai trò mới.
+        // Điều này đảm bảo dọn sạch các State cũ và tải đúng Menu/Giao diện cho Nhân viên hoặc Khách hàng.
+        requireActivity().finish();
+        startActivity(new Intent(requireContext(), com.cinema.ticket_booking.ui.MainActivity.class));
     }
 
     // Facebook cần override onActivityResult
