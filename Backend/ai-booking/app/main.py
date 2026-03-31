@@ -29,10 +29,10 @@ app = FastAPI(
     docs_url="/docs" if cfg.app_env == "development" else None,  # Ẩn docs trên prod
 )
 
-# CORS — chỉ cho phép Java server và frontend của bạn gọi
+# CORS — đọc từ biến môi trường CORS_ORIGINS (phân cách bằng dấu phẩy)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080", "https://novaticket.vn"],
+    allow_origins=[o.strip() for o in cfg.cors_origins.split(",")],
     allow_methods=["POST", "GET"],
     allow_headers=["*"],
 )

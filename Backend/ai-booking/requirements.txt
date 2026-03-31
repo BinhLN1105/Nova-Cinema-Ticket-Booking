@@ -9,7 +9,7 @@ langchain-community==0.3.1
 google-generativeai==0.8.1
 
 # Vector DB - local, không cần cài riêng
-chromadb
+chromadb==0.5.23
 
 # Embedding - chạy local, không tốn API key
 sentence-transformers==3.1.1

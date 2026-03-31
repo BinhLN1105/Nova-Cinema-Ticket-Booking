@@ -1,0 +1,27 @@
+# Build output (sẽ được tạo lại trong container)
+target/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Environment (secrets không nên có trong build context)
+src/main/resources/.env
+src/main/resources/novaTicket-serviceAccountKey.json
+
+# Docker files
+docker-compose.yml
+Dockerfile
+.dockerignore
+
+# Docs
+README.md
+HELP.md
