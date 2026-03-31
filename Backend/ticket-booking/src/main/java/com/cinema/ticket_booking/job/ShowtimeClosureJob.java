@@ -1,7 +1,10 @@
 package com.cinema.ticket_booking.job;
 
+import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.enums.ShowtimeStatus;
+import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.Showtime;
+import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +23,7 @@ import java.util.List;
 public class ShowtimeClosureJob {
 
     private final ShowtimeRepository showtimeRepository;
+    private final BookingRepository bookingRepository;
     private final SystemConfigService systemConfigService;
 
     /**
@@ -46,6 +50,20 @@ public class ShowtimeClosureJob {
             toFinished.forEach(s -> s.setStatus(ShowtimeStatus.FINISHED));
             showtimeRepository.saveAll(toFinished);
             log.info("Marked {} showtimes as FINISHED", toFinished.size());
+
+            // Đánh dấu vé PAID chưa check-in thành EXPIRED (No-show, mất trắng)
+            int totalNoShows = 0;
+            for (Showtime s : toFinished) {
+                List<Booking> noShows = bookingRepository.findByShowtimeIdAndStatus(s.getId(), BookingStatus.PAID);
+                if (!noShows.isEmpty()) {
+                    noShows.forEach(b -> b.setStatus(BookingStatus.EXPIRED));
+                    bookingRepository.saveAll(noShows);
+                    totalNoShows += noShows.size();
+                }
+            }
+            if (totalNoShows > 0) {
+                log.info("Marked {} no-show bookings as EXPIRED (No refund given)", totalNoShows);
+            }
         }
     }
 }

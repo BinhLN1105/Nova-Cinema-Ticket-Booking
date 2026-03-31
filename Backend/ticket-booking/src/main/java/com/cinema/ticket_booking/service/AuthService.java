@@ -19,4 +19,7 @@ public interface AuthService {
 
     void logout(String refreshToken);
 
+    void requestPasswordReset(String email);
+
+    void resetPassword(String token, String newPassword);
 }

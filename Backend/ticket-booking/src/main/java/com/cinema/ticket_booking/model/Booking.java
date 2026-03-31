@@ -73,9 +73,9 @@ public class Booking {
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;
 
-    @Column(name = "pending_exp")
+    @Column(name = "earned_exp")
     @Builder.Default
-    private Long pendingExp = 0L;
+    private Long earnedExp = 0L;
 
     @Column(name = "exp_added")
     @Builder.Default

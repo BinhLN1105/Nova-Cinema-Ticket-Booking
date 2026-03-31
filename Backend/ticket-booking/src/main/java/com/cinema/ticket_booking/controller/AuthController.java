@@ -4,6 +4,8 @@ import com.cinema.ticket_booking.dto.request.LoginRequest;
 import com.cinema.ticket_booking.dto.request.RefreshTokenRequest;
 import com.cinema.ticket_booking.dto.request.RegisterRequest;
 import com.cinema.ticket_booking.dto.request.SocialLoginRequest;
+import com.cinema.ticket_booking.dto.request.ForgotPasswordRequest;
+import com.cinema.ticket_booking.dto.request.ResetPasswordRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
@@ -80,5 +82,23 @@ public class AuthController {
         }
         authService.logout(request.getRefreshToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Đăng xuất thành công"));
+    }
+
+    // ── Forgot/Reset Password ─────────────────────────────────────────────
+
+    // POST /api/v1/auth/forgot-password
+    @PostMapping("/forgot-password")
+    public ResponseEntity<ApiResponse<Void>> forgotPassword(
+            @Valid @RequestBody ForgotPasswordRequest request) {
+        authService.requestPasswordReset(request.getEmail());
+        return ResponseEntity.ok(ApiResponse.success(null, "Nếu email hợp lệ, một đường link khôi phục mật khẩu đã được gửi đến hộp thư của bạn."));
+    }
+
+    // POST /api/v1/auth/reset-password
+    @PostMapping("/reset-password")
+    public ResponseEntity<ApiResponse<Void>> resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.getToken(), request.getNewPassword());
+        return ResponseEntity.ok(ApiResponse.success(null, "Mật khẩu đã được cập nhật thành công"));
     }
 }

@@ -1,5 +1,7 @@
 package com.cinema.ticket_booking.model;
 
+import com.cinema.ticket_booking.enums.ComboType;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.UuidGenerator;
@@ -36,4 +38,9 @@ public class Combo {
     @Column(name = "is_available")
     @Builder.Default
     private Boolean isAvailable = true;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type", length = 20)
+    @Builder.Default
+    private ComboType type = ComboType.COMBO;
 }

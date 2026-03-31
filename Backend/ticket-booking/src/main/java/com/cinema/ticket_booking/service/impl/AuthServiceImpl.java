@@ -12,16 +12,19 @@ import com.cinema.ticket_booking.enums.UserRole;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ConflictException;
 import com.cinema.ticket_booking.exception.UnauthorizedException;
+import com.cinema.ticket_booking.repository.PasswordResetTokenRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.service.AuthService;
+import com.cinema.ticket_booking.service.EmailService;
 import com.cinema.ticket_booking.service.JwtService;
 import com.cinema.ticket_booking.service.social.FacebookTokenVerifier;
 import com.cinema.ticket_booking.service.social.GoogleTokenVerifier;
 import com.cinema.ticket_booking.service.social.SocialUserInfo;
-import lombok.AllArgsConstructor;
-import lombok.Data;
+import com.cinema.ticket_booking.model.PasswordResetToken;
+import java.util.UUID;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -32,12 +35,15 @@ import java.time.LocalDateTime;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final EmailService emailService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final FacebookTokenVerifier facebookTokenVerifier;
 
@@ -139,6 +145,68 @@ public class AuthServiceImpl implements AuthService {
         if (stored != null) {
             refreshTokenRepository.deleteAllByUser(stored.getUser());
         }
+    }
+
+    // ── Forgot Password Logic ─────────────────────────────────────────────
+
+    @Override
+    public void requestPasswordReset(String email) {
+        // 1. Chống User Enumeration: Luôn trả về thành công giả lập
+        User user = userRepository.findByEmail(email).orElse(null);
+        
+        if (user != null && user.getAuthProvider() == AuthProvider.LOCAL) {
+            // CHỐT CHẶN BẢO MẬT: Chỉ cho phép tài khoản CUSTOMER tự reset qua email
+            if (user.getRole() != UserRole.CUSTOMER) {
+                log.warn("🚨 BẢO MẬT: Phát hiện yêu cầu reset mật khẩu cho tài khoản ADMIN/STAFF: {}. Hệ thống đã chặn yêu cầu này.", email);
+                return; // Silent return to avoid leaking information
+            }
+
+            // 2. Chống Spam (Rate Limiting 2 phút)
+            passwordResetTokenRepository.findByUser(user).ifPresent(existing -> {
+                if (existing.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
+                    // Nếu vừa xin mã xong thì không gửi thêm (silently skip)
+                    return;
+                }
+                passwordResetTokenRepository.delete(existing);
+            });
+
+            // 3. Tạo Token mới (Hết hạn sau 30 phút)
+            String token = UUID.randomUUID().toString();
+            PasswordResetToken resetToken = PasswordResetToken.builder()
+                    .user(user)
+                    .token(token)
+                    .expiryDate(LocalDateTime.now().plusMinutes(30))
+                    .build();
+            
+            passwordResetTokenRepository.save(resetToken);
+
+            // 4. Gửi Email (Chạy ngầm @Async)
+            emailService.sendPasswordResetEmail(user, token);
+        }
+        
+        // Luôn log (cho dev) nhưng không throw lỗi ra ngoài cho hacker biết
+        log.info("Yêu cầu khôi phục mật khẩu cho email: {}", email);
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Liên kết khôi phục mật khẩu không hợp lệ hoặc đã hết hạn"));
+
+        if (resetToken.isExpired()) {
+            passwordResetTokenRepository.delete(resetToken);
+            throw new BadRequestException("Liên kết khôi phục mật khẩu đã hết hạn");
+        }
+
+        User user = resetToken.getUser();
+        user.setPassword(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+
+        // Xoá token ngay sau khi dùng (One-time use)
+        passwordResetTokenRepository.delete(resetToken);
+        
+        // Đăng xuất toàn bộ phiên làm việc cũ cho bảo mật
+        refreshTokenRepository.deleteAllByUser(user);
     }
 
     // ── Private helpers ───────────────────────────────────────────────────

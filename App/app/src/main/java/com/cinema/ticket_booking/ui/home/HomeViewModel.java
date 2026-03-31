@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.ui.home;
 import androidx.lifecycle.*;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
 import com.cinema.ticket_booking.data.model.response.PageResponse;
+import com.cinema.ticket_booking.data.model.response.PromotionResponse;
 import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.data.repository.MovieRepository;
 import com.cinema.ticket_booking.data.repository.PromotionRepository;

@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Shield, Ban, MoreVertical, User, Mail, Phone, Calendar, Building, Plus } from 'lucide-react'
 import { userApi, cinemaApi } from '@/api/endpoints'
+import { useAuth, useDebounce } from '@/hooks'
 import { AdminCard, PageHeader, Table, Pagination, StatusBadge } from '@/components/common/ui/AdminTable'
 import { SearchInput, Button, Select, Input } from '@/components/common/ui/FormElements'
 import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
@@ -17,7 +18,10 @@ const ROLE_BADGE = {
 export default function UsersPage() {
   const [search, setSearch]           = useState('')
   const [roleFilter, setRoleFilter]   = useState('')
+  const [statusFilter, setStatusFilter] = useState('') // '' (All), 'true' (Active), 'false' (Banned)
   const [page, setPage]               = useState(0)
+
+  const debouncedSearch = useDebounce(search, 500)
   
   // Modals state
   const [viewUser, setViewUser]       = useState(null)
@@ -33,12 +37,19 @@ export default function UsersPage() {
   // Form create staff
   const [staffForm, setStaffForm] = useState({ fullName: '', email: '', password: '', cinemaId: '' })
 
+  const { user: currentUser } = useAuth()
   const qc = useQueryClient()
 
   // Queries
   const { data, isLoading } = useQuery({
-    queryKey: ['admin', 'users', search, roleFilter, page],
-    queryFn: () => userApi.getAll({ search, role: roleFilter || undefined, page, size: 15 }),
+    queryKey: ['admin', 'users', debouncedSearch, roleFilter, statusFilter, page],
+    queryFn: () => userApi.getAll({ 
+      search: debouncedSearch, 
+      role: roleFilter || undefined, 
+      isActive: statusFilter === '' ? undefined : statusFilter === 'true',
+      page, 
+      size: 15 
+    }),
   })
 
   const { data: cinemas } = useQuery({
@@ -59,6 +70,7 @@ export default function UsersPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'users'] })
       setBanTarget(null)
     },
+    onError: (err) => toast.error(err?.response?.data?.message || 'Có lỗi xảy ra')
   })
 
   const roleMutation = useMutation({
@@ -68,6 +80,7 @@ export default function UsersPage() {
       qc.invalidateQueries({ queryKey: ['admin', 'users'] })
       setChangeRole(null)
     },
+    onError: (err) => toast.error(err?.response?.data?.message || 'Có lỗi xảy ra')
   })
 
   const createStaffMut = useMutation({
@@ -138,28 +151,51 @@ export default function UsersPage() {
     },
     {
       key: 'actions', header: '',
-      render: (u) => (
-        <div className="flex items-center justify-end gap-1">
-          <button onClick={() => setViewUser(u)}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all" title="Xem chi tiết">
-            <User className="w-4 h-4" />
-          </button>
-          {u.role === 'STAFF' && (
-             <button onClick={() => { setAssignCinemaUser(u); setSelectedCinema(u.cinemaId || '') }}
-               className="p-2 rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-600 transition-all font-medium text-xs whitespace-nowrap" title="Phân công rạp">
-               <Building className="w-4 h-4" />
-             </button>
-          )}
-          <button onClick={() => { setChangeRole(u); setNewRole(u.role) }}
-            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Thay đổi vai trò">
-            <Shield className="w-4 h-4" />
-          </button>
-          <button onClick={() => setBanTarget(u)}
-            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Khoá tài khoản">
-            <Ban className="w-4 h-4" />
-          </button>
-        </div>
-      ),
+      render: (u) => {
+        const isSelf = u.id === currentUser?.id
+        const isAdmin = u.role === 'ADMIN'
+        const isProtected = isSelf || isAdmin
+
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <button onClick={() => setViewUser(u)}
+              className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-all" title="Xem chi tiết">
+              <User className="w-4 h-4" />
+            </button>
+            
+            {u.role === 'STAFF' && (
+               <button onClick={() => { setAssignCinemaUser(u); setSelectedCinema(u.cinemaId || '') }}
+                 className="p-2 rounded-lg hover:bg-brand-50 text-brand-400 hover:text-brand-600 transition-all font-medium text-xs whitespace-nowrap" title="Phân công rạp">
+                 <Building className="w-4 h-4" />
+               </button>
+            )}
+
+            <button 
+              onClick={() => { if(!isProtected) { setChangeRole(u); setNewRole(u.role) }}}
+              disabled={isProtected}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                isProtected ? "opacity-30 cursor-not-allowed" : "hover:bg-blue-50 text-gray-400 hover:text-blue-500"
+              )} 
+              title={isSelf ? "Bạn không thể tự đổi vai trò của mình" : isAdmin ? "Hệ thống bảo mật chặn thao tác trên tài khoản Admin" : "Thay đổi vai trò"}
+            >
+              <Shield className="w-4 h-4" />
+            </button>
+
+            <button 
+              onClick={() => { if(!isProtected) setBanTarget(u) }}
+              disabled={isProtected}
+              className={cn(
+                "p-2 rounded-lg transition-all",
+                isProtected ? "opacity-30 cursor-not-allowed" : "hover:bg-red-50 text-gray-400 hover:text-red-500"
+              )} 
+              title={isSelf ? "Bạn không thể tự khoá chính mình" : isAdmin ? "Hệ thống bảo mật chặn tài khoản Admin bị khoá" : "Khoá tài khoản"}
+            >
+              <Ban className="w-4 h-4" />
+            </button>
+          </div>
+        )
+      },
     },
   ]
 
@@ -184,6 +220,15 @@ export default function UsersPage() {
               { value: 'ADMIN',    label: 'Quản trị viên' },
             ]}
             placeholder="Tất cả vai trò"
+            className="w-40"
+          />
+          <Select
+            value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0) }}
+            options={[
+              { value: 'true',  label: 'Đang hoạt động' },
+              { value: 'false', label: 'Đã bị khoá' },
+            ]}
+            placeholder="Tất cả trạng thái"
             className="w-44"
           />
         </div>

@@ -72,6 +72,10 @@ const GiftCardResult = () =>
 const LoginPage = () => lazy_(() => import("@/pages/customer/auth/LoginPage"));
 const RegisterPage = () =>
   lazy_(() => import("@/pages/customer/auth/RegisterPage"));
+const ForgotPasswordPage = () =>
+  lazy_(() => import("@/pages/customer/auth/ForgotPasswordPage"));
+const ResetPasswordPage = () =>
+  lazy_(() => import("@/pages/customer/auth/ResetPasswordPage"));
 
 // Admin
 const AdminDashboard = () =>
@@ -144,6 +148,8 @@ export const router = createBrowserRouter([
         children: [
           { path: "login", element: <LoginPage /> },
           { path: "register", element: <RegisterPage /> },
+          { path: "forgot-password", element: <ForgotPasswordPage /> },
+          { path: "reset-password", element: <ResetPasswordPage /> },
         ],
       },
     ],

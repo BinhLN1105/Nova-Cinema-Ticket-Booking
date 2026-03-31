@@ -9,6 +9,8 @@ export const authApi = {
   logout: (refreshToken) => api.post("/auth/logout", { refreshToken }),
   refresh: (refreshToken) => api.post("/auth/refresh", { refreshToken }),
   me: () => api.get("/auth/me"),
+  forgotPassword: (email) => api.post("/auth/forgot-password", { email }),
+  resetPassword: (token, newPassword) => api.post("/auth/reset-password", { token, newPassword }),
 };
 
 // ── Movies ────────────────────────────────────
@@ -119,7 +121,7 @@ export const adminCheckInApi = {
 
 // ── Dashboard ─────────────────────────────────
 export const dashboardApi = {
-  getStats: () => api.get("/admin/dashboard/stats"),
+  getStats: (params) => api.get("/admin/dashboard/stats", params),
   getRevenue: (period) => api.get(`/admin/dashboard/revenue`, { period }),
   getAnalytics: () => api.get("/admin/dashboard/analytics"),
 };

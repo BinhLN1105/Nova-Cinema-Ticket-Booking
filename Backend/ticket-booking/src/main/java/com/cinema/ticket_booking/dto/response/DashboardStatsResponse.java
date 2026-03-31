@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
 
 import java.io.Serializable;
 
@@ -20,7 +21,10 @@ import java.io.Serializable;
 public class DashboardStatsResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
-    private BigDecimal totalRevenue;
+    private BigDecimal netTotalRevenue;
+    private BigDecimal totalDiscountGiven;
+    private GrossTicketRevenue grossTicketRevenue;
+    private GrossConcessionRevenue grossConcessionRevenue;
     private double revenueChange; // phần trăm thay đổi so với tháng trước
     private long totalBookings;
     private double bookingChange; // phần trăm thay đổi so với tháng trước
@@ -37,7 +41,9 @@ public class DashboardStatsResponse implements Serializable {
     public static class RevenueByDay implements Serializable {
         private static final long serialVersionUID = 1L;
         private String date; // "YYYY-MM-DD" or "YYYY-MM"
-        private BigDecimal revenue;
+        private BigDecimal revenue; // Total
+        private BigDecimal ticketRevenue;
+        private BigDecimal concessionRevenue;
         private Long bookingCount;
     }
 
@@ -74,5 +80,25 @@ public class DashboardStatsResponse implements Serializable {
         private LocalDateTime startTime;
         private BigDecimal totalAmount;
         private String status;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class GrossTicketRevenue implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private BigDecimal total;
+        private Map<String, BigDecimal> breakdown;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Builder
+    public static class GrossConcessionRevenue implements Serializable {
+        private static final long serialVersionUID = 1L;
+        private BigDecimal total;
+        private Map<String, BigDecimal> breakdown;
     }
 }

@@ -112,6 +112,15 @@ export default function LoginPage() {
               {errors.password.message}
             </p>
           )}
+
+          <div className="flex justify-end pr-1 mt-1">
+            <Link
+              to="/auth/forgot-password"
+              className="text-xs text-cinema-400 hover:text-brand-400 font-medium transition-colors"
+            >
+              Quên mật khẩu?
+            </Link>
+          </div>
         </div>
 
         <button

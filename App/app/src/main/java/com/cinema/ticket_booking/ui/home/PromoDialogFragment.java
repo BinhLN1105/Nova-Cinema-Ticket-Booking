@@ -64,7 +64,7 @@ public class PromoDialogFragment extends DialogFragment {
             if (promotion != null && promotion.getImageUrl() != null) {
                 Glide.with(this)
                     .load(promotion.getImageUrl())
-                    .placeholder(R.drawable.promo_banner_vertical)
+                    .placeholder(R.drawable.placeholder_hero)
                     .into(binding.ivPromo);
             }
         }

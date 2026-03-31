@@ -68,7 +68,6 @@
                         app:backgroundTint="@color/primary"
                         app:tint="@color/on_primary"
                         app:elevation="14dp"
-                        app:compatElevation="14dp"
                         android:layout_margin="4dp"/>
                 </RelativeLayout>
 

@@ -27,8 +27,8 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         createIfMissing("LATE_SEAT_HOLD_TIME", "3", "Thời gian giữ ghế cực ngắn khi đặt vé sát giờ chiếu (phút)");
         createIfMissing("LATE_BOOKING_ALLOWANCE_MINS", "10", "Cho phép đặt vé sau giờ chiếu tối đa (phút)");
         createIfMissing("CLEANUP_TIME_MINUTES", "15", "Thời gian dọn phòng sau mỗi suất chiếu (phút)");
-        createIfMissing("NO_SHOW_EXP_PENALTY_PERCENT", "0",
-                "Phần trăm trừ EXP nếu người dùng mua vé nhưng không check-in (0-100)");
+        createIfMissing("CANCEL_MIN_HOURS_BEFORE", "2", "Thời gian tối thiểu cho phép hủy vé trước giờ chiếu (giờ)");
+        createIfMissing("REFUND_PERCENT_CINEPOINT", "100", "Phần trăm số tiền hoàn lại dưới dạng CinePoint (%)");
     }
 
     private void createIfMissing(String key, String defaultValue, String description) {

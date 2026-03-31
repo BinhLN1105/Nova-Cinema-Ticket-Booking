@@ -59,6 +59,7 @@ public class BookingServiceImpl implements BookingService {
     private final PricingEngineService pricingEngineService;
     private final UserVoucherRepository userVoucherRepository;
     private final PricingRuleRepository pricingRuleRepository;
+    private final UserExpHistoryRepository userExpHistoryRepository;
 
     // ── Tạo booking ───────────────────────────────────────────────────────
 
@@ -175,7 +176,7 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal totalAmount = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
 
-        long pendingExp = totalAmount.divide(BigDecimal.valueOf(1000)).longValue();
+        long earnedExp = totalAmount.divide(BigDecimal.valueOf(1000)).longValue();
 
         // ── 3. Tạo Booking ────────────────────────────────────────────────
         String finalBookingCode = generateBookingCode();
@@ -190,7 +191,7 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
                 .expiresAt(lockUntil)
-                .pendingExp(pendingExp)
+                .earnedExp(earnedExp)
                 .expAdded(false)
                 .build();
         booking = bookingRepository.save(booking);
@@ -352,15 +353,6 @@ public class BookingServiceImpl implements BookingService {
         ticketRepository.saveAll(tickets);
 
         booking.setStatus(BookingStatus.CHECKED_IN);
-        if (!Boolean.TRUE.equals(booking.getExpAdded())) {
-            User bookingUser = booking.getUser();
-            long currentExp = bookingUser.getRewardPoints() != null ? bookingUser.getRewardPoints() : 0L;
-            long pendingExp = booking.getPendingExp() != null ? booking.getPendingExp() : 0L;
-            
-            bookingUser.setRewardPoints(currentExp + pendingExp);
-            userService.save(bookingUser);
-            booking.setExpAdded(true);
-        }
         bookingRepository.save(booking);
 
         List<CheckInResponse.SeatItem> seatItems = tickets.stream().map(t -> CheckInResponse.SeatItem.builder()
@@ -407,6 +399,30 @@ public class BookingServiceImpl implements BookingService {
         String qrContent = qrCodeService.generateQrContent(booking);
         booking.setQrCode(qrContent);
         booking.setStatus(BookingStatus.PAID);
+        
+        // Cập nhật EXP và Hạng thành viên ngay khi thanh toán thành công
+        if (!Boolean.TRUE.equals(booking.getExpAdded())) {
+            User bookingUser = booking.getUser();
+            long earnedExp = booking.getEarnedExp() != null ? booking.getEarnedExp() : 0L;
+            long currentExp = bookingUser.getAvailableExp() != null ? bookingUser.getAvailableExp() : 0L;
+            
+            bookingUser.setAvailableExp(currentExp + earnedExp);
+            updateMembershipTier(bookingUser);
+            
+            userService.save(bookingUser);
+            booking.setExpAdded(true);
+
+            // Ghi log lịch sử EXP
+            if (earnedExp > 0) {
+                userExpHistoryRepository.save(UserExpHistory.builder()
+                        .user(bookingUser)
+                        .amount(earnedExp)
+                        .reason("MUA_VE")
+                        .referenceId(booking.getBookingCode())
+                        .build());
+            }
+        }
+
         bookingRepository.save(booking);
 
         // Tăng usedCount voucher và đánh dấu used trong ví
@@ -430,10 +446,11 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
         }
 
-        // Điều kiện huỷ vé: trước giờ chiếu 1 tiếng
+        // Điều kiện huỷ vé: trước giờ chiếu X tiếng (từ SystemConfig)
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
-        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(1))) {
-            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất 1 tiếng");
+        int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
+        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
         // Tạo cancellation token hết hạn sau 15 phút
@@ -465,16 +482,38 @@ public class BookingServiceImpl implements BookingService {
         // 1. Nhả ghế
         releaseSeats(bookingId);
 
+        // Thu hồi EXP (Rollback logic)
+        User actionUser = booking.getUser();
+        if (Boolean.TRUE.equals(booking.getExpAdded())) {
+            long revokeExp = booking.getEarnedExp() != null ? booking.getEarnedExp() : 0L;
+            if (revokeExp > 0) {
+                long currentExp = actionUser.getAvailableExp() != null ? actionUser.getAvailableExp() : 0L;
+                actionUser.setAvailableExp(Math.max(0, currentExp - revokeExp));
+                updateMembershipTier(actionUser);
+                userService.save(actionUser);
+
+                // Ghi log thu hồi EXP
+                userExpHistoryRepository.save(UserExpHistory.builder()
+                        .user(actionUser)
+                        .amount(-revokeExp)
+                        .reason("HUY_VE")
+                        .referenceId(booking.getBookingCode())
+                        .build());
+            }
+            booking.setExpAdded(false);
+        }
+
         // 2. Cập nhật booking status
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationToken(null);
         booking.setCancellationTokenExpiry(null);
-        booking.setPendingExp(0L); // Cancel points
+        booking.setEarnedExp(0L); // Cancel points
         bookingRepository.save(booking);
 
-        // 3. Hoàn CinePoint cho user (tỷ lệ 1000 VNĐ = 1 CinePoint)
+        // 3. Hoàn CinePoint cho user (tỷ lệ X% số tiền, mặc định 1000 VNĐ = 1 CinePoint)
         User user = booking.getUser();
-        long rewardPointsToAdd = booking.getTotalAmount().longValue() / 1000;
+        int refundPercent = systemConfigService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100);
+        long rewardPointsToAdd = (booking.getTotalAmount().longValue() * refundPercent / 100) / 1000;
         long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
         user.setRewardPoints(currentPoints + rewardPointsToAdd);
         userService.save(user);
@@ -492,6 +531,26 @@ public class BookingServiceImpl implements BookingService {
     }
 
     // ── Private ───────────────────────────────────────────────────────────
+
+    private void updateMembershipTier(User user) {
+        long exp = user.getAvailableExp();
+        MembershipTier currentTier = user.getMembershipTier();
+        MembershipTier newTier = currentTier;
+
+        if (exp >= 10000) {
+            newTier = MembershipTier.DIAMOND;
+        } else if (exp >= 3000) {
+            newTier = MembershipTier.GOLD;
+        } else if (exp >= 500) {
+            newTier = MembershipTier.SILVER;
+        } else {
+            newTier = MembershipTier.BRONZE;
+        }
+
+        if (newTier != currentTier) {
+            user.setMembershipTier(newTier);
+        }
+    }
 
     private void releaseSeats(UUID bookingId) {
         bookingItemRepository.findByBookingIdWithSeat(bookingId).forEach(item -> {

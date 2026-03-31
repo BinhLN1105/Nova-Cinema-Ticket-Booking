@@ -42,7 +42,6 @@ public class SchemaFixConfig implements CommandLineRunner {
             jdbcTemplate.execute("UPDATE users SET available_exp = 0 WHERE available_exp IS NULL");
             jdbcTemplate.execute("UPDATE users SET membership_tier = 'BRONZE' WHERE membership_tier IS NULL");
             jdbcTemplate.execute("UPDATE bookings SET version = 0 WHERE version IS NULL");
-            jdbcTemplate.execute("UPDATE bookings SET pending_exp = 0 WHERE pending_exp IS NULL");
             jdbcTemplate.execute("UPDATE screens SET is_deleted = false WHERE is_deleted IS NULL");
             jdbcTemplate.execute("UPDATE promotions SET is_active = true WHERE is_active IS NULL");
         } catch (Exception e) {
@@ -63,6 +62,12 @@ public class SchemaFixConfig implements CommandLineRunner {
 
         // 7. Cập nhật Constraint cho trạng thái Booking (Tránh lỗi CHECKED_IN)
         updateBookingStatusConstraint();
+
+        // 8. Đảm bảo cột earned_exp (đã rename từ pending_exp)
+        ensureBookingExpColumns();
+
+        // 9. Đảm bảo cấu trúc bảng combos (Loại hình Combo/Bán lẻ)
+        ensureComboColumns();
 
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
     }
@@ -164,6 +169,12 @@ public class SchemaFixConfig implements CommandLineRunner {
             }
             
             log.info("[SchemaFix] Hoàn tất tiến trình bảo trì bảng 'bookings'.");
+            
+            // 8. Dọn dẹp các cấu hình cũ không còn dùng
+            try {
+                jdbcTemplate.execute("DELETE FROM system_configs WHERE key = 'NO_SHOW_EXP_PENALTY_PERCENT'");
+            } catch (Exception ignore) {}
+
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi tổng quát khi bảo trì bookings: {}", e.getMessage());
         }
@@ -193,6 +204,34 @@ public class SchemaFixConfig implements CommandLineRunner {
             }
         } catch (Exception e) {
             log.warn("[SchemaFix] Lỗi khi giải phóng ghế: {}", e.getMessage());
+        }
+    }
+
+    private void ensureComboColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'combos'...");
+            jdbcTemplate.execute("ALTER TABLE combos ADD COLUMN IF NOT EXISTS type VARCHAR(20) DEFAULT 'COMBO'");
+            jdbcTemplate.execute("UPDATE combos SET type = 'COMBO' WHERE type IS NULL");
+            jdbcTemplate.execute("ALTER TABLE combos ALTER COLUMN type SET NOT NULL");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi bảo trì bảng combos: {}", e.getMessage());
+        }
+    }
+
+    private void ensureBookingExpColumns() {
+        try {
+            log.info("[SchemaFix] Đảm bảo cột 'earned_exp' trong 'bookings'...");
+            
+            // Thử rename nếu còn cột cũ
+            try {
+                jdbcTemplate.execute("ALTER TABLE bookings RENAME COLUMN pending_exp TO earned_exp");
+                log.info("[SchemaFix] Đã đổi tên cột 'pending_exp' -> 'earned_exp'.");
+            } catch (Exception ignore) {}
+
+            jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS earned_exp BIGINT DEFAULT 0");
+            jdbcTemplate.execute("UPDATE bookings SET earned_exp = 0 WHERE earned_exp IS NULL");
+        } catch (Exception e) {
+            log.error("[SchemaFix] Lỗi khi bảo trì cột earned_exp: {}", e.getMessage());
         }
     }
 

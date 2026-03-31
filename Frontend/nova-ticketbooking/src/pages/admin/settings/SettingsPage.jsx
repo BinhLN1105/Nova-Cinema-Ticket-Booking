@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Bell, Shield, Palette, Globe, Save, ChevronRight, Layout } from 'lucide-react'
 import { AdminCard, PageHeader } from '@/components/common/ui/AdminTable'
 import { Field, Input, Switch, Button, Select } from '@/components/common/ui/FormElements'
@@ -30,19 +30,21 @@ export default function SettingsPage() {
   const updateConfigMutation = useMutation({
     mutationFn: ({ key, value, description }) => systemConfigApi.update(key, value, description),
     onSuccess: () => {
-      toast.success('Đã lưu cấu hình')
+      toast.success('Đã lưu cấu hình thành công')
       queryClient.invalidateQueries(['system-configs'])
     },
-    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
+    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu')
   })
 
   // Local state form để edit
   const [localConfigs, setLocalConfigs] = useState({})
 
   // Update local config when data is fetched
-  if (Object.keys(localConfigs).length === 0 && Object.keys(configs).length > 0) {
-    setLocalConfigs(configs)
-  }
+  useEffect(() => {
+    if (configsRes) {
+      setLocalConfigs(configsRes)
+    }
+  }, [configsRes])
 
   const handleConfigChange = (key, value) => {
     setLocalConfigs(prev => ({ ...prev, [key]: value }))
@@ -107,21 +109,24 @@ export default function SettingsPage() {
               </Field>
               
               <h2 className="font-bold text-gray-900 text-lg font-display pt-4 border-t border-gray-100 mt-4">Cấu hình tham số hệ thống</h2>
-              {isLoadingConfigs ? <div className="text-gray-500">Đang tải...</div> : (
-                <>
-                  <Field label="Thời gian giữ ghế mặc định (Phút) [DEFAULT_SEAT_HOLD_TIME]">
+              {isLoadingConfigs ? <div className="text-gray-500">Đang tải cấu hình...</div> : (
+                <div className="space-y-4">
+                  <Field label="Thời gian giữ ghế (Phút)" info="Thời gian tối đa để khách hàng thanh toán sau khi chọn ghế. Sau thời gian này ghế sẽ bị nhả ra.">
                     <Input value={localConfigs['DEFAULT_SEAT_HOLD_TIME'] || ''} type="number" onChange={(e) => handleConfigChange('DEFAULT_SEAT_HOLD_TIME', e.target.value)} />
                   </Field>
-                  <Field label="Thời gian giữ ghế sát giờ chiếu (Phút) [LATE_SEAT_HOLD_TIME]">
+                  <Field label="Giữ ghế sát giờ (Phút)" info="Thời gian giữ ghế khi suất chiếu bắt đầu trong vòng 15 phút tới. Ngắn hơn để tránh lãng phí ghế.">
                     <Input value={localConfigs['LATE_SEAT_HOLD_TIME'] || ''} type="number" onChange={(e) => handleConfigChange('LATE_SEAT_HOLD_TIME', e.target.value)} />
                   </Field>
-                  <Field label="Cho phép đặt vé trễ (Phút) [LATE_BOOKING_ALLOWANCE_MINS]">
+                  <Field label="Cho phép đặt vé trễ (Phút)" info="Thời gian tối đa sau khi phim đã chiếu mà khách vẫn có thể mua vé (ví dụ: đang chiếu trailer).">
                     <Input value={localConfigs['LATE_BOOKING_ALLOWANCE_MINS'] || ''} type="number" onChange={(e) => handleConfigChange('LATE_BOOKING_ALLOWANCE_MINS', e.target.value)} />
                   </Field>
-                  <Field label="Tỉ lệ phạt No-show (% EXP bớt lại) [NO_SHOW_EXP_PENALTY_PERCENT]">
-                    <Input value={localConfigs['NO_SHOW_EXP_PENALTY_PERCENT'] || ''} type="number" onChange={(e) => handleConfigChange('NO_SHOW_EXP_PENALTY_PERCENT', e.target.value)} />
+                  <Field label="Thời gian hủy vé tối thiểu (Giờ)" info="Khách hàng phải hủy vé trước giờ chiếu ít nhất X giờ mới được chấp nhận hoàn tiền.">
+                    <Input value={localConfigs['CANCEL_MIN_HOURS_BEFORE'] || ''} type="number" onChange={(e) => handleConfigChange('CANCEL_MIN_HOURS_BEFORE', e.target.value)} />
                   </Field>
-                </>
+                  <Field label="Tỉ lệ hoàn tiền (%)" info="Phần trăm số tiền sẽ được hoàn lại dưới dạng CinePoint khi khách hàng hủy vé thành công.">
+                    <Input value={localConfigs['REFUND_PERCENT_CINEPOINT'] || ''} type="number" onChange={(e) => handleConfigChange('REFUND_PERCENT_CINEPOINT', e.target.value)} />
+                  </Field>
+                </div>
               )}
               <div className="pt-2 border-t border-gray-100">
                 <Button onClick={handleSaveConfigs} disabled={updateConfigMutation.isLoading} leftIcon={<Save className="w-4 h-4" />}>

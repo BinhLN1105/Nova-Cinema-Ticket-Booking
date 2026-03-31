@@ -11,7 +11,10 @@ import {
   Tooltip,
   ResponsiveContainer,
   Cell,
+  PieChart,
+  Pie,
 } from "recharts";
+import { useState } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -67,9 +70,40 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => (
 );
 
 export default function AdminDashboard() {
+  const getInitialDates = (days) => {
+    const end = new Date();
+    end.setHours(23, 59, 59, 999);
+    const start = new Date();
+    start.setDate(start.getDate() - (days - 1));
+    start.setHours(0, 0, 0, 0);
+    return {
+      start: start.toISOString().slice(0, 16),
+      end: end.toISOString().slice(0, 16)
+    };
+  };
+
+  const initial = getInitialDates(7);
+  const [startDate, setStartDate] = useState(initial.start);
+  const [endDate, setEndDate] = useState(initial.end);
+  const [activePeriod, setActivePeriod] = useState("7d");
+
+  const handlePeriodChange = (period) => {
+    setActivePeriod(period);
+    let days = 7;
+    if (period === "1c") days = 1;
+    else if (period === "7d") days = 7;
+    else if (period === "30d") days = 30;
+    
+    if (period !== "custom") {
+      const { start, end } = getInitialDates(days);
+      setStartDate(start);
+      setEndDate(end);
+    }
+  };
+
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["admin", "dashboard"],
-    queryFn: dashboardApi.getStats,
+    queryKey: ["admin", "dashboard", startDate, endDate],
+    queryFn: () => dashboardApi.getStats({ startDate, endDate }),
     refetchInterval: 60_000,
   });
 
@@ -85,8 +119,8 @@ export default function AdminDashboard() {
   const STATS = stats
     ? [
         {
-          title: "Doanh thu tháng",
-          value: formatCompactCurrency(stats.totalRevenue),
+          title: "Doanh thu",
+          value: formatCompactCurrency(stats.netTotalRevenue || 0),
           change: stats.revenueChange,
           icon: DollarSign,
           color: "bg-green-100 text-green-600",
@@ -125,6 +159,58 @@ export default function AdminDashboard() {
         <p className="text-gray-500 text-sm mt-1">
           Tổng quan hoạt động hệ thống
         </p>
+      </div>
+
+      {/* Date Filters */}
+      <div className="flex flex-wrap items-center gap-4 bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+        <div className="flex items-center bg-gray-100 p-1 rounded-xl mr-2">
+          {[
+            { id: "1c", label: "Hôm nay" },
+            { id: "7d", label: "7 ngày" },
+            { id: "30d", label: "30 ngày" },
+            { id: "custom", label: "Tùy chỉnh" },
+          ].map((p) => (
+            <button
+              key={p.id}
+              onClick={() => handlePeriodChange(p.id)}
+              className={cn(
+                "px-4 py-1.5 text-xs font-medium rounded-lg transition-all",
+                activePeriod === p.id
+                  ? "bg-white text-gray-900 shadow-sm"
+                  : "text-gray-500 hover:text-gray-700",
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        {activePeriod === "custom" && (
+          <motion.div 
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-4"
+          >
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Từ:</label>
+              <input
+                type="datetime-local"
+                className="input text-sm py-1.5 h-auto w-auto"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-medium text-gray-700">Đến:</label>
+              <input
+                type="datetime-local"
+                className="input text-sm py-1.5 h-auto w-auto"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </div>
+          </motion.div>
+        )}
       </div>
 
       {/* Stats */}
@@ -295,6 +381,127 @@ export default function AdminDashboard() {
                   })}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── Revenue Breakdowns ─────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Ticket Breakdown */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h2 className="font-bold text-gray-900 mb-1">Cơ cấu doanh thu vé</h2>
+          <p className="text-sm text-gray-400 mb-6">Tỉ lệ theo loại ghế</p>
+          {isLoading ? (
+            <div className="skeleton h-52 rounded-xl" />
+          ) : (
+            <div className="flex items-center justify-around h-52">
+              <ResponsiveContainer width="50%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(stats?.grossTicketRevenue?.breakdown || {}).map(
+                      ([name, value]) => ({ name, value }),
+                    )}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {Object.entries(stats?.grossTicketRevenue?.breakdown || {}).map(
+                      (_, i) => (
+                        <Cell
+                          key={i}
+                          fill={BAR_COLORS[i % BAR_COLORS.length]}
+                        />
+                      ),
+                    )}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2">
+                {Object.entries(stats?.grossTicketRevenue?.breakdown || {}).map(
+                  ([name, value], i) => (
+                    <div key={name} className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: BAR_COLORS[i % BAR_COLORS.length] }}
+                      />
+                      <span className="text-sm font-medium text-gray-700">
+                        {name}:
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {formatCompactCurrency(value)}
+                      </span>
+                    </div>
+                  ),
+                )}
+                <div className="pt-2 mt-2 border-t border-gray-100">
+                  <p className="text-sm font-bold text-gray-900">
+                    Tổng: {formatCurrency(stats?.grossTicketRevenue?.total || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Concession Breakdown */}
+        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+          <h2 className="font-bold text-gray-900 mb-1">Cơ cấu doanh thu Combo</h2>
+          <p className="text-sm text-gray-400 mb-6">Top Combo bán chạy nhất</p>
+          {isLoading ? (
+            <div className="skeleton h-52 rounded-xl" />
+          ) : (
+            <div className="flex items-center justify-around h-52">
+              <ResponsiveContainer width="50%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={Object.entries(
+                      stats?.grossConcessionRevenue?.breakdown || {},
+                    ).map(([name, value]) => ({ name, value }))}
+                    innerRadius={60}
+                    outerRadius={80}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {Object.entries(
+                      stats?.grossConcessionRevenue?.breakdown || {},
+                    ).map((_, i) => (
+                      <Cell
+                        key={i}
+                        fill={PEAK_COLORS[i % PEAK_COLORS.length]}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(v) => formatCurrency(v)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-1 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+                {Object.entries(
+                  stats?.grossConcessionRevenue?.breakdown || {},
+                ).map(([name, value], i) => (
+                  <div key={name} className="flex items-center gap-2">
+                    <div
+                      className="w-3 h-3 rounded-full"
+                      style={{
+                        backgroundColor: PEAK_COLORS[i % PEAK_COLORS.length],
+                      }}
+                    />
+                    <span className="text-xs font-medium text-gray-700 truncate w-24">
+                      {name}:
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {formatCompactCurrency(value)}
+                    </span>
+                  </div>
+                ))}
+                <div className="pt-2 mt-2 border-t border-gray-100">
+                  <p className="text-sm font-bold text-gray-900">
+                    Tổng: {formatCurrency(stats?.grossConcessionRevenue?.total || 0)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

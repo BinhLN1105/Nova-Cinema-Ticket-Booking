@@ -59,8 +59,18 @@ public class AdminController {
     // ── Dashboard ────────────────────────────────────────────────────────
 
     @GetMapping("/dashboard/stats")
-    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStats() {
-        return ResponseEntity.ok(ApiResponse.success(dashboardService.getStats(), "Lấy dữ liệu thống kê thành công"));
+    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStats(
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) UUID cinemaId) {
+        
+        if (startDate == null) {
+            startDate = LocalDateTime.now().withDayOfMonth(1).with(LocalTime.MIN);
+        }
+        if (endDate == null) {
+            endDate = LocalDateTime.now().with(LocalTime.MAX);
+        }
+        return ResponseEntity.ok(ApiResponse.success(dashboardService.getStats(startDate, endDate, cinemaId), "Lấy dữ liệu phân tích doanh thu thành công"));
     }
 
     @GetMapping("/dashboard/revenue")
@@ -83,9 +93,8 @@ public class AdminController {
             startDate = now.minusDays(units - 1).with(LocalTime.MIN);
         }
 
-        List<BookingRepository.RevenueByDayProjection> data = isYearly 
-            ? bookingRepository.getRevenueByMonth(startDate)
-            : bookingRepository.getRevenueByDay(startDate);
+        LocalDateTime endDate = now.with(LocalTime.MAX);
+        List<BookingRepository.RevenueByDayProjection> data = bookingRepository.getRevenueByDayInRange(startDate, endDate, null);
 
         List<RevenueByDay> result = new ArrayList<>();
         DateTimeFormatter formatter = isYearly ? DateTimeFormatter.ofPattern("yyyy-MM") : DateTimeFormatter.ISO_DATE;
@@ -106,7 +115,7 @@ public class AdminController {
                     break;
                 }
             }
-            result.add(new RevenueByDay(targetDateStr, rev, count));
+            result.add(new RevenueByDay(targetDateStr, rev, BigDecimal.ZERO, BigDecimal.ZERO, count));
         }
 
         return ResponseEntity.ok(ApiResponse.success(result));
@@ -127,11 +136,22 @@ public class AdminController {
     public ResponseEntity<ApiResponse<PageResponse<UserResponse>>> getUsers(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean isActive,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "15") int size) {
 
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<User> users = userRepository.findAll(pageable);
+        
+        UserRole roleEnum = null;
+        if (role != null && !role.isEmpty()) {
+            try {
+                roleEnum = UserRole.valueOf(role.toUpperCase());
+            } catch (IllegalArgumentException e) {
+                // Ignore invalid role
+            }
+        }
+
+        Page<User> users = userRepository.searchUsers(roleEnum, isActive, search, pageable);
 
         // Batch query: 1 câu JOIN FETCH duy nhất cho TẤT CẢ user STAFF trong trang này
         List<UUID> userIds = users.map(User::getId).toList();
@@ -164,9 +184,22 @@ public class AdminController {
     @Transactional
     public ResponseEntity<ApiResponse<Void>> updateRole(
             @PathVariable UUID id,
-            @RequestBody java.util.Map<String, String> body) {
+            @RequestBody java.util.Map<String, String> body,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
+        
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new BadRequestException("User không tồn tại"));
+
+        // CHỐT CHẶN BẢO MẬT: Không cho phép Admin tự đổi Role của chính mình
+        if (id.equals(currentUser.getId())) {
+            throw new BadRequestException("Bạn không thể tự thay đổi vai trò của chính mình.");
+        }
+
+        // CHỐT CHẶN BẢO MẬT: Không cho phép Admin đổi Role của Admin khác
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new BadRequestException("Hệ thống bảo mật chặn thao tác trên tài khoản Quản trị khác.");
+        }
+
         user.setRole(UserRole.valueOf(body.get("role")));
         userRepository.save(user);
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật vai trò thành công"));
@@ -179,9 +212,23 @@ public class AdminController {
     @PatchMapping("/users/{id}/ban")
     @Transactional
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> banUser(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> banUser(
+            @PathVariable UUID id,
+            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
+        
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User không tồn tại"));
+                .orElseThrow(() -> new BadRequestException("User không tồn tại"));
+
+        // CHỐT CHẶN BẢO MẬT: Không cho phép Admin tự khoá chính mình
+        if (id.equals(currentUser.getId())) {
+            throw new BadRequestException("Bạn không thể tự khoá tài khoản của chính mình.");
+        }
+
+        // CHỐT CHẶN BẢO MẬT: Không cho phép Admin khoá Admin khác
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new BadRequestException("Không thể khoá tài khoản Quản trị viên khác.");
+        }
+
         user.setIsActive(!user.getIsActive());
         userRepository.save(user);
         String msg = Boolean.TRUE.equals(user.getIsActive())
