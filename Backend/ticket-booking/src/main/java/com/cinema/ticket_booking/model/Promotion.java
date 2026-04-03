@@ -27,7 +27,7 @@ public class Promotion {
     @Column(name = "description", length = 1000)
     private String description;
 
-    @Column(name = "image_url", nullable = false)
+    @Column(name = "image_url")
     private String imageUrl;
 
     @Column(name = "target_url")

@@ -26,6 +26,7 @@ import { cn } from "@/utils";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/admin/pos", icon: Film, label: "Bán vé (POS)" },
   { href: "/admin/movies", icon: Film, label: "Phim" },
   { href: "/admin/cinemas", icon: Building2, label: "Rạp chiếu" },
   { href: "/admin/showtimes", icon: Clock, label: "Suất chiếu" },

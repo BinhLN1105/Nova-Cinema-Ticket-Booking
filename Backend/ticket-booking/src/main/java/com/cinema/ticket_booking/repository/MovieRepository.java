@@ -48,5 +48,8 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     // Top phim được đánh giá cao nhất
     List<Movie> findTop10ByStatusOrderByAvgRatingDesc(MovieStatus status);
 
+    // Lấy phim theo chuyên dụng cho Admin (hỗ trợ search và filter)
+    Page<Movie> findByStatusAndTitleContainingIgnoreCase(MovieStatus status, String title, Pageable pageable);
+
     long countByStatus(MovieStatus status);
 }

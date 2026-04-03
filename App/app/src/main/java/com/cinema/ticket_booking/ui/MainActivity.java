@@ -1,16 +1,23 @@
 package com.cinema.ticket_booking.ui;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.navigation.*;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
+import androidx.lifecycle.ViewModelProvider;
 import androidx.core.splashscreen.SplashScreen;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.ActivityMainBinding;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -24,6 +31,17 @@ public class MainActivity extends AppCompatActivity {
 
     @Inject
     TokenManager tokenManager;
+
+    private NavController navController;
+
+    private final ActivityResultLauncher<String> cameraPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (isGranted) {
+                    if (navController != null) navController.navigate(R.id.scannerFragment);
+                } else {
+                    SnackbarHelper.showError(binding.getRoot(), "Quyền máy ảnh bị từ chối. Không thể quét QR!");
+                }
+            });
 
     // Danh sách các màn hình (Destination ID) KHÔNG hiển thị Bottom Navigation
     private static final Set<Integer> NO_BOTTOM_NAV = Set.of(
@@ -65,16 +83,21 @@ public class MainActivity extends AppCompatActivity {
                 .findFragmentById(R.id.nav_host_fragment);
         if (navHost == null) return;
 
-        NavController navController = navHost.getNavController();
+        this.navController = navHost.getNavController();
 
         // Tự động thiết lập cấu trúc điều hướng phù hợp với Vai trò (Khách hàng / Nhân viên)
         setupNavigationByRole(navController);
 
         // Xử lý sự kiện khi bấm vào nút Quét mã ở giữa thanh Bottom Navigation
         binding.fabScanner.setOnClickListener(v -> {
-            Integer current = navController.getCurrentDestination() != null ? navController.getCurrentDestination().getId() : null;
-            if (current == null || current != R.id.scannerFragment) {
-                navController.navigate(R.id.scannerFragment);
+            // Nova Optimization: Kiểm tra quyền Camera trước khi mở Scanner để tránh Crash
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                Integer current = navController.getCurrentDestination() != null ? navController.getCurrentDestination().getId() : null;
+                if (current == null || current != R.id.scannerFragment) {
+                    navController.navigate(R.id.scannerFragment);
+                }
+            } else {
+                cameraPermissionLauncher.launch(Manifest.permission.CAMERA);
             }
         });
 
@@ -111,6 +134,12 @@ public class MainActivity extends AppCompatActivity {
                 binding.aiFab.setVisibility(View.VISIBLE);
             }
         });
+
+        // Nova Optimization: Pre-fetch user profile to avoid lag in ProfileFragment
+        MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
+        if (tokenManager.isLoggedIn()) {
+            mainViewModel.loadUserProfile();
+        }
     }
 
     /**

@@ -162,7 +162,7 @@ public class LoginFragment extends Fragment {
 
         // Quên mật khẩu
         binding.tvForgotPassword.setOnClickListener(v ->
-                SnackbarHelper.showSuccess(binding.getRoot(), "Tính năng đang phát triển"));
+                Navigation.findNavController(requireView()).navigate(R.id.action_login_to_forgotPassword));
     }
 
     // ── Observers ─────────────────────────────────────────────────────────

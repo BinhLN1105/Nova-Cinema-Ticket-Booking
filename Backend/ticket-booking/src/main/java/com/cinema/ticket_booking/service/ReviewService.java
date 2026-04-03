@@ -11,6 +11,8 @@ public interface ReviewService {
 
     PageResponse<ReviewResponse> getByMovie(UUID movieId, Pageable pageable);
 
+    ReviewResponse getExistingReview(UUID userId, UUID movieId);
+
     ReviewResponse create(UUID userId, ReviewRequest request);
 
     void delete(UUID userId, UUID reviewId);

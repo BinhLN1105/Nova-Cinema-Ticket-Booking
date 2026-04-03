@@ -5,9 +5,11 @@ import com.cinema.ticket_booking.data.model.response.MovieSummary;
 import com.cinema.ticket_booking.data.model.response.PageResponse;
 import com.cinema.ticket_booking.data.model.response.PromotionResponse;
 import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
+import com.cinema.ticket_booking.data.model.response.CinemaResponse;
 import com.cinema.ticket_booking.data.repository.MovieRepository;
 import com.cinema.ticket_booking.data.repository.PromotionRepository;
 import com.cinema.ticket_booking.data.repository.VoucherRepository;
+import com.cinema.ticket_booking.data.repository.CinemaRepository;
 import com.cinema.ticket_booking.util.Resource;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import javax.inject.Inject;
@@ -20,6 +22,7 @@ public class HomeViewModel extends ViewModel {
     private final MovieRepository movieRepository;
     private final VoucherRepository voucherRepository;
     private final PromotionRepository promotionRepository;
+    private final CinemaRepository cinemaRepository;
     
     private final MutableLiveData<Resource<PageResponse<MovieSummary>>> nowShowing = new MutableLiveData<>();
     private final MutableLiveData<Resource<PageResponse<MovieSummary>>> comingSoon = new MutableLiveData<>();
@@ -29,11 +32,18 @@ public class HomeViewModel extends ViewModel {
     private final MutableLiveData<Resource<List<MovieSummary>>> featuredMovies = new MutableLiveData<>();
     private final MutableLiveData<Resource<PromotionResponse>> popupPromotion = new MutableLiveData<>();
 
+    // Quick Booking State
+    private final MutableLiveData<MovieSummary> quickSelectedMovie = new MutableLiveData<>(null);
+    private final MutableLiveData<CinemaResponse> quickSelectedCinema = new MutableLiveData<>(null);
+    private final MutableLiveData<String> quickSelectedDate = new MutableLiveData<>(null);
+
     @Inject
-    public HomeViewModel(MovieRepository movieRepository, VoucherRepository voucherRepository, PromotionRepository promotionRepository) {
+    public HomeViewModel(MovieRepository movieRepository, VoucherRepository voucherRepository, 
+            PromotionRepository promotionRepository, CinemaRepository cinemaRepository) {
         this.movieRepository = movieRepository;
         this.voucherRepository = voucherRepository;
         this.promotionRepository = promotionRepository;
+        this.cinemaRepository = cinemaRepository;
         loadMovies();
     }
 
@@ -72,6 +82,15 @@ public class HomeViewModel extends ViewModel {
     public void clearSearch() {
         searchResults.setValue(null);
     }
+
+    public LiveData<Resource<List<CinemaResponse>>> getCinemas(String city) {
+        return cinemaRepository.getCinemas(city);
+    }
+
+    // Quick Booking Getters
+    public MutableLiveData<MovieSummary> getQuickSelectedMovie() { return quickSelectedMovie; }
+    public MutableLiveData<CinemaResponse> getQuickSelectedCinema() { return quickSelectedCinema; }
+    public MutableLiveData<String> getQuickSelectedDate() { return quickSelectedDate; }
 
     public void refresh() {
         loadMovies();

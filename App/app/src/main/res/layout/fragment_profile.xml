@@ -59,8 +59,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="match_parent"
                             android:scaleType="centerCrop"
-                            android:src="@drawable/ic_profile"
-                            android:tint="@color/on_surface_variant"/>
+                            android:src="@drawable/ic_profile"/>
                     </androidx.cardview.widget.CardView>
                     <com.google.android.material.floatingactionbutton.FloatingActionButton
                         android:id="@+id/btnEditProfile"
@@ -155,7 +154,7 @@
                                 <TextView
                                     android:layout_width="wrap_content"
                                     android:layout_height="wrap_content"
-                                    android:text="PTS"
+                                    android:text="CP"
                                     android:textColor="@color/on_surface_variant"
                                     android:textSize="12sp"
                                     android:textStyle="bold"
@@ -192,7 +191,7 @@
                             android:id="@+id/tvPointsToNext"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="200 PTS TO SILVER"
+                            android:text="NUMBERS EXP TO NEXT RANK"
                             android:textColor="@color/primary"
                             android:textSize="10sp"
                             android:textStyle="bold"/>

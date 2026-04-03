@@ -13,6 +13,7 @@ import { cn } from "@/utils";
 
 const NAV_ITEMS = [
   { href: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
+  { href: "/staff/pos", icon: Film, label: "Quầy bán vé (POS)" },
   { href: "/staff/bookings", icon: CalendarCheck, label: "Đặt vé hôm nay" },
   { href: "/staff/checkin", icon: QrCode, label: "Check-in QR" },
 ];

@@ -11,11 +11,15 @@ import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.service.UserVoucherService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -52,8 +56,43 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật FCM token thành công"));
     }
 
-    // PATCH /api/v1/users/me/password
-    @PatchMapping("/me/password")
+    // POST /api/v1/users/me/avatar
+    @PostMapping(value = "/me/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<ApiResponse<UserResponse>> uploadAvatar(
+            @AuthenticationPrincipal User currentUser,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        
+        // 1. Validate File Size (<10MB)
+        long maxSize = 10 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("Dung lượng ảnh vượt quá 10MB. Vui lòng nén ảnh lại.");
+        }
+
+        // 2. Validate format
+        String type = file.getContentType();
+        if (type == null || !type.startsWith("image/")) {
+            throw new IllegalArgumentException("Định dạng file không được hỗ trợ (cần file ảnh jpeg, png, webp)");
+        }
+
+        // 3. Upload & update via Service (Safe-fail logic)
+        UserResponse updatedUser = userService.updateAvatar(currentUser.getId(), file);
+        return ResponseEntity.ok(ApiResponse.success(updatedUser, "Cập nhật ảnh đại diện thành công"));
+    }
+
+    @PostMapping("/me/avatar-url")
+    public ResponseEntity<ApiResponse<UserResponse>> uploadAvatarViaUrl(
+            @AuthenticationPrincipal User currentUser,
+            @RequestBody Map<String, String> request) throws IOException {
+        String url = request.get("url");
+        if (url == null || url.isBlank()) throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                userService.updateAvatarFromUrl(currentUser.getId(), url), 
+                "Cập nhật ảnh đại diện từ URL thành công"));
+    }
+
+    // PUT /api/v1/users/me/password
+    @PutMapping("/me/password")
     public ResponseEntity<ApiResponse<Void>> changePassword(
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody ChangePasswordRequest request) {

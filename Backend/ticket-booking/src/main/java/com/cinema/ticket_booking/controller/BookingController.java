@@ -39,6 +39,16 @@ public class BookingController {
                                                 "Đặt vé thành công, vui lòng thanh toán trong 10 phút"));
         }
 
+        // POST /api/v1/bookings/quote — lấy báo giá (không tạo đơn)
+        @PostMapping("/quote")
+        @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
+        public ResponseEntity<ApiResponse<BookingResponse>> calculateQuote(
+                        @AuthenticationPrincipal User currentUser,
+                        @Valid @RequestBody BookingRequest request) {
+                BookingResponse data = bookingService.calculateQuote(currentUser.getId(), request);
+                return ResponseEntity.ok(ApiResponse.success(data, "Lấy báo giá thành công"));
+        }
+
         // GET /api/v1/bookings/me?page=0&size=10 — lịch sử đặt vé của tôi
         @GetMapping("/me")
         public ResponseEntity<ApiResponse<PageResponse<BookingResponse.Summary>>> getMyBookings(
@@ -59,22 +69,14 @@ public class BookingController {
                                 bookingService.getDetail(currentUser.getId(), id)));
         }
 
-        // POST /api/v1/bookings/{id}/cancel-request — Yêu cầu huỷ đơn vé đã thanh toán
-        @PostMapping("/{id}/cancel-request")
-        public ResponseEntity<ApiResponse<Void>> requestCancelBooking(
+        // POST /api/v1/bookings/{id}/cancel — Huỷ vé (Customer tự hủy hoặc Staff/Admin hủy hộ)
+        @PostMapping("/{id}/cancel")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResponse<Void>> cancelBooking(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID id) {
-                bookingService.requestCancelBooking(currentUser.getId(), id);
-                return ResponseEntity.ok(ApiResponse.success(null, "Yêu cầu huỷ vé thành công. Vui lòng kiểm tra email để xác nhận."));
-        }
-
-        // POST /api/v1/bookings/cancel-confirm — Xác nhận huỷ vé qua token email
-        @PostMapping("/cancel-confirm")
-        public ResponseEntity<ApiResponse<Void>> confirmCancelBooking(
-                        @RequestParam String token,
-                        @RequestParam UUID bookingId) {
-                bookingService.confirmCancelBooking(token, bookingId);
-                return ResponseEntity.ok(ApiResponse.success(null, "Xác nhận huỷ vé thành công. CinePoint đã được cộng vào tài khoản của bạn."));
+                bookingService.cancelBooking(currentUser, id);
+                return ResponseEntity.ok(ApiResponse.success(null, "Huỷ vé thành công. Điểm CP đã được cộng vào tài khoản."));
         }
 
         // POST /api/v1/bookings/check-in [STAFF, ADMIN] — quét QR tại rạp
@@ -85,5 +87,15 @@ public class BookingController {
                         @RequestParam String qrCode) {
                 return ResponseEntity.ok(ApiResponse.success(
                                 bookingService.checkIn(currentUser, qrCode), "Check-in thành công"));
+        }
+
+        // GET /api/v1/bookings/cancel-policy — Lấy chính sách hoàn vé
+        @GetMapping("/cancel-policy")
+        public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCancelPolicy(
+                        @org.springframework.beans.factory.annotation.Autowired com.cinema.ticket_booking.service.SystemConfigService configService) {
+                java.util.Map<String, Object> policy = new java.util.HashMap<>();
+                policy.put("refundPercent", configService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100));
+                policy.put("minHoursBefore", configService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2));
+                return ResponseEntity.ok(ApiResponse.success(policy));
         }
 }

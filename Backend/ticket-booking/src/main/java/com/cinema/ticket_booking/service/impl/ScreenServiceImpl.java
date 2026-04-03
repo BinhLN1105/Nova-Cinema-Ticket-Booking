@@ -63,23 +63,16 @@ public class ScreenServiceImpl implements ScreenService {
         int totalCols = savedScreen.getTotalCols();
 
         for (int i = 0; i < totalRows; i++) {
-            char rowLabel = (char) ('A' + i);
+            String rowLabel = generateRowLabel(i);
             for (int j = 1; j <= totalCols; j++) {
-                SeatType type = SeatType.STANDARD;
-                if (i == totalRows - 1) {
-                    type = SeatType.COUPLE;
-                } else if (i >= totalRows / 2 - 2 && i <= totalRows / 2 + 1) {
-                    type = SeatType.VIP;
-                }
-
                 Seat seat = Seat.builder()
                         .screen(savedScreen)
-                        .rowLabel(rowLabel)
+                        .rowLabel(rowLabel.charAt(0)) // Giữ tương thích cũ nếu rowLabel vẫn là char trong DB
                         .colNumber(j)
                         .gridRow(i)
                         .gridCol(j - 1)
-                        .seatLabel(String.valueOf(rowLabel) + j)
-                        .seatType(type)
+                        .seatLabel(rowLabel + j)
+                        .seatType(SeatType.STANDARD)
                         .isActive(true)
                         .build();
                 savedScreen.getSeats().add(seat);
@@ -217,5 +210,15 @@ public class ScreenServiceImpl implements ScreenService {
             throw new ResourceNotFoundException("Phòng chiếu", id);
         }
         return screen;
+    }
+
+    private String generateRowLabel(int index) {
+        StringBuilder label = new StringBuilder();
+        int n = index;
+        while (n >= 0) {
+            label.insert(0, (char) ('A' + (n % 26)));
+            n = (n / 26) - 1;
+        }
+        return label.toString();
     }
 }

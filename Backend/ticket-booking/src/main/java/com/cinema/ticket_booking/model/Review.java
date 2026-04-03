@@ -12,8 +12,8 @@ import java.util.UUID;
 @Table(
     name = "reviews",
     uniqueConstraints = @UniqueConstraint(
-        name = "uk_review_user_booking",
-        columnNames = {"user_id", "booking_id"}   // Mỗi booking chỉ review 1 lần
+        name = "uk_review_user_movie",
+        columnNames = {"user_id", "movie_id"} // Mỗi user chỉ review 1 phim duy nhất
     )
 )
 @Getter

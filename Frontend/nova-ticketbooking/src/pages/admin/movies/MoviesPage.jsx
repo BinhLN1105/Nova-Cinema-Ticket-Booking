@@ -29,7 +29,7 @@ export default function AdminMoviesPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["admin", "movies", search, statusFilter],
     queryFn: () =>
-      movieApi.getAll({
+      movieApi.adminGetAll({
         search: search || undefined,
         status: statusFilter || undefined,
       }),

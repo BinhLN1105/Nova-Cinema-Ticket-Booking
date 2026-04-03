@@ -39,7 +39,7 @@
 
                 <com.google.android.material.button.MaterialButton android:id="@+id/btnTrailer"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:layout_gravity="center" android:text="PLAY TRAILER"
+                    android:layout_gravity="center" android:text="XEM TRAILER"
                     android:textColor="@color/white" android:textSize="12sp"
                     app:backgroundTint="@color/highlight_subtle" app:strokeColor="@color/outline" app:strokeWidth="1dp" app:cornerRadius="24dp"
                     android:visibility="gone"/>
@@ -94,7 +94,7 @@
                 android:orientation="vertical" android:paddingHorizontal="24dp" android:layout_marginTop="32dp">
                 
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Synopsis" android:textColor="@color/on_surface"
+                    android:text="Nội dung phim" android:textColor="@color/on_surface"
                     android:textStyle="bold" android:textSize="18sp"/>
                     
                 <TextView android:id="@+id/tvReleaseDate" android:layout_width="wrap_content"
@@ -106,7 +106,7 @@
                     android:layout_marginTop="8dp" android:lineSpacingMultiplier="1.5" android:textSize="14sp"/>
                     
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:text="Crew" android:textColor="@color/on_surface"
+                    android:text="Ê-kíp" android:textColor="@color/on_surface"
                     android:layout_marginTop="24dp" android:textSize="18sp" android:textStyle="bold"/>
                 <TextView android:id="@+id/tvDirector" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
@@ -120,7 +120,7 @@
                     android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="32dp">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:text="User Reviews" android:textColor="@color/on_surface"
+                        android:text="Đánh giá từ người xem" android:textColor="@color/on_surface"
                         android:textStyle="bold" android:textSize="18sp"/>
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnWriteReview"
@@ -146,6 +146,16 @@
                     android:padding="16dp"
                     android:visibility="gone"/>
 
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewAllReviews"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="Xem tất cả đánh giá"
+                    android:textColor="@color/on_surface_variant"
+                    android:visibility="gone"/>
+
             </LinearLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
@@ -159,7 +169,7 @@
         android:orientation="horizontal">
         <com.google.android.material.button.MaterialButton android:id="@+id/btnBookTicket"
             android:layout_width="match_parent" android:layout_height="56dp"
-            android:text="BOOK NOW (ĐẶT VÉ NGAY)" android:textSize="14sp" android:textStyle="bold"
+            android:text="ĐẶT VÉ NGAY" android:textSize="14sp" android:textStyle="bold"
             app:backgroundTint="@color/primary" app:cornerRadius="16dp"/>
     </LinearLayout>
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

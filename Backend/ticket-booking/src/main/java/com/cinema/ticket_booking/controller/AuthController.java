@@ -6,6 +6,7 @@ import com.cinema.ticket_booking.dto.request.RegisterRequest;
 import com.cinema.ticket_booking.dto.request.SocialLoginRequest;
 import com.cinema.ticket_booking.dto.request.ForgotPasswordRequest;
 import com.cinema.ticket_booking.dto.request.ResetPasswordRequest;
+import com.cinema.ticket_booking.dto.request.VerifyOtpRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
@@ -91,7 +92,15 @@ public class AuthController {
     public ResponseEntity<ApiResponse<Void>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
         authService.requestPasswordReset(request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success(null, "Nếu email hợp lệ, một đường link khôi phục mật khẩu đã được gửi đến hộp thư của bạn."));
+        return ResponseEntity.ok(ApiResponse.success(null, "Nếu email hợp lệ, một mã xác thực (OTP) đã được gửi đến hộp thư của bạn."));
+    }
+
+    // POST /api/v1/auth/verify-otp
+    @PostMapping("/verify-otp")
+    public ResponseEntity<ApiResponse<String>> verifyOtp(
+            @Valid @RequestBody VerifyOtpRequest request) {
+        String resetToken = authService.verifyOtp(request.getEmail(), request.getOtp());
+        return ResponseEntity.ok(ApiResponse.success(resetToken, "Xác thực OTP thành công"));
     }
 
     // POST /api/v1/auth/reset-password

@@ -4,7 +4,9 @@ import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.UUID;
 
 public interface UserService {
@@ -12,6 +14,10 @@ public interface UserService {
     UserResponse getProfile(UUID userId);
 
     UserResponse updateProfile(UUID userId, UpdateProfileRequest request);
+
+    UserResponse updateAvatar(UUID userId, MultipartFile file) throws IOException;
+
+    UserResponse updateAvatarFromUrl(UUID userId, String url) throws IOException;
 
     void updateFcmToken(UUID userId, String fcmToken);
 

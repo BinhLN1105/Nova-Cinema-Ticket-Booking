@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.dto.request;
 
+import com.cinema.ticket_booking.enums.PaymentMethod;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -21,6 +22,9 @@ public class BookingRequest {
 
     // Mã voucher (null nếu không dùng)
     private String voucherCode;
+
+    // Phương thức thanh toán (CASH, VNPAY...)
+    private PaymentMethod paymentMethod;
 
     @Data
     public static class ComboItem {

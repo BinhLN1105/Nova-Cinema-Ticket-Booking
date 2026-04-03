@@ -6,6 +6,8 @@ import com.cinema.ticket_booking.dto.response.GenreResponse;
 import com.cinema.ticket_booking.dto.response.MovieResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.ReviewResponse;
+import com.cinema.ticket_booking.dto.response.CanReviewResponse;
+import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.enums.MovieStatus;
 import com.cinema.ticket_booking.service.GenreService;
 import com.cinema.ticket_booking.service.MovieService;
@@ -19,8 +21,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -41,6 +47,18 @@ public class MovieController {
             @RequestParam(defaultValue = "10") int size) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(ApiResponse.success(movieService.getByStatus(status, pageable)));
+    }
+
+    // GET /api/v1/movies/admin?search=...&status=...&page=0&size=10
+    @GetMapping("/admin")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<PageResponse<MovieResponse.Summary>>> getMoviesForAdmin(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) MovieStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return ResponseEntity.ok(ApiResponse.success(movieService.getAllForAdmin(search, status, pageable)));
     }
 
     // GET /api/v1/movies/search?q=avengers
@@ -79,11 +97,21 @@ public class MovieController {
     // GET /api/v1/movies/{id}/can-review
     @GetMapping("/{id}/can-review")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<String>> canReview(
+    public ResponseEntity<ApiResponse<CanReviewResponse>> canReview(
             @PathVariable UUID id,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal com.cinema.ticket_booking.model.User currentUser) {
+            @AuthenticationPrincipal User currentUser) {
+
         UUID bookingId = bookingService.getEligibleBookingForReview(currentUser.getId(), id);
-        return ResponseEntity.ok(ApiResponse.success(bookingId != null ? bookingId.toString() : null));
+        var existingReview = reviewService.getExistingReview(currentUser.getId(), id);
+
+        var response = CanReviewResponse.builder()
+                .canReview(bookingId != null || existingReview != null)
+                .alreadyReviewed(existingReview != null)
+                .bookingId(bookingId)
+                .existingReview(existingReview)
+                .build();
+
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
     // POST /api/v1/movies [ADMIN]
@@ -102,6 +130,62 @@ public class MovieController {
             @PathVariable UUID id,
             @Valid @RequestBody MovieRequest request) {
         return ResponseEntity.ok(ApiResponse.success(movieService.update(id, request), "Cập nhật thành công"));
+    }
+
+    // POST /api/v1/movies/{id}/poster [ADMIN]
+    @PostMapping("/{id}/poster")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<MovieResponse>> uploadPoster(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        
+        if (file.isEmpty()) throw new IllegalArgumentException("Vui lòng chọn file ảnh");
+        if (file.getSize() > 10 * 1024 * 1024) throw new IllegalArgumentException("Dung lượng ảnh tối đa 10MB");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                movieService.updatePoster(id, file), 
+                "Tải lên Poster thành công"));
+    }
+
+    @PostMapping("/{id}/poster-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<MovieResponse>> uploadPosterViaUrl(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> request) throws IOException {
+        String url = request.get("url");
+        if (url == null || url.isBlank()) throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                movieService.updatePosterFromUrl(id, url), 
+                "Cập nhật Poster từ URL thành công"));
+    }
+
+    // POST /api/v1/movies/{id}/backdrop [ADMIN]
+    @PostMapping("/{id}/backdrop")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<MovieResponse>> uploadBackdrop(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        
+        if (file.isEmpty()) throw new IllegalArgumentException("Vui lòng chọn file ảnh");
+        if (file.getSize() > 10 * 1024 * 1024) throw new IllegalArgumentException("Dung lượng ảnh tối đa 10MB");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                movieService.updateBackdrop(id, file), 
+                "Tải lên Backdrop thành công"));
+    }
+
+    @PostMapping("/{id}/backdrop-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<MovieResponse>> uploadBackdropViaUrl(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> request) throws IOException {
+        String url = request.get("url");
+        if (url == null || url.isBlank()) throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                movieService.updateBackdropFromUrl(id, url), 
+                "Cập nhật Backdrop từ URL thành công"));
     }
 
     // DELETE /api/v1/movies/{id} [ADMIN]

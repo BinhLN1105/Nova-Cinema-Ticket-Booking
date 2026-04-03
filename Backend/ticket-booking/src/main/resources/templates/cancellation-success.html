@@ -9,33 +9,25 @@
         .header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
         .header h1 { color: #e53935; margin: 0; }
         .content { margin-bottom: 30px; }
-        .btn { display: inline-block; background-color: #e53935; color: #fff; text-decoration: none; padding: 12px 25px; border-radius: 6px; font-weight: bold; margin-top: 15px; }
         .footer { font-size: 0.85em; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
-        .warning { font-size: 0.9em; color: #666; margin-top: 20px; font-style: italic; }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Xác nhận huỷ vé</h1>
+            <h1>Hủy vé thành công</h1>
             <p>Mã đơn vé: <strong th:text="${bookingCode}">BK123456</strong></p>
-            <p>Tại rạp: <strong th:text="${cinemaName}">Cinema Center</strong></p>
         </div>
         
         <div class="content">
             <p>Chào <strong th:text="${customerName}">Khách hàng</strong>,</p>
-            <p>Chúng tôi nhận được yêu cầu huỷ đơn đặt vé tại rạp chiếu phim của bạn.</p>
-            <p>Theo chính sách hoàn huỷ, phần thanh toán của bạn sẽ được hoàn lại dưới dạng <strong>CinePoint</strong> vào tài khoản sau khi xác nhận thành công.</p>
-            
-            <div style="text-align: center; margin: 30px 0;">
-                <a th:href="${confirmUrl}" class="btn">Xác Nhận Huỷ Vé</a>
-            </div>
-
-            <p class="warning">Lưu ý: Link này chỉ có hiệu lực trong vòng 15 phút. Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email.</p>
+            <p>Vé xem phim của bạn cho bộ phim <strong th:text="${movieTitle}">Movie</strong> đã được hủy thành công.</p>
+            <p>Lý do: <span th:text="${reason}">Yêu cầu từ người dùng</span></p>
+            <p><strong>Lưu ý quan trọng:</strong> Phần thanh toán (nếu có theo chính sách áp dụng) đã được hệ thống tính toán và cộng lại dưới dạng điểm <strong>CinePoint (CP)</strong> vào tài khoản của bạn. Bạn có thể kiểm tra ở mục thông tin số dư trong ứng dụng di động của chúng tôi.</p>
         </div>
         
         <div class="footer">
-            <p>Trân trọng,<br>Đội ngũ Cinema</p>
+            <p>Trân trọng,<br>Đội ngũ Nova Ticket</p>
         </div>
     </div>
 </body>

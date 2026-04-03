@@ -42,35 +42,53 @@
             </FrameLayout>
 
             <!-- Seat map -->
-            <com.otaliastudios.zoom.ZoomLayout android:layout_width="match_parent" android:layout_height="350dp"
+            <com.otaliastudios.zoom.ZoomLayout android:id="@+id/zoomLayout"
+                android:layout_width="match_parent" android:layout_height="350dp"
                 android:layout_marginTop="8dp" android:layout_marginBottom="8dp"
-                app:zoomEnabled="true" app:hasClickableChildren="true" app:minZoom="0.5" app:maxZoom="3.0">
+                app:zoomEnabled="true" app:hasClickableChildren="true" app:minZoom="1.0" app:maxZoom="3.0" app:minZoomType="zoom">
+
                 <LinearLayout android:id="@+id/seatContainer"
                     android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:orientation="vertical" android:layout_gravity="center"/>
+                    android:minWidth="350dp" android:minHeight="350dp"
+                    android:orientation="vertical" android:gravity="center"/>
             </com.otaliastudios.zoom.ZoomLayout>
 
             <!-- Legend -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:padding="24dp" android:gravity="center"
-                android:layout_marginTop="16dp">
+                android:orientation="vertical" android:paddingHorizontal="16dp" android:paddingTop="24dp"
+                android:gravity="center" android:layout_marginTop="16dp">
                 
-                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginEnd="24dp">
-                    <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_available"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Trống" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                <!-- Row 1 -->
+                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginBottom="12dp">
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginEnd="16dp">
+                        <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_available"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Thường" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginEnd="16dp">
+                        <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_vip"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="VIP" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
+                        <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_couple"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Couple" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    </LinearLayout>
                 </LinearLayout>
 
-                <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginEnd="24dp">
-                    <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_selected"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Đang chọn" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
-                </LinearLayout>
-
+                <!-- Row 2 -->
                 <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
-                    <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_booked"/>
-                    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                        android:text="Đã đặt" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginEnd="16dp">
+                        <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_selected"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Đang chọn" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    </LinearLayout>
+                    <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center">
+                        <View android:layout_width="16dp" android:layout_height="16dp" android:background="@color/seat_booked"/>
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Đã đặt" android:textColor="@color/on_surface_variant" android:textSize="12sp" android:layout_marginStart="8dp"/>
+                    </LinearLayout>
                 </LinearLayout>
             </LinearLayout>
 

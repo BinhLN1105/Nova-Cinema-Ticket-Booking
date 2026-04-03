@@ -11,11 +11,20 @@ import javax.inject.Inject;
 public class BookingHistoryViewModel extends ViewModel {
     private final BookingRepository repo;
     private final MutableLiveData<Resource<PageResponse<BookingSummary>>> bookings = new MutableLiveData<>();
+    private boolean isUpcomingTab = true; // Nova: Persist tab state (Upcoming vs History)
 
     @Inject
     public BookingHistoryViewModel(BookingRepository repo) {
         this.repo = repo;
         load();
+    }
+
+    public boolean isUpcomingTab() {
+        return isUpcomingTab;
+    }
+
+    public void setUpcomingTab(boolean upcomingTab) {
+        isUpcomingTab = upcomingTab;
     }
 
     public LiveData<Resource<PageResponse<BookingSummary>>> getBookings() {

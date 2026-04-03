@@ -48,7 +48,7 @@ public class BookingResponse implements Serializable {
     private String voucherCode;
     private BigDecimal discountAmount; // Số tiền giảm từ voucher
     private BigDecimal totalAmount; // Tổng sau cùng
-
+    private String warningMessage; // Thông báo cảnh báo (ví dụ Voucher hết hạn)
 
     // QR Code (chỉ có khi status = PAID)
     private String qrCode;
@@ -92,6 +92,7 @@ public class BookingResponse implements Serializable {
         private String id;
         private String bookingCode;
         private String movieTitle;
+        private String movieId;
         private String moviePosterUrl;
         private LocalDateTime startTime;
         private String cinemaName;

@@ -44,27 +44,28 @@ public class ChatbotViewModel extends ViewModel {
         _messages.setValue(currentList);
 
         repo.sendMessage(msg).observeForever(resource -> {
-            List<ChatMessage> updateList = new ArrayList<>(_messages.getValue());
-            // Remove loading indicator
-            if (!updateList.isEmpty() && updateList.get(updateList.size() - 1).isLoading()) {
-                updateList.remove(updateList.size() - 1);
-            }
+            List<ChatMessage> updateList = new ArrayList<>(
+                _messages.getValue() == null ? new ArrayList<>() : _messages.getValue());
+            
+            // Nova Error Handling: ensure loading indicator is always removed before adding response
+            updateList.removeIf(ChatMessage::isLoading);
 
             switch (resource.status) {
                 case SUCCESS:
-                    updateList.add(new ChatMessage(resource.data, false));
+                    if (resource.data != null && !resource.data.isEmpty()) {
+                        updateList.add(new ChatMessage(resource.data, false));
+                    } else {
+                        updateList.add(new ChatMessage("Tôi không nhận được phản hồi từ hệ thống.", false));
+                    }
                     break;
                 case ERROR:
-                    updateList.add(
-                            new ChatMessage("Xin lỗi, tôi đang gặp sự cố kết nối (" + resource.message + ")", false));
+                    // Better user feedback for server issues
+                    updateList.add(new ChatMessage("⚠️ Không thể kết nối với CineAI. Vui lòng kiểm tra mạng!", false));
                     break;
                 case LOADING:
-                    // do nothing, loading indicator is already added
-                    break;
+                    return; // Yield to next state
             }
-            if (resource.status != com.cinema.ticket_booking.util.Resource.Status.LOADING) {
-                _messages.setValue(updateList);
-            }
+            _messages.setValue(updateList);
         });
     }
 }

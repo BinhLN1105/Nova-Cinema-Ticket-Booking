@@ -45,6 +45,15 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
   // Tìm booking theo trạng thái và thời gian hết hạn (dùng cho Scheduler)
   List<Booking> findByStatusAndExpiresAtBefore(BookingStatus status, LocalDateTime now);
 
+  // Kiểm tra xem rạp có booking nào không (Dùng để bảo vệ khi xóa rạp)
+  @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN b.showtime s JOIN s.screen sc WHERE sc.cinema.id = :cinemaId")
+  boolean existsByCinemaId(@Param("cinemaId") UUID cinemaId);
+
+  // ── Atomic Actions ──────────────────────────────────────────────────────
+  @Modifying
+  @Query("UPDATE Booking b SET b.status = 'CANCELLED', b.cancellationToken = null, b.cancellationTokenExpiry = null, b.earnedExp = 0 WHERE b.id = :bookingId AND b.status = 'PAID'")
+  int cancelPaidBooking(@Param("bookingId") UUID bookingId);
+
   // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
   @Modifying
   @Query("""

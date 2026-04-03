@@ -38,20 +38,10 @@ export default function ConfirmBooking() {
     }
   }
 
-  // ── Tính toán lại Tổng tiền (bao gồm Combo) để kích hoạt Khuyến mãi 20k ──
+  // ── Tính toán lại Tổng tiền (bao gồm Combo) thông qua API /quote ──
   useEffect(() => {
-    if (combos) {
-      const comboTotal = Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
-        const combo = combos.find(c => c.id === id)
-        return acc + (combo ? combo.price * qty : 0)
-      }, 0);
-      
-      const ticketsTotal = booking.selectedSeats.reduce((sum, s) => sum + s.price, 0);
-      
-      // Cập nhật lại Store với tổng tiền trước khuyến mãi
-      booking.calculateTotals(ticketsTotal + comboTotal);
-    }
-  }, [combos, booking.selectedSeats, booking.selectedCombos]);
+    booking.calculateTotals();
+  }, [booking.selectedSeats, booking.selectedCombos, booking.appliedVoucher]);
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-32">
@@ -141,6 +131,7 @@ export default function ConfirmBooking() {
               </div>
             )}
             {voucherError && <p className="text-brand-400 text-xs mt-2">{voucherError}</p>}
+            {booking.warningMessage && <p className="text-brand-400 text-xs mt-2">{booking.warningMessage}</p>}
           </div>
 
           {/* Price breakdown */}

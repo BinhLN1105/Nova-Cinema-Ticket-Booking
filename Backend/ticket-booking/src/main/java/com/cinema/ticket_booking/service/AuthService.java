@@ -21,5 +21,7 @@ public interface AuthService {
 
     void requestPasswordReset(String email);
 
+    String verifyOtp(String email, String otp);
+
     void resetPassword(String token, String newPassword);
 }

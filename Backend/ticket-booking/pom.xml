@@ -36,6 +36,7 @@
 		<lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
 		<firebase.version>9.3.0</firebase.version>
 		<google-api-client.version>2.2.0</google-api-client.version>
+		<cloudinary.version>1.39.0</cloudinary.version>
     </properties>
 	<dependencies>
 		<dependency>
@@ -189,6 +190,13 @@
             <groupId>com.google.api-client</groupId>
             <artifactId>google-api-client</artifactId>
             <version>${google-api-client.version}</version>
+        </dependency>
+
+        <!-- Cloudinary for Avatar Uploads -->
+        <dependency>
+            <groupId>com.cloudinary</groupId>
+            <artifactId>cloudinary-http44</artifactId>
+            <version>${cloudinary.version}</version>
         </dependency>
 
 	</dependencies>

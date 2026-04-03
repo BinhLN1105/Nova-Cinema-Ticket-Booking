@@ -19,6 +19,8 @@ public class AuthViewModel extends ViewModel {
 
     // LiveData các màn hình observe
     private final MutableLiveData<Resource<AuthResponse>> authResult = new MutableLiveData<>();
+    private final MutableLiveData<Resource<Void>> passwordResult = new MutableLiveData<>();
+    private final MutableLiveData<Resource<String>> verifyOtpResult = new MutableLiveData<>();
 
     @Inject
     public AuthViewModel(AuthRepository authRepository, TokenManager tokenManager) {
@@ -30,7 +32,27 @@ public class AuthViewModel extends ViewModel {
         return authResult;
     }
 
+    public LiveData<Resource<Void>> getPasswordResult() {
+        return passwordResult;
+    }
+
+    public LiveData<Resource<String>> getVerifyOtpResult() {
+        return verifyOtpResult;
+    }
+
     // ── Actions ───────────────────────────────────────────────────────────
+
+    public void forgotPassword(String email) {
+        authRepository.forgotPassword(email).observeForever(result -> passwordResult.setValue(result));
+    }
+
+    public void verifyOtp(String email, String otp) {
+        authRepository.verifyOtp(email, otp).observeForever(result -> verifyOtpResult.setValue(result));
+    }
+
+    public void resetPassword(String token, String newPassword) {
+        authRepository.resetPassword(token, newPassword).observeForever(result -> passwordResult.setValue(result));
+    }
 
     public void register(String email, String password, String fullName, String phone) {
         RegisterRequest request = new RegisterRequest(email, password, fullName, phone);

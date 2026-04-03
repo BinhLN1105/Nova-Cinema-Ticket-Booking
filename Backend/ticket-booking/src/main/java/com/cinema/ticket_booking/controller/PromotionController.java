@@ -12,8 +12,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -61,6 +64,33 @@ public class PromotionController {
     public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         promotionService.delete(id);
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa khuyến mãi thành công"));
+    }
+
+    @PostMapping("/admin/promotions/{id}/image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PromotionResponse>> uploadImage(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+        
+        if (file.isEmpty()) throw new IllegalArgumentException("Vui lòng chọn file ảnh");
+        if (file.getSize() > 10 * 1024 * 1024) throw new IllegalArgumentException("Dung lượng ảnh tối đa 10MB");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                promotionService.updateImage(id, file), 
+                "Tải lên ảnh khuyến mãi thành công"));
+    }
+
+    @PostMapping("/admin/promotions/{id}/image-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<PromotionResponse>> uploadImageViaUrl(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> request) throws IOException {
+        String url = request.get("url");
+        if (url == null || url.isBlank()) throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+        
+        return ResponseEntity.ok(ApiResponse.success(
+                promotionService.updateImageFromUrl(id, url), 
+                "Cập nhật ảnh khuyến mãi từ URL thành công"));
     }
 
     @PatchMapping("/admin/promotions/{id}/toggle")

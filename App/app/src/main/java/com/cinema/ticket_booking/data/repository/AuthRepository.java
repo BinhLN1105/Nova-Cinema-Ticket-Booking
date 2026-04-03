@@ -12,6 +12,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Map;
+import java.util.HashMap;
 
 @Singleton
 public class AuthRepository {
@@ -105,6 +107,91 @@ public class AuthRepository {
             });
         }
         tokenManager.clearAll();
+    }
+
+    // ── Forgot/Reset Password ─────────────────────────────────────────────
+
+    public LiveData<Resource<Void>> forgotPassword(String email) {
+        MutableLiveData<Resource<Void>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+
+        apiService.forgotPassword(new ForgotPasswordRequest(email)).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    result.setValue(Resource.success(null));
+                } else {
+                    String msg = response.body() != null ? response.body().getMessage() : "Gửi email thất bại";
+                    result.setValue(Resource.error(msg));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
+    public LiveData<Resource<String>> verifyOtp(String email, String otp) {
+        MutableLiveData<Resource<String>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+
+        Map<String, String> body = new HashMap<>();
+        body.put("email", email);
+        body.put("otp", otp);
+
+        apiService.verifyOtp(body).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<String>> call, Response<ApiResponse<String>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    result.setValue(Resource.success(response.body().getData())); // Returns resetToken
+                } else {
+                    String msg = "Xác thực OTP thất bại";
+                    try {
+                        if (response.errorBody() != null) {
+                            String errorMsg = response.errorBody().string();
+                            if (errorMsg.contains("message")) {
+                                msg = errorMsg.substring(errorMsg.indexOf("message") + 10);
+                                msg = msg.substring(0, msg.indexOf("\""));
+                            }
+                        }
+                    } catch (Exception ignored) {
+                    }
+                    result.setValue(Resource.error(msg));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
+    public LiveData<Resource<Void>> resetPassword(String token, String newPassword) {
+        MutableLiveData<Resource<Void>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+
+        apiService.resetPassword(new ResetPasswordRequest(token, newPassword)).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> call, Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    result.setValue(Resource.success(null));
+                } else {
+                    String msg = response.body() != null ? response.body().getMessage() : "Đặt lại mật khẩu thất bại";
+                    result.setValue(Resource.error(msg));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
     }
 
     // ── Helper ────────────────────────────────────────────────────────────

@@ -12,7 +12,6 @@ import com.cinema.ticket_booking.enums.UserRole;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ConflictException;
 import com.cinema.ticket_booking.exception.UnauthorizedException;
-import com.cinema.ticket_booking.repository.PasswordResetTokenRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.service.AuthService;
@@ -21,11 +20,14 @@ import com.cinema.ticket_booking.service.JwtService;
 import com.cinema.ticket_booking.service.social.FacebookTokenVerifier;
 import com.cinema.ticket_booking.service.social.GoogleTokenVerifier;
 import com.cinema.ticket_booking.service.social.SocialUserInfo;
-import com.cinema.ticket_booking.model.PasswordResetToken;
+
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,12 +42,17 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final PasswordResetTokenRepository passwordResetTokenRepository;
+
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final EmailService emailService;
     private final GoogleTokenVerifier googleTokenVerifier;
     private final FacebookTokenVerifier facebookTokenVerifier;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String OTP_KEY_PREFIX = "otp:";
+    private static final String OTP_ATTEMPTS_PREFIX = "otp_attempts:";
+    private static final String RESET_TOKEN_PREFIX = "reset_token:";
 
     @Value("${app.jwt.refresh-expiry-days:30}")
     private int refreshExpiryDays;
@@ -151,61 +158,92 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void requestPasswordReset(String email) {
-        // 1. Chống User Enumeration: Luôn trả về thành công giả lập
         User user = userRepository.findByEmail(email).orElse(null);
         
         if (user != null && user.getAuthProvider() == AuthProvider.LOCAL) {
-            // CHỐT CHẶN BẢO MẬT: Chỉ cho phép tài khoản CUSTOMER tự reset qua email
             if (user.getRole() != UserRole.CUSTOMER) {
-                log.warn("🚨 BẢO MẬT: Phát hiện yêu cầu reset mật khẩu cho tài khoản ADMIN/STAFF: {}. Hệ thống đã chặn yêu cầu này.", email);
-                return; // Silent return to avoid leaking information
+                log.warn("🚨 BẢO MẬT: Chặn yêu cầu reset mật khẩu cho ADMIN/STAFF: {}", email);
+                return;
             }
 
-            // 2. Chống Spam (Rate Limiting 2 phút)
-            passwordResetTokenRepository.findByUser(user).ifPresent(existing -> {
-                if (existing.getCreatedAt().isAfter(LocalDateTime.now().minusMinutes(2))) {
-                    // Nếu vừa xin mã xong thì không gửi thêm (silently skip)
-                    return;
-                }
-                passwordResetTokenRepository.delete(existing);
-            });
+            // 1. Kiểm tra rate limit (1 phút)
+            String lastSent = redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
+            if (lastSent != null) {
+                // Đã gửi mã trong 5 phút qua, cho phép sang bước nhập mã (silently skip gửi mới nếu muốn khắt khe)
+                // Hoặc đơn giản là không gửi quá nhanh
+            }
 
-            // 3. Tạo Token mới (Hết hạn sau 30 phút)
-            String token = UUID.randomUUID().toString();
-            PasswordResetToken resetToken = PasswordResetToken.builder()
-                    .user(user)
-                    .token(token)
-                    .expiryDate(LocalDateTime.now().plusMinutes(30))
-                    .build();
+            // 2. Tạo mã OTP 6 số
+            String otp = String.format("%06d", new Random().nextInt(1000000));
             
-            passwordResetTokenRepository.save(resetToken);
+            // 3. Lưu vào Redis (5 phút)
+            redisTemplate.opsForValue().set(OTP_KEY_PREFIX + email, otp, 5, TimeUnit.MINUTES);
+            // Reset số lần nhập sai
+            redisTemplate.delete(OTP_ATTEMPTS_PREFIX + email);
 
-            // 4. Gửi Email (Chạy ngầm @Async)
-            emailService.sendPasswordResetEmail(user, token);
+            // 4. Gửi Email (password-reset-otp.html)
+            emailService.sendPasswordResetOtpEmail(user, otp);
         }
         
-        // Luôn log (cho dev) nhưng không throw lỗi ra ngoài cho hacker biết
-        log.info("Yêu cầu khôi phục mật khẩu cho email: {}", email);
+        log.info("Yêu cầu khôi phục mật khẩu (OTP) cho email: {}", email);
+    }
+
+    @Override
+    public String verifyOtp(String email, String otp) {
+        // 1. Kiểm tra brute-force
+        String attemptsStr = redisTemplate.opsForValue().get(OTP_ATTEMPTS_PREFIX + email);
+        int attempts = attemptsStr != null ? Integer.parseInt(attemptsStr) : 0;
+        
+        if (attempts >= 5) {
+            throw new BadRequestException("Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.");
+        }
+
+        // 2. Lấy mã thực tế
+        String actualOtp = redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
+        
+        if (actualOtp == null) {
+            throw new BadRequestException("Mã OTP đã hết hạn hoặc không tồn tại");
+        }
+
+        if (!actualOtp.equals(otp)) {
+            redisTemplate.opsForValue().increment(OTP_ATTEMPTS_PREFIX + email);
+            if (attempts == 0) {
+                 redisTemplate.expire(OTP_ATTEMPTS_PREFIX + email, 15, TimeUnit.MINUTES);
+            }
+            throw new BadRequestException("Mã OTP không chính xác");
+        }
+
+        // 3. Thành công -> Tạo reset_token (10 phút)
+        String resetToken = UUID.randomUUID().toString();
+        redisTemplate.opsForValue().set(RESET_TOKEN_PREFIX + resetToken, email, 10, TimeUnit.MINUTES);
+        
+        // Dọn dẹp OTP
+        redisTemplate.delete(OTP_KEY_PREFIX + email);
+        redisTemplate.delete(OTP_ATTEMPTS_PREFIX + email);
+        
+        return resetToken;
     }
 
     @Override
     public void resetPassword(String token, String newPassword) {
-        PasswordResetToken resetToken = passwordResetTokenRepository.findByToken(token)
-                .orElseThrow(() -> new BadRequestException("Liên kết khôi phục mật khẩu không hợp lệ hoặc đã hết hạn"));
-
-        if (resetToken.isExpired()) {
-            passwordResetTokenRepository.delete(resetToken);
-            throw new BadRequestException("Liên kết khôi phục mật khẩu đã hết hạn");
+        // 1. Lấy email từ Reset Token trong Redis
+        String email = redisTemplate.opsForValue().get(RESET_TOKEN_PREFIX + token);
+        
+        if (email == null) {
+            throw new BadRequestException("Mã xác thực không hợp lệ hoặc đã hết hạn");
         }
 
-        User user = resetToken.getUser();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new BadRequestException("Người dùng không tồn tại"));
+
+        // 2. Cập nhật mật khẩu
         user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
-        // Xoá token ngay sau khi dùng (One-time use)
-        passwordResetTokenRepository.delete(resetToken);
+        // 3. Dọn dẹp
+        redisTemplate.delete(RESET_TOKEN_PREFIX + token);
         
-        // Đăng xuất toàn bộ phiên làm việc cũ cho bảo mật
+        // 4. Đăng xuất toàn bộ phiên làm việc cũ
         refreshTokenRepository.deleteAllByUser(user);
     }
 

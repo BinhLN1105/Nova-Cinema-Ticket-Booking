@@ -14,4 +14,7 @@ public interface ScreenRepository extends JpaRepository<Screen, UUID> {
 
     // Cho Admin (Lấy tất cả phòng chiếu chưa bị xóa, bao gồm cả phòng đang bảo trì)
     List<Screen> findByCinemaIdAndIsDeletedFalse(UUID cinemaId);
+
+    // Tính số lượng phòng chiếu của rạp (Để kiểm tra trước khi xóa)
+    long countByCinemaIdAndIsDeletedFalse(UUID cinemaId);
 }

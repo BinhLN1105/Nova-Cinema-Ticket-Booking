@@ -63,13 +63,13 @@ public class MovieRepository {
         return result;
     }
 
-    public LiveData<Resource<String>> canReview(String id) {
-        MutableLiveData<Resource<String>> result = new MutableLiveData<>();
+    public LiveData<Resource<CanReviewResponse>> canReview(String id) {
+        MutableLiveData<Resource<CanReviewResponse>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
         apiService.canReview(id).enqueue(new Callback<>() {
             @Override
-            public void onResponse(Call<ApiResponse<String>> call,
-                    Response<ApiResponse<String>> response) {
+            public void onResponse(Call<ApiResponse<CanReviewResponse>> call,
+                    Response<ApiResponse<CanReviewResponse>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
@@ -77,7 +77,7 @@ public class MovieRepository {
             }
 
             @Override
-            public void onFailure(Call<ApiResponse<String>> call, Throwable t) {
+            public void onFailure(Call<ApiResponse<CanReviewResponse>> call, Throwable t) {
                 result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
             }
         });

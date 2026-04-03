@@ -7,18 +7,25 @@ import com.cinema.ticket_booking.dto.response.MovieSyncResponse;
 import com.cinema.ticket_booking.model.Genre;
 import com.cinema.ticket_booking.model.Movie;
 import com.cinema.ticket_booking.enums.MovieStatus;
+import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.MovieMapper;
 import com.cinema.ticket_booking.repository.GenreRepository;
+import com.cinema.ticket_booking.repository.MovieEmbeddingRepository;
 import com.cinema.ticket_booking.repository.MovieRepository;
+import com.cinema.ticket_booking.repository.ReviewRepository;
+import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.service.MovieService;
+import com.cinema.ticket_booking.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -37,6 +44,10 @@ public class MovieServiceImpl implements MovieService {
     private final GenreRepository genreRepository;
     private final MovieMapper movieMapper;
     private final SystemConfigService systemConfigService;
+    private final CloudinaryService cloudinaryService;
+    private final ShowtimeRepository showtimeRepository;
+    private final ReviewRepository reviewRepository;
+    private final MovieEmbeddingRepository movieEmbeddingRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -62,6 +73,26 @@ public class MovieServiceImpl implements MovieService {
     public PageResponse<MovieResponse.Summary> getByStatus(MovieStatus status, Pageable pageable) {
         return PageResponse.of(
                 movieRepository.findByStatus(status, pageable).map(movieMapper::toSummary));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<MovieResponse.Summary> getAllForAdmin(String search, MovieStatus status, Pageable pageable) {
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasStatus = status != null;
+
+        org.springframework.data.domain.Page<Movie> page;
+        if (hasSearch && hasStatus) {
+            page = movieRepository.findByStatusAndTitleContainingIgnoreCase(status, search, pageable);
+        } else if (hasSearch) {
+            page = movieRepository.findByTitleContainingIgnoreCase(search, pageable);
+        } else if (hasStatus) {
+            page = movieRepository.findByStatus(status, pageable);
+        } else {
+            page = movieRepository.findAll(pageable);
+        }
+
+        return PageResponse.of(page.map(movieMapper::toSummary));
     }
 
     @Override
@@ -124,6 +155,9 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public MovieResponse create(MovieRequest request) {
+        if (request.getEndDate() != null && request.getEndDate().isBefore(request.getReleaseDate())) {
+            throw new BadRequestException("Ngày kết thúc không được trước ngày phát hành");
+        }
         Movie movie = movieMapper.toEntity(request);
         movie.setGenres(resolveGenres(request.getGenreIds()));
         return movieMapper.toResponse(movieRepository.save(movie));
@@ -132,6 +166,9 @@ public class MovieServiceImpl implements MovieService {
     @Override
     @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public MovieResponse update(UUID id, MovieRequest request) {
+        if (request.getEndDate() != null && request.getEndDate().isBefore(request.getReleaseDate())) {
+            throw new BadRequestException("Ngày kết thúc không được trước ngày phát hành");
+        }
         Movie movie = findById(id);
         movieMapper.updateEntity(request, movie);
         if (request.getGenreIds() != null) {
@@ -141,11 +178,136 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
+    @Transactional
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
+    public MovieResponse updatePoster(UUID id, MultipartFile file) throws IOException {
+        Movie movie = findById(id);
+        String oldUrl = movie.getPosterUrl();
+        String newUrl = null;
+
+        try {
+            newUrl = cloudinaryService.uploadImage(file, "Movie");
+            movie.setPosterUrl(newUrl);
+            movieRepository.save(movie);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return movieMapper.toResponse(movie);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật Poster thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
+    public MovieResponse updatePosterFromUrl(UUID id, String url) throws IOException {
+        Movie movie = findById(id);
+        String oldUrl = movie.getPosterUrl();
+        String newUrl = null;
+
+        try {
+            newUrl = cloudinaryService.uploadImageFromUrl(url, "Movie");
+            movie.setPosterUrl(newUrl);
+            movieRepository.save(movie);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return movieMapper.toResponse(movie);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật Poster từ URL thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
+    public MovieResponse updateBackdrop(UUID id, MultipartFile file) throws IOException {
+        Movie movie = findById(id);
+        String oldUrl = movie.getBackdropUrl();
+        String newUrl = null;
+
+        try {
+            newUrl = cloudinaryService.uploadImage(file, "Movie");
+            movie.setBackdropUrl(newUrl);
+            movieRepository.save(movie);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return movieMapper.toResponse(movie);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật Backdrop thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
+    public MovieResponse updateBackdropFromUrl(UUID id, String url) throws IOException {
+        Movie movie = findById(id);
+        String oldUrl = movie.getBackdropUrl();
+        String newUrl = null;
+
+        try {
+            newUrl = cloudinaryService.uploadImageFromUrl(url, "Movie");
+            movie.setBackdropUrl(newUrl);
+            movieRepository.save(movie);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return movieMapper.toResponse(movie);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật Backdrop từ URL thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
     @CacheEvict(value = {"movies_now_showing", "movies_coming_soon"}, allEntries = true)
     public void delete(UUID id) {
         Movie movie = findById(id);
-        movie.setStatus(MovieStatus.ENDED);
-        movieRepository.save(movie);
+        
+        // 1. Kiểm tra xem phim đã từng có suất chiếu nào chưa
+        boolean hasShowtimes = showtimeRepository.existsByMovieId(id);
+        
+        // 2. Dọn dẹp dữ liệu phụ (Review, Embedding)
+        // Những dữ liệu này không ảnh hưởng đến doanh thu/vé nên có thể xóa sạch
+        reviewRepository.deleteByMovieId(id);
+        movieEmbeddingRepository.deleteByMovieId(id);
+        
+        if (hasShowtimes) {
+            // Nếu đã có suất chiếu -> Không được xóa cứng (để giữ lịch sử vé/booking)
+            // Chuyển trạng thái sang ENDED
+            movie.setStatus(MovieStatus.ENDED);
+            movieRepository.save(movie);
+        } else {
+            // Nếu chưa có suất chiếu nào -> Xóa vĩnh viễn
+            movieRepository.delete(movie);
+        }
     }
 
     @Override

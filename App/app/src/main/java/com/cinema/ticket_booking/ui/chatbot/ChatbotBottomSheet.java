@@ -30,8 +30,8 @@ public class ChatbotBottomSheet extends BottomSheetDialogFragment {
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Thiết lập Style mặc định cho BottomSheet để đảm bảo hiển thị đúng các thuộc tính Material
-        setStyle(STYLE_NORMAL, com.google.android.material.R.style.Theme_Design_BottomSheetDialog);
+        // Nova Optimization: use transparent background for modern rounded corners
+        setStyle(STYLE_NORMAL, com.cinema.ticket_booking.R.style.TransparentBottomSheetDialog);
     }
 
     @Nullable

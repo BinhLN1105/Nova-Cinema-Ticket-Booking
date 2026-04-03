@@ -12,7 +12,12 @@
         <action android:id="@+id/action_login_to_home" app:destination="@id/homeFragment"
             app:popUpTo="@id/loginFragment" app:popUpToInclusive="true"/>
         <action android:id="@+id/action_login_to_register" app:destination="@id/registerFragment"/>
+        <action android:id="@+id/action_login_to_forgotPassword" app:destination="@id/forgotPasswordFragment"/>
     </fragment>
+
+    <fragment android:id="@+id/forgotPasswordFragment"
+        android:name="com.cinema.ticket_booking.ui.auth.ForgotPasswordFragment"
+        android:label="Quên mật khẩu" />
 
     <fragment android:id="@+id/registerFragment"
         android:name="com.cinema.ticket_booking.ui.auth.RegisterFragment"
@@ -34,6 +39,9 @@
         android:name="com.cinema.ticket_booking.ui.booking.BookingHistoryFragment"
         android:label="Vé của tôi">
         <action android:id="@+id/action_history_to_bookingDetail" app:destination="@id/bookingDetailFragment"/>
+        <action android:id="@+id/action_history_to_writeReview" app:destination="@id/writeReviewBottomSheet"/>
+        <action android:id="@+id/action_history_to_payment" app:destination="@id/paymentFragment"/>
+        <argument android:name="MapsToTab" app:argType="string" android:defaultValue="UPCOMING"/>
     </fragment>
 
     <fragment android:id="@+id/profileFragment"
@@ -43,6 +51,7 @@
             app:popUpTo="@id/homeFragment" app:popUpToInclusive="true"/>
         <action android:id="@+id/action_profile_to_wallet" app:destination="@id/walletFragment"/>
         <action android:id="@+id/action_profile_to_voucher" app:destination="@id/voucherFragment"/>
+        <action android:id="@+id/action_profile_to_history" app:destination="@id/bookingHistoryFragment"/>
     </fragment>
 
     <fragment android:id="@+id/movieDetailFragment"
@@ -50,6 +59,8 @@
         android:label="Chi tiết phim">
         <argument android:name="movieId" app:argType="string"/>
         <action android:id="@+id/action_movieDetail_to_selectShowtime" app:destination="@id/selectShowtimeFragment"/>
+        <action android:id="@+id/action_movieDetail_to_reviewList" app:destination="@id/reviewListFragment"/>
+        <action android:id="@+id/action_movieDetail_to_writeReview" app:destination="@id/writeReviewBottomSheet"/>
     </fragment>
 
     <fragment android:id="@+id/selectShowtimeFragment"
@@ -68,15 +79,26 @@
 
     <fragment android:id="@+id/selectComboFragment"
         android:name="com.cinema.ticket_booking.ui.booking.SelectComboFragment"
-        android:label="Bắp nước" />
+        android:label="Bắp nước">
+        <argument android:name="expireTime" app:argType="long" android:defaultValue="0L" />
+        <action android:id="@+id/action_selectCombo_to_confirmBooking" app:destination="@id/confirmBookingFragment"/>
+    </fragment>
 
     <fragment android:id="@+id/confirmBookingFragment"
         android:name="com.cinema.ticket_booking.ui.booking.ConfirmBookingFragment"
-        android:label="Xác nhận đặt vé" />
+        android:label="Xác nhận đặt vé">
+        <argument android:name="expireTime" app:argType="long" android:defaultValue="0L" />
+        <argument android:name="initialQuote" app:argType="com.cinema.ticket_booking.data.model.response.BookingResponse" app:nullable="true" android:defaultValue="@null" />
+        <action android:id="@+id/action_confirmBooking_to_payment" app:destination="@id/paymentFragment"/>
+    </fragment>
 
     <fragment android:id="@+id/paymentFragment"
         android:name="com.cinema.ticket_booking.ui.payment.PaymentFragment"
-        android:label="Thanh toán" />
+        android:label="Thanh toán">
+        <argument android:name="bookingId" app:argType="string"/>
+        <action android:id="@+id/action_payment_to_bookingDetail" app:destination="@id/bookingDetailFragment"
+            app:popUpTo="@id/homeFragment"/>
+    </fragment>
 
     <fragment android:id="@+id/bookingDetailFragment"
         android:name="com.cinema.ticket_booking.ui.booking.BookingDetailFragment"
@@ -97,5 +119,39 @@
     <fragment android:id="@+id/voucherFragment"
         android:name="com.cinema.ticket_booking.ui.wallet.VoucherFragment"
         android:label="Voucher"/>
+
+    <fragment android:id="@+id/cinemaDetailFragment"
+        android:name="com.cinema.ticket_booking.ui.search.CinemaDetailFragment"
+        android:label="Chi tiết rạp">
+        <argument android:name="cinemaId" app:argType="string"/>
+        <argument android:name="cinemaName" app:argType="string"/>
+    </fragment>
+
+    <fragment android:id="@+id/scannerFragment"
+        android:name="com.cinema.ticket_booking.ui.scanner.ScannerFragment"
+        android:label="Soát vé" />
+
+    <fragment android:id="@+id/reviewListFragment"
+        android:name="com.cinema.ticket_booking.ui.movie.ReviewListFragment"
+        android:label="Đánh giá phim">
+        <argument android:name="movieId" app:argType="string"/>
+        <action android:id="@+id/action_reviewList_to_writeReview" app:destination="@id/writeReviewBottomSheet"/>
+    </fragment>
+
+    <dialog android:id="@+id/writeReviewBottomSheet"
+        android:name="com.cinema.ticket_booking.ui.movie.WriteReviewBottomSheet"
+        android:label="Viết đánh giá">
+        <argument android:name="movieId" app:argType="string"/>
+        <argument android:name="movieTitle" app:argType="string"/>
+        <argument android:name="bookingId" app:argType="string" app:nullable="true" android:defaultValue="@null"/>
+    </dialog>
+
+    <fragment android:id="@+id/editProfileFragment"
+        android:name="com.cinema.ticket_booking.ui.profile.EditProfileFragment"
+        android:label="Chỉnh sửa hồ sơ" />
+
+    <fragment android:id="@+id/changePasswordFragment"
+        android:name="com.cinema.ticket_booking.ui.profile.ChangePasswordFragment"
+        android:label="Đổi mật khẩu" />
 
 </navigation>

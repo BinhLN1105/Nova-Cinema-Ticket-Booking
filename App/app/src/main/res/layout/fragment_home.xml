@@ -177,7 +177,7 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_movie" app:tint="@color/primary"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Phim" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                            <TextView android:id="@+id/tvQuickMovie" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Phim" android:textSize="10sp" android:layout_marginTop="4dp"/>
                         </LinearLayout>
 
                         <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/outline_variant"/>
@@ -190,7 +190,7 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_location" app:tint="@color/primary"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rạp" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                            <TextView android:id="@+id/tvQuickCinema" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Rạp" android:textSize="10sp" android:layout_marginTop="4dp"/>
                         </LinearLayout>
 
                         <View android:layout_width="1dp" android:layout_height="24dp" android:background="@color/outline_variant"/>
@@ -203,7 +203,7 @@
                             android:orientation="vertical"
                             android:gravity="center">
                             <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:rotation="90" app:tint="@color/primary"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ngày" android:textSize="10sp" android:layout_marginTop="4dp"/>
+                            <TextView android:id="@+id/tvQuickDate" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Ngày" android:textSize="10sp" android:layout_marginTop="4dp"/>
                         </LinearLayout>
 
                         <com.google.android.material.button.MaterialButton
@@ -278,17 +278,17 @@
                 <com.google.android.material.tabs.TabLayout
                     android:id="@+id/tabLayoutPromo"
                     android:layout_width="match_parent"
-                    android:layout_height="12dp"
+                    android:layout_height="8dp"
                     android:layout_marginTop="8dp"
                     android:layout_marginBottom="32dp"
                     app:tabBackground="@drawable/tab_indicator" 
                     app:tabGravity="center"
                     app:tabIndicatorHeight="0dp"
                     app:tabRippleColor="@null"
-                    app:tabPaddingStart="4dp"
-                    app:tabPaddingEnd="4dp"
-                    app:tabMinWidth="8dp"
-                    app:tabMaxWidth="24dp" />
+                    app:tabPaddingStart="2dp"
+                    app:tabPaddingEnd="2dp"
+                    app:tabMinWidth="6dp"
+                    app:tabMaxWidth="16dp" />
 
             </LinearLayout>
         </androidx.core.widget.NestedScrollView>

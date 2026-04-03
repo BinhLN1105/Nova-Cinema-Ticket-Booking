@@ -33,6 +33,22 @@ public class SeatMapServiceImpl implements SeatMapService {
                 .map(seatMapper::toSeatItem)
                 .toList();
 
+        // Tự động sửa lỗi hiển thị cho ghế cũ chưa được update database
+        int dummyGrid = 0;
+        for (SeatMapResponse.SeatItem item : seats) {
+            if (item.getGridRow() == 0 && item.getGridCol() == 0) {
+                if (item.getRowLabel() != null && item.getColNumber() > 0) {
+                    item.setGridRow(Math.max(0, item.getRowLabel() - 'A'));
+                    item.setGridCol(Math.max(0, item.getColNumber() - 1));
+                } else if (item.getRowLabel() == null || item.getColNumber() <= 0) {
+                    item.setGridRow(dummyGrid / 10);
+                    item.setGridCol(dummyGrid % 10);
+                    dummyGrid++;
+                }
+            }
+        }
+
+
         // Calculate actual hold time
         long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
         int defaultHold = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);

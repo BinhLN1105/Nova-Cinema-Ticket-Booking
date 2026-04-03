@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #2e7d32; margin: 0; }
+        .content { margin-bottom: 30px; }
+        .details { background-color: #f9f9f9; padding: 15px; border-radius: 6px; margin: 20px 0; }
+        .footer { font-size: 0.85em; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Đặt vé thành công!</h1>
+            <p>Mã đơn vé: <strong th:text="${bookingCode}">BK123456</strong></p>
+        </div>
+        
+        <div class="content">
+            <p>Chào <strong th:text="${customerName}">Khách hàng</strong>,</p>
+            <p>Tuyệt vời! Bạn đã đặt vé xem phim thành công tại hệ thống của Nova Ticket.</p>
+            
+            <div class="details">
+                <p><strong>Phim:</strong> <span th:text="${movieTitle}">Movie Title</span></p>
+                <p><strong>Rạp chiếu:</strong> <span th:text="${cinemaName}">Cinema Name</span> - <span th:text="${screenName}">Screen</span></p>
+                <p><strong>Thời gian:</strong> <span th:text="${showTime}">01/01/2026 18:00</span></p>
+                <p><strong>Tổng tiền:</strong> <span th:text="${totalAmount}">0</span> VNĐ</p>
+            </div>
+            
+            <p>Vui lòng xuất trình mã vé trên ứng dụng Nova Ticket hoặc quét QR Code tại quầy khi đến rạp. Chúc bạn có một buổi xem phim vui vẻ!</p>
+        </div>
+        
+        <div class="footer">
+            <p>Trân trọng,<br>Đội ngũ Nova Ticket</p>
+        </div>
+    </div>
+</body>
+</html>

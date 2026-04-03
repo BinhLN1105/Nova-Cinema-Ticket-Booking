@@ -68,8 +68,22 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
 
     const grid = initEmptyGrid(r, c);
 
-    // Fill in existing seats
-    if (existingSeats && Array.isArray(existingSeats)) {
+    // Kiểm tra xem đã có ghế nào được lưu chưa
+    const isNewLayout = !existingSeats || (Array.isArray(existingSeats) && existingSeats.length === 0);
+
+    if (isNewLayout) {
+      // Nếu là phòng mới hoàn toàn: Lấp đầy ghế thường và tự động đánh nhãn
+      for (let ri = 0; ri < r; ri++) {
+        const rowLetter = getRowLabel(ri);
+        for (let ci = 0; ci < c; ci++) {
+          grid[ri][ci] = {
+            type: "STANDARD",
+            label: `${rowLetter}${ci + 1}`,
+          };
+        }
+      }
+    } else {
+      // Nếu đã có layout: Điền dữ liệu cũ vào (các ô không có ghế sẽ để EMPTY)
       for (const seat of existingSeats) {
         const gr = seat.gridRow;
         const gc = seat.gridCol;
@@ -120,25 +134,31 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
     [activeTool]
   );
 
+  const getRowLabel = (index) => {
+    let label = "";
+    let n = index;
+    while (n >= 0) {
+      label = String.fromCharCode(65 + (n % 26)) + label;
+      n = Math.floor(n / 26) - 1;
+    }
+    return label;
+  };
+
   // Auto-label algorithm
   const autoLabel = () => {
     setGridData((prev) => {
       const newGrid = prev.map((row) => row.map((cell) => ({ ...cell })));
-      let currentRowCharCode = 65; // 'A'
-
       for (let r = 0; r < newGrid.length; r++) {
-        const hasSeats = newGrid[r].some((cell) => cell.type !== "EMPTY");
-        if (!hasSeats) continue;
+        const rowLetter = getRowLabel(r);
 
-        const rowLetter = String.fromCharCode(currentRowCharCode);
         for (let c = 0; c < newGrid[r].length; c++) {
           if (newGrid[r][c].type !== "EMPTY") {
+            // Đánh số theo cột thực tế (c + 1) giúp đồng bộ với sơ đồ vật lý
             newGrid[r][c].label = `${rowLetter}${c + 1}`;
           } else {
-            newGrid[r][c].label = ""; // Xoá nhãn nếu là ô trống
+            newGrid[r][c].label = "";
           }
         }
-        currentRowCharCode++;
       }
       return newGrid;
     });
@@ -168,15 +188,18 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
     mutationFn: () => {
       const seats = [];
       for (let r = 0; r < gridData.length; r++) {
+        let seatNum = 1; // Fallback sequential numbering
         for (let c = 0; c < gridData[r].length; c++) {
           const cell = gridData[r][c];
           if (cell.type === "EMPTY") continue;
+          
           seats.push({
             gridRow: r,
             gridCol: c,
-            seatLabel: cell.label || `${String.fromCharCode(65 + r)}${c + 1}`,
+            seatLabel: cell.label || `${String.fromCharCode(65 + r)}${seatNum}`,
             seatType: cell.type,
           });
+          seatNum++;
         }
       }
       return cinemaApi.saveCustomLayout(cinema.id, screen.id, { screenId: screen.id, seats });
@@ -292,7 +315,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
                 <div key={r} className="flex items-center gap-0.5">
                   {/* Row label */}
                   <span className="w-6 text-xs text-gray-500 text-right mr-1.5 font-mono">
-                    {String.fromCharCode(65 + r)}
+                    {getRowLabel(r)}
                   </span>
 
                   {row.map((cell, c) => {

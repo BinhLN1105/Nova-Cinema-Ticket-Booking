@@ -41,6 +41,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.Duration;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -165,10 +166,30 @@ public class ShowtimeServiceImpl implements ShowtimeService {
             seatHoldMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
         }
 
+        // Tính toán maxGridRow và maxGridCol
+        int dummyGrid = 0;
+        for (SeatMapResponse.SeatItem item : mappedSeats) {
+            if (item.getGridRow() == 0 && item.getGridCol() == 0) {
+                if (item.getRowLabel() != null && item.getColNumber() > 0) {
+                    item.setGridRow(Math.max(0, item.getRowLabel() - 'A'));
+                    item.setGridCol(Math.max(0, item.getColNumber() - 1));
+                } else if (item.getRowLabel() == null || item.getColNumber() <= 0) {
+                    item.setGridRow(dummyGrid / 10);
+                    item.setGridCol(dummyGrid % 10);
+                    dummyGrid++;
+                }
+            }
+        }
+
+        int maxGridRow = mappedSeats.stream().mapToInt(SeatMapResponse.SeatItem::getGridRow).max().orElse(0);
+        int maxGridCol = mappedSeats.stream().mapToInt(SeatMapResponse.SeatItem::getGridCol).max().orElse(0);
+
         return SeatMapResponse.builder()
                 .showtimeId(showtimeId.toString())
                 .totalRows(showtime.getScreen().getTotalRows())
                 .totalCols(showtime.getScreen().getTotalCols())
+                .maxGridRow(maxGridRow)
+                .maxGridCol(maxGridCol)
                 .seats(mappedSeats)
                 .seatHoldMins(seatHoldMins)
                 .build();
@@ -181,7 +202,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         // Validation: Phải là tương lai (Múi giờ VN)
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
         if (request.getStartTime().isBefore(now.plusMinutes(5))) {
-            throw new BadRequestException("Suất chiếu phải bắt đầu sau ít nhất 5 phút kể từ hiện tại");
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
+            throw new BadRequestException("Suất chiếu phải bắt đầu sau ít nhất 5 phút kể từ hiện tại (Giờ hệ thống: "
+                    + now.format(formatter) + "). Vui lòng chọn thời gian muộn hơn.");
         }
 
         Movie movie = movieService.findById(UUID.fromString(request.getMovieId()));

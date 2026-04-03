@@ -69,6 +69,12 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 9. Đảm bảo cấu trúc bảng combos (Loại hình Combo/Bán lẻ)
         ensureComboColumns();
 
+        // 10. Đảm bảo bảng promotions cho phép null imageUrl (Chicken-and-egg fix)
+        ensurePromotionColumns();
+
+        // 11. Đảm bảo bảng user_exp_history tồn tại
+        ensureUserExpHistoryTable();
+
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
     }
 
@@ -96,7 +102,7 @@ public class SchemaFixConfig implements CommandLineRunner {
                     "  grid_row = ASCII(row_label) - 65, " +
                     "  grid_col = col_number - 1, " +
                     "  seat_label = row_label || CAST(col_number AS TEXT) " +
-                    "WHERE grid_row IS NULL OR grid_col IS NULL");
+                    "WHERE grid_row IS NULL OR grid_col IS NULL OR (grid_row = 0 AND row_label != 'A') OR (grid_col = 0 AND col_number != 1)");
 
             if (migrated > 0) log.info("[SchemaFix] Đã chuyển đổi {} ghế sang dạng grid", migrated);
 
@@ -235,6 +241,17 @@ public class SchemaFixConfig implements CommandLineRunner {
         }
     }
 
+    private void ensurePromotionColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'promotions'...");
+            // Gỡ bỏ NOT NULL cho image_url để cho phép tạo record trước khi upload ảnh
+            jdbcTemplate.execute("ALTER TABLE promotions ALTER COLUMN image_url DROP NOT NULL");
+            log.info("[SchemaFix] Đã đảm bảo cột 'image_url' cho phép giá trị NULL.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi bảo trì bảng promotions: {}", e.getMessage());
+        }
+    }
+
     private void flushRedis() {
         try {
             log.info("[SchemaFix] Đang thực hiện FLUSH Redis để tránh lỗi Serialization...");
@@ -242,6 +259,25 @@ public class SchemaFixConfig implements CommandLineRunner {
             log.info("[SchemaFix] Đã dọn dẹp xong toàn bộ Redis DB.");
         } catch (Exception e) {
             log.warn("[SchemaFix] Không thể flush Redis: {}", e.getMessage());
+        }
+    }
+
+    private void ensureUserExpHistoryTable() {
+        try {
+            log.info("[SchemaFix] Đảm bảo bảng 'user_exp_history' tồn tại...");
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS user_exp_history (" +
+                "  id UUID PRIMARY KEY," +
+                "  user_id UUID NOT NULL REFERENCES users(id)," +
+                "  amount BIGINT NOT NULL," +
+                "  reason VARCHAR(100)," +
+                "  reference_id VARCHAR(100)," +
+                "  created_at TIMESTAMP" +
+                ")"
+            );
+            log.info("[SchemaFix] Bảng 'user_exp_history' đã sẵn sàng.");
+        } catch (Exception e) {
+            log.error("[SchemaFix] Lỗi khi tạo bảng user_exp_history: {}", e.getMessage());
         }
     }
 }

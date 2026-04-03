@@ -57,6 +57,17 @@ public class ReviewAdapter extends RecyclerView.Adapter<ReviewAdapter.VH> {
         return reviews.size();
     }
 
+    public void addAll(List<ReviewResponse> newReviews) {
+        int start = reviews.size();
+        reviews.addAll(newReviews);
+        notifyItemRangeInserted(start, newReviews.size());
+    }
+
+    public void clear() {
+        reviews.clear();
+        notifyDataSetChanged();
+    }
+
     static class VH extends RecyclerView.ViewHolder {
         TextView tvUserName, tvComment, tvDate, tvRating;
         ImageView ivAvatar;

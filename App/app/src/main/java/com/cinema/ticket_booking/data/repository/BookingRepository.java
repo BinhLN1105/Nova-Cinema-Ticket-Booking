@@ -46,6 +46,29 @@ public class BookingRepository {
         return result;
     }
 
+    public LiveData<Resource<BookingResponse>> getBookingQuote(BookingRequest request) {
+        MutableLiveData<Resource<BookingResponse>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.getBookingQuote(request).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<BookingResponse>> call,
+                    Response<ApiResponse<BookingResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
+                    result.setValue(Resource.success(response.body().getData()));
+                else
+                    result.setValue(Resource.error(response.body() != null
+                            ? response.body().getMessage()
+                            : "Tính toán giá thất bại"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<BookingResponse>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
     public LiveData<Resource<PageResponse<BookingSummary>>> getMyBookings(int page, int size) {
         MutableLiveData<Resource<PageResponse<BookingSummary>>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());

@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.model;
 
 import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -69,6 +70,14 @@ public class Booking {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private BookingStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "payment_method", length = 20)
+    private PaymentMethod paymentMethod;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "processed_by_id")
+    private User processedBy; // Nhân viên thực hiện tại quầy (null nếu tự đặt qua App/Web)
 
     @Column(name = "note", columnDefinition = "TEXT")
     private String note;

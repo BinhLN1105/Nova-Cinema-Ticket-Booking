@@ -23,58 +23,87 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
+
     @Override
     @Async("asyncExecutor")
-    public void sendCancellationConfirmEmail(Booking booking, String token) {
-        String confirmUrl = frontendUrl + "/booking/cancel-confirm?token="
-                + token + "&bookingId=" + booking.getId().toString();
-
+    public void sendPasswordResetOtpEmail(User user, String otp) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setTo(booking.getUser().getEmail());
-            helper.setSubject("Xác nhận hủy vé xem phim - Mã đơn: " + booking.getBookingCode());
+            helper.setTo(user.getEmail());
+            helper.setSubject("[Nova Ticket] Mã xác thực khôi phục mật khẩu: " + otp);
 
             Context context = new Context();
-            context.setVariable("customerName", booking.getUser().getFullName());
-            context.setVariable("bookingCode", booking.getBookingCode());
-            context.setVariable("cinemaName", booking.getShowtime().getScreen().getCinema().getName());
-            context.setVariable("confirmUrl", confirmUrl);
+            context.setVariable("customerName", user.getFullName());
+            context.setVariable("otp", otp);
 
-            String htmlContent = templateEngine.process("cancellation-confirm", context);
+            String htmlContent = templateEngine.process("password-reset-otp", context);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send cancellation email: " + e.getMessage());
-            // Log full stack trace but don't rethrow to avoid crashing caller
+            System.err.println("CRITICAL ERROR: Failed to send OTP email: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     @Override
     @Async("asyncExecutor")
-    public void sendPasswordResetEmail(User user, String token) {
-        String resetUrl = frontendUrl + "/reset-password?token=" + token;
-
+    public void sendBookingConfirmationEmail(Booking booking) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setTo(user.getEmail());
-            helper.setSubject("Khôi phục mật khẩu - Nova Ticket");
+            helper.setTo(booking.getUser().getEmail());
+            helper.setSubject("[Nova Ticket] Đặt vé thành công - Mã vé: " + booking.getBookingCode());
 
             Context context = new Context();
-            context.setVariable("customerName", user.getFullName());
-            context.setVariable("resetUrl", resetUrl);
+            context.setVariable("customerName", booking.getUser().getFullName());
+            context.setVariable("bookingCode", booking.getBookingCode());
+            context.setVariable("movieTitle", booking.getShowtime().getMovie().getTitle());
+            context.setVariable("cinemaName", booking.getShowtime().getScreen().getCinema().getName());
+            context.setVariable("screenName", booking.getShowtime().getScreen().getName());
+            
+            java.time.format.DateTimeFormatter formatter = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            context.setVariable("showTime", booking.getShowtime().getStartTime().format(formatter));
+            
+            String totalFormatted = booking.getTotalAmount() != null 
+                ? String.format("%,.0f", booking.getTotalAmount()) : "0";
+            context.setVariable("totalAmount", totalFormatted);
 
-            String htmlContent = templateEngine.process("password-reset", context);
+            String htmlContent = templateEngine.process("booking-success", context);
             helper.setText(htmlContent, true);
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send password reset email: " + e.getMessage());
+            System.err.println("CRITICAL ERROR: Failed to send booking confirmation email: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    @Async("asyncExecutor")
+    public void sendCancellationEmail(Booking booking, String reason) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(booking.getUser().getEmail());
+            helper.setSubject("[Nova Ticket] Thông báo hủy vé thành công - Mã: " + booking.getBookingCode());
+
+            Context context = new Context();
+            context.setVariable("customerName", booking.getUser().getFullName());
+            context.setVariable("bookingCode", booking.getBookingCode());
+            context.setVariable("movieTitle", booking.getShowtime().getMovie().getTitle());
+            context.setVariable("reason", reason != null ? reason : "Hệ thống tự động hủy theo yêu cầu.");
+
+            String htmlContent = templateEngine.process("cancellation-success", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("CRITICAL ERROR: Failed to send cancellation email: " + e.getMessage());
             e.printStackTrace();
         }
     }

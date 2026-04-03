@@ -25,6 +25,18 @@ public class ShowtimeResponse {
     private String cinemaAddress;
     @SerializedName("availableSeats")
     private long availableSeats;
+    @SerializedName("movieId")
+    private String movieId;
+    @SerializedName("moviePosterUrl")
+    private String moviePosterUrl;
+
+    public String getMovieId() {
+        return movieId;
+    }
+
+    public String getMoviePosterUrl() {
+        return moviePosterUrl;
+    }
 
     public String getId() {
         return id;

@@ -106,6 +106,8 @@ const StaffBookings = () =>
   lazy_(() => import("@/pages/staff/bookings/BookingsPage"));
 const StaffCheckIn = () =>
   lazy_(() => import("@/pages/staff/checkin/CheckInPage"));
+const POSPage = () =>
+  lazy_(() => import("@/pages/staff/pos/POSPage"));
 
 export const router = createBrowserRouter([
   // ── Customer Portal ────────────────────────
@@ -175,6 +177,7 @@ export const router = createBrowserRouter([
           { path: 'pricing-rules',  element: <AdminPricingRules /> },
           { path: "reports", element: <AdminReports /> },
           { path: "settings", element: <AdminSettings /> },
+          { path: "pos", element: <POSPage /> },
         ],
       },
     ],
@@ -192,6 +195,7 @@ export const router = createBrowserRouter([
           { path: "dashboard", element: <StaffDashboard /> },
           { path: "bookings", element: <StaffBookings /> },
           { path: "checkin", element: <StaffCheckIn /> },
+          { path: "pos", element: <POSPage /> },
         ],
       },
     ],

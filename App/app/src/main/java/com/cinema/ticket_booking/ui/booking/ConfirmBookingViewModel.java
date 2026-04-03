@@ -18,13 +18,15 @@ public class ConfirmBookingViewModel extends ViewModel {
     private final MutableLiveData<Resource<List<ComboResponse>>> combos = new MutableLiveData<>();
     private final MutableLiveData<Resource<VoucherSummary>> voucher = new MutableLiveData<>();
     private final MutableLiveData<Resource<BookingResponse>> bookingResult = new MutableLiveData<>();
+    private final MutableLiveData<Resource<BookingResponse>> quoteResult = new MutableLiveData<>();
 
     private VoucherSummary appliedVoucher;
-    private final Map<String, Integer> selectedCombos = new LinkedHashMap<>();
+    private final android.os.Handler debounceHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable debounceRunnable;
 
     @Inject
     public ConfirmBookingViewModel(BookingRepository bookingRepo, VoucherRepository voucherRepo,
-            ComboRepository comboRepo) {
+                                   ComboRepository comboRepo) {
         this.bookingRepo = bookingRepo;
         this.voucherRepo = voucherRepo;
         this.comboRepo = comboRepo;
@@ -43,8 +45,18 @@ public class ConfirmBookingViewModel extends ViewModel {
         return bookingResult;
     }
 
-    public Map<String, Integer> getSelectedCombos() {
-        return selectedCombos;
+    public LiveData<Resource<BookingResponse>> getQuoteResult() {
+        return quoteResult;
+    }
+
+    public void setInitialQuote(BookingResponse quote) {
+        if (quote != null) {
+            quoteResult.setValue(Resource.success(quote));
+            if (quote.getAppliedPromotionName() != null) {
+                // Nếu có promo/voucher, cập nhật local state để đồng bộ
+                // Giả lập voucher summary nếu cần, hoặc chỉ để quote là đủ
+            }
+        }
     }
 
     private void loadCombos() {
@@ -54,45 +66,72 @@ public class ConfirmBookingViewModel extends ViewModel {
     public void validateVoucher(String code) {
         voucherRepo.validateVoucher(code).observeForever(r -> {
             voucher.setValue(r);
-            if (r.isSuccess())
+            if (r.isSuccess()) {
                 appliedVoucher = r.data;
+                refreshQuote();
+            }
         });
     }
 
     public void clearVoucher() {
         appliedVoucher = null;
         voucher.setValue(null);
+        refreshQuote();
     }
 
-    public double calculateDiscount(double subtotal) {
-        if (appliedVoucher == null)
-            return 0;
-        if ("PERCENTAGE".equals(appliedVoucher.getDiscountType()))
-            return Math.min(subtotal * appliedVoucher.getDiscountValue() / 100, appliedVoucher.getMinOrder());
-        return appliedVoucher.getDiscountValue();
+    public void onComboChanged() {
+        refreshQuote();
     }
 
-    public double calculateComboTotal() {
-        double total = 0;
-        if (combos.getValue() != null && combos.getValue().isSuccess() && combos.getValue().data != null) {
-            for (ComboResponse combo : combos.getValue().data) {
-                Integer qty = SelectComboViewModel.pendingCombos.get(combo.getId());
-                if (qty != null && qty > 0) {
-                    total += combo.getPrice() * qty;
+    public void refreshQuote() {
+        if (debounceRunnable != null) {
+            debounceHandler.removeCallbacks(debounceRunnable);
+        }
+
+        debounceRunnable = () -> {
+            String showtimeId = SelectShowtimeViewModel.pendingShowtimeId;
+            if (showtimeId == null) return;
+
+            List<BookingRequest.ComboItem> comboItems = new ArrayList<>();
+            for (Map.Entry<String, Integer> e : SelectComboViewModel.pendingCombos.entrySet()) {
+                if (e.getValue() > 0) {
+                    comboItems.add(new BookingRequest.ComboItem(e.getKey(), e.getValue()));
                 }
             }
-        }
-        return total;
+
+            String voucherCode = appliedVoucher != null ? appliedVoucher.getCode() : null;
+            BookingRequest req = new BookingRequest(showtimeId, SelectSeatViewModel.pendingSeatIds, comboItems,
+                    voucherCode);
+
+            bookingRepo.getBookingQuote(req).observeForever(quoteResult::postValue);
+        };
+
+        debounceHandler.postDelayed(debounceRunnable, 500);
     }
 
-    public void confirmBooking(String showtimeId) {
+    public void confirmBooking() {
+        String showtimeId = SelectShowtimeViewModel.pendingShowtimeId;
+        if (showtimeId == null) return;
+
         List<BookingRequest.ComboItem> comboItems = new ArrayList<>();
-        for (Map.Entry<String, Integer> e : SelectComboViewModel.pendingCombos.entrySet())
-            comboItems.add(new BookingRequest.ComboItem(e.getKey(), e.getValue()));
+        for (Map.Entry<String, Integer> e : SelectComboViewModel.pendingCombos.entrySet()) {
+            if (e.getValue() > 0) {
+                comboItems.add(new BookingRequest.ComboItem(e.getKey(), e.getValue()));
+            }
+        }
 
         String voucherCode = appliedVoucher != null ? appliedVoucher.getCode() : null;
         BookingRequest req = new BookingRequest(showtimeId, SelectSeatViewModel.pendingSeatIds, comboItems,
                 voucherCode);
+
         bookingRepo.createBooking(req).observeForever(bookingResult::setValue);
+    }
+
+    @Override
+    protected void onCleared() {
+        super.onCleared();
+        if (debounceRunnable != null) {
+            debounceHandler.removeCallbacks(debounceRunnable);
+        }
     }
 }

@@ -41,9 +41,9 @@
     <color name="divider_subtle">#33FFFFFF</color>
 
     <!-- Seat colors -->
-    <color name="seat_available">#262626</color>
+    <color name="seat_available">#2D3748</color>
     <color name="seat_selected">#E50914</color>
-    <color name="seat_booked">#131313</color>
+    <color name="seat_booked">#4B5563</color>
     <color name="seat_vip">#FFD700</color>
     <color name="seat_couple">#EC4899</color>
     <color name="seat_locked">#6B7280</color>

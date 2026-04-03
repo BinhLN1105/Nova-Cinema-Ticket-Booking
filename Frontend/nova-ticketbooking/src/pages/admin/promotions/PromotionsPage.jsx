@@ -14,6 +14,7 @@ import { Table, AdminCard, PageHeader, Pagination, StatusBadge } from '@/compone
 import { Field, Input, Textarea, Select, Button, SearchInput, Switch } from '@/components/common/ui/FormElements'
 import { formatDate, formatCurrency, cn } from '@/utils'
 import toast from 'react-hot-toast'
+import ImageUploader from '@/components/admin/ImageUploader'
 
 // ─── Voucher Schema ───────────────────────────
 const voucherSchema = z.object({
@@ -431,9 +432,10 @@ function VouchersTab() {
 
 // ─── PROMOTIONS TAB ───────────────────────────
 function PromotionsTab() {
-  const [showForm, setShowForm]     = useState(false)
-  const [editTarget, setEditTarget] = useState(null)
-  const [deleteTarget, setDelete]   = useState(null)
+  const [showForm, setShowForm]         = useState(false)
+  const [editTarget, setEditTarget]     = useState(null)
+  const [deleteTarget, setDelete]       = useState(null)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const qc = useQueryClient()
 
   // API Queries
@@ -477,10 +479,33 @@ function PromotionsTab() {
     }
   })
 
-  const { register, handleSubmit, reset, watch, formState: { errors } } = useForm({
+  const { register, handleSubmit, reset, watch, setValue, formState: { errors } } = useForm({
     resolver: zodResolver(promoSchema),
     defaultValues: { priority: 5 },
   })
+  const isPopup = watch('isPopup')
+  const imageUrl = watch('imageUrl')
+
+  const handleImageUpload = async (source, type) => {
+    if (!editTarget?.id) {
+      toast.error('Vui lòng lưu thông tin khuyến mãi trước khi tải ảnh')
+      return
+    }
+
+    setIsUploadingImage(true)
+    try {
+      let res;
+      if (type === 'file') {
+        res = await promotionApi.uploadImage(editTarget.id, source)
+      } else {
+        res = await promotionApi.uploadImageUrl(editTarget.id, source)
+      }
+      setValue('imageUrl', res.imageUrl)
+      qc.invalidateQueries({ queryKey: ['admin', 'promotions'] })
+    } finally {
+      setIsUploadingImage(false)
+    }
+  }
 
   const openCreate = () => { setEditTarget(null); reset({ priority: 5 }); setShowForm(true) }
   const openEdit   = (p) => { 
@@ -593,48 +618,57 @@ function PromotionsTab() {
       <Modal open={showForm} onClose={() => setShowForm(false)}
         title={editTarget ? 'Chỉnh sửa khuyến mãi' : 'Tạo chương trình khuyến mãi'}
         size="lg">
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <Field label="Tiêu đề" required error={errors.title?.message}>
-            <Input {...register('title')} error={!!errors.title} placeholder="VD: Mùa hè rực rỡ - Giảm 30%" />
-          </Field>
-          <Field label="Mô tả" required error={errors.description?.message}>
-            <Textarea {...register('description')} error={!!errors.description} rows={3}
-              placeholder="Nội dung chi tiết chương trình khuyến mãi..." />
-          </Field>
-          <Field label="URL ảnh banner" error={errors.imageUrl?.message} info="Đường dẫn đến hình ảnh hiển thị trên ứng dụng/website.">
-            <Input {...register('imageUrl')} error={!!errors.imageUrl}
-              placeholder="https://example.com/banner.jpg" type="url" />
-          </Field>
-          {watch('imageUrl') && (
-            <div className="rounded-xl overflow-hidden border border-gray-200 h-32">
-              <img src={watch('imageUrl')} alt="preview" className="w-full h-full object-cover"
-                onError={e => e.target.style.display = 'none'} />
-            </div>
-          )}
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Ngày bắt đầu" required error={errors.startDate?.message}>
-              <Input {...register('startDate')} type="date" error={!!errors.startDate} />
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 p-6">
+          {/* Khối 1: Thông tin cơ bản */}
+          <div className="space-y-4">
+            <Field label="Tiêu đề" required error={errors.title?.message}>
+              <Input {...register('title')} error={!!errors.title} placeholder="VD: Mùa hè rực rỡ - Giảm 30%" />
             </Field>
-            <Field label="Ngày kết thúc" required error={errors.endDate?.message}>
-              <Input {...register('endDate')} type="date" error={!!errors.endDate} />
-            </Field>
-            <Field label="Link đích (URL)" error={errors.targetUrl?.message} info="Người dùng sẽ được chuyển hướng đến trang này khi nhấn vào banner.">
-              <Input {...register('targetUrl')} placeholder="/movies hoặc /movies?promo=xxx" />
-            </Field>
-            <Field label="Độ ưu tiên (0–100)" error={errors.priority?.message} info="Thứ tự hiển thị (số lớn hơn sẽ ưu tiên hiện trước).">
-              <Input {...register('priority')} type="number" min={0} max={100} placeholder="5" />
+            <Field label="Mô tả" required error={errors.description?.message}>
+              <Textarea {...register('description')} error={!!errors.description} rows={3}
+                placeholder="Nội dung chi tiết chương trình khuyến mãi..." />
             </Field>
           </div>
-          <Field label="Cấu hình Popup" info="Nếu bật, banner này sẽ hiện lên dạng Popup khi người dùng mở App. Chỉ một banner được chọn làm popup tại một thời điểm.">
-            <Switch checked={watch('isPopup')} onChange={v => reset({ ...watch(), isPopup: v })} label="Hiển thị làm Popup" />
-          </Field>
-          <div className="flex gap-3 pt-2">
+
+          {/* Khối 2: Cấu hình Timeline & Settings */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+            <Field label="Ngày bắt đầu" required error={errors.startDate?.message}>
+              <Input {...register('startDate')} type="date" error={!!errors.startDate} className="bg-white" />
+            </Field>
+            <Field label="Ngày kết thúc" required error={errors.endDate?.message}>
+              <Input {...register('endDate')} type="date" error={!!errors.endDate} className="bg-white" />
+            </Field>
+            <Field label="Link đích (URL)" error={errors.targetUrl?.message} info="Dẫn người dùng đến phim/rạp cụ thể.">
+              <Input {...register('targetUrl')} placeholder="/movies hoặc /movies?promo=xxx" className="bg-white" />
+            </Field>
+            <Field label="Độ ưu tiên (0–100)" error={errors.priority?.message} info="Số lớn hơn sẽ hiện trước.">
+              <Input {...register('priority')} type="number" min={0} max={100} placeholder="5" className="bg-white" />
+            </Field>
+            <div className="md:col-span-2 pt-2 border-t border-gray-200 mt-2">
+              <Switch checked={isPopup} onChange={v => setValue('isPopup', v)} label="Kích hoạt Popup quảng cáo khi mở App" />
+            </div>
+          </div>
+
+          {/* Khối 3: Hình ảnh (Full width) */}
+          <div className="w-full">
+            <ImageUploader 
+              label="Hình ảnh banner"
+              value={imageUrl}
+              onUpload={handleImageUpload}
+              isLoading={isUploadingImage}
+              aspectRatio={isPopup ? "2:3" : "16:9"}
+              helperText={isPopup ? "Ảnh dọc (2:3) cho Popup." : "Ảnh ngang (16:9) cho Banner."}
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-100">
             <Button type="button" variant="ghost" onClick={() => setShowForm(false)} className="flex-1">Hủy</Button>
-            <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending}>
+            <Button type="submit" className="flex-1" isLoading={createMutation.isPending || updateMutation.isPending || isUploadingImage} disabled={isUploadingImage}>
               {editTarget ? 'Lưu thay đổi' : 'Tạo khuyến mãi'}
             </Button>
           </div>
         </form>
+
       </Modal>
 
       <ConfirmDialog

@@ -8,11 +8,14 @@ import com.cinema.ticket_booking.mapper.PromotionMapper;
 import com.cinema.ticket_booking.model.Promotion;
 import com.cinema.ticket_booking.repository.PromotionRepository;
 import com.cinema.ticket_booking.service.PromotionService;
+import com.cinema.ticket_booking.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -24,6 +27,7 @@ public class PromotionServiceImpl implements PromotionService {
 
     private final PromotionRepository promotionRepository;
     private final PromotionMapper promotionMapper;
+    private final CloudinaryService cloudinaryService;
 
     @Override
     @Transactional(readOnly = true)
@@ -78,6 +82,67 @@ public class PromotionServiceImpl implements PromotionService {
         }
         
         return promotionMapper.toResponse(promotionRepository.save(promotion));
+    }
+
+    @Override
+    @Transactional
+    public PromotionResponse updateImage(UUID id, MultipartFile file) throws IOException {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Khuyến mãi", id));
+
+        String oldUrl = promotion.getImageUrl();
+        String newUrl = null;
+
+        try {
+            // Determine folder: "Banner" for home carousel, "Promotion" for others
+            String folder = Boolean.TRUE.equals(promotion.getIsPopup()) ? "Promotion" : "Banner";
+            newUrl = cloudinaryService.uploadImage(file, folder);
+
+            promotion.setImageUrl(newUrl);
+            promotionRepository.save(promotion);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return promotionMapper.toResponse(promotion);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật ảnh khuyến mãi thất bại: " + e.getMessage());
+        }
+    }
+
+    @Override
+    @Transactional
+    public PromotionResponse updateImageFromUrl(UUID id, String url) throws IOException {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Khuyến mãi", id));
+
+        String oldUrl = promotion.getImageUrl();
+        String newUrl = null;
+
+        try {
+            String folder = Boolean.TRUE.equals(promotion.getIsPopup()) ? "Promotion" : "Banner";
+            newUrl = cloudinaryService.uploadImageFromUrl(url, folder);
+
+            promotion.setImageUrl(newUrl);
+            promotionRepository.save(promotion);
+
+            if (oldUrl != null && !oldUrl.isEmpty()) {
+                String publicId = cloudinaryService.extractPublicId(oldUrl);
+                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+            }
+            return promotionMapper.toResponse(promotion);
+        } catch (Exception e) {
+            if (newUrl != null) {
+                String newPublicId = cloudinaryService.extractPublicId(newUrl);
+                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+            }
+            throw new RuntimeException("Cập nhật ảnh khuyến mãi từ URL thất bại: " + e.getMessage());
+        }
     }
 
     private void handleSinglePopupSelection(UUID currentId) {

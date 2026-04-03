@@ -35,7 +35,7 @@ public class MovieDetailViewModel extends ViewModel {
         return createReviewResult;
     }
 
-    public LiveData<Resource<String>> checkReviewEligibility(String movieId) {
+    public LiveData<Resource<CanReviewResponse>> checkReviewEligibility(String movieId) {
         return movieRepo.canReview(movieId);
     }
 
@@ -44,11 +44,18 @@ public class MovieDetailViewModel extends ViewModel {
     }
 
     public void loadReviews(String movieId) {
-        reviewRepo.getReviews(movieId, 0, 10).observeForever(reviews::setValue);
+        reviewRepo.getReviews(movieId, 0, 3).observeForever(reviews::setValue);
+    }
+
+    public void loadReviewsPaged(String movieId, int page, int size) {
+        reviewRepo.getReviews(movieId, page, size).observeForever(reviews::setValue);
     }
 
     public void submitReview(String movieId, String bookingId, int rating, String comment) {
         reviewRepo.createReview(new ReviewRequest(movieId, bookingId, rating, comment))
                 .observeForever(createReviewResult::setValue);
+    }
+    public LiveData<Resource<ReviewResponse>> createReview(ReviewRequest request) {
+        return reviewRepo.createReview(request);
     }
 }

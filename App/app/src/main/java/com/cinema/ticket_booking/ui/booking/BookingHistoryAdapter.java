@@ -12,7 +12,12 @@ import java.util.List;
 public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAdapter.VH> {
     public interface Listener {
         void onClick(String bookingId);
+
         void onPayClick(String bookingId);
+
+        void onReviewClick(BookingSummary s);
+
+        void onCancelClick(BookingSummary s);
     }
 
     private final List<BookingSummary> items;
@@ -51,7 +56,7 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             b.tvMovieTitle.setText(s.getMovieTitle());
             b.tvCinema.setText("CineNoir " + s.getCinemaName());
             b.tvFormat.setText(formatScreenType(s.getScreenType()));
-            
+
             // Format time
             String rawTime = s.getStartTime();
             if (rawTime != null) {
@@ -63,7 +68,8 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                         sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
                     }
                     java.util.Date d = sdfIn.parse(rawTime);
-                    java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("dd/MM/yyyy • HH:mm", java.util.Locale.getDefault());
+                    java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("dd/MM/yyyy • HH:mm",
+                            java.util.Locale.getDefault());
                     b.tvShowtime.setText(sdfOut.format(d));
                 } catch (Exception e) {
                     b.tvShowtime.setText(rawTime);
@@ -71,45 +77,72 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             } else {
                 b.tvShowtime.setText("N/A");
             }
-            
+
             // Format Seat
             String screen = s.getScreenName() != null ? s.getScreenName() : "";
             String seats = s.getSeats() != null ? s.getSeats() : "";
-            
+
             if (seats.isEmpty() && screen.isEmpty()) {
                 b.tvSeat.setText("Mã vé: " + (s.getBookingCode() != null ? s.getBookingCode() : "N/A"));
             } else {
                 b.tvSeat.setText(screen + " - " + seats);
             }
-            
+
             // We can optionally show total amount or status if we want
             // b.tvTotal.setText(String.format("%,.0fđ", s.getTotalAmount()));
-            
+
             Glide.with(b.ivPoster.getContext()).load(s.getMoviePosterUrl())
                     .placeholder(R.drawable.ic_movie_placeholder).into(b.ivPoster);
-                    
+
             if ("PENDING".equalsIgnoreCase(s.getStatus())) {
                 b.btnViewTicket.setText("THANH TOÁN");
                 b.btnViewTicket.setIconResource(0);
-                b.btnViewTicket.setBackgroundTintList(android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.error)));
+                b.btnViewTicket.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.error)));
                 b.btnViewTicket.setOnClickListener(v -> listener.onPayClick(s.getId()));
+                b.btnReview.setVisibility(View.GONE);
             } else {
                 b.btnViewTicket.setText("VÉ ĐIỆN TỬ");
                 b.btnViewTicket.setIconResource(R.drawable.ic_qr_code);
-                b.btnViewTicket.setBackgroundTintList(android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.primary)));
+                b.btnViewTicket.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.primary)));
                 b.btnViewTicket.setOnClickListener(v -> listener.onClick(s.getId()));
+
+                // Show Review button if status is CHECKED_IN
+                if ("CHECKED_IN".equalsIgnoreCase(s.getStatus())) {
+                    b.btnReview.setVisibility(View.VISIBLE);
+                    b.btnReview.setOnClickListener(v -> listener.onReviewClick(s));
+                } else {
+                    b.btnReview.setVisibility(View.GONE);
+                }
+
+                // Show Cancel button if status is PAID (upcoming tickets)
+                if ("PAID".equalsIgnoreCase(s.getStatus())) {
+                    b.btnReview.setVisibility(View.VISIBLE);
+                    b.btnReview.setText("HỦY VÉ");
+                    b.btnReview.setIconResource(0);
+                    b.btnReview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                            b.getRoot().getContext().getColor(R.color.error)));
+                    b.btnReview.setOnClickListener(v -> listener.onCancelClick(s));
+                }
             }
             b.getRoot().setOnClickListener(v -> listener.onClick(s.getId()));
         }
 
         private String formatScreenType(String rawType) {
-            if (rawType == null) return "2D";
+            if (rawType == null)
+                return "2D";
             switch (rawType.toUpperCase()) {
-                case "STANDARD": return "2D";
-                case "THREE_D": return "3D";
-                case "IMAX": return "IMAX";
-                case "FOUR_DX": return "4DX";
-                default: return rawType;
+                case "STANDARD":
+                    return "2D";
+                case "THREE_D":
+                    return "3D";
+                case "IMAX":
+                    return "IMAX";
+                case "FOUR_DX":
+                    return "4DX";
+                default:
+                    return rawType;
             }
         }
     }

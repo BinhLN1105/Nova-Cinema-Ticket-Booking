@@ -15,7 +15,7 @@ public class UserResponse {
     private String avatarUrl;
     @SerializedName("role")
     private String role;
-    @SerializedName("cinePoints")
+    @SerializedName("rewardPoints")
     private int cinePoints;
     @SerializedName("cinemaId")
     private String cinemaId;
@@ -26,6 +26,19 @@ public class UserResponse {
     private Long currentTierMinPoints;
     @SerializedName("nextTierMinPoints")
     private Long nextTierMinPoints;
+    @SerializedName("membershipTier")
+    private String rank;
+
+    @SerializedName("availableExp")
+    private long availableExp;
+
+    public long getAvailableExp() {
+        return availableExp;
+    }
+
+    public String getRank() {
+        return rank;
+    }
 
     public String getId() {
         return id;

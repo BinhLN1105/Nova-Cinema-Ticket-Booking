@@ -35,7 +35,7 @@ public class ChatbotRepository {
             public void onResponse(Call<ApiResponse<Map<String, String>>> call,
                     Response<ApiResponse<Map<String, String>>> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
-                    String botReply = response.body().getData().get("bot_reply");
+                    String botReply = response.body().getData().get("reply");
                     result.setValue(Resource.success(botReply));
                 } else {
                     result.setValue(Resource.error(response.body() != null

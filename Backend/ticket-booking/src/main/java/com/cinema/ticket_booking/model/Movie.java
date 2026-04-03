@@ -63,6 +63,9 @@ public class Movie {
     @Column(name = "poster_url", columnDefinition = "TEXT")
     private String posterUrl;
 
+    @Column(name = "backdrop_url", columnDefinition = "TEXT")
+    private String backdropUrl;
+
     @Column(name = "trailer_url", columnDefinition = "TEXT")
     private String trailerUrl;
 

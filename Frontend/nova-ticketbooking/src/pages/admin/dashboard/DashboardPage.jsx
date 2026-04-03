@@ -61,7 +61,7 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => (
         ) : (
           <TrendingDown className="w-3 h-3" />
         )}
-        {Math.abs(change)}%
+        {Math.round(Math.abs(change || 0))}%
       </div>
     </div>
     <p className="text-3xl font-bold text-gray-900 mb-1">{value}</p>
@@ -580,7 +580,7 @@ export default function AdminDashboard() {
                   <div
                     className="h-3 rounded-full transition-all"
                     style={{
-                      width: `${Math.min(item.occupancyRate, 100)}%`,
+                      width: `${Math.min(Math.round(item.occupancyRate || 0), 100)}%`,
                       backgroundColor: item.occupancyRate > 80 ? '#E50914' : item.occupancyRate > 50 ? '#f97316' : '#22c55e'
                     }}
                   />
@@ -589,7 +589,7 @@ export default function AdminDashboard() {
                   <span>{item.bookedSeats}/{item.totalSeats} ghế</span>
                   <span className="font-bold" style={{
                     color: item.occupancyRate > 80 ? '#E50914' : item.occupancyRate > 50 ? '#f97316' : '#22c55e'
-                  }}>{item.occupancyRate}%</span>
+                  }}>{Math.round(item.occupancyRate || 0)}%</span>
                 </div>
               </div>
             ))}

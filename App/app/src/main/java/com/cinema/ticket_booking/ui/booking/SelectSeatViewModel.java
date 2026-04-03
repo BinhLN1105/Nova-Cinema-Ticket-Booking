@@ -14,9 +14,11 @@ public class SelectSeatViewModel extends ViewModel {
     private final BookingRepository bookingRepo;
 
     private final MutableLiveData<Resource<SeatMapResponse>> seatMap = new MutableLiveData<>();
+    private final MutableLiveData<SeatMapResponse> seatRefresh = new MutableLiveData<>();
     private final MutableLiveData<Resource<List<ComboResponse>>> combos = new MutableLiveData<>();
     private final Set<String> selectedSeatIds = new LinkedHashSet<>();
     private final Map<String, Integer> selectedCombos = new LinkedHashMap<>();
+    private String currentShowtimeId;
 
     // Shared booking state
     public static List<String> pendingSeatIds = new ArrayList<>();
@@ -41,8 +43,23 @@ public class SelectSeatViewModel extends ViewModel {
         return selectedCombos;
     }
 
+    public LiveData<SeatMapResponse> getSeatRefresh() {
+        return seatRefresh;
+    }
+
     public void loadSeatMap(String showtimeId) {
+        this.currentShowtimeId = showtimeId;
         showtimeRepo.getSeatMap(showtimeId).observeForever(seatMap::setValue);
+    }
+
+    /** Silent background refresh — does not trigger loading indicator. */
+    public void refreshSeatStatuses() {
+        if (currentShowtimeId == null) return;
+        showtimeRepo.getSeatMap(currentShowtimeId).observeForever(r -> {
+            if (r != null && r.isSuccess() && r.data != null) {
+                seatRefresh.postValue(r.data);
+            }
+        });
     }
 
     public boolean toggleSeat(SeatMapResponse.SeatItem seat) {

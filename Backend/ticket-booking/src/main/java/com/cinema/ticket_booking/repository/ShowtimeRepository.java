@@ -84,4 +84,7 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
 
   @Query("SELECT s FROM Showtime s WHERE s.status IN (ShowtimeStatus.SCHEDULED, ShowtimeStatus.ONGOING) AND s.endTime <= :now")
   List<Showtime> findShowtimesToMarkFinished(@Param("now") LocalDateTime now);
+
+  // Kiểm tra xem phim đã từng có suất chiếu nào chưa
+  boolean existsByMovieId(UUID movieId);
 }

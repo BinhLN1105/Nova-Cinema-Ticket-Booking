@@ -13,6 +13,8 @@ import java.util.UUID;
 public interface BookingService {
     BookingResponse createBooking(UUID userId, BookingRequest request);
 
+    BookingResponse calculateQuote(UUID userId, BookingRequest request);
+
     PageResponse<BookingResponse.Summary> getMyBookings(UUID userId, Pageable pageable);
 
     BookingResponse getDetail(UUID userId, UUID bookingId);
@@ -21,9 +23,7 @@ public interface BookingService {
 
     void confirmPaid(UUID bookingId);
 
-    void requestCancelBooking(UUID userId, UUID bookingId);
-
-    void confirmCancelBooking(String token, UUID bookingId);
+    void cancelBooking(User actionUser, UUID bookingId);
 
     Booking findById(UUID id);
 

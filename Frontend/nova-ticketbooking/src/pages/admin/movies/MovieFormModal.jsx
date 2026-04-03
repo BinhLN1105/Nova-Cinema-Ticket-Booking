@@ -4,6 +4,8 @@ import { X, Loader2, UploadCloud } from "lucide-react";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { movieApi } from "@/api/endpoints";
 import toast from "react-hot-toast";
+import ImageUploader from "@/components/admin/ImageUploader";
+import { CheckCircle2 } from "lucide-react";
 
 const INITIAL_STATE = {
   title: "",
@@ -17,6 +19,7 @@ const INITIAL_STATE = {
   language: "Vietnamese",
   rated: "C13",
   posterUrl: "",
+  backdropUrl: "",
   trailerUrl: "",
   status: "COMING_SOON",
   genreIds: [],
@@ -31,6 +34,8 @@ const STATUS_OPTIONS = [
 
 export default function MovieFormModal({ isOpen, onClose, movie = null }) {
   const [formData, setFormData] = useState(INITIAL_STATE);
+  const [isUploadingPoster, setIsUploadingPoster] = useState(false);
+  const [isUploadingBackdrop, setIsUploadingBackdrop] = useState(false);
   const qc = useQueryClient();
 
   const { data: genres } = useQuery({
@@ -70,6 +75,7 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
           language: detailedMovie.language || "Vietnamese",
           rated: detailedMovie.rated || "C13",
           posterUrl: detailedMovie.posterUrl || "",
+          backdropUrl: detailedMovie.backdropUrl || "",
           trailerUrl: detailedMovie.trailerUrl || "",
           status: detailedMovie.status || "COMING_SOON",
           genreIds: detailedMovie.genres ? detailedMovie.genres.map((g) => g.id) : [],
@@ -110,8 +116,62 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
     }));
   };
 
+  const handlePosterUpload = async (source, type) => {
+    if (!movie?.id) {
+      toast.error("Vui lòng lưu thông tin phim cơ bản trước khi tải ảnh");
+      return;
+    }
+    
+    setIsUploadingPoster(true);
+    try {
+      let res;
+      if (type === 'file') {
+        res = await movieApi.uploadPoster(movie.id, source);
+      } else {
+        res = await movieApi.uploadPosterUrl(movie.id, source);
+      }
+      setFormData(prev => ({ ...prev, posterUrl: res.posterUrl }));
+      qc.invalidateQueries({ queryKey: ["admin", "movie", movie.id] });
+    } finally {
+      setIsUploadingPoster(false);
+    }
+  };
+
+  const handleBackdropUpload = async (source, type) => {
+    if (!movie?.id) {
+      toast.error("Vui lòng lưu thông tin phim cơ bản trước khi tải ảnh");
+      return;
+    }
+
+    setIsUploadingBackdrop(true);
+    try {
+      let res;
+      if (type === 'file') {
+        res = await movieApi.uploadBackdrop(movie.id, source);
+      } else {
+        res = await movieApi.uploadBackdropUrl(movie.id, source);
+      }
+      setFormData(prev => ({ ...prev, backdropUrl: res.backdropUrl }));
+      qc.invalidateQueries({ queryKey: ["admin", "movie", movie.id] });
+    } finally {
+      setIsUploadingBackdrop(false);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    
+    // Kiểm tra logic ngày tháng
+    if (formData.endDate && formData.releaseDate) {
+      const release = new Date(formData.releaseDate);
+      const end = new Date(formData.endDate);
+      
+      if (end < release) {
+        toast.error("Ngày kết thúc không được trước ngày phát hành");
+        return;
+      }
+    }
+
     mutation.mutate(formData);
   };
 
@@ -152,220 +212,132 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
           ) : (
             <form
               onSubmit={handleSubmit}
-              className="flex-1 overflow-y-auto p-6 space-y-6"
+              className="flex-1 overflow-y-auto p-0 space-y-0"
             >
-            {/* Cột chính */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Tên phim (Tiếng Việt) *
-                  </label>
-                  <input
-                    name="title"
-                    required
-                    value={formData.title}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all"
-                  />
+              <div className="p-6 space-y-8">
+                {/* Khối 1: Thông tin tiêu đề (Full width) */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">Tên phim (Tiếng Việt) *</label>
+                      <input name="title" required value={formData.title} onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all" />
+                    </div>
+                    <div>
+                      <label className="text-sm font-semibold text-gray-700 block mb-1">Tên gốc (Original)</label>
+                      <input name="originalTitle" value={formData.originalTitle} onChange={handleChange}
+                        className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none transition-all" />
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Tên gốc (Original)
-                  </label>
-                  <input
-                    name="originalTitle"
-                    value={formData.originalTitle}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
+
+                {/* Khối 2: Thông số & Trạng thái (Grid) */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-5 rounded-3xl border border-gray-100">
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">
-                      Thời lượng (Phút) *
-                    </label>
-                    <input
-                      name="duration"
-                      type="number"
-                      required
-                      value={formData.duration}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all"
-                    />
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Thời lượng (Phút) *</label>
+                    <input name="duration" type="number" required value={formData.duration} onChange={handleChange}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="text-sm font-medium text-gray-700 block mb-1">
-                      Phân loại *
-                    </label>
-                    <select
-                      name="rated"
-                      value={formData.rated}
-                      onChange={handleChange}
-                      className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-brand-500 outline-none"
-                    >
-                      {RATED_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Phân loại (Rated) *</label>
+                    <select name="rated" value={formData.rated} onChange={handleChange}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none">
+                      {RATED_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
-                </div>
-              </div>
-
-              {/* Poster Preview */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Poster URL *
-                </label>
-                <input
-                  name="posterUrl"
-                  required
-                  value={formData.posterUrl}
-                  onChange={handleChange}
-                  placeholder="https://..."
-                  className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:border-brand-500 outline-none mb-3"
-                />
-                <div className="h-44 w-full bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl overflow-hidden flex inset-0 items-center justify-center relative">
-                  {formData.posterUrl ? (
-                    <img
-                      src={formData.posterUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover absolute"
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Trạng thái</label>
+                    <select name="status" value={formData.status} onChange={handleChange}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none font-bold text-brand-600">
+                      {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Ngày phát hành *</label>
+                    <input name="releaseDate" type="date" required value={formData.releaseDate} onChange={handleChange}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Ngày kết thúc</label>
+                    <input 
+                      name="endDate" 
+                      type="date" 
+                      value={formData.endDate} 
+                      onChange={handleChange}
+                      min={formData.releaseDate}
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" 
                     />
-                  ) : (
-                    <div className="flex flex-col items-center justify-center text-gray-400 p-4 font-medium text-sm">
-                      <UploadCloud className="w-8 h-8 mb-2 opacity-50" />
-                      Nhập link ảnh phía trên để xem trước
+                  </div>
+                  <div className="sm:col-span-1">
+                     <label className="text-sm font-semibold text-gray-700 block mb-1">Trailer (Youtube Link)</label>
+                     <input name="trailerUrl" value={formData.trailerUrl} onChange={handleChange} placeholder="https://youtube.com/..."
+                      className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
+                  </div>
+                </div>
+
+                {/* Khối 3: Nhân sự (Director/Cast) */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Đạo diễn</label>
+                    <input name="director" value={formData.director} onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl" />
+                  </div>
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-1">Diễn viên chính</label>
+                    <input name="cast" value={formData.cast} onChange={handleChange}
+                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl" />
+                  </div>
+                </div>
+
+                {/* Khối 4: Media (Full width blocks) */}
+                <div className="space-y-8 pt-4 border-t border-gray-100">
+                  <ImageUploader 
+                    label="Poster chính thức (Ảnh dọc)"
+                    value={formData.posterUrl}
+                    onUpload={handlePosterUpload}
+                    isLoading={isUploadingPoster}
+                    aspectRatio="2:3"
+                    helperText="Ảnh hiển thị tại danh sách phim (Ratio 2:3)."
+                  />
+
+                  <ImageUploader 
+                    label="Backdrop / Banner (Ảnh ngang)"
+                    value={formData.backdropUrl}
+                    onUpload={handleBackdropUpload}
+                    isLoading={isUploadingBackdrop}
+                    aspectRatio="16:9"
+                    helperText="Ảnh làm nền cho trang chi tiết phim (Ratio 16:9)."
+                  />
+                </div>
+
+                {/* Khối 5: Thể loại & Mô tả */}
+                <div className="space-y-6 pt-4 border-t border-gray-100">
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-3">Thể loại phim</label>
+                    <div className="flex flex-wrap gap-2">
+                      {genres?.map((g) => (
+                        <button key={g.id} type="button" onClick={() => handleGenreChange(g.id)}
+                          className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all ${
+                            formData.genreIds.includes(g.id)
+                              ? "bg-brand-500 border-brand-500 text-white shadow-md shadow-brand-500/20 scale-105"
+                              : "bg-white border-gray-200 text-gray-500 hover:border-brand-300"
+                          }`}>
+                          {g.name}
+                        </button>
+                      ))}
                     </div>
-                  )}
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-semibold text-gray-700 block mb-2">Tóm tắt nội dung</label>
+                    <textarea name="description" rows={5} value={formData.description} onChange={handleChange}
+                      placeholder="Nhập nội dung phim..."
+                      className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:border-brand-500 outline-none resize-none transition-all" />
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Thông tin chiếu */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Ngày phát hành *
-                </label>
-                <input
-                  name="releaseDate"
-                  type="date"
-                  required
-                  value={formData.releaseDate}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Ngày kết thúc (Optional)
-                </label>
-                <input
-                  name="endDate"
-                  type="date"
-                  value={formData.endDate}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Trạng thái
-                </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm font-medium text-brand-600"
-                >
-                  {STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Chi tiết phim */}
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Đạo diễn
-                  </label>
-                  <input
-                    name="director"
-                    value={formData.director}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-gray-700 block mb-1">
-                    Diễn viên
-                  </label>
-                  <input
-                    name="cast"
-                    value={formData.cast}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1">
-                  Trailer URL (Youtube)
-                </label>
-                <input
-                 name="trailerUrl"
-                 value={formData.trailerUrl}
-                 onChange={handleChange}
-                 className="w-full px-4 py-2 border border-gray-200 rounded-xl"
-                />
-              </div>
-
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">
-                  Mô tả nội dung
-                </label>
-                <textarea
-                  name="description"
-                  rows={4}
-                  value={formData.description}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:border-brand-500 outline-none resize-none"
-                />
-              </div>
-
-              {/* Thể loại */}
-              <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2">
-                  Thể loại
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  {genres?.map((g) => (
-                    <button
-                      key={g.id}
-                      type="button"
-                      onClick={() => handleGenreChange(g.id)}
-                      className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        formData.genreIds.includes(g.id)
-                          ? "bg-brand-50 border-brand-200 text-brand-600"
-                          : "bg-white border-gray-200 text-gray-600 hover:border-gray-300"
-                      }`}
-                    >
-                      {g.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
             </form>
+
           )}
 
           <div className="p-6 border-t border-gray-100 bg-gray-50 flex justify-end gap-3">
@@ -378,13 +350,17 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
             </button>
             <button
               onClick={handleSubmit}
-              disabled={mutation.isPending}
-              className="px-6 py-2.5 rounded-xl font-medium text-white bg-brand-500 hover:bg-brand-600 transition-colors flex items-center gap-2"
+              disabled={mutation.isPending || isUploadingPoster || isUploadingBackdrop}
+              className="px-6 py-2.5 rounded-xl font-medium text-white bg-brand-500 hover:bg-brand-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
             >
-              {mutation.isPending && (
+              {mutation.isPending ? (
                 <Loader2 className="w-4 h-4 animate-spin" />
+              ) : isUploadingPoster || isUploadingBackdrop ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <CheckCircle2 className="w-4 h-4" />
               )}
-              {movie ? "Lưu thay đổi" : "Thêm mới"}
+              {mutation.isPending ? "Đang xử lý..." : isUploadingPoster || isUploadingBackdrop ? "Đang tải ảnh..." : movie ? "Lưu thay đổi" : "Thêm mới"}
             </button>
           </div>
         </motion.div>

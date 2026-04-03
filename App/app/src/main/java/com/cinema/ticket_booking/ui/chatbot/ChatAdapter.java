@@ -72,23 +72,23 @@ public class ChatAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     static class BotViewHolder extends RecyclerView.ViewHolder {
         TextView tvMessage;
+        View layoutLoading;
         LottieAnimationView loadingIndicator;
 
         public BotViewHolder(@NonNull View itemView) {
             super(itemView);
             tvMessage = itemView.findViewById(R.id.tvMessage);
+            layoutLoading = itemView.findViewById(R.id.layoutLoading);
             loadingIndicator = itemView.findViewById(R.id.loadingIndicator);
         }
 
         void bind(ChatMessage msg) {
             if (msg.isLoading()) {
                 tvMessage.setVisibility(View.GONE);
-                loadingIndicator.setVisibility(View.VISIBLE);
+                layoutLoading.setVisibility(View.VISIBLE);
             } else {
                 tvMessage.setVisibility(View.VISIBLE);
-                loadingIndicator.setVisibility(View.GONE);
-                // Xử lý markdown cơ bản nếu muốn (như \n, **, ...),
-                // hiện tại để text thường.
+                layoutLoading.setVisibility(View.GONE);
                 tvMessage.setText(msg.getText());
             }
         }

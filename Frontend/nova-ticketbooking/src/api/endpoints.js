@@ -16,6 +16,7 @@ export const authApi = {
 // ── Movies ────────────────────────────────────
 export const movieApi = {
   getAll: (params) => api.get("/movies", params),
+  adminGetAll: (params) => api.get("/movies/admin", params),
   getNowShowing: (page = 0) =>
     api.get("/movies", { status: "NOW_SHOWING", page, size: 12 }),
   getComingSoon: (page = 0) =>
@@ -30,24 +31,49 @@ export const movieApi = {
   delete: (id) => api.delete(`/movies/${id}`),
   updateStatus: (id, status) =>
     api.patch(`/movies/${id}/status`, { status }),
+  // Image Uploads
+  uploadPoster: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/movies/${id}/poster`, formData);
+  },
+
+  uploadPosterUrl: (id, url) => api.post(`/movies/${id}/poster-url`, { url }),
+  uploadBackdrop: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/movies/${id}/backdrop`, formData);
+  },
+
+  uploadBackdropUrl: (id, url) => api.post(`/movies/${id}/backdrop-url`, { url }),
 };
 
 // ── Cinemas ───────────────────────────────────
 export const cinemaApi = {
   getAll: (city) => api.get("/cinemas", { city }),
+  adminGetAll: () => api.get("/cinemas/admin"),
   getById: (id) => api.get(`/cinemas/${id}`),
   getScreens: (cinemaId) => api.get(`/cinemas/${cinemaId}/screens`),
   // Admin
   create: (data) => api.post("/cinemas", data),
   update: (id, data) => api.put(`/cinemas/${id}`, data),
+  toggleStatus: (id) => api.patch(`/cinemas/${id}/status`),
   delete: (id) => api.delete(`/cinemas/${id}`),
   createScreen: (cinemaId, data) => api.post(`/cinemas/${cinemaId}/screens`, data),
   updateScreen: (cinemaId, screenId, data) => api.put(`/cinemas/${cinemaId}/screens/${screenId}`, data),
   deleteScreen: (cinemaId, screenId, type = "soft") => api.delete(`/cinemas/${cinemaId}/screens/${screenId}?type=${type}`),
   getScreensForAdmin: (cinemaId) => api.get(`/cinemas/${cinemaId}/admin/screens`),
   // Seat Layout Builder
-  getScreenSeats: (cinemaId, screenId) => api.get(`/cinemas/${cinemaId}/screens/${screenId}/seats`),
-  saveCustomLayout: (cinemaId, screenId, data) => api.put(`/cinemas/${cinemaId}/screens/${screenId}/seats`, data),
+  getScreenSeats: (id, screenId) => api.get(`/cinemas/${id}/screens/${screenId}/seats`),
+  saveCustomLayout: (id, screenId, data) => api.put(`/cinemas/${id}/screens/${screenId}/seats`, data),
+  // Image Uploads
+  uploadImage: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/cinemas/${id}/image`, formData);
+  },
+
+  uploadImageUrl: (id, url) => api.post(`/cinemas/${id}/image-url`, { url }),
 };
 
 // ── Showtimes ─────────────────────────────────
@@ -73,6 +99,7 @@ export const voucherApi = {
 // ── Bookings ──────────────────────────────────
 export const bookingApi = {
   create: (data) => api.post("/bookings", data),
+  getQuote: (data) => api.post("/bookings/quote", data),
   getMyAll: (page = 0, size = 10) => api.get("/bookings/me", { page, size }),
   getById: (id) => api.get(`/bookings/${id}`),
   cancelRequest: (id) => api.post(`/bookings/${id}/cancel-request`),
@@ -111,6 +138,14 @@ export const userApi = {
   // Staff management
   createStaff: (data) => api.post("/admin/staff", data),
   assignCinema: (userId, cinemaId) => api.patch(`/admin/staff/${userId}/cinema`, { cinemaId }),
+  // Profile / Avatar (Me)
+  uploadAvatar: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/users/me/avatar", formData);
+  },
+
+  uploadAvatarUrl: (url) => api.post("/users/me/avatar-url", { url }),
 };
 
 // ── Admin Check-In (QR image upload) ─────────
@@ -147,6 +182,14 @@ export const promotionApi = {
   update:    (id, data) => api.put(`/admin/promotions/${id}`, data),
   delete:    (id)     => api.delete(`/admin/promotions/${id}`),
   toggleActive: (id)  => api.patch(`/admin/promotions/${id}/toggle`),
+  // Image Uploads
+  uploadImage: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/admin/promotions/${id}/image`, formData);
+  },
+
+  uploadImageUrl: (id, url) => api.post(`/admin/promotions/${id}/image-url`, { url }),
 };
 
 // ── System Configs ────────────────────────────
@@ -181,4 +224,17 @@ export const giftCardApi = {
 export const chatbotApi = {
   chat: (userMessage) => api.post("/chatbot/chat", { userMessage }),
   clearSession: () => api.post("/chatbot/session/clear"),
+};
+
+// ── Combos ───────────────────────────────────
+export const comboApi = {
+  getAvailable: () => api.get("/combos"),
+  // Admin
+  uploadImage: (id, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/combos/${id}/image`, formData);
+  },
+
+  uploadImageUrl: (id, url) => api.post(`/combos/${id}/image-url`, { url }),
 };

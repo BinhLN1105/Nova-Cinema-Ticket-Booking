@@ -27,9 +27,15 @@ public class BookingSummary {
     private String status;
     @SerializedName("createdAt")
     private String createdAt;
+    @SerializedName("movieId")
+    private String movieId;
 
     public String getId() {
         return id;
+    }
+
+    public String getMovieId() {
+        return movieId;
     }
 
     public String getBookingCode() {

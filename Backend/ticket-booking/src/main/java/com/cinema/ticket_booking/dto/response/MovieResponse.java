@@ -32,6 +32,7 @@ public class MovieResponse implements Serializable {
     private String language;
     private String rated;
     private String posterUrl;
+    private String backdropUrl;
     private String trailerUrl;
     private BigDecimal avgRating;
     private MovieStatus status;

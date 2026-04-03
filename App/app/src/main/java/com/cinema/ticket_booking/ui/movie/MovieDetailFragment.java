@@ -17,6 +17,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.local.TokenManager;
+import com.cinema.ticket_booking.data.model.response.ReviewResponse;
 import com.cinema.ticket_booking.databinding.FragmentMovieDetailBinding;
 import com.cinema.ticket_booking.ui.booking.SelectShowtimeViewModel;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -61,21 +62,26 @@ public class MovieDetailFragment extends Fragment {
                 SnackbarHelper.showError(binding.getRoot(), "Vui lòng đăng nhập để viết đánh giá");
                 return;
             }
-            binding.progressBar.setVisibility(View.VISIBLE);
-            androidx.lifecycle.LiveData<com.cinema.ticket_booking.util.Resource<String>> liveData = viewModel.checkReviewEligibility(movieId);
-            liveData.observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<>() {
-                @Override
-                public void onChanged(com.cinema.ticket_booking.util.Resource<String> resource) {
-                    if (resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) return;
-                    binding.progressBar.setVisibility(View.GONE);
-                    liveData.removeObserver(this);
-                    if (resource.isSuccess() && resource.data != null) {
-                        showWriteReviewDialog(resource.data);
-                    } else {
-                        SnackbarHelper.showError(binding.getRoot(), "Bạn cần mua vé và xem phim trước khi đánh giá!");
-                    }
+            viewModel.checkReviewEligibility(movieId).observe(getViewLifecycleOwner(), resource -> {
+                if (resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) return;
+                binding.progressBar.setVisibility(View.GONE);
+                if (resource.isSuccess() && resource.data != null) {
+                    var data = resource.data;
+                    Bundle args = new Bundle();
+                    args.putString("movieId", movieId);
+                    args.putString("movieTitle", binding.tvTitle.getText().toString());
+                    args.putString("bookingId", data.getBookingId());
+                    Navigation.findNavController(requireView()).navigate(R.id.action_movieDetail_to_writeReview, args);
+                } else if (resource.isError()) {
+                    SnackbarHelper.showError(binding.getRoot(), resource.message != null ? resource.message : "Bạn cần mua vé và xem phim trước khi đánh giá!");
                 }
             });
+        });
+
+        binding.btnViewAllReviews.setOnClickListener(v -> {
+            Bundle args = new Bundle();
+            args.putString("movieId", movieId);
+            Navigation.findNavController(v).navigate(R.id.action_movieDetail_to_reviewList, args);
         });
     }
 
@@ -94,7 +100,7 @@ public class MovieDetailFragment extends Fragment {
                     binding.tvCast.setText("Diễn viên: " + m.getCast());
                     binding.tvDuration.setText(m.getDuration() + " phút");
                     binding.tvRated.setText(m.getRated());
-                    binding.tvRating.setText(String.format("★ %.1f", m.getAvgRating()));
+                    binding.tvRating.setText(String.format("%.1f", m.getAvgRating()));
                     binding.tvReleaseDate.setText("Khởi chiếu: " + m.getReleaseDate());
                     if (m.getGenres() != null && !m.getGenres().isEmpty()) {
                         StringBuilder sb = new StringBuilder();
@@ -122,14 +128,17 @@ public class MovieDetailFragment extends Fragment {
         // Reviews
         binding.rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
         viewModel.getReviews().observe(getViewLifecycleOwner(), resource -> {
-            if (resource.isSuccess() && resource.data != null && resource.data.getContent() != null) {
-                if (resource.data.getContent().isEmpty()) {
+            if (resource.isSuccess() && resource.data != null) {
+                java.util.List<ReviewResponse> list = resource.data.getContent();
+                if (list == null || list.isEmpty()) {
                     binding.tvNoReviews.setVisibility(View.VISIBLE);
                     binding.rvReviews.setVisibility(View.GONE);
+                    binding.btnViewAllReviews.setVisibility(View.GONE);
                 } else {
                     binding.tvNoReviews.setVisibility(View.GONE);
                     binding.rvReviews.setVisibility(View.VISIBLE);
-                    binding.rvReviews.setAdapter(new ReviewAdapter(resource.data.getContent()));
+                    binding.rvReviews.setAdapter(new ReviewAdapter(list));
+                    binding.btnViewAllReviews.setVisibility(resource.data.getTotalElements() > 3 ? View.VISIBLE : View.GONE);
                 }
             }
         });
@@ -144,26 +153,7 @@ public class MovieDetailFragment extends Fragment {
         });
     }
 
-    private void showWriteReviewDialog(String bookingId) {
-        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_write_review, null);
-        RatingBar ratingBar = dialogView.findViewById(R.id.ratingBar);
-        EditText etComment = dialogView.findViewById(R.id.etComment);
 
-        new AlertDialog.Builder(requireContext())
-                .setTitle("Đánh giá phim")
-                .setView(dialogView)
-                .setPositiveButton("Gửi", (dialog, which) -> {
-                    int rating = (int) ratingBar.getRating();
-                    String comment = etComment.getText().toString().trim();
-                    if (rating == 0) {
-                        SnackbarHelper.showError(binding.getRoot(), "Vui lòng chọn số sao");
-                        return;
-                    }
-                    viewModel.submitReview(movieId, bookingId, rating, comment);
-                })
-                .setNegativeButton("Hủy", null)
-                .show();
-    }
 
     @Override
     public void onDestroyView() {

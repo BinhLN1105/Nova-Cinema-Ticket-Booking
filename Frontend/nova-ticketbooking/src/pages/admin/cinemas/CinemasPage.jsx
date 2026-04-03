@@ -8,6 +8,7 @@ import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
 import { cn } from '@/utils'
 import toast from 'react-hot-toast'
 import ScreensModal from './ScreensModal'
+import ImageUploader from '@/components/admin/ImageUploader'
 
 const CITIES = [
   { value: 'Ho Chi Minh', label: 'TP. Hồ Chí Minh' },
@@ -15,6 +16,7 @@ const CITIES = [
   { value: 'Da Nang',     label: 'Đà Nẵng' },
   { value: 'Can Tho',     label: 'Cần Thơ' },
   { value: 'Hai Phong',   label: 'Hải Phòng' },
+  { value: 'OTHER',       label: '+ Thêm thành phố khác...' },
 ]
 
 const EMPTY_FORM = { name: '', address: '', city: '', phone: '', imageUrl: '' }
@@ -25,16 +27,20 @@ export default function CinemasPage() {
   const [formOpen, setFormOpen]   = useState(false)
   const [editing, setEditing]     = useState(null)     // cinema object or null
   const [form, setForm]           = useState(EMPTY_FORM)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
+  const [toggleTarget, setToggleTarget] = useState(null)
   
+  const [isOtherCity, setIsOtherCity] = useState(false)
+
   // Screens modal state
   const [screensCinema, setScreensCinema] = useState(null)
   const qc = useQueryClient()
 
-  // Fetch all cinemas
+  // Fetch all cinemas (including inactive ones)
   const { data: cinemas = [], isLoading } = useQuery({
-    queryKey: ['admin', 'cinemas', cityFilter],
-    queryFn: () => cinemaApi.getAll(cityFilter || undefined),
+    queryKey: ['admin', 'cinemas'],
+    queryFn: () => cinemaApi.adminGetAll(),
   })
 
   // Filter locally by search
@@ -55,14 +61,30 @@ export default function CinemasPage() {
     },
   })
 
-  // Delete
+  // Toggle Status
+  const toggleMutation = useMutation({
+    mutationFn: (id) => cinemaApi.toggleStatus(id),
+    onSuccess: (res) => {
+      toast.success(res.isActive ? 'Đã kích hoạt rạp' : 'Đã vô hiệu hoá rạp')
+      qc.invalidateQueries({ queryKey: ['admin', 'cinemas'] })
+      setToggleTarget(null)
+    },
+  })
+
+  // Hard Delete
   const deleteMutation = useMutation({
     mutationFn: () => cinemaApi.delete(deleteTarget?.id),
     onSuccess: () => {
-      toast.success('Đã vô hiệu hoá rạp')
+      toast.success('Đã xoá rạp vĩnh viễn')
       qc.invalidateQueries({ queryKey: ['admin', 'cinemas'] })
       setDeleteTarget(null)
     },
+    onError: (err) => {
+      // Backend handles the logic: if has data, throw error
+      const msg = err.response?.data?.message || 'Không thể xoá rạp này'
+      toast.error(msg)
+      setDeleteTarget(null)
+    }
   })
 
   const openCreate = () => {
@@ -73,6 +95,8 @@ export default function CinemasPage() {
 
   const openEdit = (cinema) => {
     setEditing(cinema)
+    const currentCity = cinema.city ?? '';
+    const isStandardCity = CITIES.some(c => c.value === currentCity && c.value !== 'OTHER');
     setForm({
       name: cinema.name ?? '',
       address: cinema.address ?? '',
@@ -80,6 +104,7 @@ export default function CinemasPage() {
       phone: cinema.phone ?? '',
       imageUrl: cinema.imageUrl ?? '',
     })
+    setIsOtherCity(!!currentCity && !isStandardCity)
     setFormOpen(true)
   }
 
@@ -87,6 +112,7 @@ export default function CinemasPage() {
     setFormOpen(false)
     setEditing(null)
     setForm(EMPTY_FORM)
+    setIsOtherCity(false)
   }
 
   const handleSave = () => {
@@ -94,6 +120,27 @@ export default function CinemasPage() {
     if (!form.address.trim()) return toast.error('Địa chỉ không được để trống')
     if (!form.city.trim()) return toast.error('Chọn thành phố')
     saveMutation.mutate()
+  }
+
+  const handleImageUpload = async (source, type) => {
+    if (!editing?.id) {
+      toast.error('Vui lòng lưu thông tin rạp trước khi tải ảnh')
+      return
+    }
+
+    setIsUploadingImage(true)
+    try {
+      let res;
+      if (type === 'file') {
+        res = await cinemaApi.uploadImage(editing.id, source)
+      } else {
+        res = await cinemaApi.uploadImageUrl(editing.id, source)
+      }
+      setForm(prev => ({ ...prev, imageUrl: res.imageUrl }))
+      qc.invalidateQueries({ queryKey: ['admin', 'cinemas'] })
+    } finally {
+      setIsUploadingImage(false)
+    }
   }
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
@@ -135,10 +182,18 @@ export default function CinemasPage() {
     {
       key: 'status', header: 'Trạng thái',
       render: (c) => (
-        <StatusBadge
-          label={c.isActive !== false ? 'Hoạt động' : 'Đã tắt'}
-          color={c.isActive !== false ? 'green' : 'red'}
-        />
+        <button 
+          onClick={() => setToggleTarget(c)}
+          disabled={toggleMutation.isPending}
+          className="group transition-all"
+          title={c.isActive ? "Bấm để vô hiệu hóa" : "Bấm để kích hoạt lại"}
+        >
+          <StatusBadge
+            label={c.isActive ? 'Hoạt động' : 'Vô hiệu'}
+            color={c.isActive ? 'green' : 'gray'}
+            className="group-hover:ring-2 group-hover:ring-brand-200 cursor-pointer"
+          />
+        </button>
       ),
     },
     {
@@ -154,7 +209,7 @@ export default function CinemasPage() {
             <MonitorPlay className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteTarget(c)}
-            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Vô hiệu hoá">
+            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xoá vĩnh viễn">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -187,48 +242,104 @@ export default function CinemasPage() {
 
       {/* Create / Edit Modal */}
       <Modal open={formOpen} onClose={closeForm}
-        title={editing ? 'Cập nhật rạp' : 'Thêm rạp mới'} size="md">
-        <div className="p-6 space-y-4">
-          <Field label="Tên rạp" required>
-            <Input value={form.name} onChange={e => set('name', e.target.value)}
-              placeholder="VD: Nova Cinema Quận 1" />
-          </Field>
-          <Field label="Địa chỉ" required>
-            <Input value={form.address} onChange={e => set('address', e.target.value)}
-              placeholder="VD: 123 Nguyễn Huệ, Quận 1" />
-          </Field>
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="Thành phố" required>
-              <Select value={form.city}
-                onChange={e => set('city', e.target.value)}
-                options={CITIES} placeholder="Chọn thành phố"
-              />
+        title={editing ? 'Cập nhật rạp' : 'Thêm rạp mới'} size="lg">
+        <div className="p-6 space-y-6">
+          <div className="space-y-4">
+            <Field label="Tên rạp" required>
+              <Input value={form.name} onChange={e => set('name', e.target.value)}
+                placeholder="VD: Nova Cinema Quận 1" />
             </Field>
-            <Field label="Số điện thoại">
-              <Input value={form.phone} onChange={e => set('phone', e.target.value)}
-                placeholder="VD: 0281234567" type="tel" />
+            <Field label="Địa chỉ" required>
+              <Input value={form.address} onChange={e => set('address', e.target.value)}
+                placeholder="VD: 123 Nguyễn Huệ, Quận 1" />
             </Field>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <Field label="Thành phố" required>
+                  <Select 
+                    value={isOtherCity ? 'OTHER' : form.city}
+                    onChange={e => {
+                      const val = e.target.value;
+                      if (val === 'OTHER') {
+                        setIsOtherCity(true);
+                        set('city', ''); 
+                      } else {
+                        setIsOtherCity(false);
+                        set('city', val);
+                      }
+                    }}
+                    options={CITIES} 
+                    placeholder="Chọn thành phố"
+                  />
+                </Field>
+                {isOtherCity && (
+                  <Input 
+                    value={form.city} 
+                    onChange={e => set('city', e.target.value)}
+                    placeholder="VD: Nha Trang" 
+                    autoFocus
+                  />
+                )}
+              </div>
+              
+              <Field label="Số điện thoại">
+                <Input value={form.phone} onChange={e => set('phone', e.target.value)}
+                  placeholder="VD: 0281234567" type="tel" />
+              </Field>
+            </div>
           </div>
-          <Field label="Ảnh rạp (URL)">
-            <Input value={form.imageUrl} onChange={e => set('imageUrl', e.target.value)}
-              placeholder="https://..." type="url"
-              leftIcon={<ImageIcon className="w-4 h-4" />} />
-          </Field>
-          <div className="flex gap-3 pt-2">
+
+          <div className="w-full">
+            <ImageUploader 
+              label="Hình ảnh rạp"
+              value={form.imageUrl}
+              onUpload={handleImageUpload}
+              isLoading={isUploadingImage}
+              aspectRatio="16:9"
+              helperText="Ảnh ngang (16:9). Sẽ hiển thị ở trang chọn rạp."
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4 border-t border-gray-100">
             <Button variant="ghost" onClick={closeForm} className="flex-1">Huỷ</Button>
-            <Button onClick={handleSave} loading={saveMutation.isPending} className="flex-1">
-              {editing ? 'Cập nhật' : 'Thêm rạp'}
+            <Button 
+              onClick={handleSave} 
+              loading={saveMutation.isPending || isUploadingImage} 
+              className="flex-1"
+              disabled={isUploadingImage}
+            >
+              {isUploadingImage ? 'Đang tải ảnh...' : editing ? 'Cập nhật' : 'Thêm rạp'}
             </Button>
           </div>
         </div>
       </Modal>
 
-      {/* Delete confirm */}
+
+      {/* Delete confirm (Hard delete logic) */}
       <ConfirmDialog
         open={!!deleteTarget} onClose={() => setDeleteTarget(null)}
         onConfirm={() => deleteMutation.mutate()} loading={deleteMutation.isPending}
-        title="Vô hiệu hoá rạp?" confirmLabel="Vô hiệu hoá"
-        message={`Bạn có chắc muốn vô hiệu hoá rạp "${deleteTarget?.name}"?`}
+        variant="danger"
+        title="Xoá rạp vĩnh viễn?" 
+        confirmLabel="Xoá ngay"
+        message={`Hệ thống chỉ cho phép xoá nếu rạp "${deleteTarget?.name}" chưa có dữ liệu vận hành. Bạn có chắc chắn muốn thực hiện?`}
+      />
+
+      {/* Toggle Status confirm */}
+      <ConfirmDialog
+        open={!!toggleTarget} 
+        onClose={() => setToggleTarget(null)}
+        onConfirm={() => toggleMutation.mutate(toggleTarget?.id)} 
+        loading={toggleMutation.isPending}
+        variant={toggleTarget?.isActive ? "warning" : "primary"}
+        title={toggleTarget?.isActive ? "Vô hiệu hoá rạp?" : "Kích hoạt lại rạp?"}
+        confirmLabel={toggleTarget?.isActive ? "Vô hiệu hoá" : "Kích hoạt"}
+        message={
+          toggleTarget?.isActive
+            ? `Rạp "${toggleTarget?.name}" sẽ bị ẩn khỏi ứng dụng khách hàng. Suất chiếu của rạp cũng sẽ không hiển thị.`
+            : `Rạp "${toggleTarget?.name}" sẽ xuất hiện trở lại trên ứng dụng để khách hàng đặt vé.`
+        }
       />
 
       <ScreensModal 

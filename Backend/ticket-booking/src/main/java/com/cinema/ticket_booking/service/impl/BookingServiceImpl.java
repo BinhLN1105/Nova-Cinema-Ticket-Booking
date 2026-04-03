@@ -16,6 +16,7 @@ import com.cinema.ticket_booking.model.*;
 import com.cinema.ticket_booking.enums.*;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
+import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.mapper.BookingMapper;
 import com.cinema.ticket_booking.repository.*;
 import com.cinema.ticket_booking.service.SeatLockService;
@@ -26,6 +27,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -72,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
      * 5. Trả về BookingResponse (chưa có QR — chờ thanh toán)
      */
     @Override
-    public BookingResponse createBooking(UUID userId, BookingRequest request) {
+    public BookingResponse calculateQuote(UUID userId, BookingRequest request) {
         User user = userService.findById(userId);
         Showtime showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
 
@@ -80,7 +84,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
         }
 
-        // ── 1. Lock ghế ────────────────────────────────────────────────────
+        // ── 1. Chuẩn bị ghế ────────────────────────────────────────────────
         List<UUID> seatIds = request.getShowtimeSeatIds()
                 .stream().map(UUID::fromString).toList();
 
@@ -91,49 +95,15 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Một số ghế không thuộc suất chiếu này");
         }
 
-        long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
-        int pendingMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
-        if (minutesToStart <= 15 && minutesToStart >= -10) {
-            pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
-        }
-        LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
-
-        String tempBookingRef = UUID.randomUUID().toString(); // Use a temp booking code to lock
-        List<String> lockedSoFar = new ArrayList<>();
-        try {
-            for (ShowtimeSeat ss : seats) {
-                if (ss.getStatus() != SeatStatus.AVAILABLE) {
-                    throw new BadRequestException(
-                            "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
-                }
-                boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
-                        Duration.ofMinutes(pendingMins));
-                if (!locked) {
-                    throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
-                            + " đang được giữ bởi người khác");
-                }
-                lockedSoFar.add(ss.getId().toString());
-            }
-        } catch (Exception e) {
-            // Release the locks we acquired
-            seatLockService.releaseSeats(lockedSoFar);
-            throw e;
-        }
-
         // ── 2. Tính toán Giá nền (sau khi áp dụng Thứ/Giờ/Loại ghế) ─────────
         List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
         List<BigDecimal> baseSeatPrices = new ArrayList<>();
         BigDecimal totalTicketBasePrice = BigDecimal.ZERO;
 
         for (ShowtimeSeat ss : seats) {
-            // Chỉ lấy giá sau khi đã tính các quy tắc cơ bản (không tính Khuyến mãi ở bước
-            // này)
             PricingResult baseResult = pricingEngineService.calculateFinalSeatPrice(
                     showtime, ss.getSeat(), showtime.getBasePrice(), activeRules, seats.size(), 0);
 
-            // Note: Chúng ta cần giá 'đã qua điều chỉnh khung giờ/loại ghế' nhưng CHƯA trừ
-            // khuyến mãi.
-            // Thuật toán Vô địch sẽ tính mức giảm dựa trên giá đã điều chỉnh này.
             BigDecimal adjustedBase = baseResult.finalPrice().add(baseResult.discountAmount());
             baseSeatPrices.add(adjustedBase);
             totalTicketBasePrice = totalTicketBasePrice.add(adjustedBase);
@@ -150,8 +120,8 @@ public class BookingServiceImpl implements BookingService {
                 if (!combo.getIsAvailable())
                     throw new BadRequestException("Combo '" + combo.getName() + "' hiện không có sẵn");
 
-                BigDecimal subtotal = combo.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
-                totalComboBasePrice = totalComboBasePrice.add(subtotal);
+                BigDecimal totalComboPrice = combo.getPrice().multiply(BigDecimal.valueOf(item.getQuantity()));
+                totalComboBasePrice = totalComboBasePrice.add(totalComboPrice);
                 totalComboQty += item.getQuantity();
                 comboDataList.add(new BookingComboData(combo, item.getQuantity(), combo.getPrice()));
             }
@@ -163,79 +133,178 @@ public class BookingServiceImpl implements BookingService {
 
         BigDecimal promotionDiscount = bestPromo.discountAmount();
         String appliedPromoName = bestPromo.appliedPromotionName();
-        BigDecimal seatOriginalTotal = totalTicketBasePrice; // Tổng giá vé sau khi áp dụng rules cơ bản (Thứ/Giờ)
+        BigDecimal originalTotal = totalTicketBasePrice.add(totalComboBasePrice);
 
-        BigDecimal subtotal = totalTicketBasePrice.add(totalComboBasePrice).subtract(promotionDiscount);
+        BigDecimal amountAfterPromo = originalTotal.subtract(promotionDiscount);
         BigDecimal discountAmount = BigDecimal.ZERO;
         Voucher voucher = null;
+        String warningMessage = null;
 
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
-            voucher = voucherService.validateForOrder(request.getVoucherCode(), subtotal);
-            discountAmount = voucher.calculateDiscount(subtotal);
+            try {
+                voucher = voucherService.validateForOrder(request.getVoucherCode(), amountAfterPromo);
+                discountAmount = voucher.calculateDiscount(amountAfterPromo);
+            } catch (Exception e) {
+                // Trong quote, nếu voucher lỗi (hết hạn, ko đủ điều kiện) chúng ta chỉ hiện
+                // cảnh báo
+                // và vẫn cho user thấy giá gốc để mua tiếp.
+                warningMessage = "Mã giảm giá không hợp lệ hoặc đã hết hạn: " + e.getMessage();
+            }
         }
 
-        BigDecimal totalAmount = subtotal.subtract(discountAmount).max(BigDecimal.ZERO);
+        BigDecimal totalAmount = amountAfterPromo.subtract(discountAmount).max(BigDecimal.ZERO);
 
-        long earnedExp = totalAmount.divide(BigDecimal.valueOf(1000)).longValue();
-
-        // ── 3. Tạo Booking ────────────────────────────────────────────────
-        String finalBookingCode = generateBookingCode();
-        Booking booking = Booking.builder()
+        // Tạo transient booking object cho mapper
+        Booking transientBooking = Booking.builder()
                 .user(user)
                 .showtime(showtime)
-                .bookingCode(finalBookingCode)
                 .voucher(voucher)
                 .discountAmount(discountAmount)
                 .promotionDiscountAmount(promotionDiscount)
                 .appliedPromotionName(appliedPromoName)
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
+                .build();
+
+        BookingResponse response = buildFullResponse(transientBooking, seats, comboDataList, amountAfterPromo,
+                originalTotal,
+                promotionDiscount, appliedPromoName);
+        response.setWarningMessage(warningMessage);
+        return response;
+    }
+
+    @Override
+    public BookingResponse createBooking(UUID userId, BookingRequest request) {
+        // ── 1. Tính toán quote để lấy con số chính xác ──────────────────────
+        BookingResponse quote = calculateQuote(userId, request);
+
+        // ── 2. Chốt chặn bảo mật: Nếu quote có warning (Voucher xịt) -> Chặn luôn giao
+        // dịch thật
+        if (quote.getWarningMessage() != null) {
+            throw new BadRequestException(quote.getWarningMessage());
+        }
+
+        User user = userService.findById(userId);
+        Showtime showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
+        List<UUID> seatIds = request.getShowtimeSeatIds().stream().map(UUID::fromString).toList();
+        List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeAndIds(showtime.getId(), seatIds);
+
+        // ── 3. Xác định người thực hiện (Audit cho POS) ────────────────────
+        User processedBy = null;
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof UserDetails userDetails) {
+            User currentUser = userService.findByEmail(userDetails.getUsername());
+            if (currentUser.getRole() == UserRole.STAFF || currentUser.getRole() == UserRole.ADMIN) {
+                processedBy = currentUser;
+            }
+        }
+
+        // ── 4. Kiểm tra phương thức thanh toán ─────────────────────────────
+        PaymentMethod method = request.getPaymentMethod() != null ? request.getPaymentMethod() : PaymentMethod.VNPAY;
+        if (method == PaymentMethod.CASH && processedBy == null) {
+            throw new ForbiddenException("Chỉ nhân viên mới có quyền nhận tiền mặt");
+        }
+
+        // ── 5. Lock ghế ────────────────────────────────────────────────────
+        long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+        int pendingMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
+        if (minutesToStart <= 15 && minutesToStart >= -10) {
+            pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
+        }
+        LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
+
+        String tempBookingRef = UUID.randomUUID().toString();
+        List<String> lockedSoFar = new ArrayList<>();
+        try {
+            for (ShowtimeSeat ss : seats) {
+                if (ss.getStatus() != SeatStatus.AVAILABLE) {
+                    throw new BadRequestException(
+                            "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
+                }
+                boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
+                        Duration.ofMinutes(pendingMins));
+                if (!locked) {
+                    throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
+                            + " đang được giữ bởi người khác");
+                }
+                lockedSoFar.add(ss.getId().toString());
+            }
+        } catch (Exception e) {
+            seatLockService.releaseSeats(lockedSoFar);
+            throw e;
+        }
+
+        // ── 6. Tạo Booking ───────────────────────────────────────────────
+        Voucher voucher = quote.getVoucherCode() != null
+                ? voucherService.validateForOrder(quote.getVoucherCode(), quote.getSubtotal())
+                : null;
+
+        BookingStatus initialStatus = (method == PaymentMethod.CASH) ? BookingStatus.PAID : BookingStatus.PENDING;
+
+        Booking booking = Booking.builder()
+                .user(user)
+                .showtime(showtime)
+                .bookingCode(generateBookingCode())
+                .voucher(voucher)
+                .discountAmount(quote.getDiscountAmount())
+                .promotionDiscountAmount(quote.getPromotionDiscountAmount())
+                .appliedPromotionName(quote.getAppliedPromotionName())
+                .totalAmount(quote.getTotalAmount())
+                .status(initialStatus)
+                .paymentMethod(method)
+                .processedBy(processedBy)
                 .expiresAt(lockUntil)
-                .earnedExp(earnedExp)
+                .earnedExp(quote.getTotalAmount().divide(new BigDecimal(1000)).longValue())
                 .expAdded(false)
                 .build();
+
+        // Nếu là CASH, tạo QR luôn trước khi lưu
+        if (method == PaymentMethod.CASH) {
+            booking.setQrCode(qrCodeService.generateQrContent(booking));
+            booking.setExpAdded(true); // Đồng bộ điểm luôn
+        }
+
         booking = bookingRepository.save(booking);
 
-        // Update the Redis lock with final bookingId although it uses the same TTL
+        // Update Redis lock với bookingId thật
         for (ShowtimeSeat ss : seats) {
             seatLockService.lockSeat(ss.getId().toString(), booking.getId().toString(),
                     Duration.ofMinutes(pendingMins));
         }
 
-        // ── 4. Tạo BookingItem + Ticket ───────────────────────────────────
-        for (int i = 0; i < seats.size(); i++) {
-            ShowtimeSeat ss = seats.get(i);
-            // Quan trọng: Lưu giá vé đã tính các quy tắc cơ bản (Thành tiền tạm tính của
-            // vé)
-            // Khuyến mãi hệ thống sẽ được trừ ở cấp độ tổng đơn hàng (promotionDiscount)
-            BigDecimal seatPrice = baseSeatPrices.get(i);
-            BookingItem item = BookingItem.builder()
+        // ── 5. Tạo BookingItem + Ticket ───────────────────────────────────
+        for (BookingResponse.SeatItem sItem : quote.getSeats()) {
+            ShowtimeSeat ss = showtimeSeatRepository.findById(UUID.fromString(sItem.getShowtimeSeatId()))
+                    .orElseThrow(() -> new ResourceNotFoundException("Ghế suất chiếu", sItem.getShowtimeSeatId()));
+
+            BookingItem item = bookingItemRepository.save(BookingItem.builder()
                     .booking(booking)
                     .showtimeSeat(ss)
-                    .seatPrice(seatPrice)
-                    .build();
-            item = bookingItemRepository.save(item);
+                    .seatPrice(sItem.getPrice())
+                    .build());
 
-            Ticket ticket = Ticket.builder()
+            ticketRepository.save(Ticket.builder()
                     .booking(booking)
                     .bookingItem(item)
                     .isUsed(false)
-                    .build();
-            ticketRepository.save(ticket);
-        }
-
-        // ── 5. Tạo BookingCombo ───────────────────────────────────────────
-        for (BookingComboData data : comboDataList) {
-            bookingComboRepository.save(BookingCombo.builder()
-                    .booking(booking)
-                    .combo(data.combo)
-                    .quantity(data.quantity)
-                    .unitPrice(data.unitPrice)
                     .build());
         }
 
-        return buildFullResponse(booking, seats, comboDataList, subtotal, seatOriginalTotal.add(totalComboBasePrice),
-                promotionDiscount, appliedPromoName);
+        // ── 6. Tạo BookingCombo ───────────────────────────────────────────
+        if (quote.getCombos() != null) {
+            for (BookingResponse.ComboItem cItem : quote.getCombos()) {
+                Combo combo = comboRepository.findById(UUID.fromString(cItem.getComboId()))
+                        .orElseThrow(() -> new ResourceNotFoundException("Combo", cItem.getComboId()));
+                bookingComboRepository.save(BookingCombo.builder()
+                        .booking(booking)
+                        .combo(combo)
+                        .quantity(cItem.getQuantity())
+                        .unitPrice(cItem.getUnitPrice())
+                        .build());
+            }
+        }
+
+        return getDetail(userId, booking.getId());
     }
 
     // ── Lịch sử đặt vé ───────────────────────────────────────────────────
@@ -399,16 +468,16 @@ public class BookingServiceImpl implements BookingService {
         String qrContent = qrCodeService.generateQrContent(booking);
         booking.setQrCode(qrContent);
         booking.setStatus(BookingStatus.PAID);
-        
+
         // Cập nhật EXP và Hạng thành viên ngay khi thanh toán thành công
         if (!Boolean.TRUE.equals(booking.getExpAdded())) {
             User bookingUser = booking.getUser();
             long earnedExp = booking.getEarnedExp() != null ? booking.getEarnedExp() : 0L;
             long currentExp = bookingUser.getAvailableExp() != null ? bookingUser.getAvailableExp() : 0L;
-            
+
             bookingUser.setAvailableExp(currentExp + earnedExp);
             updateMembershipTier(bookingUser);
-            
+
             userService.save(bookingUser);
             booking.setExpAdded(true);
 
@@ -434,100 +503,85 @@ public class BookingServiceImpl implements BookingService {
                         userVoucherRepository.save(uv);
                     });
         }
+
+        // Send confirmation email
+        emailService.sendBookingConfirmationEmail(booking);
     }
 
     @Override
-    public void requestCancelBooking(UUID userId, UUID bookingId) {
+    public void cancelBooking(User actionUser, UUID bookingId) {
         Booking booking = findById(bookingId);
-        if (!booking.getUser().getId().equals(userId)) {
+        boolean isStaffOrAdmin = actionUser.getRole() == UserRole.STAFF || actionUser.getRole() == UserRole.ADMIN;
+
+        // 1. Quyền hạn: Customer chỉ hủy vé của mình
+        if (!isStaffOrAdmin && !booking.getUser().getId().equals(actionUser.getId())) {
             throw new BadRequestException("Bạn không có quyền huỷ đơn đặt vé này");
         }
         if (booking.getStatus() != BookingStatus.PAID) {
             throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
         }
 
-        // Điều kiện huỷ vé: trước giờ chiếu X tiếng (từ SystemConfig)
+        // 2. Kiểm tra thời gian: Customer phải hủy trước X giờ, Staff/Admin bypass
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
-        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+        if (!isStaffOrAdmin && LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
-        // Tạo cancellation token hết hạn sau 15 phút
-        String token = UUID.randomUUID().toString();
-        booking.setCancellationToken(token);
-        booking.setCancellationTokenExpiry(LocalDateTime.now().plusMinutes(15));
-        bookingRepository.save(booking);
-
-        // Gửi email
-        emailService.sendCancellationConfirmEmail(booking, token);
-    }
-
-    @Override
-    public void confirmCancelBooking(String token, UUID bookingId) {
-        Booking booking = findById(bookingId);
-
-        // Verify token
-        if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
-            throw new BadRequestException("Mã xác nhận huỷ vé không hợp lệ");
-        }
-        if (booking.getCancellationTokenExpiry() != null
-                && LocalDateTime.now().isAfter(booking.getCancellationTokenExpiry())) {
-            throw new BadRequestException("Mã xác nhận huỷ vé đã hết hạn");
-        }
-        if (booking.getStatus() != BookingStatus.PAID) {
-            throw new BadRequestException("Trạng thái đơn vé không hợp lệ");
+        // 3. Atomic Update: Chống double-click / race condition
+        int updatedRows = bookingRepository.cancelPaidBooking(bookingId);
+        if (updatedRows == 0) {
+            throw new BadRequestException("Đơn vé đã được hủy hoặc trạng thái không hợp lệ");
         }
 
-        // 1. Nhả ghế
+        // Refresh entity sau atomic update
+        booking = findById(bookingId);
+
+        // 4. Nhả ghế
         releaseSeats(bookingId);
 
-        // Thu hồi EXP (Rollback logic)
-        User actionUser = booking.getUser();
+        // 5. Thu hồi EXP
+        User bookingOwner = booking.getUser();
         if (Boolean.TRUE.equals(booking.getExpAdded())) {
             long revokeExp = booking.getEarnedExp() != null ? booking.getEarnedExp() : 0L;
             if (revokeExp > 0) {
-                long currentExp = actionUser.getAvailableExp() != null ? actionUser.getAvailableExp() : 0L;
-                actionUser.setAvailableExp(Math.max(0, currentExp - revokeExp));
-                updateMembershipTier(actionUser);
-                userService.save(actionUser);
-
-                // Ghi log thu hồi EXP
+                long currentExp = bookingOwner.getAvailableExp() != null ? bookingOwner.getAvailableExp() : 0L;
+                bookingOwner.setAvailableExp(Math.max(0, currentExp - revokeExp));
+                updateMembershipTier(bookingOwner);
                 userExpHistoryRepository.save(UserExpHistory.builder()
-                        .user(actionUser)
-                        .amount(-revokeExp)
-                        .reason("HUY_VE")
-                        .referenceId(booking.getBookingCode())
-                        .build());
+                        .user(bookingOwner).amount(-revokeExp)
+                        .reason("HUY_VE").referenceId(booking.getBookingCode()).build());
             }
             booking.setExpAdded(false);
+            bookingRepository.save(booking);
         }
 
-        // 2. Cập nhật booking status
-        booking.setStatus(BookingStatus.CANCELLED);
-        booking.setCancellationToken(null);
-        booking.setCancellationTokenExpiry(null);
-        booking.setEarnedExp(0L); // Cancel points
-        bookingRepository.save(booking);
-
-        // 3. Hoàn CinePoint cho user (tỷ lệ X% số tiền, mặc định 1000 VNĐ = 1 CinePoint)
-        User user = booking.getUser();
-        int refundPercent = systemConfigService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100);
+        // 6. Hoàn CP: Staff/Admin = 100%, Customer = SystemConfig %
+        int refundPercent = isStaffOrAdmin ? 100
+                : systemConfigService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100);
         long rewardPointsToAdd = (booking.getTotalAmount().longValue() * refundPercent / 100) / 1000;
-        long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
-        user.setRewardPoints(currentPoints + rewardPointsToAdd);
-        userService.save(user);
+        long currentPoints = bookingOwner.getRewardPoints() != null ? bookingOwner.getRewardPoints() : 0L;
+        bookingOwner.setRewardPoints(currentPoints + rewardPointsToAdd);
+        userService.save(bookingOwner);
 
-        // 4. Lưu lịch sử hoàn tiền
-        Transaction transaction = Transaction.builder()
-                .user(user)
+        // 7. Audit Log (Transaction)
+        String description = isStaffOrAdmin
+                ? "Nhân viên " + actionUser.getFullName() + " (ID: " + actionUser.getId() + ") hủy vé "
+                        + booking.getBookingCode() + ". Hoàn " + rewardPointsToAdd + " CP (100%)"
+                : "Khách hàng tự hủy vé " + booking.getBookingCode() + ". Hoàn " + rewardPointsToAdd + " CP ("
+                        + refundPercent + "%)";
+
+        transactionRepository.save(Transaction.builder()
+                .user(bookingOwner)
                 .amount(booking.getTotalAmount())
                 .type(TransactionType.REFUND)
                 .status(TransactionStatus.SUCCESS)
                 .referenceId(booking.getBookingCode())
-                .description("Hoàn trả CinePoint sau khi hủy vé " + booking.getBookingCode())
-                .build();
-        transactionRepository.save(transaction);
+                .description(description)
+                .build());
+
+        // 8. Gửi email thông báo
+        emailService.sendCancellationEmail(booking, description);
     }
 
     // ── Private ───────────────────────────────────────────────────────────
@@ -579,7 +633,7 @@ public class BookingServiceImpl implements BookingService {
         response.setScreenType(getScreenTypeName(booking));
 
         response.setSeats(seats.stream().map(ss -> BookingResponse.SeatItem.builder()
-                .showtimeSeatId(ss.getId().toString())
+                .showtimeSeatId(ss.getId() != null ? ss.getId().toString() : null)
                 .rowLabel(ss.getSeat().getRowLabel())
                 .colNumber(ss.getSeat().getColNumber())
                 .seatType(ss.getSeat().getSeatType().name())
@@ -587,7 +641,7 @@ public class BookingServiceImpl implements BookingService {
                 .build()).toList());
 
         response.setCombos(combos.stream().map(c -> BookingResponse.ComboItem.builder()
-                .comboId(c.combo.getId().toString())
+                .comboId(c.combo.getId() != null ? c.combo.getId().toString() : null)
                 .comboName(c.combo.getName())
                 .quantity(c.quantity)
                 .unitPrice(c.unitPrice)

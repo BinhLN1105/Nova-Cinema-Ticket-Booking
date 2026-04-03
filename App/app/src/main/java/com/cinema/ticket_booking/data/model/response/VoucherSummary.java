@@ -38,6 +38,10 @@ public class VoucherSummary {
         return minOrder;
     }
 
+    public double getMaxDiscount() {
+        return maxDiscount;
+    }
+
     public String getValidTo() {
         return validTo;
     }

@@ -11,6 +11,8 @@ import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentProfileBinding;
 import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
+import com.cinema.ticket_booking.ui.MainViewModel;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import javax.inject.Inject;
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -18,7 +20,7 @@ import dagger.hilt.android.AndroidEntryPoint;
 public class ProfileFragment extends Fragment {
 
     private FragmentProfileBinding binding;
-    private ProfileViewModel viewModel;
+    private MainViewModel viewModel; // Nova: Use activity-shared ViewModel
 
     @Inject
     TokenManager tokenManager;
@@ -32,59 +34,74 @@ public class ProfileFragment extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
-        viewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+
+        // Nova: Connect to the Activity-level ViewModel to share pre-fetched user data
+        viewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         updateUI(tokenManager.isLoggedIn());
 
-        // Observe profile to show data or handle errors
-        viewModel.getProfile().observe(getViewLifecycleOwner(), resource -> {
+        // Nova Optimization: Instant UI update if data is already in RAM
+        viewModel.getUserProfile().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null)
+                return;
+
             boolean isLoggedIn = tokenManager.isLoggedIn();
             if (resource.isSuccess() && resource.data != null && isLoggedIn) {
                 var user = resource.data;
                 binding.tvName.setText(user.getFullName());
                 binding.tvEmail.setText(user.getEmail());
-                binding.tvCinePoints.setText(String.valueOf(user.getCinePoints()));
-                if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
-                    Glide.with(this).load(user.getAvatarUrl()).circleCrop().into(binding.ivAvatar);
-                }
+                // Professional Membership Logic (Nova Algorithm - Refined for EXP/CP)
+                long exp = user.getAvailableExp();
+                long cp = user.getCinePoints();
 
-                int pts = user.getCinePoints();
                 long currentMin = user.getCurrentTierMinPoints() != null ? user.getCurrentTierMinPoints() : 0;
                 long nextMin = user.getNextTierMinPoints() != null ? user.getNextTierMinPoints() : 500;
 
-                String tier;
-                String nextTier;
-                if (currentMin >= 10000) {
-                    tier = "DIAMOND";
-                    nextTier = "MAX";
-                } else if (currentMin >= 3000) {
-                    tier = "GOLD";
-                    nextTier = "DIAMOND";
-                } else if (currentMin >= 500) {
-                    tier = "SILVER";
+                String tier = user.getRank() != null ? user.getRank() : "BRONZE";
+                String nextTier = "SILVER";
+                if (tier.equalsIgnoreCase("SILVER"))
                     nextTier = "GOLD";
-                } else {
-                    tier = "MEMBER";
-                    nextTier = "SILVER";
-                }
+                else if (tier.equalsIgnoreCase("GOLD"))
+                    nextTier = "DIAMOND";
+                else if (tier.equalsIgnoreCase("DIAMOND"))
+                    nextTier = "MAX";
 
-                long nextSub = nextMin - pts;
-                if (nextSub < 0 || currentMin >= 10000)
+                long nextSub = nextMin - exp;
+                if (nextSub < 0 || tier.equalsIgnoreCase("DIAMOND"))
                     nextSub = 0;
 
                 int progress = 100;
-                long diff = nextMin - currentMin;
-                if (diff > 0 && currentMin < 10000) {
-                    progress = (int) (((pts - currentMin) * 100) / diff);
+                long totalRange = nextMin - currentMin;
+                if (totalRange > 0 && !tier.equalsIgnoreCase("DIAMOND")) {
+                    progress = (int) (((exp - currentMin) * 100) / totalRange);
+                    if (progress < 0)
+                        progress = 0;
+                    if (progress > 100)
+                        progress = 100;
                 }
 
-                binding.tvTierBadge.setText("⭐ " + tier);
-                binding.tvCurrentTier.setText("CURRENT TIER: " + tier);
-                binding.tvPointsToNext.setText((nextSub > 0) ? (nextSub + " PTS TO " + nextTier) : "MAX TIER");
+                binding.tvTierBadge.setText("⭐ " + tier.toUpperCase());
+                binding.tvCurrentTier.setText("CẤP ĐỘ HIỆN TẠI: " + tier.toUpperCase());
+                binding.tvCinePoints.setText(String.valueOf(cp));
+                binding.tvPointsToNext
+                        .setText((nextSub > 0) ? (nextSub + " EXP ĐỂ LÊN " + nextTier) : "BẠN ĐÃ ĐẠT CẤP TỐI ĐA");
                 binding.progressBarRank.setProgress(progress);
 
-            } else if (resource.isError()) {
-                // Nếu lỗi 401 hoặc lỗi xác thực -> có thể token đã hết hạn hoặc stale
+                // Hiển thị ảnh đại diện (avatar)
+                if (user.getAvatarUrl() != null && !user.getAvatarUrl().isEmpty()) {
+                    binding.ivAvatar.clearColorFilter(); // Xóa tint để hiện đúng màu ảnh thật
+                    Glide.with(this)
+                            .load(user.getAvatarUrl())
+                            .transform(new com.bumptech.glide.load.resource.bitmap.CircleCrop())
+                            .placeholder(R.drawable.ic_profile)
+                            .error(R.drawable.ic_profile)
+                            .into(binding.ivAvatar);
+                } else {
+                    Glide.with(this).clear(binding.ivAvatar);
+                    binding.ivAvatar.setImageResource(R.drawable.ic_profile);
+                }
+
+            } else if (resource.isError() && isLoggedIn) {
                 if (resource.message != null && resource.message.contains("401")) {
                     tokenManager.clearAll();
                     updateUI(false);
@@ -100,35 +117,56 @@ public class ProfileFragment extends Fragment {
                 .setOnCheckedChangeListener((btn, isChecked) -> ThemeManager.setDarkMode(requireContext(), isChecked));
     }
 
+    private void switchToTab(int menuItemId) {
+        try {
+            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = requireActivity()
+                    .findViewById(R.id.bottomNav);
+            if (bottomNav != null) {
+                bottomNav.setSelectedItemId(menuItemId);
+            } else {
+                // Fallback to direct navigation if bottomNav is not accessible
+                if (menuItemId == R.id.bookingHistoryFragment) {
+                    Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_history);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
     private void updateUI(boolean loggedIn) {
         if (loggedIn) {
-            viewModel.loadProfile();
+            viewModel.loadUserProfile();
             binding.btnLogout.setText("ĐĂNG XUẤT");
             binding.btnLogout.setTextColor(getResources().getColor(R.color.error, null));
             binding.btnLogout.setStrokeColorResource(R.color.error);
             binding.btnLogout.setOnClickListener(v -> {
                 viewModel.logout();
-                // Khởi động lại ứng dụng để đưa người dùng về biểu đồ điều hướng (NavGraph) mặc định (Dành cho khách)
+                // Khởi động lại ứng dụng để đưa người dùng về biểu đồ điều hướng (NavGraph) mặc
+                // định (Dành cho khách)
                 requireActivity().finish();
-                startActivity(new android.content.Intent(requireActivity(), com.cinema.ticket_booking.ui.MainActivity.class));
+                startActivity(
+                        new android.content.Intent(requireActivity(), com.cinema.ticket_booking.ui.MainActivity.class));
             });
 
-            binding.btnNavHistory.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.bookingHistoryFragment));
+            binding.btnNavReviews.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
+            binding.btnNavHistory.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
+            binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment)); // Watchlist could map to
+                                                                                               // Search/Discover or
+                                                                                               // specific Screen
             binding.btnNavGiftCards.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
+
             binding.btnRedeem.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
             binding.rowNotifications.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.notificationFragment));
 
-            // Coming soon features
-            android.view.View.OnClickListener comingSoon = v -> android.widget.Toast
-                    .makeText(requireContext(), "Tính năng đang phát triển", android.widget.Toast.LENGTH_SHORT).show();
-            binding.btnNavWatchlist.setOnClickListener(comingSoon);
-            binding.btnNavReviews.setOnClickListener(comingSoon);
-            binding.rowChangePassword.setOnClickListener(comingSoon);
-            binding.btnEditProfile.setOnClickListener(comingSoon);
+            // Implementation of new fragments
+            binding.rowChangePassword.setOnClickListener(
+                    v -> Navigation.findNavController(requireView()).navigate(R.id.changePasswordFragment));
+            binding.btnEditProfile.setOnClickListener(
+                    v -> Navigation.findNavController(requireView()).navigate(R.id.editProfileFragment));
 
         } else {
             binding.tvName.setText("Chưa đăng nhập");

@@ -16,7 +16,6 @@ public class PromotionRequest {
 
     String description;
 
-    @NotBlank(message = "URL hình ảnh không được để trống")
     String imageUrl;
 
     String targetUrl;

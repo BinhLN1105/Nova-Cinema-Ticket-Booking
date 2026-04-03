@@ -7,9 +7,7 @@ import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.Movie;
 import com.cinema.ticket_booking.model.Review;
 import com.cinema.ticket_booking.model.User;
-import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.exception.BadRequestException;
-import com.cinema.ticket_booking.exception.ConflictException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.ReviewMapper;
 import com.cinema.ticket_booking.repository.ReviewRepository;
@@ -37,6 +35,14 @@ public class ReviewServiceImpl implements ReviewService {
 
     @Override
     @Transactional(readOnly = true)
+    public ReviewResponse getExistingReview(UUID userId, UUID movieId) {
+        return reviewRepository.findByUserIdAndMovieId(userId, movieId)
+                .map(reviewMapper::toResponse)
+                .orElse(null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<ReviewResponse> getByMovie(UUID movieId, Pageable pageable) {
         return PageResponse.of(
                 reviewRepository.findByMovieIdAndIsVisibleTrueOrderByCreatedAtDesc(movieId, pageable)
@@ -49,30 +55,41 @@ public class ReviewServiceImpl implements ReviewService {
         Movie movie = movieService.findById(UUID.fromString(request.getMovieId()));
         Booking booking = bookingService.findById(UUID.fromString(request.getBookingId()));
 
-        // Xác minh user đã thật sự xem phim
+        // 1. Kiểm tra tính hợp lệ cơ bản
         if (!booking.getUser().getId().equals(userId)) {
             throw new BadRequestException("Booking này không thuộc về bạn");
         }
         if (!booking.getShowtime().getMovie().getId().equals(movie.getId())) {
             throw new BadRequestException("Booking này không phải cho phim này");
         }
-        if (bookingService.getEligibleBookingForReview(userId, movie.getId()) == null) {
-            throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
+
+        // 2. Kiểm tra xem đã có review cho phim này chưa (1 Review / 1 Phim / 1
+        // Account)
+        var existingReviewOpt = reviewRepository.findByUserIdAndMovieId(userId, movie.getId());
+
+        Review review;
+        if (existingReviewOpt.isPresent()) {
+            // Cập nhật review cũ
+            review = existingReviewOpt.get();
+            review.setRating(request.getRating());
+            review.setComment(request.getComment());
+            review.setBooking(booking); // Cập nhật sang booking mới nhất (nếu muốn)
+        } else {
+            // Tạo review mới - Phải có vé đã xem
+            if (bookingService.getEligibleBookingForReview(userId, movie.getId()) == null) {
+                throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
+            }
+
+            review = Review.builder()
+                    .user(user)
+                    .movie(movie)
+                    .booking(booking)
+                    .rating(request.getRating())
+                    .comment(request.getComment())
+                    .isVisible(true)
+                    .build();
         }
 
-        // Mỗi booking chỉ review 1 lần
-        if (reviewRepository.existsByUserIdAndBookingId(userId, booking.getId())) {
-            throw new ConflictException("Bạn đã đánh giá phim này rồi");
-        }
-
-        Review review = Review.builder()
-                .user(user)
-                .movie(movie)
-                .booking(booking)
-                .rating(request.getRating())
-                .comment(request.getComment())
-                .isVisible(true)
-                .build();
         reviewRepository.save(review);
 
         // Cập nhật điểm trung bình phim

@@ -13,6 +13,9 @@ import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentSelectSeatBinding;
 import java.util.*;
+import java.text.SimpleDateFormat;
+import java.util.Locale;
+
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -23,6 +26,14 @@ public class SelectSeatFragment extends Fragment {
     private String showtimeId;
     private SeatMapResponse currentSeatMap;
     private long expireTime = 0;
+
+    // Polling for real-time seat status updates
+    private final android.os.Handler pollHandler = new android.os.Handler(android.os.Looper.getMainLooper());
+    private Runnable pollRunnable;
+    private static final long POLL_INTERVAL_MS = 12_000; // 12 seconds
+
+    // Map of showtimeSeatId -> seat button view (for efficient targeted updates)
+    private final Map<String, TextView> seatButtonMap = new HashMap<>();
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -44,14 +55,14 @@ public class SelectSeatFragment extends Fragment {
         String displayTime = rawTime;
         if (rawTime != null) {
             try {
-                java.text.SimpleDateFormat sdfIn;
+                SimpleDateFormat sdfIn;
                 if (rawTime.contains("T")) {
-                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
+                    sdfIn = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
                 } else {
-                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                    sdfIn = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
                 }
-                java.util.Date d = sdfIn.parse(rawTime);
-                java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("HH:mm - dd/MM/yyyy", java.util.Locale.getDefault());
+                Date d = sdfIn.parse(rawTime);
+                SimpleDateFormat sdfOut = new SimpleDateFormat("HH:mm - dd/MM/yyyy", Locale.getDefault());
                 displayTime = sdfOut.format(d);
             } catch (Exception e) {
                 // Ignore
@@ -61,6 +72,10 @@ public class SelectSeatFragment extends Fragment {
         binding.tvShowtimeInfo.setText(
                 SelectShowtimeViewModel.pendingMovieTitle + " • " + displayTime);
 
+        binding.btnBack.setOnClickListener(v -> {
+            Navigation.findNavController(view).popBackStack();
+        });
+
         binding.btnConfirm.setOnClickListener(v -> {
             if (viewModel.getSelectedSeatIds().isEmpty()) {
                 SnackbarHelper.showError(binding.getRoot(), "Vui lòng chọn ít nhất 1 ghế");
@@ -68,7 +83,7 @@ public class SelectSeatFragment extends Fragment {
             }
             SelectSeatViewModel.pendingSeatIds = new ArrayList<>(viewModel.getSelectedSeatIds());
             SelectSeatViewModel.pendingTotalAmount = viewModel.calculateTotal(currentSeatMap);
-            
+
             Bundle bundle = new Bundle();
             bundle.putLong("expireTime", expireTime);
             Navigation.findNavController(view).navigate(R.id.action_selectSeat_to_selectCombo, bundle);
@@ -82,7 +97,9 @@ public class SelectSeatFragment extends Fragment {
                     if (resource.data != null) {
                         currentSeatMap = resource.data;
                         expireTime = System.currentTimeMillis() + (long) resource.data.getSeatHoldMins() * 60 * 1000;
+                        seatButtonMap.clear();
                         renderSeatMap(resource.data);
+                        startPolling();
                     }
                 }
                 case ERROR -> {
@@ -91,6 +108,43 @@ public class SelectSeatFragment extends Fragment {
                 }
             }
         });
+
+        // Silent refresh observer — only updates changed seat colors
+        viewModel.getSeatRefresh().observe(getViewLifecycleOwner(), freshMap -> {
+            if (freshMap == null || freshMap.getSeats() == null) return;
+            currentSeatMap = freshMap;
+            boolean anyDeselected = false;
+            for (SeatMapResponse.SeatItem seat : freshMap.getSeats()) {
+                TextView btn = seatButtonMap.get(seat.getShowtimeSeatId());
+                if (btn == null) continue;
+                boolean isSelectedByMe = viewModel.getSelectedSeatIds().contains(seat.getShowtimeSeatId());
+                // If seat became taken but user had selected it, deselect
+                if (isSelectedByMe && ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus()))) {
+                    viewModel.getSelectedSeatIds().remove(seat.getShowtimeSeatId());
+                    isSelectedByMe = false;
+                    anyDeselected = true;
+                }
+                updateSeatButtonStyle(btn, seat, isSelectedByMe);
+            }
+            if (anyDeselected) {
+                SnackbarHelper.showError(binding.getRoot(), "Một số ghế bạn chọn vừa bị người khác đặt mất!");
+                updateSummary();
+            }
+        });
+    }
+
+    private void startPolling() {
+        if (pollRunnable != null) pollHandler.removeCallbacks(pollRunnable);
+        pollRunnable = new Runnable() {
+            @Override
+            public void run() {
+                if (binding != null) {
+                    viewModel.refreshSeatStatuses();
+                    pollHandler.postDelayed(this, POLL_INTERVAL_MS);
+                }
+            }
+        };
+        pollHandler.postDelayed(pollRunnable, POLL_INTERVAL_MS);
     }
 
     private void renderSeatMap(SeatMapResponse seatMap) {
@@ -111,20 +165,16 @@ public class SelectSeatFragment extends Fragment {
         int margin = (int) (getResources().getDisplayMetrics().density * 3);
 
         for (int r = 0; r < totalRows; r++) {
-            // Check if this row has any seats. If NOT, skip rendering the entire row
-            boolean hasSeats = false;
+            // Determine row label: scan seats in this row to find the label char
             String label = String.valueOf((char) ('A' + r));
             for (int c = 0; c < totalCols; c++) {
                 SeatMapResponse.SeatItem s = seatGrid.get(r + "_" + c);
-                if (s != null) {
-                    hasSeats = true;
-                    if (s.getSeatLabel() != null && !s.getSeatLabel().isEmpty()) {
-                        label = String.valueOf(s.getSeatLabel().charAt(0));
-                    }
+                if (s != null && s.getSeatLabel() != null && !s.getSeatLabel().isEmpty()) {
+                    label = String.valueOf(s.getSeatLabel().charAt(0));
                     break;
                 }
             }
-            if (!hasSeats) continue;
+            // Always render the row (including empty rows) so the seat map is consistent
 
             LinearLayout row = new LinearLayout(requireContext());
             row.setOrientation(LinearLayout.HORIZONTAL);
@@ -148,7 +198,7 @@ public class SelectSeatFragment extends Fragment {
                     String seatText = seat.getSeatLabel() != null && seat.getSeatLabel().length() > 1
                             ? seat.getSeatLabel().substring(1)
                             : String.valueOf(seat.getColNumber());
-                    
+
                     seatBtn.setText(seatText);
                     seatBtn.setGravity(android.view.Gravity.CENTER);
                     seatBtn.setTextSize(10f);
@@ -157,7 +207,11 @@ public class SelectSeatFragment extends Fragment {
                     lp.setMargins(margin, 0, margin, 0);
                     seatBtn.setLayoutParams(lp);
 
-                    updateSeatButtonStyle(seatBtn, seat, false);
+                    // Track this button for real-time updates
+                    seatButtonMap.put(seat.getShowtimeSeatId(), seatBtn);
+
+                    boolean isInitiallySelected = viewModel.getSelectedSeatIds().contains(seat.getShowtimeSeatId());
+                    updateSeatButtonStyle(seatBtn, seat, isInitiallySelected);
 
                     seatBtn.setOnClickListener(v -> {
                         boolean toggled = viewModel.toggleSeat(seat);
@@ -187,6 +241,10 @@ public class SelectSeatFragment extends Fragment {
             binding.seatContainer.addView(row);
         }
         updateSummary();
+
+        binding.zoomLayout.post(() -> {
+            binding.zoomLayout.zoomTo(1.0f, false);
+        });
     }
 
     private void updateSeatButtonStyle(TextView tv, SeatMapResponse.SeatItem seat, boolean selected) {
@@ -203,12 +261,12 @@ public class SelectSeatFragment extends Fragment {
             colorRes = R.color.seat_available;
 
         int color = getResources().getColor(colorRes, null);
-        
+
         android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
         gd.setColor(color);
         float radius = getResources().getDisplayMetrics().density * 6;
         gd.setCornerRadius(radius);
-        
+
         if (!selected && !"BOOKED".equals(seat.getStatus())) {
             gd.setStroke(2, getResources().getColor(R.color.outline_variant, null));
         }
@@ -228,6 +286,9 @@ public class SelectSeatFragment extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
+        if (pollRunnable != null) {
+            pollHandler.removeCallbacks(pollRunnable);
+        }
         binding = null;
     }
 }

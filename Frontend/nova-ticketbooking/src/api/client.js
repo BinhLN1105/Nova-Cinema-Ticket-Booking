@@ -7,8 +7,8 @@ const BASE_URL = import.meta.env.VITE_API_URL || "/api/v1";
 export const apiClient = axios.create({
   baseURL: BASE_URL,
   timeout: 15_000,
-  headers: { "Content-Type": "application/json" },
 });
+
 
 // Request interceptor — inject access token
 apiClient.interceptors.request.use(
@@ -87,8 +87,9 @@ apiClient.interceptors.response.use(
 // Typed API helper
 export const api = {
   get: (url, params) => apiClient.get(url, { params }).then((r) => r.data.data),
-  post: (url, data) => apiClient.post(url, data).then((r) => r.data.data),
-  put: (url, data) => apiClient.put(url, data).then((r) => r.data.data),
-  patch: (url, data) => apiClient.patch(url, data).then((r) => r.data.data),
-  delete: (url) => apiClient.delete(url).then((r) => r.data.data),
+  post: (url, data, config) => apiClient.post(url, data, config).then((r) => r.data.data),
+  put: (url, data, config) => apiClient.put(url, data, config).then((r) => r.data.data),
+  patch: (url, data, config) => apiClient.patch(url, data, config).then((r) => r.data.data),
+  delete: (url, config) => apiClient.delete(url, config).then((r) => r.data.data),
 };
+

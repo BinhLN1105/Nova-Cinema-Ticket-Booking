@@ -8,6 +8,7 @@ import java.util.Map;
 
 import retrofit2.Call;
 import retrofit2.http.*;
+import okhttp3.MultipartBody;
 
 public interface ApiService {
 
@@ -27,12 +28,28 @@ public interface ApiService {
         @POST("auth/logout")
         Call<ApiResponse<Void>> logout(@Body RefreshTokenRequest request);
 
+        @POST("auth/forgot-password")
+        Call<ApiResponse<Void>> forgotPassword(@Body ForgotPasswordRequest request);
+
+        @POST("auth/verify-otp")
+        Call<ApiResponse<String>> verifyOtp(@Body Map<String, String> body);
+
+        @POST("auth/reset-password")
+        Call<ApiResponse<Void>> resetPassword(@Body ResetPasswordRequest request);
+
         // ── User ─────────────────────────────────────────────────────────────
         @GET("users/me")
         Call<ApiResponse<UserResponse>> getMyProfile();
 
         @PATCH("users/me")
         Call<ApiResponse<UserResponse>> updateProfile(@Body UpdateProfileRequest request);
+
+        @Multipart
+        @POST("users/me/avatar")
+        Call<ApiResponse<UserResponse>> uploadAvatar(@Part MultipartBody.Part file);
+
+        @PUT("users/me/password")
+        Call<ApiResponse<Void>> changePassword(@Body Map<String, String> body);
 
         @PATCH("users/me/fcm-token")
         Call<ApiResponse<Void>> updateFcmToken(@Query("token") String token);
@@ -54,7 +71,7 @@ public interface ApiService {
         Call<ApiResponse<MovieDetail>> getMovieDetail(@Path("id") String id);
 
         @GET("movies/{id}/can-review")
-        Call<ApiResponse<String>> canReview(@Path("id") String id);
+        Call<ApiResponse<CanReviewResponse>> canReview(@Path("id") String id);
 
         @GET("movies/cinema/{cinemaId}")
         Call<ApiResponse<List<MovieSummary>>> getNowShowingByCinema(@Path("cinemaId") String cinemaId);
@@ -83,6 +100,9 @@ public interface ApiService {
         @POST("bookings")
         Call<ApiResponse<BookingResponse>> createBooking(@Body BookingRequest request);
 
+        @POST("bookings/quote")
+        Call<ApiResponse<BookingResponse>> getBookingQuote(@Body BookingRequest request);
+
         @GET("bookings/me")
         Call<ApiResponse<PageResponse<BookingSummary>>> getMyBookings(
                         @Query("page") int page,
@@ -94,7 +114,10 @@ public interface ApiService {
         @POST("bookings/check-in")
         Call<ApiResponse<CheckInResponse>> checkIn(@Query("qrCode") String qrCode);
 
-        @DELETE("bookings/{id}")
+        @GET("bookings/cancel-policy")
+        Call<ApiResponse<Map<String, Object>>> getCancelPolicy();
+
+        @POST("bookings/{id}/cancel")
         Call<ApiResponse<Void>> cancelBooking(@Path("id") String id);
 
         // ── Payment ───────────────────────────────────────────────────────────

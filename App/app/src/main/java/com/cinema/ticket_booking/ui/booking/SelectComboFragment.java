@@ -1,17 +1,21 @@
 package com.cinema.ticket_booking.ui.booking;
 
 import android.os.Bundle;
+import android.util.Log;
 import android.view.*;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
+import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.ComboResponse;
 import com.cinema.ticket_booking.databinding.FragmentSelectComboBinding;
+import com.cinema.ticket_booking.util.Resource;
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.List;
 
@@ -21,7 +25,6 @@ public class SelectComboFragment extends Fragment {
     private FragmentSelectComboBinding binding;
     private SelectComboViewModel viewModel;
     private ComboAdapter adapter;
-    private List<ComboResponse> currentCombos;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -35,60 +38,93 @@ public class SelectComboFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(SelectComboViewModel.class);
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
-        
-        // Show pending movie title
         binding.tvMovieTitle.setText(SelectShowtimeViewModel.pendingMovieTitle);
 
-        binding.btnSkip.setOnClickListener(v -> {
-            SelectComboViewModel.pendingCombos.clear();
-            
-            Bundle bundle = new Bundle();
-            if (getArguments() != null) {
-                bundle.putLong("expireTime", getArguments().getLong("expireTime"));
-            }
-            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
-        });
+        setupRecyclerView();
+        observeViewModel();
+        setupClickListeners();
+    }
 
-        binding.btnContinue.setOnClickListener(v -> {
-            SelectComboViewModel.pendingCombos.clear();
-            SelectComboViewModel.pendingCombos.putAll(viewModel.getSelectedCombos());
-            
-            Bundle bundle = new Bundle();
-            if (getArguments() != null) {
-                bundle.putLong("expireTime", getArguments().getLong("expireTime"));
-            }
-            Navigation.findNavController(view).navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
-        });
-
+    private void setupRecyclerView() {
         binding.rvCombos.setLayoutManager(new LinearLayoutManager(requireContext()));
+    }
 
+    private void observeViewModel() {
         viewModel.getCombos().observe(getViewLifecycleOwner(), resource -> {
             binding.progressBar.setVisibility(resource.isLoading() ? View.VISIBLE : View.GONE);
             if (resource.isSuccess() && resource.data != null) {
-                currentCombos = resource.data;
-                adapter = new ComboAdapter(resource.data, 
-                    comboId -> {
-                        viewModel.addCombo(comboId);
-                        updateTotal();
-                    }, 
-                    comboId -> {
-                        viewModel.removeCombo(comboId);
-                        updateTotal();
-                    }, 
-                    viewModel.getSelectedCombos());
+                adapter = new ComboAdapter(resource.data,
+                        comboId -> {
+                            viewModel.addCombo(comboId);
+                            updateItemSelectedCount();
+                        },
+                        comboId -> {
+                            viewModel.removeCombo(comboId);
+                            updateItemSelectedCount();
+                        },
+                        viewModel.getSelectedCombos());
                 binding.rvCombos.setAdapter(adapter);
-                updateTotal();
+                updateItemSelectedCount();
             } else if (resource.isError()) {
                 SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
+
+        // Instant Total Calculation (Optimistic UI)
+        viewModel.getLocalTotal().observe(getViewLifecycleOwner(), total -> {
+            binding.tvTotal.setText(String.format(java.util.Locale.getDefault(), "%,.0fđ", total));
+        });
     }
 
-    private void updateTotal() {
-        if (currentCombos == null) return;
-        double total = viewModel.calculateTotalCombos(currentCombos);
-        binding.tvTotal.setText(String.format("%,.0fđ", total));
+    private void setupClickListeners() {
+        binding.btnSkip.setOnClickListener(v -> handleContinue());
+        binding.btnContinue.setOnClickListener(v -> handleContinue());
+    }
 
+    private void handleContinue() {
+        // Show loading state for the final transition quote
+        showLoading(true);
+
+        viewModel.getFinalQuote().observe(getViewLifecycleOwner(), resource -> {
+            if (resource.getStatus() == Resource.Status.SUCCESS && resource.getData() != null) {
+                navigateToConfirm(resource.getData());
+            } else if (resource.getStatus() == Resource.Status.ERROR) {
+                showLoading(false);
+                SnackbarHelper.showError(binding.getRoot(), 
+                    resource.getMessage() != null ? resource.getMessage() : "Lỗi tính toán giá cuối cùng");
+            }
+        });
+    }
+
+    private void navigateToConfirm(com.cinema.ticket_booking.data.model.response.BookingResponse quote) {
+        Bundle bundle = new Bundle();
+        if (getArguments() != null) {
+            bundle.putLong("expireTime", getArguments().getLong("expireTime"));
+        }
+        
+        // Pass the Parcelable quote to the next screen
+        bundle.putParcelable("initialQuote", quote);
+        
+        NavHostFragment.findNavController(this)
+                .navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
+    }
+
+    private void showLoading(boolean isLoading) {
+        binding.progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
+        binding.btnContinue.setEnabled(!isLoading);
+        binding.btnSkip.setEnabled(!isLoading);
+        binding.btnBack.setEnabled(!isLoading);
+        
+        if (isLoading) {
+            binding.btnContinue.setAlpha(0.6f);
+            binding.btnContinue.setText("Đang xử lý...");
+        } else {
+            binding.btnContinue.setAlpha(1.0f);
+            binding.btnContinue.setText("Tiếp tục");
+        }
+    }
+
+    private void updateItemSelectedCount() {
         int items = 0;
         for (Integer qty : viewModel.getSelectedCombos().values()) {
             items += qty;

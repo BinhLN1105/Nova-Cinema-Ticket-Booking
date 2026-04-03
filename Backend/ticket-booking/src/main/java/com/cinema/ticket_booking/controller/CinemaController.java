@@ -15,7 +15,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -35,6 +37,13 @@ public class CinemaController {
     public ResponseEntity<ApiResponse<List<CinemaResponse>>> getAll(
             @RequestParam(required = false) String city) {
         return ResponseEntity.ok(ApiResponse.success(cinemaService.getAll(city)));
+    }
+
+    // GET /api/v1/cinemas/admin [ADMIN]
+    @GetMapping("/admin")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<List<CinemaResponse>>> getAllForAdmin() {
+        return ResponseEntity.ok(ApiResponse.success(cinemaService.getAllForAdmin()));
     }
 
     // GET /api/v1/cinemas/{id}
@@ -61,12 +70,50 @@ public class CinemaController {
         return ResponseEntity.ok(ApiResponse.success(cinemaService.update(id, request), "Cập nhật thành công"));
     }
 
+    // POST /api/v1/cinemas/{id}/image [ADMIN]
+    @PostMapping("/{id}/image")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CinemaResponse>> uploadImage(
+            @PathVariable UUID id,
+            @RequestParam("file") MultipartFile file) throws IOException {
+
+        if (file.isEmpty())
+            throw new IllegalArgumentException("Vui lòng chọn file ảnh");
+        if (file.getSize() > 10 * 1024 * 1024)
+            throw new IllegalArgumentException("Dung lượng ảnh tối đa 10MB");
+
+        return ResponseEntity.ok(ApiResponse.success(
+                cinemaService.updateImage(id, file),
+                "Tải lên ảnh rạp thành công"));
+    }
+
+    @PostMapping("/{id}/image-url")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<CinemaResponse>> uploadImageViaUrl(
+            @PathVariable UUID id,
+            @RequestBody Map<String, String> request) throws IOException {
+        String url = request.get("url");
+        if (url == null || url.isBlank())
+            throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+
+        return ResponseEntity.ok(ApiResponse.success(
+                cinemaService.updateImageFromUrl(id, url),
+                "Cập nhật ảnh rạp từ URL thành công"));
+    }
+
+    // PATCH /api/v1/cinemas/{id}/status [ADMIN]
+    @PatchMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    public ResponseEntity<ApiResponse<CinemaResponse>> toggleStatus(@PathVariable UUID id) {
+        return ResponseEntity.ok(ApiResponse.success(cinemaService.toggleStatus(id), "Cập nhật trạng thái thành công"));
+    }
+
     // DELETE /api/v1/cinemas/{id} [ADMIN]
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable UUID id) {
-        cinemaService.deactivate(id);
-        return ResponseEntity.ok(ApiResponse.success(null, "Đã vô hiệu hoá rạp"));
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
+        cinemaService.delete(id);
+        return ResponseEntity.ok(ApiResponse.success(null, "Đã xoá rạp thành công"));
     }
 
     // ── Screen (nested resource) ──────────────────────────────────────────
@@ -134,8 +181,7 @@ public class CinemaController {
                 "gridRow", s.getGridRow(),
                 "gridCol", s.getGridCol(),
                 "seatLabel", s.getSeatLabel(),
-                "seatType", s.getSeatType().name()
-        )).toList();
+                "seatType", s.getSeatType().name())).toList();
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

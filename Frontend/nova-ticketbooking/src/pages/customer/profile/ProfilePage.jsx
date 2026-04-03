@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
 import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard, Gift } from 'lucide-react'
-import { bookingApi, notificationApi } from '@/api/endpoints'
+import { bookingApi, notificationApi, userApi } from '@/api/endpoints'
 import { api } from '@/api/client'
+import ImageUploader from '@/components/admin/ImageUploader'
 import { SecurityTab } from '@/components/customer/SecurityTab'
 import { AppearanceTab } from '@/components/customer/AppearanceTab'
 import { useAuth } from '@/hooks'
@@ -52,6 +53,7 @@ export default function ProfilePage() {
   const hasHandledTopup = useRef(false)
   const [isPushEnabled, setIsPushEnabled] = useState(!!user?.fcmToken)
   const [isTogglingPush, setIsTogglingPush] = useState(false)
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   useEffect(() => {
     const topupStatus = searchParams.get('topup')
@@ -109,6 +111,26 @@ export default function ProfilePage() {
     }
   }
 
+  // Handle Avatar Upload
+  const handleAvatarUpload = async (source, type) => {
+    setIsUploadingAvatar(true)
+    try {
+      let res;
+      if (type === 'file') {
+        res = await userApi.uploadAvatar(source)
+      } else {
+        res = await userApi.uploadAvatarUrl(source)
+      }
+      // Update global store
+      setUser({ ...user, avatarUrl: res.avatarUrl })
+      toast.success('Cập nhật ảnh đại diện thành công')
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Không thể cập nhật ảnh đại diện')
+    } finally {
+      setIsUploadingAvatar(false)
+    }
+  }
+
   // Update profile via API
   const updateMutation = useMutation({
     mutationFn: (data) => api.patch('/users/me', data),
@@ -136,8 +158,12 @@ export default function ProfilePage() {
         <div className="flex items-center gap-5 mb-8">
           <div className="relative">
             <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600
-              flex items-center justify-center text-white font-bold text-3xl font-display shadow-glow-red">
-              {user?.fullName?.[0]?.toUpperCase() ?? '?'}
+              flex items-center justify-center text-white font-bold text-3xl font-display shadow-glow-red overflow-hidden border-2 border-white/10">
+              {user?.avatarUrl ? (
+                <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                user?.fullName?.[0]?.toUpperCase() ?? '?'
+              )}
             </div>
           </div>
           <div>
@@ -286,6 +312,20 @@ export default function ProfilePage() {
               </div>
 
               <div className="space-y-5">
+                <div>
+                  <label className="text-cinema-200 text-sm font-semibold mb-2 block">Cập nhật ảnh đại diện</label>
+                  <div className="max-w-md">
+                    <ImageUploader 
+                      label=""
+                      value={user?.avatarUrl}
+                      onUpload={handleAvatarUpload}
+                      isLoading={isUploadingAvatar}
+                      aspectRatio="1:1"
+                      helperText="Ảnh vuông (1:1) là tốt nhất."
+                    />
+                  </div>
+                </div>
+
                 {/* Họ và tên */}
                 <div>
                   <label className="text-cinema-200 text-sm font-semibold mb-2 block">Họ và tên</label>

@@ -25,9 +25,9 @@ public class NetworkModule {
     public OkHttpClient provideOkHttpClient(AuthInterceptor authInterceptor,
                                              TokenAuthenticator tokenAuthenticator) {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
+                .connectTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .writeTimeout(60, TimeUnit.SECONDS)
                 .addInterceptor(authInterceptor)
                 .authenticator(tokenAuthenticator);
 

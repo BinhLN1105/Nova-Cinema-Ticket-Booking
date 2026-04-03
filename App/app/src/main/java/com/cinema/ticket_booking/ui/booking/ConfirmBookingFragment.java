@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.ui.booking;
 
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.view.*;
 import android.widget.Toast;
 import androidx.annotation.*;
@@ -13,6 +14,9 @@ import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentConfirmBookingBinding;
 import java.util.*;
+import java.util.Locale;
+import java.text.SimpleDateFormat;
+import java.text.ParseException;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -20,7 +24,7 @@ public class ConfirmBookingFragment extends Fragment {
 
     private FragmentConfirmBookingBinding binding;
     private ConfirmBookingViewModel viewModel;
-    private android.os.CountDownTimer countDownTimer;
+    private CountDownTimer countDownTimer;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater i, ViewGroup c, Bundle s) {
@@ -49,8 +53,10 @@ public class ConfirmBookingFragment extends Fragment {
         String dateStr = SelectShowtimeViewModel.pendingShowDate;
         if (dateStr != null) {
             try {
-                java.util.Date date = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).parse(dateStr);
-                binding.tvShowDate.setText(new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(date));
+                java.util.Date date = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                        .parse(dateStr);
+                binding.tvShowDate.setText(
+                        new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(date));
             } catch (Exception e) {
                 binding.tvShowDate.setText(dateStr);
             }
@@ -62,8 +68,6 @@ public class ConfirmBookingFragment extends Fragment {
                     .placeholder(R.drawable.ic_movie_placeholder)
                     .into(binding.ivPoster);
         }
-
-        updatePriceSummary();
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
@@ -79,8 +83,7 @@ public class ConfirmBookingFragment extends Fragment {
             binding.etVoucher.setText("");
             binding.tvVoucherInfo.setVisibility(View.GONE);
             binding.btnClearVoucher.setVisibility(View.GONE);
-            updatePriceSummary();
-            
+
             SnackbarHelper.showWithAction(binding.getRoot(), "Đã gỡ mã giảm giá", "HOÀN TÁC", v2 -> {
                 binding.etVoucher.setText(lastCode);
                 viewModel.validateVoucher(lastCode);
@@ -89,8 +92,20 @@ public class ConfirmBookingFragment extends Fragment {
 
         // Xác nhận đặt vé
         binding.btnConfirmBooking.setOnClickListener(v -> {
-            viewModel.confirmBooking(SelectShowtimeViewModel.pendingShowtimeId);
+            viewModel.confirmBooking();
         });
+
+        // ── Seed dữ liệu ban đầu từ Parcelable (Không gọi API lại nữa) ─────
+        if (getArguments() != null) {
+            BookingResponse initialQuote = getArguments().getParcelable("initialQuote");
+            if (initialQuote != null) {
+                viewModel.setInitialQuote(initialQuote);
+            } else {
+                viewModel.refreshQuote(); // Fallback nếu không có data (đi đường tắt)
+            }
+        } else {
+            viewModel.refreshQuote();
+        }
 
         // Khởi tạo đếm ngược dựa trên expireTime từ Bundle
         if (getArguments() != null) {
@@ -117,16 +132,15 @@ public class ConfirmBookingFragment extends Fragment {
                 binding.tvVoucherInfo.setText("✓ " + resource.data.getDescription());
                 binding.tvVoucherInfo.setVisibility(View.VISIBLE);
                 binding.btnClearVoucher.setVisibility(View.VISIBLE);
-                updatePriceSummary();
                 SnackbarHelper.showSuccess(binding.getRoot(), "Áp dụng mã giảm giá thành công!");
             } else if (resource.isError()) {
                 SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
-        
-        viewModel.getCombos().observe(getViewLifecycleOwner(), resource -> {
-            if (resource != null && resource.isSuccess()) {
-                updatePriceSummary();
+
+        viewModel.getQuoteResult().observe(getViewLifecycleOwner(), resource -> {
+            if (resource != null && resource.isSuccess() && resource.data != null) {
+                updatePriceDetails(resource.data);
             }
         });
 
@@ -154,20 +168,53 @@ public class ConfirmBookingFragment extends Fragment {
         });
     }
 
-    private void updatePriceSummary() {
-        double subtotal = SelectSeatViewModel.pendingTotalAmount + viewModel.calculateComboTotal();
-        double discount = viewModel.calculateDiscount(subtotal);
-        double total = subtotal - discount;
-        binding.tvSubtotal.setText(String.format("%,.0f", subtotal));
-        binding.tvDiscount.setText(discount > 0 ? "-" + String.format("%,.0f", discount) : "0");
-        binding.tvTotal.setText(String.format("%,.0f", total));
+    private void updatePriceDetails(BookingResponse quote) {
+        Locale locale = Locale.getDefault();
+
+        // 1. Tiền vé + Combo (Gốc)
+        binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫", quote.getTotalOriginalAmount()));
+
+        // 2. Khuyến mãi hệ thống
+        double promo = quote.getPromotionDiscountAmount();
+        double voucherDiscount = quote.getDiscountAmount();
+
+        // Hiển thị KM hệ thống
+        if (promo > 0) {
+            binding.tvPromotion.setVisibility(View.VISIBLE);
+            binding.tvPromotion.setText(String.format(locale, "🎁 %s: -%,.0f ₫",
+                    quote.getAppliedPromotionName() != null ? quote.getAppliedPromotionName() : "Khuyến mãi", promo));
+        } else {
+            binding.tvPromotion.setVisibility(View.GONE);
+        }
+
+        // Hiển thị Voucher
+        if (voucherDiscount > 0) {
+            binding.tvDiscount.setVisibility(View.VISIBLE);
+            binding.tvDiscount.setText(String.format(locale, "🎫 Voucher: -%,.0f ₫", voucherDiscount));
+        } else {
+            binding.tvDiscount.setVisibility(View.GONE);
+        }
+
+        // Hiển thị cảnh báo voucher (nếu có)
+        if (quote.getWarningMessage() != null) {
+            binding.tvVoucherInfo.setText("⚠️ " + quote.getWarningMessage());
+            binding.tvVoucherInfo.setTextColor(
+                    getResources().getColor(R.id.btnBack != 0 ? R.color.primary : android.R.color.holo_red_dark));
+            binding.tvVoucherInfo.setVisibility(View.VISIBLE);
+        } else if (viewModel.getVoucher().getValue() != null && viewModel.getVoucher().getValue().isSuccess()) {
+            binding.tvVoucherInfo.setTextColor(getResources().getColor(android.R.color.black));
+        }
+
+        // 3. Tổng cộng
+        binding.tvTotal.setText(String.format(locale, "%,.0f ₫", quote.getTotalAmount()));
     }
 
     private void startCountdown(long duration) {
         countDownTimer = new android.os.CountDownTimer(duration, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
-                if (binding == null) return;
+                if (binding == null)
+                    return;
                 long minutes = millisUntilFinished / 1000 / 60;
                 long seconds = (millisUntilFinished / 1000) % 60;
                 binding.tvTimer.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds));

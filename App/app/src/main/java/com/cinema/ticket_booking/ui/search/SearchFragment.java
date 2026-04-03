@@ -17,6 +17,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentSearchBinding;
@@ -72,8 +73,11 @@ public class SearchFragment extends Fragment {
                         binding.tvEmpty.setVisibility(View.GONE);
                         binding.rvCinemas.setVisibility(View.VISIBLE);
                         binding.rvCinemas.setAdapter(new CinemaAdapter(resource.data, cinema -> {
-                            // Navigate to Cinema Details later if needed
-                            SnackbarHelper.showSuccess(binding.getRoot(), "Chọn " + cinema.getName());
+                            // Nova: Navigate to professional Cinema Detail page
+                            Bundle args = new Bundle();
+                            args.putString("cinemaId", cinema.getId());
+                            args.putString("cinemaName", cinema.getName());
+                            Navigation.findNavController(view).navigate(R.id.cinemaDetailFragment, args);
                         }));
                     }
                 }
@@ -88,19 +92,21 @@ public class SearchFragment extends Fragment {
 
         binding.locationLayout.setOnClickListener(v -> {
             // Manual selection fallback
-            String[] cities = { "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ" };
+            String[] displayCities = { "Toàn quốc", "Hà Nội", "Hồ Chí Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ" };
+            String[] queryCities = { "", "Hà Nội", "Ho Chi Minh", "Đà Nẵng", "Hải Phòng", "Cần Thơ" };
             new AlertDialog.Builder(requireContext())
                     .setTitle("Chọn khu vực")
-                    .setItems(cities, (dialog, which) -> {
-                        String selectedCity = cities[which];
-                        binding.tvLocation.setText(selectedCity + " ▼");
-                        viewModel.loadCinemas(selectedCity);
+                    .setItems(displayCities, (dialog, which) -> {
+                        String selectedDisplay = displayCities[which];
+                        String selectedQuery = queryCities[which];
+                        binding.tvLocation.setText(selectedDisplay + " ▼");
+                        viewModel.loadCinemas(selectedQuery);
                     })
                     .show();
         });
 
         // Tải mặc định tất cả rạp
-        viewModel.loadCinemas(null);
+        viewModel.loadCinemas("");
     }
 
     private void checkLocationPermission() {
@@ -135,6 +141,11 @@ public class SearchFragment extends Fragment {
                 if (city != null) {
                     city = city.replace("Thành phố ", "").replace("Tỉnh ", "").trim();
                     binding.tvLocation.setText(city + " ▼");
+                    
+                    if (city.equals("Hồ Chí Minh")) {
+                        city = "Ho Chi Minh";
+                    }
+                    
                     viewModel.loadCinemas(city);
                     return;
                 }

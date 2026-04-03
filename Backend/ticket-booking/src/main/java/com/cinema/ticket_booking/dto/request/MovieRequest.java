@@ -41,6 +41,7 @@ public class MovieRequest {
     private String rated;
 
     private String posterUrl;
+    private String backdropUrl;
     private String trailerUrl;
 
     @NotNull(message = "Trạng thái không được để trống")

@@ -30,14 +30,31 @@
             android:textSize="14sp"
             android:text="Bot reply"/>
 
-        <com.airbnb.lottie.LottieAnimationView
-            android:id="@+id/loadingIndicator"
-            android:layout_width="40dp"
-            android:layout_height="20dp"
-            android:visibility="gone"
-            app:lottie_rawRes="@raw/typing_indicator"
-            app:lottie_autoPlay="true"
-            app:lottie_loop="true"
-            xmlns:app="http://schemas.android.com/apk/res-auto"/>
+        <LinearLayout
+            android:id="@+id/layoutLoading"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+            
+            <com.airbnb.lottie.LottieAnimationView
+                android:id="@+id/loadingIndicator"
+                android:layout_width="40dp"
+                android:layout_height="24dp"
+                app:lottie_rawRes="@raw/typing_indicator"
+                app:lottie_autoPlay="true"
+                app:lottie_loop="true"
+                xmlns:app="http://schemas.android.com/apk/res-auto"/>
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="CineAI đang nghĩ..."
+                android:textColor="?attr/colorOnSurface"
+                android:textSize="12sp"
+                android:textStyle="italic"
+                android:layout_marginStart="4dp"/>
+        </LinearLayout>
     </LinearLayout>
 </LinearLayout>

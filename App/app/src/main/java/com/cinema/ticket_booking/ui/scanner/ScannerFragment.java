@@ -23,6 +23,8 @@ import com.journeyapps.barcodescanner.ScanOptions;
 
 import java.util.stream.Collectors;
 
+import javax.inject.Inject;
+import com.cinema.ticket_booking.data.local.TokenManager;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -31,6 +33,9 @@ public class ScannerFragment extends Fragment {
     private FragmentScannerBinding binding;
     private ScannerViewModel viewModel;
 
+    @Inject
+    TokenManager tokenManager;
+
     private final ActivityResultLauncher<ScanOptions> barcodeLauncher = registerForActivityResult(
             new ScanContract(),
             result -> {
@@ -38,9 +43,22 @@ public class ScannerFragment extends Fragment {
                     SnackbarHelper.showSuccess(binding.getRoot(), "Đã huỷ quét");
                 } else {
                     String qrCode = result.getContents();
-                    binding.progressBar.setVisibility(View.VISIBLE);
-                    binding.cardResult.setVisibility(View.GONE);
-                    viewModel.checkInTicket(qrCode);
+                    
+                    // NOVA Dual-Flow Logic: STAFF vs CUSTOMER
+                    if (qrCode.startsWith("http") || qrCode.startsWith("novaticket://")) {
+                        // CUSTOMER FLOW: Deep Link Processing
+                        try {
+                            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(qrCode));
+                            startActivity(intent);
+                        } catch (Exception e) {
+                            SnackbarHelper.showError(binding.getRoot(), "Mã QR không hợp lệ hoặc không được hỗ trợ");
+                        }
+                    } else {
+                        // STAFF FLOW: Booking Check-In
+                        binding.progressBar.setVisibility(View.VISIBLE);
+                        binding.cardResult.setVisibility(View.GONE);
+                        viewModel.checkInTicket(qrCode);
+                    }
                 }
             });
 
@@ -54,6 +72,12 @@ public class ScannerFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ScannerViewModel.class);
+
+        boolean isStaff = "STAFF".equals(tokenManager.getUserRole()) || "ADMIN".equals(tokenManager.getUserRole());
+        if (!isStaff) {
+            binding.tvScannerTitle.setText("Quét mã tiện ích");
+            binding.tvScannerSubtitle.setText("Sử dụng camera để quét mã QR liên kết đến phim, đặt vé, v.v...");
+        }
 
         binding.btnScan.setOnClickListener(v -> startScan());
 
