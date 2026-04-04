@@ -78,7 +78,56 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 12. Cho phép showtime_id null cho đơn bắp nước
         ensureBookingShowtimeNullable();
 
+        // 13. Đảm bảo các cột tùy chỉnh thông báo cho User (Fix 500 Column Not Found)
+        ensureUserNotificationColumns();
+
+        // 14. Đảm bảo bảng notification_campaigns tồn tại (Fix SQLGrammarException)
+        ensureNotificationCampaignsTable();
+
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
+    }
+
+    private void ensureNotificationCampaignsTable() {
+        try {
+            log.info("[SchemaFix] Đảm bảo bảng 'notification_campaigns' tồn tại...");
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS notification_campaigns (" +
+                "  id UUID PRIMARY KEY," +
+                "  title VARCHAR(150) NOT NULL," +
+                "  body TEXT NOT NULL," +
+                "  type VARCHAR(30) NOT NULL," +
+                "  target_id UUID," +
+                "  target_topic VARCHAR(50) NOT NULL," +
+                "  scheduled_at TIMESTAMP NOT NULL," +
+                "  status VARCHAR(20) NOT NULL DEFAULT 'PENDING'," +
+                "  created_by_id UUID REFERENCES users(id)," +
+                "  created_at TIMESTAMP," +
+                "  updated_at TIMESTAMP" +
+                ")"
+            );
+            log.info("[SchemaFix] Bảng 'notification_campaigns' đã sẵn sàng.");
+        } catch (Exception e) {
+            log.error("[SchemaFix] Lỗi khi tạo bảng notification_campaigns: {}", e.getMessage());
+        }
+    }
+
+    private void ensureUserNotificationColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'users' (Notification Settings)...");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_marketing_notification BOOLEAN DEFAULT TRUE");
+            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_transaction_notification BOOLEAN DEFAULT TRUE");
+            
+            // Cập nhật giá trị TRUE cho dữ liệu cũ nếu bị NULL (mặc dù JPA đã có @Builder.Default)
+            jdbcTemplate.execute("UPDATE users SET allow_marketing_notification = TRUE WHERE allow_marketing_notification IS NULL");
+            jdbcTemplate.execute("UPDATE users SET allow_transaction_notification = TRUE WHERE allow_transaction_notification IS NULL");
+            
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN allow_marketing_notification SET NOT NULL");
+            jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN allow_transaction_notification SET NOT NULL");
+            
+            log.info("[SchemaFix] Đã đảm bảo các cột tùy chỉnh thông báo trong bảng 'users'.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi bảo trì bảng users (Notification columns): {}", e.getMessage());
+        }
     }
 
     private void clearCache(String cacheName) {

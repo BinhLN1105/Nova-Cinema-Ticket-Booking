@@ -46,6 +46,13 @@ public class SnackbarHelper {
     }
 
     /**
+     * Shows a raw message with standard info styling.
+     */
+    public static void showRaw(View root, String message) {
+        showInfo(root, message);
+    }
+
+    /**
      * Shows a notification with an optional action button (e.g., Undo).
      */
     public static void showWithAction(View root, String message, String actionText, View.OnClickListener listener) {

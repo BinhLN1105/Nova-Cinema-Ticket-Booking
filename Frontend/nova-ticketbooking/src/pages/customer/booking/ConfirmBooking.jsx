@@ -14,6 +14,7 @@ export default function ConfirmBooking() {
   const [voucherInput, setVoucherInput] = useState('')
   const [voucherError, setVoucherError] = useState('')
   const [isValidating, setIsValidating] = useState(false)
+  const [isLoadingQuote, setIsLoadingQuote] = useState(true)
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -38,10 +39,20 @@ export default function ConfirmBooking() {
     }
   }
 
-  // ── Tính toán lại Tổng tiền (bao gồm Combo) thông qua API /quote ──
+  // ── Final Server-side Quote (Push-based Verification) ──
   useEffect(() => {
-    booking.calculateTotals();
-  }, [booking.selectedSeats, booking.selectedCombos, booking.appliedVoucher]);
+    const fetchQuote = async () => {
+      setIsLoadingQuote(true);
+      try {
+        await booking.fetchServerQuote();
+      } catch (err) {
+        console.error("Failed to fetch quote:", err);
+      } finally {
+        setIsLoadingQuote(false);
+      }
+    };
+    fetchQuote();
+  }, [booking.appliedVoucher]);
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-32">
@@ -69,11 +80,12 @@ export default function ConfirmBooking() {
                 <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Bắp / Nước</h3>
               </div>
               <div className="space-y-3 text-sm">
-                {Object.entries(booking.selectedCombos).map(([id, qty]) => {
+                {Object.entries(booking.selectedCombos).map(([id, data]) => {
                   const combo = combos.find(c => c.id === id)
                   if (!combo) return null
+                  const qty = data.quantity;
                   return (
-                    <div key={id} className="flex justify-between gap-4">
+                    <div key={id} className="flex justify-between gap-4 text-xs">
                       <span className="text-gray-300 font-medium">{combo.name} <span className="text-white ml-2">x{qty}</span></span>
                       <span className="text-white text-right font-medium">{formatCurrency(combo.price * qty)}</span>
                     </div>
@@ -139,21 +151,29 @@ export default function ConfirmBooking() {
             {/* Tiền vé gốc */}
             <div className="flex justify-between text-sm text-gray-400 font-medium">
               <span>Tiền vé (Gốc)</span>
-              <span className="text-white">{formatCurrency(booking.originalTotal || 0)}</span>
+              {isLoadingQuote ? (
+                <div className="w-20 h-4 bg-white/10 rounded animate-pulse" />
+              ) : (
+                <span className="text-white">{formatCurrency(booking.originalTotal || 0)}</span>
+              )}
             </div>
 
             {/* Tiền bắp nước gốc (Chỉ hiện nếu có chọn) */}
             {Object.keys(booking.selectedCombos).length > 0 && (
               <div className="flex justify-between text-sm text-gray-400 font-medium">
                 <span>Bắp nước (Gốc)</span>
-                <span className="text-white">
-                  {formatCurrency(
-                    Object.entries(booking.selectedCombos).reduce((acc, [id, qty]) => {
-                      const combo = combos?.find(c => c.id === id)
-                      return acc + (combo ? combo.price * qty : 0)
-                    }, 0)
-                  )}
-                </span>
+                {isLoadingQuote ? (
+                   <div className="w-20 h-4 bg-white/10 rounded animate-pulse" />
+                ) : (
+                  <span className="text-white">
+                    {formatCurrency(
+                      Object.entries(booking.selectedCombos).reduce((acc, [id, data]) => {
+                        const combo = combos?.find(c => c.id === id)
+                        return acc + (combo ? combo.price * data.quantity : 0)
+                      }, 0)
+                    )}
+                  </span>
+                )}
               </div>
             )}
 
@@ -185,9 +205,13 @@ export default function ConfirmBooking() {
                 </p>
               </div>
               <div className="text-right">
-                <span className="text-gold-400 text-2xl font-display font-bold">
-                  {formatCurrency(booking.total)}
-                </span>
+                {isLoadingQuote ? (
+                   <div className="w-32 h-8 bg-brand-500/20 rounded-lg animate-pulse ml-auto" />
+                ) : (
+                  <span className="text-gold-400 text-2xl font-display font-bold">
+                    {formatCurrency(booking.total)}
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -198,12 +222,17 @@ export default function ConfirmBooking() {
       {/* Bottom CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 glass-dark border-t border-white/8">
         <div className="max-w-2xl mx-auto">
-          <button onClick={booking.confirmBooking} disabled={booking.isConfirming}
+          <button onClick={booking.confirmBooking} disabled={booking.isConfirming || isLoadingQuote}
             className="btn-primary w-full py-4 text-base disabled:opacity-60">
             {booking.isConfirming ? (
               <span className="flex items-center gap-2">
                 <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Đang xử lý...
+              </span>
+            ) : isLoadingQuote ? (
+              <span className="flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Đang kiểm tra giá...
               </span>
             ) : (
               <span className="flex items-center gap-2">

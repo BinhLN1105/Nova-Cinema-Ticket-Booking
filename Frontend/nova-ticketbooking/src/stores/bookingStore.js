@@ -40,39 +40,52 @@ export const useBookingStore = create(
           ? selectedSeats.filter((s) => s.showtimeSeatId !== seat.showtimeSeatId)
           : [...selectedSeats, seat];
         set({ selectedSeats: updated });
-        get().calculateTotals();
+        get().updateLocalSubtotal();
       },
 
       clearSeats: () => {
         set({ selectedSeats: [] });
-        get().calculateTotals();
+        get().updateLocalSubtotal();
       },
 
-      setComboQty: (comboId, qty) => {
+      setComboQty: (comboId, qty, comboPrice = 0) => {
         set((state) => ({
           selectedCombos:
             qty > 0
-              ? { ...state.selectedCombos, [comboId]: qty }
+              ? { ...state.selectedCombos, [comboId]: { quantity: qty, price: comboPrice } }
               : Object.fromEntries(
                   Object.entries(state.selectedCombos).filter(
                     ([k]) => k !== comboId,
                   ),
                 ),
         }));
-        get().calculateTotals();
+        get().updateLocalSubtotal();
+      },
+
+      updateLocalSubtotal: () => {
+        const { selectedSeats, selectedCombos } = get();
+        
+        const seatTotal = selectedSeats.reduce((acc, s) => acc + (s.price || 0), 0);
+        const comboTotal = Object.values(selectedCombos).reduce((acc, c) => acc + (c.price * c.quantity), 0);
+        
+        const newSubtotal = seatTotal + comboTotal;
+        set({ 
+            subtotal: newSubtotal,
+            total: newSubtotal // Temporary total for selection pages
+        });
       },
 
       applyVoucher: (voucher) => {
         set({ appliedVoucher: voucher });
-        get().calculateTotals();
+        get().fetchServerQuote();
       },
 
       clearVoucher: () => {
         set({ appliedVoucher: null, warningMessage: null });
-        get().calculateTotals();
+        get().updateLocalSubtotal(); // Return to local total
       },
 
-      calculateTotals: () => {
+      fetchServerQuote: async () => {
         const { selectedShowtime, selectedSeats, selectedCombos, appliedVoucher } = get();
         
         if (!selectedShowtime || selectedSeats.length === 0) {
@@ -80,17 +93,13 @@ export const useBookingStore = create(
             return;
         }
 
-        // DEBOUNCE: Clear previous timer
-        if (debounceTimeout) clearTimeout(debounceTimeout);
-
-        debounceTimeout = setTimeout(async () => {
-          try {
+        try {
             const request = {
               showtimeId: selectedShowtime.id,
               showtimeSeatIds: selectedSeats.map(s => s.showtimeSeatId),
-              combos: Object.entries(selectedCombos).map(([id, qty]) => ({
+              combos: Object.entries(selectedCombos).map(([id, data]) => ({
                 comboId: id,
-                quantity: qty
+                quantity: data.quantity
               })),
               voucherCode: appliedVoucher?.code || null
             };
@@ -106,10 +115,11 @@ export const useBookingStore = create(
               originalTotal: response.totalOriginalAmount,
               warningMessage: response.warningMessage
             });
-          } catch (error) {
+            return response;
+        } catch (error) {
             console.error("Lỗi khi tính toán báo giá:", error);
-          }
-        }, 500);
+            throw error;
+        }
       },
 
 

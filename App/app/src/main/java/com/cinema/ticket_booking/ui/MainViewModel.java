@@ -51,4 +51,8 @@ public class MainViewModel extends ViewModel {
             userProfile.setValue(resource);
         });
     }
+
+    public LiveData<Resource<UserResponse>> updateNotificationSettings(boolean marketing, boolean transaction) {
+        return userRepository.updateNotificationSettings(marketing, transaction);
+    }
 }

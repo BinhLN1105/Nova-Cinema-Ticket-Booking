@@ -36,4 +36,7 @@ public class UserResponse implements Serializable {
     /** Chỉ có giá trị khi role == STAFF, null với CUSTOMER/ADMIN */
     private String cinemaId;
     private String cinemaName;
+
+    private Boolean allowMarketingNotification;
+    private Boolean allowTransactionNotification;
 }

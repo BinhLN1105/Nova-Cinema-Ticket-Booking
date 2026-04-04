@@ -202,11 +202,19 @@ export default function MovieDetailPage() {
                     <div key={review.id} className="p-4 rounded-xl bg-cinema-800/60 border border-white/5">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="w-8 h-8 rounded-full bg-brand-500/20 flex items-center
-                          justify-center text-brand-400 font-bold text-sm">
-                          {review.userName[0]}
+                          justify-center text-brand-400 font-bold text-sm overflow-hidden border border-brand-500/10">
+                          {review.userAvatarUrl ? (
+                            <img
+                              src={review.userAvatarUrl}
+                              alt={review.userFullName}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            (review.userFullName || review.userName || 'U')[0]
+                          )}
                         </div>
                         <div>
-                          <p className="text-white text-sm font-medium">{review.userName}</p>
+                          <p className="text-white text-sm font-medium">{review.userFullName || review.userName || 'Người dùng'}</p>
                           <div className="flex gap-0.5">
                             {Array.from({ length: 5 }).map((_, i) => (
                               <Star key={i} className={cn('w-3 h-3',

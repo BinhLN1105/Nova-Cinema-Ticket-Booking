@@ -94,6 +94,25 @@ export const showtimeApi = {
 export const voucherApi = {
   validate: (code) => api.post("/vouchers/validate", { code }),
   getActive: () => api.get("/vouchers/active"),
+  // Admin
+  adminGetAll: (params) => api.get("/admin/vouchers", params),
+  create: (data) => api.post("/admin/vouchers", data),
+  update: (id, data) => api.put(`/admin/vouchers/${id}`, data),
+  delete: (id) => api.delete(`/admin/vouchers/${id}`),
+  toggle: (id) => api.patch(`/admin/vouchers/${id}/toggle`),
+};
+
+// ── Notifications ─────────────────────────────
+export const notificationApi = {
+  // Mobile / Personal
+  getMyNotifications: (params) => api.get("/notifications/me", params),
+  getUnreadCount: () => api.get("/notifications/unread-count"),
+  markRead: (id) => api.patch(`/notifications/${id}/read`),
+  markAllRead: () => api.post("/notifications/me/read-all"),
+  
+  // Admin
+  createCampaign: (data) => api.post("/admin/notifications/campaign", data),
+  getCampaigns: (params) => api.get("/admin/notifications/campaigns", params),
 };
 
 // ── Bookings ──────────────────────────────────
@@ -121,13 +140,7 @@ export const reviewApi = {
   delete: (id) => api.delete(`/reviews/${id}`),
 };
 
-// ── Notifications ─────────────────────────────
-export const notificationApi = {
-  getAll: (page = 0) => api.get("/notifications", { page, size: 20 }),
-  getUnread: () => api.get("/notifications/unread-count"),
-  markRead: (id) => api.patch(`/notifications/${id}/read`),
-  markAllRead: () => api.patch("/notifications/read-all"),
-};
+
 
 // ── User (Admin) ──────────────────────────────
 export const userApi = {

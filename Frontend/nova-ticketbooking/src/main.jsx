@@ -30,15 +30,41 @@ const queryClient = new QueryClient({
 // Service Worker registration is now handled in utils/firebase.js during token request
 
 
-// Lắng nghe thông báo foreground (nhẹ nhàng bằng toast)
+// Foreground notification listener
 import { onMessageListener } from "@/utils/firebase";
-onMessageListener().then(payload => {
-  console.log("Foreground notification:", payload);
-  toast(payload.notification.body, {
-    icon: '🎬',
-    style: { borderRadius: '10px', background: '#333', color: '#fff' }
-  });
-}).catch(err => console.log('failed: ', err));
+onMessageListener()
+  .then((payload) => {
+    console.log("Foreground notification received:", payload);
+    const data = payload.data || {};
+    const notification = payload.notification || {};
+    const title = notification.title || data.title || data.Title || "Nova Ticket";
+    const body = notification.body || data.body || data.message || data.Body || "Bạn có thông báo mới";
+
+    toast.custom((t) => (
+      <div className={`${t.visible ? 'animate-enter' : 'animate-leave'} max-w-md w-full bg-white shadow-lg rounded-xl pointer-events-auto flex ring-1 ring-black ring-opacity-5 border-l-4 border-brand-500`}>
+        <div className="flex-1 w-0 p-4">
+          <div className="flex items-start">
+            <div className="flex-shrink-0 pt-0.5">
+              <img className="h-10 w-10 rounded-full object-cover" src="/logo.png" alt="Logo" />
+            </div>
+            <div className="ml-3 flex-1">
+              <p className="text-sm font-bold text-gray-900">{title}</p>
+              <p className="mt-1 text-sm font-medium text-gray-500">{body}</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex border-l border-gray-100">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="w-full border border-transparent rounded-none rounded-r-lg p-4 flex items-center justify-center text-xs font-bold text-brand-600 hover:text-brand-500 uppercase tracking-wider"
+          >
+            Đóng
+          </button>
+        </div>
+      </div>
+    ), { duration: 6000 });
+  })
+  .catch(err => console.error('Notification listener failed:', err));
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>

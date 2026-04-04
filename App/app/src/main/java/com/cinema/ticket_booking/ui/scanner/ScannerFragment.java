@@ -43,12 +43,13 @@ public class ScannerFragment extends Fragment {
                     SnackbarHelper.showSuccess(binding.getRoot(), "Đã huỷ quét");
                 } else {
                     String qrCode = result.getContents();
-                    
+
                     // NOVA Dual-Flow Logic: STAFF vs CUSTOMER
                     if (qrCode.startsWith("http") || qrCode.startsWith("novaticket://")) {
                         // CUSTOMER FLOW: Deep Link Processing
                         try {
-                            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(qrCode));
+                            android.content.Intent intent = new android.content.Intent(
+                                    android.content.Intent.ACTION_VIEW, android.net.Uri.parse(qrCode));
                             startActivity(intent);
                         } catch (Exception e) {
                             SnackbarHelper.showError(binding.getRoot(), "Mã QR không hợp lệ hoặc không được hỗ trợ");
@@ -75,16 +76,27 @@ public class ScannerFragment extends Fragment {
 
         boolean isStaff = "STAFF".equals(tokenManager.getUserRole()) || "ADMIN".equals(tokenManager.getUserRole());
         if (!isStaff) {
-            binding.tvScannerTitle.setText("Quét mã tiện ích");
-            binding.tvScannerSubtitle.setText("Sử dụng camera để quét mã QR liên kết đến phim, đặt vé, v.v...");
+            binding.tvScannerTitle.setText("Quét QR Tiện Ích");
+            binding.tvScannerSubtitle.setText("Quét mã để xem thông tin phim, ưu đãi hoặc tham gia sự kiện");
+
+            // Nova Optimization: Change Logout to Back for normal users
+            binding.btnLogout.setText("Quay lại");
+            binding.btnLogout.setTextColor(getResources().getColor(R.color.primary, null));
+            binding.btnLogout.setOnClickListener(v -> {
+                if (!Navigation.findNavController(view).popBackStack()) {
+                    Navigation.findNavController(view).navigate(R.id.homeFragment);
+                }
+            });
+        } else {
+            binding.tvScannerTitle.setText("Soát Vé Phim");
+            binding.tvScannerSubtitle.setText("Dành cho nhân viên kiểm soát vé tại rạp");
+            binding.btnLogout.setText("Quay lại");
+            binding.btnLogout.setOnClickListener(v -> {
+                Navigation.findNavController(view).navigate(R.id.action_scanner_to_login);
+            });
         }
 
         binding.btnScan.setOnClickListener(v -> startScan());
-
-        binding.btnLogout.setOnClickListener(v -> {
-            viewModel.logout();
-            Navigation.findNavController(view).navigate(R.id.action_scanner_to_login);
-        });
 
         viewModel.getCheckInResult().observe(getViewLifecycleOwner(), resource -> {
             if (resource.status == Resource.Status.LOADING) {
@@ -110,11 +122,17 @@ public class ScannerFragment extends Fragment {
     private void startScan() {
         ScanOptions options = new ScanOptions();
         options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
-        options.setPrompt("Hướng camera vào mã QR vé.\\nBấm Tăng Âm Lượng để bật Flash.");
+        options.setPrompt("Hướng camera vào mã QR vé.\nBấm Tăng Âm Lượng để bật Flash.");
         options.setCameraId(0);
         options.setBeepEnabled(true);
         options.setBarcodeImageEnabled(false);
+
+        // Nova Enterprise: Force Portrait Mode (Like Momo/Zalo)
+        // We set Locked to false so it respects the Manifest setting of
+        // PortraitCaptureActivity
         options.setOrientationLocked(false);
+        options.setCaptureActivity(PortraitCaptureActivity.class);
+
         barcodeLauncher.launch(options);
     }
 

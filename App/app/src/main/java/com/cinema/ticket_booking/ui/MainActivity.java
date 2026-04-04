@@ -20,6 +20,7 @@ import com.cinema.ticket_booking.databinding.ActivityMainBinding;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
+import com.google.firebase.messaging.FirebaseMessaging;
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
 import java.util.Set;
@@ -40,6 +41,13 @@ public class MainActivity extends AppCompatActivity {
                     if (navController != null) navController.navigate(R.id.scannerFragment);
                 } else {
                     SnackbarHelper.showError(binding.getRoot(), "Quyền máy ảnh bị từ chối. Không thể quét QR!");
+                }
+            });
+
+    private final ActivityResultLauncher<String> notificationPermissionLauncher = registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(), isGranted -> {
+                if (!isGranted) {
+                    SnackbarHelper.showInfo(binding.getRoot(), "Bạn đã từ chối nhận thông báo. Hãy bật lại trong cài đặt để nhận mã vé nhé!");
                 }
             });
 
@@ -139,6 +147,30 @@ public class MainActivity extends AppCompatActivity {
         MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         if (tokenManager.isLoggedIn()) {
             mainViewModel.loadUserProfile();
+            requestNotificationPermission();
+        }
+
+        // ── Nova Enterprise: Cross-Platform Notification Sync ──
+        mainViewModel.getUserProfile().observe(this, resource -> {
+            if (resource != null && resource.isSuccess() && resource.data != null) {
+                syncFcmTopics(resource.data);
+            }
+        });
+    }
+
+    private void syncFcmTopics(com.cinema.ticket_booking.data.model.response.UserResponse user) {
+        if (user.getAllowMarketingNotification()) {
+            FirebaseMessaging.getInstance().subscribeToTopic("nova_all_users");
+        } else {
+            FirebaseMessaging.getInstance().unsubscribeFromTopic("nova_all_users");
+        }
+    }
+
+    private void requestNotificationPermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
+            }
         }
     }
 

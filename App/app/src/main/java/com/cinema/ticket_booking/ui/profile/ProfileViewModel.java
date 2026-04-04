@@ -31,4 +31,8 @@ public class ProfileViewModel extends ViewModel {
     public void logout() {
         authRepo.logout();
     }
+
+    public LiveData<Resource<UserResponse>> updateNotificationSettings(Boolean marketing, Boolean transaction) {
+        return userRepo.updateNotificationSettings(marketing, transaction);
+    }
 }

@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.controller;
 import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
 import com.cinema.ticket_booking.dto.request.FcmTokenRequest;
+import com.cinema.ticket_booking.dto.request.NotificationSettingsRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
@@ -54,6 +55,16 @@ public class UserController {
             @Valid @RequestBody FcmTokenRequest request) {
         userService.updateFcmToken(currentUser.getId(), request.getFcmToken());
         return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật FCM token thành công"));
+    }
+
+    // PATCH /api/v1/users/me/notifications
+    @PatchMapping("/me/notifications")
+    public ResponseEntity<ApiResponse<UserResponse>> updateNotificationSettings(
+            @AuthenticationPrincipal User currentUser,
+            @Valid @RequestBody NotificationSettingsRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                userService.updateNotificationSettings(currentUser.getId(), request), 
+                "Cập nhật cài đặt thông báo thành công"));
     }
 
     // POST /api/v1/users/me/avatar

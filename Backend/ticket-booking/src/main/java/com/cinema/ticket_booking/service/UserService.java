@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service;
 
 import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
+import com.cinema.ticket_booking.dto.request.NotificationSettingsRequest;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +23,8 @@ public interface UserService {
     void updateFcmToken(UUID userId, String fcmToken);
 
     void changePassword(UUID userId, ChangePasswordRequest request);
+
+    UserResponse updateNotificationSettings(UUID userId, NotificationSettingsRequest request);
 
     // Dùng nội bộ trong các Service khác
     User findById(UUID userId);

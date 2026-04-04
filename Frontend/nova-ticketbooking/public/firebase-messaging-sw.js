@@ -17,12 +17,26 @@ if (firebaseConfig.apiKey) {
 
   messaging.onBackgroundMessage((payload) => {
     console.log('[firebase-messaging-sw.js] Background message received ', payload);
-    const notificationTitle = payload.notification.title;
+    
+    // Robust data extraction for varied FCM payloads
+    const data = payload.data || {};
+    const notification = payload.notification || {};
+
+    const title = notification.title || data.title || data.Title || 'Nova Ticket';
+    const body = notification.body || data.body || data.message || data.Body || 'Bạn có thông báo mới.';
+    
     const notificationOptions = {
-      body: payload.notification.body,
+      body: body,
       icon: '/logo.png',
-      data: payload.data
+      badge: '/logo.png',
+      tag: data.type || 'general',
+      data: data,
+      vibrate: [200, 100, 200],
+      actions: [
+        { action: 'open', title: 'Xem ngay' }
+      ]
     };
-    self.registration.showNotification(notificationTitle, notificationOptions);
+    
+    return self.registration.showNotification(title, notificationOptions);
   });
 }

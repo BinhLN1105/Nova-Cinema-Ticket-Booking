@@ -32,6 +32,12 @@ public class UserResponse {
     @SerializedName("availableExp")
     private long availableExp;
 
+    @SerializedName("allowMarketingNotification")
+    private Boolean allowMarketingNotification;
+
+    @SerializedName("allowTransactionNotification")
+    private Boolean allowTransactionNotification;
+
     public long getAvailableExp() {
         return availableExp;
     }
@@ -82,5 +88,13 @@ public class UserResponse {
 
     public Long getNextTierMinPoints() {
         return nextTierMinPoints;
+    }
+
+    public Boolean getAllowMarketingNotification() {
+        return allowMarketingNotification != null ? allowMarketingNotification : true;
+    }
+
+    public Boolean getAllowTransactionNotification() {
+        return allowTransactionNotification != null ? allowTransactionNotification : true;
     }
 }

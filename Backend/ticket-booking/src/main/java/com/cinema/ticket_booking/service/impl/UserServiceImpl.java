@@ -11,6 +11,7 @@ import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.enums.AuthProvider;
+import com.cinema.ticket_booking.enums.MembershipTier;
 import com.cinema.ticket_booking.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -19,10 +20,16 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
+import com.google.firebase.messaging.FirebaseMessaging;
+import com.google.firebase.messaging.FirebaseMessagingException;
+import lombok.extern.slf4j.Slf4j;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 @Transactional
 public class UserServiceImpl implements UserService {
 
@@ -138,6 +145,59 @@ public class UserServiceImpl implements UserService {
 
         // 🚨 Bảo mật: Đăng xuất khỏi tất cả thiết bị khi đổi mật khẩu
         refreshTokenRepository.deleteAllByUser(user);
+    }
+
+    @Override
+    @Transactional
+    public UserResponse updateNotificationSettings(UUID userId, com.cinema.ticket_booking.dto.request.NotificationSettingsRequest request) {
+        User user = findById(userId);
+        boolean marketingChanged = false;
+        
+        if (request.getAllowMarketingNotification() != null) {
+            if (!request.getAllowMarketingNotification().equals(user.getAllowMarketingNotification())) {
+                marketingChanged = true;
+            }
+            user.setAllowMarketingNotification(request.getAllowMarketingNotification());
+        }
+        
+        if (request.getAllowTransactionNotification() != null) {
+            user.setAllowTransactionNotification(request.getAllowTransactionNotification());
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // ── Nova Enterprise: Real-time Topic Sync (Push-based) ──
+        if (marketingChanged && savedUser.getFcmToken() != null && !savedUser.getFcmToken().isBlank()) {
+            syncTopicSubscriptionsInBackend(savedUser);
+        }
+
+        return userMapper.toResponse(savedUser);
+    }
+
+    /**
+     * Đồng bộ Topic ngay từ Backend để xử lý Edge Case "Tắt trên Web - App chưa mở".
+     * Fail-safe: Không quăng lỗi ra ngoài làm rollback giao dịch DB.
+     */
+    private void syncTopicSubscriptionsInBackend(User user) {
+        List<String> tokens = Collections.singletonList(user.getFcmToken());
+        String topic = "nova_all_users";
+        String vipTopic = "nova_vip_users";
+        boolean isVip = user.getMembershipTier() == MembershipTier.GOLD 
+                     || user.getMembershipTier() == MembershipTier.DIAMOND;
+
+        try {
+            if (user.getAllowMarketingNotification()) {
+                FirebaseMessaging.getInstance().subscribeToTopic(tokens, topic);
+                if (isVip) FirebaseMessaging.getInstance().subscribeToTopic(tokens, vipTopic);
+                log.info("[FCM Admin] ✓ Subscribed {} to topic(s)", user.getEmail());
+            } else {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(tokens, topic);
+                FirebaseMessaging.getInstance().unsubscribeFromTopic(tokens, vipTopic);
+                log.info("[FCM Admin] ✓ Unsubscribed {} from all marketing topics", user.getEmail());
+            }
+        } catch (FirebaseMessagingException e) {
+            log.warn("[FCM Admin] ✗ Topic sync failed for {}: {}", user.getEmail(), e.getMessage());
+        }
     }
 
     @Override

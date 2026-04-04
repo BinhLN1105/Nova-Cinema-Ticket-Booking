@@ -86,12 +86,12 @@ public class SelectComboFragment extends Fragment {
         showLoading(true);
 
         viewModel.getFinalQuote().observe(getViewLifecycleOwner(), resource -> {
-            if (resource.getStatus() == Resource.Status.SUCCESS && resource.getData() != null) {
-                navigateToConfirm(resource.getData());
-            } else if (resource.getStatus() == Resource.Status.ERROR) {
+            if (resource.status == Resource.Status.SUCCESS && resource.data != null) {
+                navigateToConfirm(resource.data);
+            } else if (resource.status == Resource.Status.ERROR) {
                 showLoading(false);
                 SnackbarHelper.showError(binding.getRoot(), 
-                    resource.getMessage() != null ? resource.getMessage() : "Lỗi tính toán giá cuối cùng");
+                    resource.message != null ? resource.message : "Lỗi tính toán giá cuối cùng");
             }
         });
     }

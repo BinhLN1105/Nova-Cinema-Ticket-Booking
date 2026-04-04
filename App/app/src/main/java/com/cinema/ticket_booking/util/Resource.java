@@ -27,6 +27,10 @@ public class Resource<T> {
         return new Resource<>(Status.ERROR, null, msg);
     }
 
+    public static <T> Resource<T> error(String msg, T data) {
+        return new Resource<>(Status.ERROR, data, msg);
+    }
+
     public boolean isSuccess() {
         return status == Status.SUCCESS;
     }

@@ -13,6 +13,8 @@ import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.util.SnackbarHelper;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.firebase.messaging.FirebaseMessaging;
 import javax.inject.Inject;
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -101,6 +103,9 @@ public class ProfileFragment extends Fragment {
                     binding.ivAvatar.setImageResource(R.drawable.ic_profile);
                 }
 
+                // ── Granular Notification Settings (Nova Enterprise Logic) ──
+                setupNotificationSwitches(user);
+
             } else if (resource.isError() && isLoggedIn) {
                 if (resource.message != null && resource.message.contains("401")) {
                     tokenManager.clearAll();
@@ -159,12 +164,6 @@ public class ProfileFragment extends Fragment {
 
             binding.btnRedeem.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
-            binding.rowNotifications.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.notificationFragment));
-
-            // Implementation of new fragments
-            binding.rowChangePassword.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.changePasswordFragment));
             binding.btnEditProfile.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.editProfileFragment));
 
@@ -187,12 +186,67 @@ public class ProfileFragment extends Fragment {
             binding.btnNavHistory.setOnClickListener(loginListener);
             binding.btnNavGiftCards.setOnClickListener(loginListener);
             binding.btnRedeem.setOnClickListener(loginListener);
-            binding.rowNotifications.setOnClickListener(loginListener);
             binding.btnNavWatchlist.setOnClickListener(loginListener);
             binding.btnNavReviews.setOnClickListener(loginListener);
             binding.rowChangePassword.setOnClickListener(loginListener);
             binding.btnEditProfile.setOnClickListener(loginListener);
+
+            // Disable switches if not logged in
+            binding.switchTransactionNotify.setEnabled(false);
+            binding.switchMarketingNotify.setEnabled(false);
         }
+    }
+
+    private void setupNotificationSwitches(com.cinema.ticket_booking.data.model.response.UserResponse user) {
+        // Initial State
+        binding.switchTransactionNotify.setOnCheckedChangeListener(null);
+        binding.switchMarketingNotify.setOnCheckedChangeListener(null);
+
+        binding.switchTransactionNotify.setChecked(user.getAllowTransactionNotification());
+        binding.switchMarketingNotify.setChecked(user.getAllowMarketingNotification());
+
+        // Marketing Logic (Simple Topic Sync)
+        binding.switchMarketingNotify.setOnCheckedChangeListener((btn, isChecked) -> {
+            if (isChecked) {
+                FirebaseMessaging.getInstance().subscribeToTopic("nova_all_users");
+            } else {
+                FirebaseMessaging.getInstance().unsubscribeFromTopic("nova_all_users");
+            }
+            // Sync to Backend
+            viewModel.updateNotificationSettings(isChecked, binding.switchTransactionNotify.isChecked())
+                    .observe(getViewLifecycleOwner(), res -> {
+                        if (res.isSuccess()) SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn khuyến mãi");
+                    });
+        });
+
+        // Transactional Logic (With Warning Dialog)
+        binding.switchTransactionNotify.setOnCheckedChangeListener((btn, isChecked) -> {
+            if (!isChecked) {
+                // Show Warning Dialog before allowing to turn OFF
+                new MaterialAlertDialogBuilder(requireContext())
+                        .setTitle("⚠️ Tắt thông báo vé?")
+                        .setMessage("Nếu tắt tính năng này, bạn sẽ không nhận được mã QR soát vé tự động và các thông báo thay đổi lịch chiếu khẩn cấp. Bạn có chắc chắn muốn tắt không?")
+                        .setPositiveButton("VẪN TẮT", (dialog, which) -> {
+                            syncTransactionSetting(false);
+                        })
+                        .setNegativeButton("GIỮ BẬT", (dialog, which) -> {
+                            binding.switchTransactionNotify.setOnCheckedChangeListener(null);
+                            binding.switchTransactionNotify.setChecked(true);
+                            setupNotificationSwitches(user); // Re-attach listener
+                        })
+                        .setCancelable(false)
+                        .show();
+            } else {
+                syncTransactionSetting(true);
+            }
+        });
+    }
+
+    private void syncTransactionSetting(boolean isEnabled) {
+        viewModel.updateNotificationSettings(binding.switchMarketingNotify.isChecked(), isEnabled)
+                .observe(getViewLifecycleOwner(), res -> {
+                    if (res.isSuccess()) SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn giao dịch");
+                });
     }
 
     @Override

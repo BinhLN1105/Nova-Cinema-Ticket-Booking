@@ -44,6 +44,9 @@ public interface ApiService {
         @PATCH("users/me")
         Call<ApiResponse<UserResponse>> updateProfile(@Body UpdateProfileRequest request);
 
+        @PATCH("users/me/notifications")
+        Call<ApiResponse<UserResponse>> updateNotificationSettings(@Body NotificationSettingsRequest request);
+
         @Multipart
         @POST("users/me/avatar")
         Call<ApiResponse<UserResponse>> uploadAvatar(@Part MultipartBody.Part file);

@@ -80,6 +80,14 @@ public class User {
     @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken;
 
+    @Column(name = "allow_marketing_notification", nullable = false, columnDefinition = "boolean not null default true")
+    @Builder.Default
+    private Boolean allowMarketingNotification = true;
+
+    @Column(name = "allow_transaction_notification", nullable = false, columnDefinition = "boolean not null default true")
+    @Builder.Default
+    private Boolean allowTransactionNotification = true;
+
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

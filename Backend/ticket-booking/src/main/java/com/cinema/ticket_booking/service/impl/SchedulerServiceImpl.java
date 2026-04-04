@@ -7,6 +7,8 @@ import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.BookingItemRepository;
 import com.cinema.ticket_booking.repository.ShowtimeSeatRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
+import com.cinema.ticket_booking.enums.CampaignStatus;
+import com.cinema.ticket_booking.repository.NotificationCampaignRepository;
 import com.cinema.ticket_booking.service.NotificationService;
 import com.cinema.ticket_booking.service.SchedulerService;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class SchedulerServiceImpl implements SchedulerService {
     private final BookingItemRepository bookingItemRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final NotificationService notificationService;
+    private final NotificationCampaignRepository notificationCampaignRepository;
 
     /**
      * Mỗi 1 phút: giải phóng ghế LOCKED đã hết hạn giữ chỗ.
@@ -119,6 +122,42 @@ public class SchedulerServiceImpl implements SchedulerService {
 
         if (!upcomingBookings.isEmpty()) {
             log.info("[Scheduler] Đã gửi {} nhắc nhở suất chiếu sắp tới", upcomingBookings.size());
+        }
+    }
+
+    /**
+     * Mỗi 1 phút: Xử lý các chiến dịch thông báo đã lên lịch.
+     */
+    @Scheduled(cron = "0 * * * * *")
+    @Transactional
+    public void processScheduledCampaigns() {
+        var now = LocalDateTime.now();
+        var pendingCampaigns = notificationCampaignRepository.findByStatusAndScheduledAtBefore(
+                CampaignStatus.PENDING, now);
+
+        if (pendingCampaigns.isEmpty()) return;
+
+        log.info("[Scheduler] Đang xử lý {} chiến dịch thông báo...", pendingCampaigns.size());
+
+        for (var campaign : pendingCampaigns) {
+            try {
+                // 1. Broadcast (Topic + Global Notification)
+                notificationService.broadcastGlobalNotification(
+                        campaign.getTitle(),
+                        campaign.getBody(),
+                        campaign.getType(),
+                        campaign.getTargetId(),
+                        campaign.getTargetTopic()
+                );
+
+                // 2. Update Status
+                campaign.setStatus(CampaignStatus.SENT);
+                notificationCampaignRepository.save(campaign);
+
+                log.info("[Scheduler] ✓ Đã gửi chiến dịch: {}", campaign.getTitle());
+            } catch (Exception e) {
+                log.error("[Scheduler] ✗ Lỗi khi gửi chiến dịch {}: {}", campaign.getId(), e.getMessage());
+            }
         }
     }
 }

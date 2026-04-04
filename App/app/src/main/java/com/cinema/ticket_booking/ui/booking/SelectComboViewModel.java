@@ -21,6 +21,8 @@ public class SelectComboViewModel extends ViewModel {
     private final Map<String, Integer> selectedCombos = new LinkedHashMap<>();
     private final Map<String, Double> comboPriceMap = new HashMap<>();
 
+    public static final Map<String, Integer> pendingCombos = new HashMap<>();
+
     @Inject
     public SelectComboViewModel(ComboRepository comboRepo, BookingRepository bookingRepo) {
         this.comboRepo = comboRepo;
@@ -43,8 +45,8 @@ public class SelectComboViewModel extends ViewModel {
     private void loadCombos() {
         comboRepo.getCombos().observeForever(resource -> {
             combos.setValue(resource);
-            if (resource.getStatus() == Resource.Status.SUCCESS && resource.getData() != null) {
-                for (ComboResponse combo : resource.getData()) {
+            if (resource.status == Resource.Status.SUCCESS && resource.data != null) {
+                for (ComboResponse combo : resource.data) {
                     comboPriceMap.put(combo.getId(), combo.getPrice());
                 }
                 updateLocalTotal();
@@ -54,6 +56,8 @@ public class SelectComboViewModel extends ViewModel {
 
     public void addCombo(String comboId) {
         selectedCombos.merge(comboId, 1, Integer::sum);
+        pendingCombos.clear();
+        pendingCombos.putAll(selectedCombos);
         updateLocalTotal();
     }
 
@@ -66,6 +70,8 @@ public class SelectComboViewModel extends ViewModel {
                 selectedCombos.remove(comboId);
             }
         }
+        pendingCombos.clear();
+        pendingCombos.putAll(selectedCombos);
         updateLocalTotal();
     }
 

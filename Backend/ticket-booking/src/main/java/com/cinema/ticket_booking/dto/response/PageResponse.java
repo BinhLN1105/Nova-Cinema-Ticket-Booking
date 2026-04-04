@@ -38,4 +38,15 @@ public class PageResponse<T> implements Serializable {
                 .last(page.isLast())
                 .build();
     }
+
+    public static <T, R> PageResponse<R> of(Page<T> page, List<R> content) {
+        return PageResponse.<R>builder()
+                .content(content)
+                .page(page.getNumber())
+                .size(page.getSize())
+                .totalElements(page.getTotalElements())
+                .totalPages(page.getTotalPages())
+                .last(page.isLast())
+                .build();
+    }
 }

@@ -61,7 +61,7 @@ export default function SelectComboPage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {combos.map((combo) => {
-              const qty = selectedCombos[combo.id] || 0
+              const qty = selectedCombos[combo.id]?.quantity || 0
               return (
                 <motion.div key={combo.id}
                   initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}
@@ -91,7 +91,7 @@ export default function SelectComboPage() {
                       <div className="flex items-center gap-3">
                         <button
                           disabled={qty === 0}
-                          onClick={() => setComboQty(combo.id, qty - 1)}
+                          onClick={() => setComboQty(combo.id, qty - 1, combo.price)}
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
                             qty === 0 
@@ -104,7 +104,7 @@ export default function SelectComboPage() {
                         <span className="w-4 text-center font-bold text-white">{qty}</span>
                         <button
                           disabled={qty >= 10}
-                          onClick={() => setComboQty(combo.id, qty + 1)}
+                          onClick={() => setComboQty(combo.id, qty + 1, combo.price)}
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
                             qty >= 10 
@@ -130,12 +130,7 @@ export default function SelectComboPage() {
             <div>
               <p className="text-cinema-300 text-sm">Tổng cộng</p>
               <p className="text-white font-bold text-xl">
-                {formatCurrency(
-                  total + Object.entries(selectedCombos).reduce((acc, [id, qty]) => {
-                    const combo = combos?.find(c => c.id === id)
-                    return acc + (combo ? combo.price * qty : 0)
-                  }, 0)
-                )}
+                {formatCurrency(total)}
               </p>
             </div>
             <button

@@ -10,6 +10,11 @@ import android.os.Build;
 import androidx.core.app.NotificationCompat;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.network.ApiService;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
+import androidx.core.content.ContextCompat;
 import com.cinema.ticket_booking.ui.MainActivity;
 import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
@@ -41,22 +46,35 @@ public class CinemaFirebaseMessagingService extends FirebaseMessagingService {
     public void onMessageReceived(RemoteMessage message) {
         super.onMessageReceived(message);
 
-        String title = "NOVA Ticket";
-        String body = "Bạn có thông báo mới";
+        String title = null;
+        String body = null;
         String type = null;
         String targetId = null;
 
-        // 1. Hứng payload Data (cho Deep Linking)
+        // 1. Extract from Data payload (High priority for data-only messages)
         if (message.getData().size() > 0) {
             type = message.getData().get("type");
             targetId = message.getData().get("targetId");
+            
+            // Check for title in common keys
+            title = message.getData().get("title");
+            if (title == null) title = message.getData().get("Title");
+            
+            // Check for body in common keys
+            body = message.getData().get("body");
+            if (body == null) body = message.getData().get("Body");
+            if (body == null) body = message.getData().get("message");
         }
 
-        // 2. Hứng payload Notification (khi app ở Foreground)
+        // 2. Extract from Notification payload (Fallback)
         if (message.getNotification() != null) {
-            title = message.getNotification().getTitle();
-            body = message.getNotification().getBody();
+            if (title == null) title = message.getNotification().getTitle();
+            if (body == null) body = message.getNotification().getBody();
         }
+
+        // 3. Final Fallbacks
+        if (title == null || title.isEmpty()) title = "NOVA Ticket";
+        if (body == null || body.isEmpty()) body = "Bạn có thông báo mới";
 
         showNotification(title, body, type, targetId);
     }
@@ -79,7 +97,10 @@ public class CinemaFirebaseMessagingService extends FirebaseMessagingService {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle(title)
                 .setContentText(body)
-                .setSmallIcon(R.drawable.ic_notification)
+                .setSmallIcon(R.drawable.ic_notification_logo)
+                .setLargeIcon(getBitmapFromVectorDrawable(R.drawable.ic_splash_logo))
+                .setColor(ContextCompat.getColor(this, R.color.primary))
+                .setStyle(new NotificationCompat.BigTextStyle().bigText(body))
                 .setAutoCancel(true)
                 .setContentIntent(pendingIntent)
                 .setPriority(NotificationCompat.PRIORITY_HIGH);
@@ -116,5 +137,17 @@ public class CinemaFirebaseMessagingService extends FirebaseMessagingService {
     public static String getSavedToken(Context context) {
         SharedPreferences sp = context.getSharedPreferences(PREF_NAME, MODE_PRIVATE);
         return sp.getString(KEY_TOKEN, null);
+    }
+
+    private Bitmap getBitmapFromVectorDrawable(int drawableId) {
+        Drawable drawable = ContextCompat.getDrawable(this, drawableId);
+        if (drawable == null) return null;
+
+        Bitmap bitmap = Bitmap.createBitmap(drawable.getIntrinsicWidth(),
+                drawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        drawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        drawable.draw(canvas);
+        return bitmap;
     }
 }

@@ -35,6 +35,7 @@ const NAV_ITEMS = [
   { href: "/admin/bookings", icon: CalendarCheck, label: "Đặt vé" },
   { href: "/admin/checkin", icon: QrCode, label: "Soát vé (QR)" },
   { href: "/admin/users", icon: Users, label: "Người dùng" },
+  { href: "/admin/notifications", icon: Bell, label: "Thông báo" },
   { href: "/admin/reports", icon: BarChart3, label: "Báo cáo" },
   { href: "/admin/settings", icon: Settings, label: "Cài đặt" },
 ];

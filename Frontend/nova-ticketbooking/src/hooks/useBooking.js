@@ -41,9 +41,9 @@ export function useBooking() {
       showtimeId: store.selectedShowtime.id,
       showtimeSeatIds: store.selectedSeats.map((s) => s.showtimeSeatId),
       combos: Object.entries(store.selectedCombos).map(
-        ([comboId, quantity]) => ({
+        ([comboId, data]) => ({
           comboId,
-          quantity,
+          quantity: data.quantity,
         }),
       ),
       voucherCode: store.appliedVoucher?.code,
