@@ -26,5 +26,7 @@ public interface UserService {
     // Dùng nội bộ trong các Service khác
     User findById(UUID userId);
 
+    User findByEmail(String email);
+
     void save(User user);
 }

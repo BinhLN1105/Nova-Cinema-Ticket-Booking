@@ -26,7 +26,8 @@ import {
   Building2,
   BarChart3,
 } from "lucide-react";
-import { dashboardApi } from "@/api/endpoints";
+import { dashboardApi, cinemaApi } from "@/api/endpoints";
+import { useNavigate } from "react-router-dom";
 import {
   formatCurrency,
   formatCompactCurrency,
@@ -71,11 +72,14 @@ const StatCard = ({ title, value, change, icon: Icon, color }) => (
 
 export default function AdminDashboard() {
   const getInitialDates = (days) => {
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    const start = new Date();
-    start.setDate(start.getDate() - (days - 1));
-    start.setHours(0, 0, 0, 0);
+    const vnOffset = 7 * 60 * 60 * 1000; // GMT+7
+    const end = new Date(new Date().getTime() + vnOffset);
+    end.setUTCHours(23, 59, 59, 999);
+    
+    const start = new Date(new Date().getTime() + vnOffset);
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    start.setUTCHours(0, 0, 0, 0);
+
     return {
       start: start.toISOString().slice(0, 16),
       end: end.toISOString().slice(0, 16)
@@ -86,6 +90,13 @@ export default function AdminDashboard() {
   const [startDate, setStartDate] = useState(initial.start);
   const [endDate, setEndDate] = useState(initial.end);
   const [activePeriod, setActivePeriod] = useState("7d");
+  const [cinemaId, setCinemaId] = useState("");
+  const navigate = useNavigate();
+
+  const { data: cinemas } = useQuery({
+    queryKey: ["admin", "cinemas"],
+    queryFn: () => cinemaApi.getAll(),
+  });
 
   const handlePeriodChange = (period) => {
     setActivePeriod(period);
@@ -102,14 +113,15 @@ export default function AdminDashboard() {
   };
 
   const { data: stats, isLoading } = useQuery({
-    queryKey: ["admin", "dashboard", startDate, endDate],
-    queryFn: () => dashboardApi.getStats({ startDate, endDate }),
+    queryKey: ["admin", "dashboard", startDate, endDate, cinemaId],
+    queryFn: () => dashboardApi.getStats({ startDate, endDate, cinemaId: cinemaId || undefined }),
     refetchInterval: 60_000,
   });
 
   const { data: analytics, isLoading: analyticsLoading } = useQuery({
-    queryKey: ["admin", "analytics"],
-    queryFn: dashboardApi.getAnalytics,
+    queryKey: ["admin", "analytics", startDate, endDate, cinemaId],
+    queryFn: () => dashboardApi.getAnalytics({ startDate, endDate, cinemaId }),
+    enabled: !!startDate && !!endDate,
     refetchInterval: 120_000,
   });
 
@@ -184,6 +196,20 @@ export default function AdminDashboard() {
             </button>
           ))}
         </div>
+        
+        {/* Cinema Selector */}
+        <select
+          value={cinemaId}
+          onChange={(e) => setCinemaId(e.target.value)}
+          className="select select-sm bg-gray-100 border-none rounded-xl h-9 px-4 text-xs font-medium focus:ring-2 focus:ring-brand-500/20"
+        >
+          <option value="">Tất cả rạp</option>
+          {cinemas?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
 
         {activePeriod === "custom" && (
           <motion.div 
@@ -227,7 +253,7 @@ export default function AdminDashboard() {
         {/* Revenue chart */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
           <h2 className="font-bold text-gray-900 mb-1">
-            Doanh thu 7 ngày gần nhất
+            Doanh thu {activePeriod === "1c" ? "hôm nay" : activePeriod === "7d" ? "7 ngày qua" : activePeriod === "30d" ? "30 ngày qua" : "tùy chỉnh"}
           </h2>
           <p className="text-sm text-gray-400 mb-6">
             Biểu đồ doanh thu theo ngày
@@ -357,11 +383,15 @@ export default function AdminDashboard() {
                           {b.bookingCode}
                         </td>
                         <td className="font-medium text-gray-800 max-w-[150px] truncate">
-                          {b.movieTitle}
+                          <span className={cn(b.movieTitle?.includes("🍿") && "text-primary italic")}>
+                            {b.movieTitle || "Hóa đơn F&B"}
+                          </span>
                         </td>
                         <td className="text-gray-600">{b.cinemaName}</td>
                         <td className="text-gray-500 text-xs">
-                          {formatDate(b.startTime, "dd/MM HH:mm")}
+                          {b.startTime 
+                            ? formatDate(b.startTime, "dd/MM HH:mm")
+                            : "Giao dịch F&B"}
                         </td>
                         <td className="font-semibold text-gray-800">
                           {formatCurrency(b.totalAmount)}

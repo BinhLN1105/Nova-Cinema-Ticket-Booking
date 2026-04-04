@@ -29,7 +29,7 @@ public class BookingController {
 
         // POST /api/v1/bookings — tạo đơn đặt vé
         @PostMapping
-        @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
+        @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")
         public ResponseEntity<ApiResponse<BookingResponse>> createBooking(
                         @AuthenticationPrincipal User currentUser,
                         @Valid @RequestBody BookingRequest request) {
@@ -41,7 +41,7 @@ public class BookingController {
 
         // POST /api/v1/bookings/quote — lấy báo giá (không tạo đơn)
         @PostMapping("/quote")
-        @PreAuthorize("hasAnyRole('CUSTOMER','ADMIN')")
+        @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")
         public ResponseEntity<ApiResponse<BookingResponse>> calculateQuote(
                         @AuthenticationPrincipal User currentUser,
                         @Valid @RequestBody BookingRequest request) {
@@ -69,14 +69,16 @@ public class BookingController {
                                 bookingService.getDetail(currentUser.getId(), id)));
         }
 
-        // POST /api/v1/bookings/{id}/cancel — Huỷ vé (Customer tự hủy hoặc Staff/Admin hủy hộ)
+        // POST /api/v1/bookings/{id}/cancel — Huỷ vé (Customer tự hủy hoặc Staff/Admin
+        // hủy hộ)
         @PostMapping("/{id}/cancel")
         @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ApiResponse<Void>> cancelBooking(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID id) {
                 bookingService.cancelBooking(currentUser, id);
-                return ResponseEntity.ok(ApiResponse.success(null, "Huỷ vé thành công. Điểm CP đã được cộng vào tài khoản."));
+                return ResponseEntity.ok(
+                                ApiResponse.success(null, "Huỷ vé thành công. Điểm CP đã được cộng vào tài khoản."));
         }
 
         // POST /api/v1/bookings/check-in [STAFF, ADMIN] — quét QR tại rạp

@@ -10,11 +10,10 @@ import java.util.List;
 @Data
 public class BookingRequest {
 
-    @NotNull(message = "Suất chiếu không được để trống")
+    // Nullable cho đơn lẻ bắp nước (POS)
     private String showtimeId;
 
-    // Danh sách showtimeSeatId đã chọn
-    @NotEmpty(message = "Phải chọn ít nhất 1 ghế")
+    // Danh sách showtimeSeatId đã chọn (Có thể trống cho đơn lẻ bắp nước)
     private List<String> showtimeSeatIds;
 
     // Combo thêm vào (có thể rỗng)

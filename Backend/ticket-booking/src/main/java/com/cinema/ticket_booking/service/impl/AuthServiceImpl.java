@@ -14,6 +14,7 @@ import com.cinema.ticket_booking.exception.ConflictException;
 import com.cinema.ticket_booking.exception.UnauthorizedException;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
+import com.cinema.ticket_booking.repository.StaffProfileRepository;
 import com.cinema.ticket_booking.service.AuthService;
 import com.cinema.ticket_booking.service.EmailService;
 import com.cinema.ticket_booking.service.JwtService;
@@ -42,6 +43,7 @@ public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
+    private final StaffProfileRepository staffProfileRepository;
 
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
@@ -159,7 +161,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public void requestPasswordReset(String email) {
         User user = userRepository.findByEmail(email).orElse(null);
-        
+
         if (user != null && user.getAuthProvider() == AuthProvider.LOCAL) {
             if (user.getRole() != UserRole.CUSTOMER) {
                 log.warn("🚨 BẢO MẬT: Chặn yêu cầu reset mật khẩu cho ADMIN/STAFF: {}", email);
@@ -169,13 +171,14 @@ public class AuthServiceImpl implements AuthService {
             // 1. Kiểm tra rate limit (1 phút)
             String lastSent = redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
             if (lastSent != null) {
-                // Đã gửi mã trong 5 phút qua, cho phép sang bước nhập mã (silently skip gửi mới nếu muốn khắt khe)
+                // Đã gửi mã trong 5 phút qua, cho phép sang bước nhập mã (silently skip gửi mới
+                // nếu muốn khắt khe)
                 // Hoặc đơn giản là không gửi quá nhanh
             }
 
             // 2. Tạo mã OTP 6 số
             String otp = String.format("%06d", new Random().nextInt(1000000));
-            
+
             // 3. Lưu vào Redis (5 phút)
             redisTemplate.opsForValue().set(OTP_KEY_PREFIX + email, otp, 5, TimeUnit.MINUTES);
             // Reset số lần nhập sai
@@ -184,7 +187,7 @@ public class AuthServiceImpl implements AuthService {
             // 4. Gửi Email (password-reset-otp.html)
             emailService.sendPasswordResetOtpEmail(user, otp);
         }
-        
+
         log.info("Yêu cầu khôi phục mật khẩu (OTP) cho email: {}", email);
     }
 
@@ -193,14 +196,14 @@ public class AuthServiceImpl implements AuthService {
         // 1. Kiểm tra brute-force
         String attemptsStr = redisTemplate.opsForValue().get(OTP_ATTEMPTS_PREFIX + email);
         int attempts = attemptsStr != null ? Integer.parseInt(attemptsStr) : 0;
-        
+
         if (attempts >= 5) {
             throw new BadRequestException("Bạn đã nhập sai quá nhiều lần. Vui lòng thử lại sau 15 phút.");
         }
 
         // 2. Lấy mã thực tế
         String actualOtp = redisTemplate.opsForValue().get(OTP_KEY_PREFIX + email);
-        
+
         if (actualOtp == null) {
             throw new BadRequestException("Mã OTP đã hết hạn hoặc không tồn tại");
         }
@@ -208,7 +211,7 @@ public class AuthServiceImpl implements AuthService {
         if (!actualOtp.equals(otp)) {
             redisTemplate.opsForValue().increment(OTP_ATTEMPTS_PREFIX + email);
             if (attempts == 0) {
-                 redisTemplate.expire(OTP_ATTEMPTS_PREFIX + email, 15, TimeUnit.MINUTES);
+                redisTemplate.expire(OTP_ATTEMPTS_PREFIX + email, 15, TimeUnit.MINUTES);
             }
             throw new BadRequestException("Mã OTP không chính xác");
         }
@@ -216,11 +219,11 @@ public class AuthServiceImpl implements AuthService {
         // 3. Thành công -> Tạo reset_token (10 phút)
         String resetToken = UUID.randomUUID().toString();
         redisTemplate.opsForValue().set(RESET_TOKEN_PREFIX + resetToken, email, 10, TimeUnit.MINUTES);
-        
+
         // Dọn dẹp OTP
         redisTemplate.delete(OTP_KEY_PREFIX + email);
         redisTemplate.delete(OTP_ATTEMPTS_PREFIX + email);
-        
+
         return resetToken;
     }
 
@@ -228,7 +231,7 @@ public class AuthServiceImpl implements AuthService {
     public void resetPassword(String token, String newPassword) {
         // 1. Lấy email từ Reset Token trong Redis
         String email = redisTemplate.opsForValue().get(RESET_TOKEN_PREFIX + token);
-        
+
         if (email == null) {
             throw new BadRequestException("Mã xác thực không hợp lệ hoặc đã hết hạn");
         }
@@ -242,7 +245,7 @@ public class AuthServiceImpl implements AuthService {
 
         // 3. Dọn dẹp
         redisTemplate.delete(RESET_TOKEN_PREFIX + token);
-        
+
         // 4. Đăng xuất toàn bộ phiên làm việc cũ
         refreshTokenRepository.deleteAllByUser(user);
     }
@@ -311,6 +314,14 @@ public class AuthServiceImpl implements AuthService {
     }
 
     private AuthResponse.UserResponse toUserInfo(User user) {
+        String cinemaId = null;
+        if (user.getRole() == UserRole.STAFF) {
+            cinemaId = staffProfileRepository.findByUserId(user.getId())
+                    .filter(sp -> sp.getCinema() != null)
+                    .map(sp -> sp.getCinema().getId().toString())
+                    .orElse(null);
+        }
+
         return AuthResponse.UserResponse.builder()
                 .id(user.getId().toString())
                 .email(user.getEmail())
@@ -320,6 +331,7 @@ public class AuthServiceImpl implements AuthService {
                 .rewardPoints(user.getRewardPoints())
                 .availableExp(user.getAvailableExp())
                 .membershipTier(user.getMembershipTier())
+                .cinemaId(cinemaId)
                 .build();
     }
 }

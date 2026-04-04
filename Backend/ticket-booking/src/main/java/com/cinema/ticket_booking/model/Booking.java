@@ -32,7 +32,11 @@ public class Booking {
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "showtime_id", nullable = false)
+    @JoinColumn(name = "cinema_id", nullable = false)
+    private Cinema cinema;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "showtime_id", nullable = true) // Nullable cho đơn lẻ bắp nước
     private Showtime showtime;
 
     // Mã booking hiển thị cho khách: VD "BK20241201001"
@@ -94,8 +98,8 @@ public class Booking {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // Thời hạn thanh toán khi status = PENDING
-    @Column(name = "expires_at", nullable = false)
+    // Thời hạn thanh toán khi status = PENDING (Nullable cho đơn PAID ngay lập tức)
+    @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
     // Dùng để xác nhận hủy vé qua email

@@ -19,8 +19,8 @@ public interface BookingMapper {
     @Mapping(target = "movieTitle", source = "showtime.movie.title")
     @Mapping(target = "moviePosterUrl", source = "showtime.movie.posterUrl")
     @Mapping(target = "startTime", source = "showtime.startTime")
-    @Mapping(target = "cinemaName", source = "showtime.screen.cinema.name")
-    @Mapping(target = "cinemaAddress", source = "showtime.screen.cinema.address")
+    @Mapping(target = "cinemaName", source = "cinema.name")
+    @Mapping(target = "cinemaAddress", source = "cinema.address")
     @Mapping(target = "screenName", source = "showtime.screen.name")
     @Mapping(target = "voucherCode", source = "voucher.code")
     @Mapping(target = "seats", ignore = true) // service tự map
@@ -38,7 +38,7 @@ public interface BookingMapper {
     @Mapping(target = "movieTitle", source = "showtime.movie.title")
     @Mapping(target = "moviePosterUrl", source = "showtime.movie.posterUrl")
     @Mapping(target = "startTime", source = "showtime.startTime")
-    @Mapping(target = "cinemaName", source = "showtime.screen.cinema.name")
+    @Mapping(target = "cinemaName", source = "cinema.name")
     @Mapping(target = "screenName", source = "showtime.screen.name")
     @Mapping(target = "screenType", ignore = true) // service tính từ getScreenTypeName()
     @Mapping(target = "seats", ignore = true) // service tự map chuỗi "A1, A2..."

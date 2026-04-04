@@ -75,6 +75,9 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 11. Đảm bảo bảng user_exp_history tồn tại
         ensureUserExpHistoryTable();
 
+        // 12. Cho phép showtime_id null cho đơn bắp nước
+        ensureBookingShowtimeNullable();
+
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
     }
 
@@ -278,6 +281,16 @@ public class SchemaFixConfig implements CommandLineRunner {
             log.info("[SchemaFix] Bảng 'user_exp_history' đã sẵn sàng.");
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi khi tạo bảng user_exp_history: {}", e.getMessage());
+        }
+    }
+
+    private void ensureBookingShowtimeNullable() {
+        try {
+            log.info("[SchemaFix] Đảm bảo cột 'showtime_id' trong 'bookings' cho phép NULL...");
+            jdbcTemplate.execute("ALTER TABLE bookings ALTER COLUMN showtime_id DROP NOT NULL");
+            log.info("[SchemaFix] Cột 'showtime_id' đã được chuyển sang chế độ Nullable.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi chuyển showtime_id sang Nullable (có thể đã là Nullable): {}", e.getMessage());
         }
     }
 }

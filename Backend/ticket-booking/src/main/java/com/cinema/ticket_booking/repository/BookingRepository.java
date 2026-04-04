@@ -20,262 +20,322 @@ import java.math.BigDecimal;
 @Repository
 public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
-  // Tìm theo mã booking (dùng cho check-in QR)
-  Optional<Booking> findByBookingCode(String bookingCode);
+    // Tìm theo mã booking (dùng cho check-in QR)
+    Optional<Booking> findByBookingCode(String bookingCode);
 
-  // Tìm theo QR code string
-  Optional<Booking> findByQrCode(String qrCode);
+    // Tìm theo QR code string
+    Optional<Booking> findByQrCode(String qrCode);
 
-  // Lịch sử đặt vé của user (phân trang)
-  @EntityGraph(attributePaths = { "showtime.movie", "showtime.screen.cinema" })
-  Page<Booking> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
+    // Lịch sử đặt vé của user (phân trang)
+    @EntityGraph(attributePaths = { "showtime.movie", "showtime.screen.cinema" })
+    Page<Booking> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
 
-  // Đơn đặt vé của user theo trạng thái
-  List<Booking> findByUserIdAndStatus(UUID userId, BookingStatus status);
+    // Đơn đặt vé của user theo trạng thái
+    List<Booking> findByUserIdAndStatus(UUID userId, BookingStatus status);
 
-  // Admin: lọc booking theo trạng thái (phân trang)
-  Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
+    // Admin: lọc booking theo trạng thái (phân trang)
+    Page<Booking> findByStatus(BookingStatus status, Pageable pageable);
 
-  // Admin: xem booking theo suất chiếu
-  List<Booking> findByShowtimeId(UUID showtimeId);
+    // Admin: xem booking theo suất chiếu
+    List<Booking> findByShowtimeId(UUID showtimeId);
 
-  // Lấy booking theo suất chiếu và trạng thái
-  List<Booking> findByShowtimeIdAndStatus(UUID showtimeId, BookingStatus status);
+    // Lấy booking theo suất chiếu và trạng thái
+    List<Booking> findByShowtimeIdAndStatus(UUID showtimeId, BookingStatus status);
 
-  // Tìm booking theo trạng thái và thời gian hết hạn (dùng cho Scheduler)
-  List<Booking> findByStatusAndExpiresAtBefore(BookingStatus status, LocalDateTime now);
+    // Tìm booking theo trạng thái và thời gian hết hạn (dùng cho Scheduler)
+    List<Booking> findByStatusAndExpiresAtBefore(BookingStatus status, LocalDateTime now);
 
-  // Kiểm tra xem rạp có booking nào không (Dùng để bảo vệ khi xóa rạp)
-  @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN b.showtime s JOIN s.screen sc WHERE sc.cinema.id = :cinemaId")
-  boolean existsByCinemaId(@Param("cinemaId") UUID cinemaId);
+    // Kiểm tra xem rạp có booking nào không (Dùng để bảo vệ khi xóa rạp)
+    @Query("SELECT COUNT(b) > 0 FROM Booking b JOIN b.showtime s JOIN s.screen sc WHERE sc.cinema.id = :cinemaId")
+    boolean existsByCinemaId(@Param("cinemaId") UUID cinemaId);
 
-  // ── Atomic Actions ──────────────────────────────────────────────────────
-  @Modifying
-  @Query("UPDATE Booking b SET b.status = 'CANCELLED', b.cancellationToken = null, b.cancellationTokenExpiry = null, b.earnedExp = 0 WHERE b.id = :bookingId AND b.status = 'PAID'")
-  int cancelPaidBooking(@Param("bookingId") UUID bookingId);
+    // ── Atomic Actions ──────────────────────────────────────────────────────
+    @Modifying
+    @Query("UPDATE Booking b SET b.status = 'CANCELLED', b.cancellationToken = null, b.cancellationTokenExpiry = null, b.earnedExp = 0 WHERE b.id = :bookingId AND b.status = 'PAID'")
+    int cancelPaidBooking(@Param("bookingId") UUID bookingId);
 
-  // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
-  @Modifying
-  @Query("""
-          UPDATE Booking b
-          SET b.status = 'EXPIRED'
-          WHERE b.status = 'PENDING'
-            AND b.expiresAt < :now
-      """)
-  int expireOverdueBookings(@Param("now") LocalDateTime now);
+    // ── Scheduler: tự động EXPIRED booking PENDING quá hạn ───────────────
+    @Modifying
+    @Query("""
+                UPDATE Booking b
+                SET b.status = 'EXPIRED'
+                WHERE b.status = 'PENDING'
+                  AND b.expiresAt < :now
+            """)
+    int expireOverdueBookings(@Param("now") LocalDateTime now);
 
-  // ── Scheduler: tìm booking sắp đến giờ chiếu để gửi nhắc nhở ───────
-  @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.showtime.startTime >= :fromTime AND b.showtime.startTime < :toTime")
-  List<Booking> findUpcomingBookings(
-      @Param("status") BookingStatus status,
-      @Param("fromTime") LocalDateTime fromTime,
-      @Param("toTime") LocalDateTime toTime);
+    // ── Scheduler: tìm booking sắp đến giờ chiếu để gửi nhắc nhở ───────
+    @Query("SELECT b FROM Booking b WHERE b.status = :status AND b.showtime.startTime >= :fromTime AND b.showtime.startTime < :toTime")
+    List<Booking> findUpcomingBookings(
+            @Param("status") BookingStatus status,
+            @Param("fromTime") LocalDateTime fromTime,
+            @Param("toTime") LocalDateTime toTime);
 
-  // Lấy booking hợp lệ để review phim (Verified Purchase Review)
-  // Điều kiện: Booking PAID, VÀ (suất chiếu đã bắt đầu HOẶC có ít nhất 1 vé đã
-  // check-in)
-  @Query(value = """
-          SELECT b.* FROM bookings b
-          JOIN showtimes s ON b.showtime_id = s.id
-          WHERE b.user_id = :userId
-            AND s.movie_id = :movieId
-            AND b.status = 'CHECKED_IN'
-          ORDER BY b.created_at DESC LIMIT 1
-      """, nativeQuery = true)
-  Optional<Booking> findEligibleBookingForReview(
-      @Param("userId") UUID userId,
-      @Param("movieId") UUID movieId);
+    // Lấy booking hợp lệ để review phim (Verified Purchase Review)
+    // Điều kiện: Booking PAID, VÀ (suất chiếu đã bắt đầu HOẶC có ít nhất 1 vé đã
+    // check-in)
+    @Query(value = """
+                SELECT b.* FROM bookings b
+                JOIN showtimes s ON b.showtime_id = s.id
+                WHERE b.user_id = :userId
+                  AND s.movie_id = :movieId
+                  AND b.status = 'CHECKED_IN'
+                ORDER BY b.created_at DESC LIMIT 1
+            """, nativeQuery = true)
+    Optional<Booking> findEligibleBookingForReview(
+            @Param("userId") UUID userId,
+            @Param("movieId") UUID movieId);
 
-  // ── Exp Conversion ───────────────────────────────────────────────────
+    // ── Exp Conversion ───────────────────────────────────────────────────
 
-  @Query("""
-          SELECT b FROM Booking b
-          WHERE b.status = :status
-          AND b.expAdded = false
-          AND b.showtime.startTime < :thresholdDate
-      """)
-  List<Booking> findBookingsForExpConversion(
-      @Param("status") BookingStatus status,
-      @Param("thresholdDate") LocalDateTime thresholdDate);
+    @Query("""
+                SELECT b FROM Booking b
+                WHERE b.status = :status
+                AND b.expAdded = false
+                AND b.showtime.startTime < :thresholdDate
+            """)
+    List<Booking> findBookingsForExpConversion(
+            @Param("status") BookingStatus status,
+            @Param("thresholdDate") LocalDateTime thresholdDate);
 
-  // ── Dashboard Admin Queries ──────────────────────────────────────────
+    // ── Dashboard Admin Queries ──────────────────────────────────────────
 
-  @Query("SELECT COALESCE(SUM(b.totalAmount), 0) FROM Booking b " +
-      "JOIN b.showtime s JOIN s.screen sc " +
-      "WHERE b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED') " +
-      "AND b.createdAt >= :startDate AND b.createdAt <= :endDate " +
-      "AND (:cinemaId IS NULL OR sc.cinema.id = :cinemaId)")
-  BigDecimal calculateNetRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
+    @Query(value = "SELECT COALESCE(SUM(b.total_amount), 0) FROM bookings b " +
+            "WHERE b.status IN ('PAID', 'CHECKED_IN') " +
+            "AND b.created_at >= :startDate AND b.created_at <= :endDate " +
+            "AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))", nativeQuery = true)
+    BigDecimal calculateNetRevenue(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId);
 
-  @Query("SELECT COUNT(b) FROM Booking b " +
-      "JOIN b.showtime s JOIN s.screen sc " +
-      "WHERE b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED') " +
-      "AND b.createdAt >= :startDate AND b.createdAt <= :endDate " +
-      "AND (:cinemaId IS NULL OR sc.cinema.id = :cinemaId)")
-  long countTotalBookingsByDateRange(@Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
+    @Query(value = "SELECT COUNT(b.id) FROM bookings b " +
+            "WHERE b.status IN ('PAID', 'CHECKED_IN') " +
+            "AND b.created_at >= :startDate AND b.created_at <= :endDate " +
+            "AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))", nativeQuery = true)
+    long countTotalBookingsByDateRange(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-  @Query("SELECT COALESCE(SUM(COALESCE(b.discountAmount, 0) + COALESCE(b.promotionDiscountAmount, 0)), 0) FROM Booking b " +
-      "JOIN b.showtime s JOIN s.screen sc " +
-      "WHERE b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED') " +
-      "AND b.createdAt >= :startDate AND b.createdAt <= :endDate " +
-      "AND (:cinemaId IS NULL OR sc.cinema.id = :cinemaId)")
-  BigDecimal calculateTotalDiscounts(@Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
+    @Query(value = "SELECT COALESCE(SUM(COALESCE(b.discount_amount, 0) + COALESCE(b.promotion_discount_amount, 0)), 0) FROM bookings b "
+            +
+            "WHERE b.status IN ('PAID', 'CHECKED_IN') " +
+            "AND b.created_at >= :startDate AND b.created_at <= :endDate " +
+            "AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))", nativeQuery = true)
+    BigDecimal calculateTotalDiscounts(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-  @Query("SELECT CAST(s.seatType AS string) AS name, SUM(bi.seatPrice) AS grossRevenue " +
-      "FROM BookingItem bi JOIN bi.booking b JOIN bi.showtimeSeat ss JOIN ss.seat s " +
-      "JOIN b.showtime st JOIN st.screen sc " +
-      "WHERE b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED') " +
-      "AND b.createdAt >= :startDate AND b.createdAt <= :endDate " +
-      "AND (:cinemaId IS NULL OR sc.cinema.id = :cinemaId) " +
-      "GROUP BY s.seatType")
-  List<RevenueBreakdownProjection> getTicketRevenueBySeatType(@Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
+    @Query(value = "SELECT CAST(s.seat_type AS text) AS name, SUM(bi.seat_price) AS grossRevenue " +
+            "FROM booking_items bi " +
+            "JOIN bookings b ON bi.booking_id = b.id " +
+            "JOIN showtime_seats ss ON bi.showtime_seat_id = ss.id " +
+            "JOIN seats s ON ss.seat_id = s.id " +
+            "WHERE b.status IN ('PAID', 'CHECKED_IN') " +
+            "AND b.created_at >= :startDate AND b.created_at <= :endDate " +
+            "AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid)) " +
+            "GROUP BY s.seat_type", nativeQuery = true)
+    List<RevenueBreakdownProjection> getTicketRevenueBySeatType(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-  @Query("SELECT c.name AS name, SUM(bc.unitPrice * bc.quantity) AS grossRevenue " +
-      "FROM BookingCombo bc JOIN bc.booking b JOIN bc.combo c " +
-      "JOIN b.showtime st JOIN st.screen sc " +
-      "WHERE b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED') " +
-      "AND b.createdAt >= :startDate AND b.createdAt <= :endDate " +
-      "AND (:cinemaId IS NULL OR sc.cinema.id = :cinemaId) " +
-      "GROUP BY c.name")
-  List<RevenueBreakdownProjection> getConcessionRevenueByCombo(@Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
+    @Query(value = "SELECT c.name AS name, SUM(bc.unit_price * bc.quantity) AS grossRevenue " +
+            "FROM booking_combos bc " +
+            "JOIN bookings b ON bc.booking_id = b.id " +
+            "JOIN combos c ON bc.combo_id = c.id " +
+            "WHERE b.status IN ('PAID', 'CHECKED_IN') " +
+            "AND b.created_at >= :startDate AND b.created_at <= :endDate " +
+            "AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid)) " +
+            "GROUP BY c.name", nativeQuery = true)
+    List<RevenueBreakdownProjection> getConcessionRevenueByCombo(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-  @Query(value = """
-          SELECT
-              TO_CHAR(b.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') as date,
-              SUM(b.total_amount) as revenue,
-              COUNT(b.id) as bookingCount
-          FROM bookings b
-          JOIN showtimes s ON b.showtime_id = s.id
-          JOIN screens sc ON s.screen_id = sc.id
-          WHERE b.created_at >= :startDate AND b.created_at <= :endDate
-            AND b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED')
-            AND (:cinemaId IS NULL OR sc.cinema_id = :cinemaId)
-          GROUP BY 1
-          ORDER BY 1
-      """, nativeQuery = true)
-  List<RevenueByDayProjection> getRevenueByDayInRange(
-      @Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate,
-      @Param("cinemaId") UUID cinemaId);
+    @Query(value = """
+                SELECT
+                    TO_CHAR(b.created_at, 'YYYY-MM-DD') as date,
+                    SUM(b.total_amount) as revenue,
+                    COUNT(b.id) as bookingCount
+                FROM bookings b
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                GROUP BY 1
+                ORDER BY 1
+            """, nativeQuery = true)
+    List<RevenueByDayProjection> getRevenueByDayInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId);
 
-  @Query(value = """
-          SELECT
-              TO_CHAR(b.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') as date,
-              SUM(bi.seat_price) as revenue
-          FROM bookings b
-          JOIN booking_items bi ON bi.booking_id = b.id
-          JOIN showtimes s ON b.showtime_id = s.id
-          JOIN screens sc ON s.screen_id = sc.id
-          WHERE b.created_at >= :startDate AND b.created_at <= :endDate
-            AND b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED')
-            AND (:cinemaId IS NULL OR sc.cinema_id = :cinemaId)
-          GROUP BY 1
-          ORDER BY 1
-      """, nativeQuery = true)
-  List<RevenueByDayProjection> getDailyTicketRevenueInRange(
-      @Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate,
-      @Param("cinemaId") UUID cinemaId);
+    @Query(value = """
+                SELECT
+                    TO_CHAR(b.created_at, 'YYYY-MM-DD') as date,
+                    SUM(bi.seat_price) as revenue
+                FROM bookings b
+                JOIN booking_items bi ON bi.booking_id = b.id
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                GROUP BY 1
+                ORDER BY 1
+            """, nativeQuery = true)
+    List<RevenueByDayProjection> getDailyTicketRevenueInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId);
 
-  @Query(value = """
-          SELECT
-              TO_CHAR(b.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Ho_Chi_Minh', 'YYYY-MM-DD') as date,
-              SUM(bc.unit_price * bc.quantity) as revenue
-          FROM bookings b
-          JOIN booking_combos bc ON bc.booking_id = b.id
-          JOIN showtimes s ON b.showtime_id = s.id
-          JOIN screens sc ON s.screen_id = sc.id
-          WHERE b.created_at >= :startDate AND b.created_at <= :endDate
-            AND b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED')
-            AND (:cinemaId IS NULL OR sc.cinema_id = :cinemaId)
-          GROUP BY 1
-          ORDER BY 1
-      """, nativeQuery = true)
-  List<RevenueByDayProjection> getDailyConcessionRevenueInRange(
-      @Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate,
-      @Param("cinemaId") java.util.UUID cinemaId);
+    @Query(value = """
+                SELECT
+                    TO_CHAR(b.created_at, 'YYYY-MM-DD') as date,
+                    SUM(bc.unit_price * bc.quantity) as revenue
+                FROM bookings b
+                JOIN booking_combos bc ON bc.booking_id = b.id
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                GROUP BY 1
+                ORDER BY 1
+            """, nativeQuery = true)
+    List<RevenueByDayProjection> getDailyConcessionRevenueInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") java.util.UUID cinemaId);
 
-  @Query(value = """
-          SELECT m.id as id, m.title as title, m.poster_url as posterUrl,
-          COUNT(b.id) as tickets, SUM(b.total_amount) as rev
-          FROM bookings b
-          JOIN showtimes s ON b.showtime_id = s.id
-          JOIN screens sc ON s.screen_id = sc.id
-          JOIN movies m ON s.movie_id = m.id
-          WHERE b.created_at >= :startDate AND b.created_at <= :endDate
-            AND b.status IN ('PAID', 'CHECKED_IN', 'EXPIRED')
-            AND (:cinemaId IS NULL OR sc.cinema_id = :cinemaId)
-          GROUP BY m.id, m.title, m.poster_url
-          ORDER BY rev DESC LIMIT 5
-      """, nativeQuery = true)
-  List<TopMovieProjection> getTop5MoviesInRange(
-      @Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate,
-      @Param("cinemaId") UUID cinemaId);
+    @Query(value = """
+                SELECT m.id as id, m.title as title, m.poster_url as posterUrl,
+                COUNT(b.id) as tickets, SUM(b.total_amount) as rev
+                FROM bookings b
+                JOIN showtimes s ON b.showtime_id = s.id
+                JOIN movies m ON s.movie_id = m.id
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                GROUP BY m.id, m.title, m.poster_url
+                ORDER BY rev DESC LIMIT 5
+            """, nativeQuery = true)
+    List<TopMovieProjection> getTop5MoviesInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId);
 
-  @Query(value = """
-          SELECT b.id as id, b.booking_code as bookingCode, m.title as movieTitle,
-          c.name as cinemaName, s.start_time as startTime, b.total_amount as totalAmount, b.status as status
-          FROM bookings b
-          JOIN showtimes s ON b.showtime_id = s.id
-          JOIN movies m ON s.movie_id = m.id
-          JOIN screens sc ON s.screen_id = sc.id
-          JOIN cinemas c ON sc.cinema_id = c.id
-          WHERE b.created_at >= :startDate AND b.created_at <= :endDate
-            AND (:cinemaId IS NULL OR sc.cinema_id = :cinemaId)
-          ORDER BY b.created_at DESC LIMIT 5
-      """, nativeQuery = true)
-  List<RecentBookingProjection> getRecentBookingsInRange(
-      @Param("startDate") LocalDateTime startDate,
-      @Param("endDate") LocalDateTime endDate,
-      @Param("cinemaId") UUID cinemaId);
+    @Query(value = """
+                SELECT b.id as id, b.booking_code as bookingCode, 
+                       COALESCE(m.title, '🍿 Hóa đơn F&B') as movieTitle,
+                       COALESCE(c.name, 'Hệ thống') as cinemaName, 
+                       s.start_time as startTime, b.total_amount as totalAmount, b.status as status
+                FROM bookings b
+                LEFT JOIN showtimes s ON b.showtime_id = s.id
+                LEFT JOIN movies m ON s.movie_id = m.id
+                LEFT JOIN cinemas c ON b.cinema_id = c.id
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                ORDER BY b.created_at DESC LIMIT 5
+            """, nativeQuery = true)
+    List<RecentBookingProjection> getRecentBookingsInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId);
 
-  // ── Projections ───────────────────────────────────────────────────────
+    // ── Analytics Queries ──────────────────────────────────────────
 
-  interface RevenueByDayProjection {
-    Object getDate();
+    @Query(value = """
+                SELECT EXTRACT(HOUR FROM (CASE WHEN b.showtime_id IS NULL THEN b.created_at ELSE s.start_time END)) as hour,
+                       COUNT(b.id) as count
+                FROM bookings b
+                LEFT JOIN showtimes s ON b.showtime_id = s.id
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid))
+                GROUP BY 1 ORDER BY 1
+            """, nativeQuery = true)
+    List<Object[]> getPeakHoursInRange(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-    BigDecimal getRevenue();
+    @Query(value = """
+                SELECT c.name, COUNT(ss.id) as total,
+                       SUM(CASE WHEN ss.status = 'BOOKED' THEN 1 ELSE 0 END) as booked
+                FROM showtime_seats ss
+                JOIN showtimes s ON ss.showtime_id = s.id
+                JOIN screens sc ON s.screen_id = sc.id
+                JOIN cinemas c ON sc.cinema_id = c.id
+                WHERE s.start_time >= :startDate AND s.start_time <= :endDate
+                  AND (CAST(:cinemaId AS text) IS NULL OR c.id = CAST(:cinemaId AS uuid))
+                GROUP BY c.id, c.name
+            """, nativeQuery = true)
+    List<Object[]> getOccupancyInRange(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-    Long getBookingCount();
-  }
+    @Query(value = """
+                SELECT COALESCE(c.name, 'Hệ thống / Vãng lai'), SUM(b.total_amount) as revenue, COUNT(b.id) as count
+                FROM bookings b
+                LEFT JOIN showtimes s ON b.showtime_id = s.id
+                LEFT JOIN screens sc ON s.screen_id = sc.id
+                LEFT JOIN cinemas c ON (sc.cinema_id = c.id OR b.cinema_id = c.id)
+                WHERE b.created_at >= :startDate AND b.created_at <= :endDate
+                  AND b.status IN ('PAID', 'CHECKED_IN')
+                  AND (CAST(:cinemaId AS text) IS NULL OR b.cinema_id = CAST(:cinemaId AS uuid) OR c.id = CAST(:cinemaId AS uuid))
+                GROUP BY c.id, c.name
+                ORDER BY revenue DESC
+            """, nativeQuery = true)
+    List<Object[]> getRevenueByCinemaInRange(@Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate, @Param("cinemaId") UUID cinemaId);
 
-  interface TopMovieProjection {
-    String getId();
+    // ── Staff Dashboard Search ──────────────────────────────────────────
 
-    String getTitle();
+    @Query("SELECT b FROM Booking b WHERE " +
+            "(CAST(:startDate AS LocalDateTime) IS NULL OR b.createdAt >= :startDate) AND " +
+            "(CAST(:endDate AS LocalDateTime) IS NULL OR b.createdAt <= :endDate) AND " +
+            "(CAST(:cinemaId AS string) IS NULL OR b.cinema.id = :cinemaId) AND " +
+            "(CAST(:status AS string) IS NULL OR b.status = :status) AND " +
+            "(CAST(:paymentMethod AS string) IS NULL OR b.paymentMethod = :paymentMethod) AND " +
+            "(:search IS NULL OR :search = '' OR " +
+            "   LOWER(b.bookingCode) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "   LOWER(b.user.fullName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "   LOWER(b.user.email) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Booking> searchBookings(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate,
+            @Param("cinemaId") UUID cinemaId,
+            @Param("status") BookingStatus status,
+            @Param("paymentMethod") com.cinema.ticket_booking.enums.PaymentMethod paymentMethod,
+            @Param("search") String search,
+            Pageable pageable);
 
-    String getPosterUrl();
+    // ── Projections ───────────────────────────────────────────────────────
 
-    Long getTickets();
+    interface RevenueByDayProjection {
+        String getDate();
+        BigDecimal getRevenue();
+        Long getBookingCount();
+    }
 
-    BigDecimal getRev();
-  }
+    interface TopMovieProjection {
+        String getId();
 
-  interface RecentBookingProjection {
-    String getId();
+        String getTitle();
 
-    String getBookingCode();
+        String getPosterUrl();
 
-    String getMovieTitle();
+        Long getTickets();
 
-    String getCinemaName();
+        BigDecimal getRev();
+    }
 
-    LocalDateTime getStartTime();
+    interface RecentBookingProjection {
+        String getId();
 
-    BigDecimal getTotalAmount();
+        String getBookingCode();
 
-    String getStatus();
-  }
+        String getMovieTitle();
 
-  interface RevenueBreakdownProjection {
-    String getName();
+        String getCinemaName();
 
-    BigDecimal getGrossRevenue();
-  }
+        LocalDateTime getStartTime();
+
+        BigDecimal getTotalAmount();
+
+        String getStatus();
+    }
+
+    interface RevenueBreakdownProjection {
+        String getName();
+
+        BigDecimal getGrossRevenue();
+    }
 }

@@ -10,10 +10,12 @@ import {
   ShoppingBag,
   RefreshCw,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Printer
 } from 'lucide-react';
 import { QRCodeCanvas } from 'qrcode.react';
 import { showtimeApi, bookingApi, comboApi, cinemaApi } from '@/api/endpoints';
+import BookingDetailModal from '@/components/staff/BookingDetailModal';
 import { useAuthStore } from '@/stores/authStore';
 import { formatCurrency, cn } from '@/utils';
 import { PageLoader } from '@/components/common/feedback/PageLoader';
@@ -58,6 +60,10 @@ export default function POSPage() {
   const [paymentStep, setPaymentStep] = useState('selection'); // selection, payment, success
   const [vnpayUrl, setVnpayUrl] = useState(null);
   const [cinemaSelection, setCinemaSelection] = useState(null); // For Admin
+  const [currentBookingId, setCurrentBookingId] = useState(null);
+  const [voucherInput, setVoucherInput] = useState('');
+  const [voucherCode, setVoucherCode] = useState(null);
+  const [voucherError, setVoucherError] = useState(null);
 
   // Logic: Staff auto-binds to cinemaId. Admin picks.
   const activeCinemaId = user?.role === 'ADMIN' ? cinemaSelection : user?.cinemaId;
@@ -79,6 +85,20 @@ export default function POSPage() {
     queryFn: () => comboApi.getAvailable()
   });
 
+  // 2b. Fetch Cinemas (for Admin)
+  const { data: cinemas } = useQuery({
+    queryKey: ['pos-cinemas'],
+    queryFn: cinemaApi.getAll,
+    enabled: user?.role === 'ADMIN'
+  });
+
+  // Auto-select first cinema for admin if none selected
+  useEffect(() => {
+    if (user?.role === 'ADMIN' && cinemas?.length > 0 && !cinemaSelection) {
+      setCinemaSelection(cinemas[0].id);
+    }
+  }, [user, cinemas, cinemaSelection]);
+
   // 3. Fetch Seat Map when showtime selected
   const { data: seatMap, isLoading: loadingSeats } = useQuery({
     queryKey: ['pos-seatmap', selectedShowtime?.id],
@@ -88,46 +108,82 @@ export default function POSPage() {
 
   // 4. Live Pricing (Quote)
   const [quote, setQuote] = useState(null);
+  const hasCombos = Object.keys(selectedCombos).length > 0;
+
   useEffect(() => {
-    if (selectedShowtime && selectedSeats.length > 0) {
-      const fetchQuote = async () => {
+    // Quote trigger: must have at least seats OR combos
+    if (selectedShowtime || hasCombos) {
+      const timer = setTimeout(async () => {
         try {
           const comboItems = Object.entries(selectedCombos).map(([id, qty]) => ({ comboId: id, quantity: qty }));
           const resp = await bookingApi.getQuote({
-            showtimeId: selectedShowtime.id,
+            showtimeId: selectedShowtime?.id, // Optional
             showtimeSeatIds: selectedSeats.map(s => s.showtimeSeatId),
-            combos: comboItems
+            combos: comboItems,
+            voucherCode: voucherCode || undefined
           });
           setQuote(resp);
+          setVoucherError(null);
         } catch (e) {
           console.error(e);
+          if (voucherCode) {
+            setVoucherError(e.response?.data?.message || 'Voucher không hợp lệ hoặc không đủ điều kiện');
+          }
         }
-      };
-      fetchQuote();
+      }, 400); // 400ms debounce
+      return () => clearTimeout(timer);
     } else {
       setQuote(null);
     }
-  }, [selectedShowtime, selectedSeats, selectedCombos]);
+  }, [selectedShowtime, selectedSeats, selectedCombos, voucherCode]);
+
+  // --- VNPAY Polling Logic ---
+  useEffect(() => {
+    let intervalId = null;
+
+    if (vnpayUrl && currentBookingId && paymentStep !== 'success') {
+      intervalId = setInterval(async () => {
+        try {
+          const booking = await bookingApi.getById(currentBookingId);
+          if (booking.status === 'PAID' || booking.status === 'CHECKED_IN') {
+            setVnpayUrl(null);
+            setPaymentStep('success');
+            toast.success('Khách hàng đã thanh toán thành công qua VNPay!');
+          }
+        } catch (error) {
+          console.error("Polling error:", error);
+        }
+      }, 3000); // 3 seconds as recommended
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [vnpayUrl, currentBookingId, paymentStep]);
 
   // 5. Booking Mutation
   const bookingMutation = useMutation({
     mutationFn: (paymentMethod) => bookingApi.create({
-      showtimeId: selectedShowtime.id,
+      showtimeId: selectedShowtime?.id, // Optional
       showtimeSeatIds: selectedSeats.map(s => s.showtimeSeatId),
       combos: Object.entries(selectedCombos).map(([id, qty]) => ({ comboId: id, quantity: qty })),
+      voucherCode: voucherCode || undefined,
       paymentMethod
     }),
     onSuccess: (data, pMethod) => {
+      setCurrentBookingId(data.id);
       if (pMethod === 'CASH') {
         setPaymentStep('success');
         toast.success('Thanh toán tiền mặt thành công!');
       } else {
         // VNPAY Flow
-        setVnpayUrl(data.paymentUrl); // Assuming the backend returns paymentUrl in this context
-        // If not, we call createPayment manually
-        bookingApi.createPayment(data.id).then(payData => {
-           setVnpayUrl(payData.paymentUrl);
-        });
+        setVnpayUrl(data.paymentUrl); 
+        // fallback if paymentUrl missing in create
+        if(!data.paymentUrl) {
+            bookingApi.createPayment(data.id).then(payData => {
+                setVnpayUrl(payData.paymentUrl);
+            });
+        }
       }
     },
     onError: (err) => {
@@ -164,11 +220,32 @@ export default function POSPage() {
       {/* LEFT: Showtime Selection */}
       <aside className="w-80 border-r border-slate-800 flex flex-col bg-[#1e293b]/50">
         <div className="p-4 border-b border-slate-800">
-          <h2 className="text-lg font-bold flex items-center gap-2">
+          <h2 className="text-lg font-bold flex items-center gap-2 mb-3">
             <Ticket className="w-5 h-5 text-brand-400" /> Suất chiếu hôm nay
           </h2>
+          {user?.role === 'ADMIN' && (
+            <select
+              value={cinemaSelection || ''}
+              onChange={(e) => setCinemaSelection(e.target.value)}
+              className="w-full bg-[#0f172a] text-sm text-slate-200 border border-slate-700 rounded-md p-2 focus:ring-1 focus:ring-brand-500 focus:border-brand-500 outline-none"
+            >
+              {cinemas?.length > 0 ? (
+                cinemas.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))
+              ) : (
+                <option value="">Đang tải rạp...</option>
+              )}
+            </select>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar">
+          {!activeCinemaId && (
+            <div className="text-slate-500 text-sm italic text-center mt-4">Vui lòng chọn rạp để xem suất chiếu</div>
+          )}
+          {showtimesResp?.content?.length === 0 && activeCinemaId && (
+            <div className="text-slate-500 text-sm italic text-center mt-4">Không có suất chiếu nào hôm nay</div>
+          )}
           {showtimesResp?.content?.map(st => (
             <button
               key={st.id}
@@ -227,14 +304,26 @@ export default function POSPage() {
                   ).map(([row, seats]) => (
                     <div key={row} className="flex items-center gap-4">
                       <span className="w-4 text-slate-600 text-[10px] font-bold text-right">{row}</span>
-                      <div className="flex gap-2">
+                      <div 
+                        className="grid gap-2"
+                        style={{ 
+                          gridTemplateColumns: `repeat(${seatMap?.totalCols || 10}, 2.25rem)`,
+                        }}
+                      >
                         {seats.map(s => (
-                          <SeatButton 
-                            key={s.showtimeSeatId} 
-                            seat={s} 
-                            isSelected={selectedSeats.some(ss => ss.showtimeSeatId === s.showtimeSeatId)}
-                            onToggle={() => handleToggleSeat(s)}
-                          />
+                          <div 
+                            key={s.showtimeSeatId}
+                            style={{ 
+                              gridColumnStart: s.colNumber,
+                              gridColumnEnd: s.seatType === 'COUPLE' ? `span 2` : 'auto'
+                            }}
+                          >
+                            <SeatButton 
+                              seat={s} 
+                              isSelected={selectedSeats.some(ss => ss.showtimeSeatId === s.showtimeSeatId)}
+                              onToggle={() => handleToggleSeat(s)}
+                            />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -291,6 +380,58 @@ export default function POSPage() {
               ))}
             </div>
           </div>
+
+          {/* Voucher Section */}
+          <div className="pt-2 border-t border-slate-800">
+            <h4 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">Khuyến mãi / Voucher</h4>
+            {!voucherCode ? (
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  placeholder="Nhập mã voucher..."
+                  value={voucherInput}
+                  onChange={(e) => setVoucherInput(e.target.value.toUpperCase())}
+                  className="flex-1 bg-slate-900 border border-slate-700 rounded px-3 py-2 text-sm uppercase placeholder:normal-case font-mono focus:border-brand-500 outline-none text-slate-200"
+                />
+                <button
+                  onClick={() => setVoucherCode(voucherInput.trim())}
+                  disabled={!voucherInput.trim() || bookingMutation.isPending}
+                  className="px-3 bg-slate-800 hover:bg-slate-700 text-sm font-bold rounded disabled:opacity-50 text-white transition-colors"
+                >
+                  ÁP DỤNG
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between p-3 rounded mb-2 bg-brand-500/10 border border-brand-500/30">
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-5 h-5 text-brand-400" />
+                  <span className="font-bold font-mono text-brand-400">{voucherCode}</span>
+                </div>
+                <button 
+                  onClick={() => { setVoucherCode(null); setVoucherInput(''); setVoucherError(null); }} 
+                  className="text-slate-400 hover:text-red-400 transition-colors"
+                >
+                  <XCircle className="w-5 h-5" />
+                </button>
+              </div>
+            )}
+            
+            {voucherError && <p className="text-red-400 text-xs mb-2">{voucherError}</p>}
+            
+            {/* Display Discounts from Quote */}
+            {quote?.discountAmount > 0 && (
+              <div className="flex justify-between items-center text-sm py-1 font-bold text-brand-400">
+                <span>Giảm giá (Voucher)</span>
+                <span>-{formatCurrency(quote.discountAmount)}</span>
+              </div>
+            )}
+            {quote?.promotionDiscountAmount > 0 && (
+              <div className="flex justify-between items-center text-sm py-1 font-bold text-purple-400">
+                <span>Khuyến mãi ({quote.appliedPromotionName})</span>
+                <span>-{formatCurrency(quote.promotionDiscountAmount)}</span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Price & Actions */}
@@ -304,17 +445,17 @@ export default function POSPage() {
 
           <div className="grid grid-cols-2 gap-3">
             <button
-              disabled={selectedSeats.length === 0 || bookingMutation.isPending}
+              disabled={(selectedSeats.length === 0 && !hasCombos) || bookingMutation.isPending}
               onClick={() => bookingMutation.mutate('CASH')}
-              className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg"
+              className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg text-white"
             >
               <Banknote className="w-6 h-6" />
               <span className="font-bold text-sm">TIỀN MẶT</span>
             </button>
             <button
-              disabled={selectedSeats.length === 0 || bookingMutation.isPending}
+              disabled={(selectedSeats.length === 0 && !hasCombos) || bookingMutation.isPending}
               onClick={() => bookingMutation.mutate('VNPAY')}
-              className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg"
+              className="flex flex-col items-center gap-2 py-4 rounded-2xl bg-sky-600 hover:bg-sky-500 disabled:opacity-30 disabled:cursor-not-allowed transition-all shadow-lg text-white"
             >
               <CreditCard className="w-6 h-6" />
               <span className="font-bold text-sm">VNPAY QR</span>
@@ -346,8 +487,10 @@ export default function POSPage() {
                   <p className="text-3xl font-black text-slate-900 mt-1">{formatCurrency(quote?.totalAmount)}</p>
                 </div>
                 <div className="grid grid-cols-2 gap-4 w-full mt-10">
-                  <button onClick={() => { setVnpayUrl(null); }} className="py-4 rounded-2xl border-2 border-slate-100 text-slate-500 font-bold">HỦY BỎ</button>
-                  <button onClick={() => { setVnpayUrl(null); setPaymentStep('success'); }} className="py-4 rounded-2xl bg-brand-500 text-white font-black shadow-lg">XÁC NHẬN ĐÃ TRẢ</button>
+                  <button onClick={() => { setVnpayUrl(null); }} className="py-4 rounded-2xl border-2 border-slate-100 text-slate-500 font-bold hover:bg-slate-50 transition-colors uppercase">Hủy giao dịch</button>
+                  <div className="flex items-center justify-center gap-2 p-4 bg-amber-50 text-amber-700 rounded-2xl text-xs font-bold animate-pulse uppercase">
+                     <RefreshCw className="w-4 h-4 animate-spin" /> Đang đợi khách quét mã...
+                  </div>
                 </div>
               </div>
             </div>
@@ -357,23 +500,42 @@ export default function POSPage() {
 
       {/* Success Modal */}
       {paymentStep === 'success' && (
-        <div className="fixed inset-0 z-50 bg-brand-500 flex items-center justify-center text-white">
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center">
-            <CheckCircle2 className="w-32 h-32 mx-auto mb-8" />
-            <h2 className="text-5xl font-black italic tracking-tighter mb-4 uppercase">GIAO DỊCH THÀNH CÔNG!</h2>
-            <p className="text-xl text-white/80 mb-12">Vé đã được gửi vào hệ thống. Vui lòng in vé cho khách.</p>
-            <button 
-              onClick={() => {
-                setSelectedShowtime(null);
-                setSelectedSeats([]);
-                setSelectedCombos({});
-                setPaymentStep('selection');
-              }}
-              className="px-12 py-5 bg-white text-brand-600 rounded-full font-black text-xl hover:scale-105 transition-all shadow-2xl"
-            >
-              TIẾP TỤC BÁN VÉ
-            </button>
+        <div className="fixed inset-0 z-50 bg-[#0f172a] flex items-center justify-center text-white">
+          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center max-w-2xl px-6">
+            <div className="w-40 h-40 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-10 shadow-2xl shadow-emerald-500/20">
+               <CheckCircle2 className="w-24 h-24 text-white" />
+            </div>
+            
+            <h2 className="text-6xl font-black italic tracking-tighter mb-4 uppercase">THANH TOÁN XONG!</h2>
+            <p className="text-xl text-slate-400 mb-12">Hệ thống đã ghi nhận đơn hàng. Vui lòng in vé và bàn giao cho khách hàng.</p>
+            
+            <div className="flex flex-col md:flex-row gap-4 justify-center">
+                <button 
+                  onClick={() => window.print()}
+                  className="flex-1 min-w-[240px] px-8 py-5 bg-emerald-600 text-white rounded-2xl font-black text-xl hover:bg-emerald-500 transition-all shadow-xl flex items-center justify-center gap-3"
+                >
+                  <Printer className="w-6 h-6" /> IN VÉ & HÓA ĐƠN
+                </button>
+
+                <button 
+                  onClick={() => {
+                    setSelectedShowtime(null);
+                    setSelectedSeats([]);
+                    setSelectedCombos({});
+                    setPaymentStep('selection');
+                    setCurrentBookingId(null);
+                  }}
+                  className="flex-1 min-w-[240px] px-8 py-5 bg-slate-800 text-slate-300 rounded-2xl font-black text-xl hover:bg-slate-700 transition-all border border-slate-700"
+                >
+                  TIẾP TỤC BÁN MỚI
+                </button>
+            </div>
           </motion.div>
+          
+          {/* Re-use the Detail Modal hidden logic for printing */}
+          <div className="hidden">
+             <BookingDetailModal bookingId={currentBookingId} onClose={() => {}} />
+          </div>
         </div>
       )}
 

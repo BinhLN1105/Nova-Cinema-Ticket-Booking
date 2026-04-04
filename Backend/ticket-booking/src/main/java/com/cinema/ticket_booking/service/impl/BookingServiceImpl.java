@@ -27,9 +27,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Page;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 
 import java.math.BigDecimal;
 import java.time.Duration;
@@ -78,35 +75,56 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponse calculateQuote(UUID userId, BookingRequest request) {
         User user = userService.findById(userId);
-        Showtime showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
+        
+        // ── 0. Phân quyền & Ràng buộc nghiệp vụ ──────────────────────────
+        // Trong luồng hiện tại, userId chính là người thực hiện request (Staff hoặc Customer)
+        boolean isStaffOrAdmin = user.getRole() == UserRole.STAFF || user.getRole() == UserRole.ADMIN;
 
-        if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
-            throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
+        if (!isStaffOrAdmin) {
+            // KHÁCH HÀNG: Bắt buộc chọn Phim & Ghế
+            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() || 
+                request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
+                throw new BadRequestException("Khách hàng đặt vé bắt buộc phải chọn Suất chiếu và Ghế");
+            }
+        } else {
+            // POS (STAFF): Nếu không chọn Phim thì phải có Combo
+            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) && 
+                (request.getCombos() == null || request.getCombos().isEmpty())) {
+                throw new BadRequestException("Phải chọn ít nhất 1 Suất chiếu hoặc 1 Combo bắp nước");
+            }
+        }
+
+        Showtime showtime = null;
+        if (request.getShowtimeId() != null && !request.getShowtimeId().isBlank()) {
+            showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
+            if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
+                throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
+            }
         }
 
         // ── 1. Chuẩn bị ghế ────────────────────────────────────────────────
-        List<UUID> seatIds = request.getShowtimeSeatIds()
-                .stream().map(UUID::fromString).toList();
-
-        List<ShowtimeSeat> seats = showtimeSeatRepository
-                .findByShowtimeAndIds(showtime.getId(), seatIds);
-
-        if (seats.size() != seatIds.size()) {
-            throw new BadRequestException("Một số ghế không thuộc suất chiếu này");
-        }
-
-        // ── 2. Tính toán Giá nền (sau khi áp dụng Thứ/Giờ/Loại ghế) ─────────
-        List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
-        List<BigDecimal> baseSeatPrices = new ArrayList<>();
+        List<ShowtimeSeat> seats = new ArrayList<>();
         BigDecimal totalTicketBasePrice = BigDecimal.ZERO;
+        List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
 
-        for (ShowtimeSeat ss : seats) {
-            PricingResult baseResult = pricingEngineService.calculateFinalSeatPrice(
-                    showtime, ss.getSeat(), showtime.getBasePrice(), activeRules, seats.size(), 0);
+        if (showtime != null && request.getShowtimeSeatIds() != null && !request.getShowtimeSeatIds().isEmpty()) {
+            List<UUID> seatIds = request.getShowtimeSeatIds()
+                    .stream().map(UUID::fromString).toList();
 
-            BigDecimal adjustedBase = baseResult.finalPrice().add(baseResult.discountAmount());
-            baseSeatPrices.add(adjustedBase);
-            totalTicketBasePrice = totalTicketBasePrice.add(adjustedBase);
+            seats = showtimeSeatRepository.findByShowtimeAndIds(showtime.getId(), seatIds);
+
+            if (seats.size() != seatIds.size()) {
+                throw new BadRequestException("Một số ghế không thuộc suất chiếu này");
+            }
+
+            // ── 2. Tính toán Giá nền ─────────
+            for (ShowtimeSeat ss : seats) {
+                PricingResult baseResult = pricingEngineService.calculateFinalSeatPrice(
+                        showtime, ss.getSeat(), showtime.getBasePrice(), activeRules, seats.size(), 0);
+
+                BigDecimal adjustedBase = baseResult.finalPrice().add(baseResult.discountAmount());
+                totalTicketBasePrice = totalTicketBasePrice.add(adjustedBase);
+            }
         }
 
         BigDecimal totalComboBasePrice = BigDecimal.ZERO;
@@ -127,9 +145,18 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
+        // Check if nothing is selected
+        if (showtime == null && comboDataList.isEmpty()) {
+            throw new BadRequestException("Phải chọn ít nhất 1 ghế hoặc 1 combo");
+        }
+
         // ── 3. Chạy thuật toán 'Nhà Vô Địch' cho Khuyến mãi ────────────────
-        PricingResult bestPromo = pricingEngineService.calculateBestOrderPromotion(
-                showtime, seats.size(), totalComboQty, totalTicketBasePrice, totalComboBasePrice, activeRules);
+        PricingResult bestPromo = new PricingResult(BigDecimal.ZERO, BigDecimal.ZERO, null);
+
+        if (showtime != null) {
+            bestPromo = pricingEngineService.calculateBestOrderPromotion(
+                    showtime, seats.size(), totalComboQty, totalTicketBasePrice, totalComboBasePrice, activeRules);
+        }
 
         BigDecimal promotionDiscount = bestPromo.discountAmount();
         String appliedPromoName = bestPromo.appliedPromotionName();
@@ -145,9 +172,6 @@ public class BookingServiceImpl implements BookingService {
                 voucher = voucherService.validateForOrder(request.getVoucherCode(), amountAfterPromo);
                 discountAmount = voucher.calculateDiscount(amountAfterPromo);
             } catch (Exception e) {
-                // Trong quote, nếu voucher lỗi (hết hạn, ko đủ điều kiện) chúng ta chỉ hiện
-                // cảnh báo
-                // và vẫn cho user thấy giá gốc để mua tiếp.
                 warningMessage = "Mã giảm giá không hợp lệ hoặc đã hết hạn: " + e.getMessage();
             }
         }
@@ -165,6 +189,11 @@ public class BookingServiceImpl implements BookingService {
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
                 .build();
+
+        // Gán cinema tạm thời cho mục đích hiển thị
+        if (showtime != null) {
+            transientBooking.setCinema(showtime.getScreen().getCinema());
+        }
 
         BookingResponse response = buildFullResponse(transientBooking, seats, comboDataList, amountAfterPromo,
                 originalTotal,
@@ -185,18 +214,50 @@ public class BookingServiceImpl implements BookingService {
         }
 
         User user = userService.findById(userId);
-        Showtime showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
-        List<UUID> seatIds = request.getShowtimeSeatIds().stream().map(UUID::fromString).toList();
-        List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeAndIds(showtime.getId(), seatIds);
-
-        // ── 3. Xác định người thực hiện (Audit cho POS) ────────────────────
+        
+        // ── 0. Phân quyền & Ràng buộc nghiệp vụ (Audit cho POS) ────────────
         User processedBy = null;
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof UserDetails userDetails) {
-            User currentUser = userService.findByEmail(userDetails.getUsername());
-            if (currentUser.getRole() == UserRole.STAFF || currentUser.getRole() == UserRole.ADMIN) {
-                processedBy = currentUser;
+        Cinema cinema = null;
+        
+        boolean isStaffOrAdmin = user.getRole() == UserRole.STAFF || user.getRole() == UserRole.ADMIN;
+
+        if (isStaffOrAdmin) {
+            processedBy = user;
+            if (user.getRole() == UserRole.STAFF) {
+                cinema = staffProfileRepository.findByUserId(user.getId())
+                        .map(StaffProfile::getCinema)
+                        .orElse(null);
             }
+        }
+
+        if (!isStaffOrAdmin) {
+            // ONLINE CUSTOMER Flow: Validate Showtime & Seats
+            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() || 
+                request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
+                throw new BadRequestException("Khách hàng đặt vé Online bắt buộc phải chọn Suất chiếu và Ghế");
+            }
+        } else {
+            // POS (STAFF) Flow: Validate at least one item
+            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) && 
+                (request.getCombos() == null || request.getCombos().isEmpty())) {
+                throw new BadRequestException("Vui lòng chọn ít nhất 1 Suất chiếu hoặc 1 Combo bắp nước để thanh toán");
+            }
+        }
+
+        Showtime showtime = null;
+        if (request.getShowtimeId() != null && !request.getShowtimeId().isBlank()) {
+            showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
+        }
+
+        List<ShowtimeSeat> seats = new ArrayList<>();
+        if (showtime != null && request.getShowtimeSeatIds() != null && !request.getShowtimeSeatIds().isEmpty()) {
+            List<UUID> seatIds = request.getShowtimeSeatIds().stream().map(UUID::fromString).toList();
+            seats = showtimeSeatRepository.findByShowtimeAndIds(showtime.getId(), seatIds);
+        }
+
+        // Nếu là Online hoặc chưa lấy được cinema từ Staff, lấy từ Showtime
+        if (cinema == null && showtime != null) {
+            cinema = showtime.getScreen().getCinema();
         }
 
         // ── 4. Kiểm tra phương thức thanh toán ─────────────────────────────
@@ -205,33 +266,37 @@ public class BookingServiceImpl implements BookingService {
             throw new ForbiddenException("Chỉ nhân viên mới có quyền nhận tiền mặt");
         }
 
-        // ── 5. Lock ghế ────────────────────────────────────────────────────
-        long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+        // ── 5. Lock ghế (Nếu có đặt ghế) ────────────────────────────────────
         int pendingMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
-        if (minutesToStart <= 15 && minutesToStart >= -10) {
-            pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
-        }
         LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
-
-        String tempBookingRef = UUID.randomUUID().toString();
-        List<String> lockedSoFar = new ArrayList<>();
-        try {
-            for (ShowtimeSeat ss : seats) {
-                if (ss.getStatus() != SeatStatus.AVAILABLE) {
-                    throw new BadRequestException(
-                            "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
-                }
-                boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
-                        Duration.ofMinutes(pendingMins));
-                if (!locked) {
-                    throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
-                            + " đang được giữ bởi người khác");
-                }
-                lockedSoFar.add(ss.getId().toString());
+        
+        if (!seats.isEmpty()) {
+            long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+            if (minutesToStart <= 15 && minutesToStart >= -10) {
+                pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
             }
-        } catch (Exception e) {
-            seatLockService.releaseSeats(lockedSoFar);
-            throw e;
+            lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
+
+            String tempBookingRef = UUID.randomUUID().toString();
+            List<String> lockedSoFar = new ArrayList<>();
+            try {
+                for (ShowtimeSeat ss : seats) {
+                    if (ss.getStatus() != SeatStatus.AVAILABLE) {
+                        throw new BadRequestException(
+                                "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
+                    }
+                    boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
+                            Duration.ofMinutes(pendingMins));
+                    if (!locked) {
+                        throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
+                                + " đang được giữ bởi người khác");
+                    }
+                    lockedSoFar.add(ss.getId().toString());
+                }
+            } catch (Exception e) {
+                seatLockService.releaseSeats(lockedSoFar);
+                throw e;
+            }
         }
 
         // ── 6. Tạo Booking ───────────────────────────────────────────────
@@ -244,6 +309,7 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = Booking.builder()
                 .user(user)
                 .showtime(showtime)
+                .cinema(cinema)
                 .bookingCode(generateBookingCode())
                 .voucher(voucher)
                 .discountAmount(quote.getDiscountAmount())
@@ -258,18 +324,21 @@ public class BookingServiceImpl implements BookingService {
                 .expAdded(false)
                 .build();
 
-        // Nếu là CASH, tạo QR luôn trước khi lưu
+        booking = bookingRepository.save(booking);
+
+        // Nếu là CASH, tạo QR sau khi đã có ID và cập nhật lại
         if (method == PaymentMethod.CASH) {
             booking.setQrCode(qrCodeService.generateQrContent(booking));
             booking.setExpAdded(true); // Đồng bộ điểm luôn
+            booking = bookingRepository.save(booking);
         }
 
-        booking = bookingRepository.save(booking);
-
         // Update Redis lock với bookingId thật
-        for (ShowtimeSeat ss : seats) {
-            seatLockService.lockSeat(ss.getId().toString(), booking.getId().toString(),
-                    Duration.ofMinutes(pendingMins));
+        if (!seats.isEmpty()) {
+            for (ShowtimeSeat ss : seats) {
+                seatLockService.lockSeat(ss.getId().toString(), booking.getId().toString(),
+                        Duration.ofMinutes(pendingMins));
+            }
         }
 
         // ── 5. Tạo BookingItem + Ticket ───────────────────────────────────
@@ -331,8 +400,12 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public BookingResponse getDetail(UUID userId, UUID bookingId) {
+        User currentUser = userService.findById(userId);
         Booking booking = findById(bookingId);
-        if (!booking.getUser().getId().equals(userId)) {
+
+        boolean isStaffOrAdmin = currentUser.getRole() == UserRole.STAFF || currentUser.getRole() == UserRole.ADMIN;
+
+        if (!isStaffOrAdmin && !booking.getUser().getId().equals(userId)) {
             throw new BadRequestException("Bạn không có quyền xem đơn đặt vé này");
         }
 
@@ -504,8 +577,21 @@ public class BookingServiceImpl implements BookingService {
                     });
         }
 
-        // Send confirmation email
-        emailService.sendBookingConfirmationEmail(booking);
+        // Send confirmation email ONLY if it's an online order or a specific customer was selected
+        if (shouldSendEmail(booking)) {
+            emailService.sendBookingConfirmationEmail(booking);
+        }
+    }
+
+    private boolean shouldSendEmail(Booking booking) {
+        if (booking.getUser() == null) return false;
+        
+        // Nếu không có người xử lý (processedBy == null) -> Đơn hàng Online -> Gửi mail
+        if (booking.getProcessedBy() == null) return true;
+        
+        // Nếu có người xử lý (Staff/Admin):
+        // Chỉ gửi mail nếu Người nhận vé KHÁC với Người xử lý (tức là Staff chọn khách hàng thành viên)
+        return !booking.getUser().getId().equals(booking.getProcessedBy().getId());
     }
 
     @Override
@@ -581,7 +667,9 @@ public class BookingServiceImpl implements BookingService {
                 .build());
 
         // 8. Gửi email thông báo
-        emailService.sendCancellationEmail(booking, description);
+        if (shouldSendEmail(booking)) {
+            emailService.sendCancellationEmail(booking, description);
+        }
     }
 
     // ── Private ───────────────────────────────────────────────────────────

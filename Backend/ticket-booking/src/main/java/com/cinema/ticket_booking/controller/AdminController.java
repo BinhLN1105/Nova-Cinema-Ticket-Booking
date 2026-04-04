@@ -10,6 +10,7 @@ import com.cinema.ticket_booking.dto.response.BookingResponse;
 import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.enums.UserRole;
+import com.cinema.ticket_booking.enums.PaymentMethod;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.model.Cinema;
 import com.cinema.ticket_booking.model.Booking;
@@ -31,8 +32,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.format.annotation.DateTimeFormat;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -60,23 +63,24 @@ public class AdminController {
 
     @GetMapping("/dashboard/stats")
     public ResponseEntity<ApiResponse<DashboardStatsResponse>> getStats(
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
-            @RequestParam(required = false) @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestParam(required = false) UUID cinemaId) {
-        
+
         if (startDate == null) {
             startDate = LocalDateTime.now().withDayOfMonth(1).with(LocalTime.MIN);
         }
         if (endDate == null) {
             endDate = LocalDateTime.now().with(LocalTime.MAX);
         }
-        return ResponseEntity.ok(ApiResponse.success(dashboardService.getStats(startDate, endDate, cinemaId), "Lấy dữ liệu phân tích doanh thu thành công"));
+        return ResponseEntity.ok(ApiResponse.success(dashboardService.getStats(startDate, endDate, cinemaId),
+                "Lấy dữ liệu phân tích doanh thu thành công"));
     }
 
     @GetMapping("/dashboard/revenue")
     public ResponseEntity<ApiResponse<List<RevenueByDay>>> getRevenue(
             @RequestParam(defaultValue = "month") String period) {
-        
+
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startDate;
         boolean isYearly = "year".equals(period);
@@ -94,15 +98,16 @@ public class AdminController {
         }
 
         LocalDateTime endDate = now.with(LocalTime.MAX);
-        List<BookingRepository.RevenueByDayProjection> data = bookingRepository.getRevenueByDayInRange(startDate, endDate, null);
+        List<BookingRepository.RevenueByDayProjection> data = bookingRepository.getRevenueByDayInRange(startDate,
+                endDate, null);
 
         List<RevenueByDay> result = new ArrayList<>();
         DateTimeFormatter formatter = isYearly ? DateTimeFormatter.ofPattern("yyyy-MM") : DateTimeFormatter.ISO_DATE;
 
         for (int i = 0; i < units; i++) {
-            String targetDateStr = isYearly 
-                ? now.minusMonths(units - 1 - i).format(formatter)
-                : now.minusDays(units - 1 - i).format(formatter);
+            String targetDateStr = isYearly
+                    ? now.minusMonths(units - 1 - i).format(formatter)
+                    : now.minusDays(units - 1 - i).format(formatter);
 
             BigDecimal rev = BigDecimal.ZERO;
             Long count = 0L;
@@ -122,14 +127,27 @@ public class AdminController {
     }
 
     @GetMapping("/dashboard/analytics")
-    public ResponseEntity<ApiResponse<AnalyticsResponse>> getAnalytics() {
-        return ResponseEntity.ok(ApiResponse.success(analyticsService.getAnalytics(), "Lấy dữ liệu phân tích thành công"));
+    public ResponseEntity<ApiResponse<AnalyticsResponse>> getAnalytics(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) UUID cinemaId) {
+
+        if (startDate == null) {
+            startDate = LocalDateTime.now().withDayOfMonth(1).with(LocalTime.MIN);
+        }
+        if (endDate == null) {
+            endDate = LocalDateTime.now().with(LocalTime.MAX);
+        }
+
+        return ResponseEntity.ok(ApiResponse.success(analyticsService.getAnalytics(startDate, endDate, cinemaId),
+                "Lấy dữ liệu phân tích thành công"));
     }
 
     // ── Users (Admin) ────────────────────────────────────────────────────
 
     /**
-     * N+1-safe: Lấy toàn bộ StaffProfiles của danh sách user bằng MỘT câu JOIN FETCH,
+     * N+1-safe: Lấy toàn bộ StaffProfiles của danh sách user bằng MỘT câu JOIN
+     * FETCH,
      * thay vì gọi findByUserId() trong vòng lặp.
      */
     @GetMapping("/users")
@@ -141,7 +159,7 @@ public class AdminController {
             @RequestParam(defaultValue = "15") int size) {
 
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        
+
         UserRole roleEnum = null;
         if (role != null && !role.isEmpty()) {
             try {
@@ -185,8 +203,8 @@ public class AdminController {
     public ResponseEntity<ApiResponse<Void>> updateRole(
             @PathVariable UUID id,
             @RequestBody java.util.Map<String, String> body,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
-        
+            @AuthenticationPrincipal User currentUser) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BadRequestException("User không tồn tại"));
 
@@ -214,8 +232,8 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> banUser(
             @PathVariable UUID id,
-            @org.springframework.security.core.annotation.AuthenticationPrincipal User currentUser) {
-        
+            @AuthenticationPrincipal User currentUser) {
+
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new BadRequestException("User không tồn tại"));
 
@@ -232,7 +250,8 @@ public class AdminController {
         user.setIsActive(!user.getIsActive());
         userRepository.save(user);
         String msg = Boolean.TRUE.equals(user.getIsActive())
-                ? "Tài khoản đã được kích hoạt" : "Tài khoản đã bị vô hiệu hóa";
+                ? "Tài khoản đã được kích hoạt"
+                : "Tài khoản đã bị vô hiệu hóa";
         return ResponseEntity.ok(ApiResponse.success(null, msg));
     }
 
@@ -295,7 +314,7 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateStaffCinema(
             @PathVariable UUID userId,
-            @RequestBody java.util.Map<String, String> body) {
+            @RequestBody Map<String, String> body) {
 
         User staff = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Nhân viên không tồn tại"));
@@ -320,33 +339,64 @@ public class AdminController {
     public ResponseEntity<ApiResponse<PageResponse<BookingResponse.Summary>>> getBookings(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String paymentMethod,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) UUID cinemaId,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "15") int size) {
+            @RequestParam(defaultValue = "15") int size,
+            @AuthenticationPrincipal User currentUser) {
 
-        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<Booking> bookings;
-
-        if (status != null && !status.isEmpty()) {
-            bookings = bookingRepository.findByStatus(BookingStatus.valueOf(status), pageable);
-        } else {
-            bookings = bookingRepository.findAll(pageable);
+        // 1. Phân quyền Cinema
+        UUID activeCinemaId = cinemaId;
+        if (currentUser.getRole() == UserRole.STAFF) {
+            activeCinemaId = staffProfileRepository.findByUserId(currentUser.getId())
+                    .map(sp -> sp.getCinema().getId())
+                    .orElseThrow(() -> new BadRequestException("Nhân viên chưa được gán rạp"));
         }
 
-        Page<BookingResponse.Summary> mapped = bookings.map(b -> BookingResponse.Summary.builder()
-                .id(b.getId().toString())
-                .bookingCode(b.getBookingCode())
-                .movieTitle(b.getShowtime() != null && b.getShowtime().getMovie() != null
-                        ? b.getShowtime().getMovie().getTitle() : "—")
-                .moviePosterUrl(b.getShowtime() != null && b.getShowtime().getMovie() != null
-                        ? b.getShowtime().getMovie().getPosterUrl() : null)
-                .startTime(b.getShowtime() != null ? b.getShowtime().getStartTime() : null)
-                .cinemaName(b.getShowtime() != null && b.getShowtime().getScreen() != null
-                        && b.getShowtime().getScreen().getCinema() != null
-                        ? b.getShowtime().getScreen().getCinema().getName() : "—")
-                .totalAmount(b.getTotalAmount())
-                .status(b.getStatus())
-                .createdAt(b.getCreatedAt())
-                .build());
+        // 2. Mặc định thời gian (Nếu không truyền)
+        if (startDate == null) {
+            startDate = LocalDateTime.now().with(LocalTime.MIN);
+        }
+        if (endDate == null) {
+            endDate = LocalDateTime.now().with(LocalTime.MAX);
+        }
+
+        // 3. Parse Enums
+        BookingStatus statusEnum = (status != null && !status.isEmpty()) ? BookingStatus.valueOf(status) : null;
+        PaymentMethod pmEnum = (paymentMethod != null && !paymentMethod.isEmpty())
+                ? PaymentMethod.valueOf(paymentMethod)
+                : null;
+
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<Booking> pageData = bookingRepository.searchBookings(
+                startDate, endDate, activeCinemaId, statusEnum, pmEnum, search, pageable);
+
+        Page<BookingResponse.Summary> mapped = pageData.map(b -> {
+            boolean isConcessionOnly = b.getShowtime() == null;
+            String cinemaName = "—";
+            if (b.getCinema() != null) {
+                cinemaName = b.getCinema().getName();
+            } else if (!isConcessionOnly && b.getShowtime() != null) {
+                cinemaName = b.getShowtime().getScreen().getCinema().getName();
+            }
+
+            return BookingResponse.Summary.builder()
+                    .id(b.getId().toString())
+                    .bookingCode(b.getBookingCode())
+                    .movieTitle(isConcessionOnly ? "🍿 Hóa đơn F&B" : b.getShowtime().getMovie().getTitle())
+                    .moviePosterUrl(!isConcessionOnly ? b.getShowtime().getMovie().getPosterUrl() : null)
+                    .startTime(!isConcessionOnly ? b.getShowtime().getStartTime() : null)
+                    .cinemaName(cinemaName)
+                    .screenName(!isConcessionOnly ? b.getShowtime().getScreen().getName() : "—")
+                    .totalAmount(b.getTotalAmount())
+                    .status(b.getStatus())
+                    .paymentMethod(b.getPaymentMethod())
+                    .createdAt(b.getCreatedAt())
+                    .build();
+        });
 
         return ResponseEntity.ok(ApiResponse.success(PageResponse.of(mapped)));
     }

@@ -158,7 +158,7 @@ export const adminCheckInApi = {
 export const dashboardApi = {
   getStats: (params) => api.get("/admin/dashboard/stats", params),
   getRevenue: (period) => api.get(`/admin/dashboard/revenue`, { period }),
-  getAnalytics: () => api.get("/admin/dashboard/analytics"),
+  getAnalytics: (params) => api.get("/admin/dashboard/analytics", params),
 };
 
 // ── Vouchers (Admin) ──────────────────────────

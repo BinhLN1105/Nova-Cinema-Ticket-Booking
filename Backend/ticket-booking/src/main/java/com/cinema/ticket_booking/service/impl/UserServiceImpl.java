@@ -148,6 +148,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public User findByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ResourceNotFoundException("Người dùng với email '" + email + "' không tồn tại"));
+    }
+
+    @Override
     public void save(User user) {
         userRepository.save(user);
     }

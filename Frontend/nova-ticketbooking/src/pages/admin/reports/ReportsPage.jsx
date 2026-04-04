@@ -5,21 +5,24 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts'
 import { TrendingUp, Calendar, Film, DollarSign, Ticket } from 'lucide-react'
-import { dashboardApi } from '@/api/endpoints'
 import { AdminCard, PageHeader } from '@/components/common/ui/AdminTable'
 import { formatCurrency, formatCompactCurrency, formatDate, cn } from '@/utils'
 import { motion, AnimatePresence } from 'framer-motion'
-import { cinemaApi } from '@/api/endpoints'
+import { cinemaApi, dashboardApi } from '@/api/endpoints'
+import { useNavigate } from 'react-router-dom'
 
 const PIE_COLORS = ['#E50914', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6']
 
 export default function ReportsPage() {
   const getInitialDates = (days) => {
-    const end = new Date();
-    end.setHours(23, 59, 59, 999);
-    const start = new Date();
-    start.setDate(start.getDate() - (days - 1));
-    start.setHours(0, 0, 0, 0);
+    const vnOffset = 7 * 60 * 60 * 1000;
+    const end = new Date(new Date().getTime() + vnOffset);
+    end.setUTCHours(23, 59, 59, 999);
+    
+    const start = new Date(new Date().getTime() + vnOffset);
+    start.setUTCDate(start.getUTCDate() - (days - 1));
+    start.setUTCHours(0, 0, 0, 0);
+
     return {
       start: start.toISOString().slice(0, 16),
       end: end.toISOString().slice(0, 16)
@@ -31,6 +34,7 @@ export default function ReportsPage() {
   const [endDate, setEndDate] = useState(initial.end);
   const [activePeriod, setActivePeriod] = useState("7d");
 
+  const navigate = useNavigate();
   const [selectedCinemaId, setSelectedCinemaId] = useState("");
 
   const handlePeriodChange = (p) => {
@@ -59,6 +63,8 @@ export default function ReportsPage() {
       endDate, 
       cinemaId: selectedCinemaId || undefined 
     }),
+    enabled: !!startDate && !!endDate,
+    refetchOnWindowFocus: false
   })
 
   const revenue = stats?.revenueByDay || []
@@ -85,7 +91,7 @@ export default function ReportsPage() {
             className="select select-sm bg-gray-50 border-none rounded-xl h-10 px-4 text-xs font-medium focus:ring-2 focus:ring-brand-500/20"
           >
             <option value="">Tất cả rạp</option>
-            {cinemas?.data?.map(c => (
+            {cinemas?.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
@@ -489,7 +495,10 @@ export default function ReportsPage() {
               ))}
            </div>
            
-           <button className="w-full mt-8 py-3 rounded-2xl bg-white border border-gray-100 text-xs font-black text-gray-500 uppercase tracking-widest hover:bg-brand-600 hover:text-white transition-all shadow-sm">
+           <button 
+             onClick={() => navigate('/admin/bookings')}
+             className="w-full mt-8 py-3 rounded-2xl bg-white border border-gray-100 text-xs font-black text-gray-500 uppercase tracking-widest hover:bg-brand-600 hover:text-white transition-all shadow-sm"
+           >
              Xem tất cả giao dịch
            </button>
         </div>

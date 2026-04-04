@@ -24,11 +24,14 @@ export function formatCompactCurrency(amount) {
 }
 
 // ── Date / Time ───────────────────────────────
-export function formatDate(dateStr, fmt = "dd/MM/yyyy") {
+export function formatDate(date, fmt = "dd/MM/yyyy") {
+  if (!date) return "";
   try {
-    return format(parseISO(dateStr), fmt, { locale: vi });
-  } catch {
-    return dateStr;
+    const d = typeof date === "string" ? parseISO(date) : date;
+    return format(d, fmt, { locale: vi });
+  } catch (err) {
+    console.error("formatDate error:", err);
+    return String(date);
   }
 }
 

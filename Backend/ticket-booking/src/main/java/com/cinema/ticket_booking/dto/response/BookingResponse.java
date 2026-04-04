@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.dto.response;
 
 import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.enums.PaymentMethod;
 import lombok.Builder;
 import lombok.Data;
 import lombok.AllArgsConstructor;
@@ -101,6 +102,7 @@ public class BookingResponse implements Serializable {
         private String seats;
         private BigDecimal totalAmount;
         private BookingStatus status;
+        private PaymentMethod paymentMethod;
         private LocalDateTime createdAt;
     }
 }
