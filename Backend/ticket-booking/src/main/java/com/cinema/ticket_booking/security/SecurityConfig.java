@@ -17,6 +17,7 @@ import org.springframework.security.config.Customizer;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
 
@@ -28,6 +29,9 @@ public class SecurityConfig {
 
         private final JwtAuthenticationFilter jwtFilter;
         private final JwtAuthenticationEntryPoint entryPoint;
+
+        @Value("${app.cors.allowed-origins:*}")
+        private String allowedOrigins;
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -63,7 +67,10 @@ public class SecurityConfig {
                                                 .permitAll()
 
                                                 // VNPay callback không mang token
-                                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay-return", "/api/v1/payments/vnpay/callback", "/api/v1/wallet/vnpay-return", "/api/v1/gift-cards/vnpay-return")
+                                                .requestMatchers(HttpMethod.GET, "/api/v1/payment/vnpay-return",
+                                                                "/api/v1/payments/vnpay/callback",
+                                                                "/api/v1/wallet/vnpay-return",
+                                                                "/api/v1/gift-cards/vnpay-return")
                                                 .permitAll()
 
                                                 // Internal API (Python RAG) - Protected by X-Internal-Key in Controller
@@ -92,10 +99,18 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration configuration = new CorsConfiguration();
-                configuration.setAllowedOriginPatterns(List.of("*"));
+
+                // Hỗ trợ nhiều origin từ cấu hình (comma-separated)
+                if (allowedOrigins != null && !allowedOrigins.isBlank()) {
+                        configuration.setAllowedOriginPatterns(java.util.Arrays.asList(allowedOrigins.split(",")));
+                } else {
+                        configuration.setAllowedOriginPatterns(List.of("*"));
+                }
+
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-                configuration.setAllowedHeaders(List.of("*"));
+                configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
                 configuration.setAllowCredentials(true);
+
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);
                 return source;

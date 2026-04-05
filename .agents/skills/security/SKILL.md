@@ -20,8 +20,14 @@ Giao tiếp giữa Backend (Java) và AI Service (FastAPI) được bảo vệ b
 - Header: `X-Internal-Key`.
 - Check logic: Thực hiện trong Controller hoặc Middleware (`verify_internal_key` trong FastAPI).
 
+### 1.4 Secure CORS Policy
+Hệ thống áp dụng chính sách **CORS nghiêm ngặt**:
+- **Origins**: Chỉ cho phép các domain được định nghĩa trong biến môi trường `CORS_ORIGINS`.
+- **Methods**: Giới hạn trong `GET, POST, PUT, PATCH, DELETE, OPTIONS`.
+- **Headers**: Chỉ cho phép các header thiết yếu: `Authorization, Content-Type, X-Requested-With, Accept`.
+- **Credentials**: Hỗ trợ gửi kèm Cookie/Auth Header (`AllowCredentials = true`).
+
 ## 2. Nợ Kỹ Thuật (Technical Debt)
-- [ ] **Broad CORS**: Hiện tại `setAllowedOriginPatterns(List.of("*"))` trong `SecurityConfig.java` đang quá rộng, cần giới hạn lại danh sách domain cụ thể khi lên môi trường Production.
 - [ ] **Token Revocation**: Chưa có cơ chế Blacklist Token khi người dùng Logout (Token vẫn còn hiệu lực đến khi hết hạn tự nhiên).
 - [ ] **Secret Management**: Các JWT Secret, API Keys đang được lấy từ biến môi trường nhưng cần đảm bảo quy trình quản lý secret an toàn trong CI/CD.
 

@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Eye, EyeOff, Mail, Lock, ArrowRight } from "lucide-react";
-import { useGoogleLogin } from "@react-oauth/google";
+import { useGoogleLogin, GoogleLogin } from "@react-oauth/google";
 import FacebookLogin from "react-facebook-login/dist/facebook-login-render-props";
 import { useAuth } from "@/hooks";
 import { cn } from "@/utils";
@@ -27,13 +27,19 @@ export default function LoginPage() {
     resolver: zodResolver(schema),
   });
 
-  const handleGoogleSuccess = (tokenResponse) => {
-    // google sends access_token when flow is 'implicit', backend expects 'accessToken' for userinfo verification
-    socialLogin({ idToken: tokenResponse.access_token, provider: "GOOGLE" });
+  const handleGoogleSuccess = (credentialResponse) => {
+    if (credentialResponse.credential) {
+      socialLogin({ idToken: credentialResponse.credential, provider: "GOOGLE" });
+    } else {
+      toast.error("Không nhận được token từ Google");
+    }
   };
 
   const loginGoogle = useGoogleLogin({
-    onSuccess: handleGoogleSuccess,
+    onSuccess: (tokenResponse) => {
+      // Gửi access_token lên backend dưỡi trường idToken (backend sẽ tự phân biệt)
+      socialLogin({ idToken: tokenResponse.access_token, provider: "GOOGLE" });
+    },
     onError: () => toast.error("Đăng nhập Google thất bại"),
   });
 
