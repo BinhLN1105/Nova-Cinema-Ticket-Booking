@@ -12,9 +12,7 @@ mvn test -pl backend -Dtest=*
 mvn spring-boot:run
 
 # ── Mobile ───────────────────────────────
-./gradlew assembleDebug
-./gradlew build
-./gradlew test
+
 
 # ── AI Service ───────────────────────────
 pip install -r requirements.txt
