@@ -12,7 +12,20 @@
           "package_name": "com.cinema.ticket_booking"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "1028959237971-3nhq8nemn9id4iohes5bhjmgspn4qsie.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cinema.ticket_booking",
+            "certificate_hash": "e8ba44597dbd87b032a16b61b84c775829a9fb3b"
+          }
+        },
+        {
+          "client_id": "1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCxgHuEOUU4fot04ISwQkBrxBmj5w9pA2A"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

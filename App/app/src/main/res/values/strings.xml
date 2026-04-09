@@ -107,7 +107,7 @@
 
     <!-- Social login -->
     <!-- Lấy từ Google Cloud Console → OAuth → Web application Client ID -->
-    <string name="google_web_client_id">123750513829-v6o1fj0rudil1r17dooq8ul6sa3f314v.apps.googleusercontent.com</string>
+    <string name="google_web_client_id">1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com</string>
     <!-- Lấy từ Facebook Developers → App Settings → Basic -->
     <string name="facebook_app_id">1425414802373273</string>
     <string name="facebook_client_token">df642732746d142bf40fac51788de044</string>
