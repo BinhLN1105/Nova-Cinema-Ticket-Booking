@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "1028959237971-mgsb7p66fcq0ik1mbmauoq2rqklmtsf7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cinema.ticket_booking",
+            "certificate_hash": "6bf5b5adfb3310957cc64368a1a54cbc0b8499d1"
+          }
+        },
+        {
           "client_id": "1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com",
           "client_type": 3
         }
