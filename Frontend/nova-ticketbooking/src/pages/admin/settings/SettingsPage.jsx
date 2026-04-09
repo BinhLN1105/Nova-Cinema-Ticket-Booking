@@ -25,15 +25,11 @@ export default function SettingsPage() {
     queryFn: () => systemConfigApi.getAll()
   })
 
-  const configs = configsRes?.data || {}
+  // configsRes đã được unwrap từ api helper nên nó chính là Map object
+  const configs = configsRes || {}
 
   const updateConfigMutation = useMutation({
     mutationFn: ({ key, value, description }) => systemConfigApi.update(key, value, description),
-    onSuccess: () => {
-      toast.success('Đã lưu cấu hình thành công')
-      queryClient.invalidateQueries(['system-configs'])
-    },
-    onError: (err) => toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi lưu')
   })
 
   // Local state form để edit
@@ -50,13 +46,30 @@ export default function SettingsPage() {
     setLocalConfigs(prev => ({ ...prev, [key]: value }))
   }
 
-  const handleSaveConfigs = () => {
-    // Save altered configs
+  const handleSaveConfigs = async () => {
+    const promises = [];
     Object.keys(localConfigs).forEach(key => {
-      if (configs[key] !== localConfigs[key]) {
-        updateConfigMutation.mutate({ key, value: localConfigs[key], description: "" })
+      // Dùng so sánh không đồng nhất (!=) thay vì !== để bỏ qua việc so sánh type string vs number
+      if (configs[key] != localConfigs[key]) {
+        promises.push(updateConfigMutation.mutateAsync({ key, value: localConfigs[key], description: "" }))
       }
     })
+
+    if (promises.length === 0) {
+      toast('Chưa có cấu hình nào bị thay đổi', { icon: 'ℹ️' });
+      return;
+    }
+
+    try {
+      await toast.promise(Promise.all(promises), {
+        loading: 'Đang lưu cấu hình...',
+        success: 'Đã lưu các sửa đổi thành công',
+        error: 'Có lỗi xảy ra khi lưu cấu hình'
+      });
+      queryClient.invalidateQueries(['system-configs']);
+    } catch (err) {
+      console.error(err);
+    }
   }
 
   const [notifSettings, setNotif] = useState({

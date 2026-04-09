@@ -36,6 +36,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.Objects;
+import java.util.Collections;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -75,21 +78,22 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponse calculateQuote(UUID userId, BookingRequest request) {
         User user = userService.findById(userId);
-        
+
         // ── 0. Phân quyền & Ràng buộc nghiệp vụ ──────────────────────────
-        // Trong luồng hiện tại, userId chính là người thực hiện request (Staff hoặc Customer)
+        // Trong luồng hiện tại, userId chính là người thực hiện request (Staff hoặc
+        // Customer)
         boolean isStaffOrAdmin = user.getRole() == UserRole.STAFF || user.getRole() == UserRole.ADMIN;
 
         if (!isStaffOrAdmin) {
             // KHÁCH HÀNG: Bắt buộc chọn Phim & Ghế
-            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() || 
-                request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
+            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() ||
+                    request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
                 throw new BadRequestException("Khách hàng đặt vé bắt buộc phải chọn Suất chiếu và Ghế");
             }
         } else {
             // POS (STAFF): Nếu không chọn Phim thì phải có Combo
-            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) && 
-                (request.getCombos() == null || request.getCombos().isEmpty())) {
+            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) &&
+                    (request.getCombos() == null || request.getCombos().isEmpty())) {
                 throw new BadRequestException("Phải chọn ít nhất 1 Suất chiếu hoặc 1 Combo bắp nước");
             }
         }
@@ -214,11 +218,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         User user = userService.findById(userId);
-        
+
         // ── 0. Phân quyền & Ràng buộc nghiệp vụ (Audit cho POS) ────────────
         User processedBy = null;
         Cinema cinema = null;
-        
+
         boolean isStaffOrAdmin = user.getRole() == UserRole.STAFF || user.getRole() == UserRole.ADMIN;
 
         if (isStaffOrAdmin) {
@@ -232,14 +236,14 @@ public class BookingServiceImpl implements BookingService {
 
         if (!isStaffOrAdmin) {
             // ONLINE CUSTOMER Flow: Validate Showtime & Seats
-            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() || 
-                request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
+            if (request.getShowtimeId() == null || request.getShowtimeId().isBlank() ||
+                    request.getShowtimeSeatIds() == null || request.getShowtimeSeatIds().isEmpty()) {
                 throw new BadRequestException("Khách hàng đặt vé Online bắt buộc phải chọn Suất chiếu và Ghế");
             }
         } else {
             // POS (STAFF) Flow: Validate at least one item
-            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) && 
-                (request.getCombos() == null || request.getCombos().isEmpty())) {
+            if ((request.getShowtimeId() == null || request.getShowtimeId().isBlank()) &&
+                    (request.getCombos() == null || request.getCombos().isEmpty())) {
                 throw new BadRequestException("Vui lòng chọn ít nhất 1 Suất chiếu hoặc 1 Combo bắp nước để thanh toán");
             }
         }
@@ -269,7 +273,7 @@ public class BookingServiceImpl implements BookingService {
         // ── 5. Lock ghế (Nếu có đặt ghế) ────────────────────────────────────
         int pendingMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
         LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
-        
+
         if (!seats.isEmpty()) {
             long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
             if (minutesToStart <= 15 && minutesToStart >= -10) {
@@ -380,12 +384,23 @@ public class BookingServiceImpl implements BookingService {
     @Override
     @Transactional(readOnly = true)
     public PageResponse<BookingResponse.Summary> getMyBookings(UUID userId, Pageable pageable) {
-        Page<Booking> page = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId,
-                pageable);
+        Page<Booking> page = bookingRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+
+        List<UUID> bookingIds = page.getContent().stream().map(Booking::getId).toList();
+
+        if (bookingIds.isEmpty()) {
+            return PageResponse.of(new PageImpl<>(Collections.emptyList(), pageable, 0));
+        }
+
+        List<BookingItem> allItems = bookingItemRepository.findByBookingIdInWithSeat(bookingIds);
+        Map<UUID, List<BookingItem>> itemsMap = allItems.stream()
+                .collect(Collectors.groupingBy(item -> item.getBooking().getId()));
+
         List<BookingResponse.Summary> summaries = page.getContent().stream()
                 .map(booking -> {
                     BookingResponse.Summary summary = bookingMapper.toSummary(booking);
-                    List<String> seats = bookingItemRepository.findByBookingIdWithSeat(booking.getId()).stream()
+                    List<BookingItem> items = itemsMap.getOrDefault(booking.getId(), java.util.Collections.emptyList());
+                    List<String> seats = items.stream()
                             .map(item -> item.getShowtimeSeat().getSeat().getRowLabel()
                                     + String.valueOf(item.getShowtimeSeat().getSeat().getColNumber()))
                             .toList();
@@ -577,20 +592,24 @@ public class BookingServiceImpl implements BookingService {
                     });
         }
 
-        // Send confirmation email ONLY if it's an online order or a specific customer was selected
+        // Send confirmation email ONLY if it's an online order or a specific customer
+        // was selected
         if (shouldSendEmail(booking)) {
             emailService.sendBookingConfirmationEmail(booking);
         }
     }
 
     private boolean shouldSendEmail(Booking booking) {
-        if (booking.getUser() == null) return false;
-        
+        if (booking.getUser() == null)
+            return false;
+
         // Nếu không có người xử lý (processedBy == null) -> Đơn hàng Online -> Gửi mail
-        if (booking.getProcessedBy() == null) return true;
-        
+        if (booking.getProcessedBy() == null)
+            return true;
+
         // Nếu có người xử lý (Staff/Admin):
-        // Chỉ gửi mail nếu Người nhận vé KHÁC với Người xử lý (tức là Staff chọn khách hàng thành viên)
+        // Chỉ gửi mail nếu Người nhận vé KHÁC với Người xử lý (tức là Staff chọn khách
+        // hàng thành viên)
         return !booking.getUser().getId().equals(booking.getProcessedBy().getId());
     }
 

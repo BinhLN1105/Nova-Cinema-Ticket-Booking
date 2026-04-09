@@ -96,11 +96,24 @@ public class BookingHistoryFragment extends Fragment {
             updateList();
         });
 
+        binding.nestedScrollView.setOnScrollChangeListener((androidx.core.widget.NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
+            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                viewModel.loadMore();
+            }
+        });
+
         viewModel.getBookings().observe(getViewLifecycleOwner(), resource -> {
             switch (resource.status) {
-                case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
+                case LOADING -> {
+                    if (viewModel.isLoadingMore()) {
+                        binding.progressBarLoadMore.setVisibility(View.VISIBLE);
+                    } else {
+                        binding.progressBar.setVisibility(View.VISIBLE);
+                    }
+                }
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
+                    binding.progressBarLoadMore.setVisibility(View.GONE);
                     binding.swipeRefresh.setRefreshing(false);
                     allBookings.clear();
                     if (resource.data != null && resource.data.getContent() != null) {
@@ -110,6 +123,7 @@ public class BookingHistoryFragment extends Fragment {
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
+                    binding.progressBarLoadMore.setVisibility(View.GONE);
                     binding.swipeRefresh.setRefreshing(false);
                     SnackbarHelper.showError(binding.getRoot(), resource.message);
                 }

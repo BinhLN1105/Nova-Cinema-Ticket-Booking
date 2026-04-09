@@ -1,5 +1,7 @@
 import { Outlet, Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
+import { cinemaApi } from "@/api/endpoints";
 import {
   LayoutDashboard,
   CalendarCheck,
@@ -22,6 +24,13 @@ export function StaffLayout() {
   const location = useLocation();
   const { user } = useAuthStore();
   const { logout } = useAuth();
+
+  const { data: cinema } = useQuery({
+    queryKey: ['cinema', user?.cinemaId],
+    queryFn: () => cinemaApi.getById(user.cinemaId),
+    enabled: !!user?.cinemaId,
+    staleTime: 1000 * 60 * 60, // 1 hour
+  });
 
   return (
     <div
@@ -70,6 +79,9 @@ export function StaffLayout() {
                 {user?.fullName}
               </p>
               <p className="text-xs text-blue-400">Nhân viên</p>
+              <p className="text-[11px] text-slate-500 truncate mt-0.5" title={cinema?.name || "Tất cả rạp"}>
+                Chi nhánh: <span className="text-slate-400">{cinema ? cinema.name : (user?.cinemaId ? "Đang tải dữ liệu..." : "Tất cả rạp")}</span>
+              </p>
             </div>
           </div>
           <button
