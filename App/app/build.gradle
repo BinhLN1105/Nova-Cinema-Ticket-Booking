@@ -23,7 +23,8 @@ android {
 //             buildConfigField "String", "BASE_URL", "\"http://10.0.2.2:8080/api/v1/\""
 //            buildConfigField "String", "BASE_URL", "\"http://192.168.1.4:8080/api/v1/\""
 //            buildConfigField "String", "BASE_URL", "\"http://192.168.1.9:8080/api/v1/\""
-            buildConfigField "String", "BASE_URL", "\"http://192.168.1.31:8080/api/v1/\""
+//            buildConfigField "String", "BASE_URL", "\"http://192.168.1.31:8080/api/v1/\""
+            buildConfigField "String", "BASE_URL", "\"http://192.168.1.26:8080/api/v1/\""
             debuggable true
         }
         release {

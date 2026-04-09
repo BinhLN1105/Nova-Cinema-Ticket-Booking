@@ -68,17 +68,22 @@ public class HomeFragment extends Fragment {
         observeMovies(true);
 
         // Lắng nghe sự kiện chuyển Tab giữa "ĐANG CHIẾU" và "SẮP CHIẾU"
-        binding.tabLayoutMovies.addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
-            @Override
-            public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
-                // tab.getPosition() == 0 là Tab Đang chiếu, 1 là Tab Sắp chiếu
-                observeMovies(tab.getPosition() == 0);
-            }
-            @Override public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
-            @Override public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {}
-        });
+        binding.tabLayoutMovies
+                .addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                    @Override
+                    public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                        // tab.getPosition() == 0 là Tab Đang chiếu, 1 là Tab Sắp chiếu
+                        observeMovies(tab.getPosition() == 0);
+                    }
 
+                    @Override
+                    public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    }
 
+                    @Override
+                    public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    }
+                });
 
         viewModel.getFeaturedMovies().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
@@ -114,30 +119,29 @@ public class HomeFragment extends Fragment {
                 // Show Promotion Popup if not dismissed today (Galaxy Cinema Style)
                 if (PromoDialogFragment.shouldShow(requireContext())) {
                     PromoDialogFragment.newInstance(resource.data)
-                        .show(getParentFragmentManager(), "PromoDialog");
+                            .show(getParentFragmentManager(), "PromoDialog");
                 }
             }
         });
-
-
 
         viewModel.getActivePromotions().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null && !resource.data.isEmpty()) {
                 binding.cvPromoContainer.setVisibility(View.VISIBLE);
                 binding.tabLayoutPromo.setVisibility(View.VISIBLE);
-                
+
                 PromotionAdapter promotionAdapter = new PromotionAdapter(resource.data, promotion -> {
                     // Xử lý khi người dùng bấm vào banner khuyến mãi (nếu cần)
                 });
                 binding.vpPromotions.setAdapter(promotionAdapter);
-                
+
                 // Kết nối TabLayout với ViewPager2 để hiển thị các dấu chấm (Dot Indicator)
-                new TabLayoutMediator(binding.tabLayoutPromo, binding.vpPromotions, 
-                    (tab, position) -> {}).attach();
-                
+                new TabLayoutMediator(binding.tabLayoutPromo, binding.vpPromotions,
+                        (tab, position) -> {
+                        }).attach();
+
                 // Thiết lập tự động chuyển banner sau mỗi 4 giây
                 setupAutoScrollForBanners(resource.data.size());
-                
+
             } else {
                 binding.cvPromoContainer.setVisibility(View.GONE);
                 binding.tabLayoutPromo.setVisibility(View.GONE);
@@ -154,14 +158,21 @@ public class HomeFragment extends Fragment {
         });
 
         // Điều hướng từ các nút trên Header (Thanh tiêu đề)
-        binding.btnNotification.setOnClickListener(v -> 
-            Navigation.findNavController(v).navigate(R.id.notificationFragment));
-        
-        binding.ivUserAvatar.setOnClickListener(v -> 
-            Navigation.findNavController(v).navigate(R.id.profileFragment));
+        binding.btnNotification
+                .setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.notificationFragment));
 
-        binding.btnLocation.setOnClickListener(v -> 
-            SnackbarHelper.showSuccess(binding.getRoot(), "Bộ lọc địa điểm sẽ sớm ra mắt!"));
+        binding.ivUserAvatar.setOnClickListener(v -> {
+            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = requireActivity()
+                    .findViewById(R.id.bottomNav);
+            if (bottomNav != null && bottomNav.getVisibility() == View.VISIBLE) {
+                bottomNav.setSelectedItemId(R.id.profileFragment);
+            } else {
+                Navigation.findNavController(v).navigate(R.id.profileFragment);
+            }
+        });
+
+        binding.btnLocation.setOnClickListener(
+                v -> SnackbarHelper.showSuccess(binding.getRoot(), "Bộ lọc địa điểm sẽ sớm ra mắt!"));
 
         // Xử lý các sự kiện bấm nhanh (Quick Booking Flow)
         binding.btnQuickMovie.setOnClickListener(v -> showMovieBottomSheet());
@@ -169,18 +180,24 @@ public class HomeFragment extends Fragment {
         binding.btnQuickDate.setOnClickListener(v -> showDateBottomSheet());
 
         viewModel.getQuickSelectedMovie().observe(getViewLifecycleOwner(), movie -> {
-            if (movie != null) binding.tvQuickMovie.setText(movie.getTitle());
-            else binding.tvQuickMovie.setText("Phim");
+            if (movie != null)
+                binding.tvQuickMovie.setText(movie.getTitle());
+            else
+                binding.tvQuickMovie.setText("Phim");
         });
-        
+
         viewModel.getQuickSelectedCinema().observe(getViewLifecycleOwner(), cinema -> {
-            if (cinema != null) binding.tvQuickCinema.setText(cinema.getName());
-            else binding.tvQuickCinema.setText("Rạp");
+            if (cinema != null)
+                binding.tvQuickCinema.setText(cinema.getName());
+            else
+                binding.tvQuickCinema.setText("Rạp");
         });
 
         viewModel.getQuickSelectedDate().observe(getViewLifecycleOwner(), date -> {
-            if (date != null) binding.tvQuickDate.setText(date);
-            else binding.tvQuickDate.setText("Ngày");
+            if (date != null)
+                binding.tvQuickDate.setText(date);
+            else
+                binding.tvQuickDate.setText("Ngày");
         });
 
         binding.btnQuickSubmit.setOnClickListener(v -> {
@@ -197,7 +214,7 @@ public class HomeFragment extends Fragment {
             args.putString("movieId", movie.getId());
             Navigation.findNavController(v).navigate(R.id.selectShowtimeFragment, args);
         });
-        
+
         // Xử lý logic tìm kiếm (Search) với Debounce để giảm tải cho Server
         binding.etSearch.setOnFocusChangeListener((v, hasFocus) -> {
             if (hasFocus) {
@@ -216,8 +233,8 @@ public class HomeFragment extends Fragment {
             // Ẩn bàn phím ảo
             View view1 = requireActivity().getCurrentFocus();
             if (view1 != null) {
-                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) 
-                    requireContext().getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
+                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(view1.getWindowToken(), 0);
             }
         });
@@ -269,7 +286,8 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupAutoScrollForHero(int size) {
-        if (size <= 1) return;
+        if (size <= 1)
+            return;
         if (heroRunnable != null) {
             heroHandler.removeCallbacks(heroRunnable);
         }
@@ -288,12 +306,13 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupAutoScrollForBanners(int size) {
-        if (size <= 1) return; // No need to scroll if only 1 banner
+        if (size <= 1)
+            return; // No need to scroll if only 1 banner
 
         if (bannerRunnable != null) {
             bannerHandler.removeCallbacks(bannerRunnable);
         }
-        
+
         bannerRunnable = () -> {
             int currentItem = binding.vpPromotions.getCurrentItem();
             int nextItem = (currentItem + 1) % size;
@@ -351,18 +370,20 @@ public class HomeFragment extends Fragment {
     private void showMovieBottomSheet() {
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         ListView listView = new ListView(requireContext());
-        
+
         Resource<PageResponse<MovieSummary>> resource = viewModel.getNowShowing().getValue();
         if (resource == null || !resource.isSuccess() || resource.data == null) {
             SnackbarHelper.showError(binding.getRoot(), "Không thể tải danh sách phim");
             return;
         }
-        
+
         List<MovieSummary> movies = resource.data.getContent();
         List<String> movieTitles = new ArrayList<>();
-        for (MovieSummary m : movies) movieTitles.add(m.getTitle());
-        
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, movieTitles);
+        for (MovieSummary m : movies)
+            movieTitles.add(m.getTitle());
+
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1,
+                movieTitles);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((parent, view, position, id) -> {
             viewModel.getQuickSelectedMovie().setValue(movies.get(position));
@@ -372,7 +393,7 @@ public class HomeFragment extends Fragment {
             dialog.dismiss();
             showCinemaBottomSheet(); // Auto cascade
         });
-        
+
         dialog.setContentView(listView);
         dialog.show();
     }
@@ -385,14 +406,16 @@ public class HomeFragment extends Fragment {
 
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         ListView listView = new ListView(requireContext());
-        
+
         viewModel.getCinemas("").observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null) {
                 List<CinemaResponse> cinemas = resource.data;
                 List<String> cinemaNames = new ArrayList<>();
-                for (CinemaResponse c : cinemas) cinemaNames.add(c.getName());
-                
-                ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, cinemaNames);
+                for (CinemaResponse c : cinemas)
+                    cinemaNames.add(c.getName());
+
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1,
+                        cinemaNames);
                 listView.setAdapter(adapter);
                 listView.setOnItemClickListener((parent, view, position, id) -> {
                     viewModel.getQuickSelectedCinema().setValue(cinemas.get(position));
@@ -400,9 +423,10 @@ public class HomeFragment extends Fragment {
                     dialog.dismiss();
                     showDateBottomSheet(); // Auto cascade
                 });
-                
+
                 dialog.setContentView(listView);
-                if (!dialog.isShowing()) dialog.show();
+                if (!dialog.isShowing())
+                    dialog.show();
             }
         });
     }
@@ -415,23 +439,23 @@ public class HomeFragment extends Fragment {
 
         BottomSheetDialog dialog = new BottomSheetDialog(requireContext());
         ListView listView = new ListView(requireContext());
-        
+
         List<String> dates = new ArrayList<>();
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
         Calendar cal = Calendar.getInstance();
-        
+
         for (int i = 0; i < 7; i++) {
             dates.add(sdf.format(cal.getTime()));
             cal.add(Calendar.DAY_OF_YEAR, 1);
         }
-        
+
         ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_1, dates);
         listView.setAdapter(adapter);
         listView.setOnItemClickListener((parent, view, position, id) -> {
             viewModel.getQuickSelectedDate().setValue(dates.get(position));
             dialog.dismiss();
         });
-        
+
         dialog.setContentView(listView);
         dialog.show();
     }
