@@ -135,6 +135,16 @@ public class SearchFragment extends Fragment {
             List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 1);
             if (addresses != null && !addresses.isEmpty()) {
                 String city = addresses.get(0).getAdminArea();
+                String district = addresses.get(0).getSubAdminArea();
+                
+                if (district != null) {
+                    binding.tvLocation.setText(district + " ▼");
+                    // Biến đổi "Quận 12" thành "Q12" để match với dữ liệu test
+                    String query = district.replace("Quận ", "Q").replace("quận ", "Q");
+                    viewModel.loadCinemas(query);
+                    return;
+                }
+
                 if (city == null)
                     city = addresses.get(0).getLocality();
 
