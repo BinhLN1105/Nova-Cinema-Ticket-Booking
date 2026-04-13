@@ -97,11 +97,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         }}
       />
 
-      {import.meta.env.DEV && 
-      ( <ReactQueryDevtools initialIsOpen={false} 
-        buttonPosition="bottom-left"
-        />)
-      }
+      {/* React Query Devtools đã được gỡ bỏ theo yêu cầu */}
     </QueryClientProvider>
     </GoogleOAuthProvider>
   </React.StrictMode>,

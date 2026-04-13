@@ -100,6 +100,8 @@ const AdminPricingRules = () =>
   lazy_(() => import("@/pages/admin/pricing-rules/PricingRulesPage"));
 const AdminNotifications = () =>
   lazy_(() => import("@/pages/admin/notifications/AdminNotificationsPage"));
+const AdminCombos = () =>
+  lazy_(() => import("@/pages/admin/combos/CombosPage"));
 
 // Staff
 const StaffDashboard = () =>
@@ -177,6 +179,7 @@ export const router = createBrowserRouter([
           { path: 'promotions',     element: <AdminPromotions /> },
           { path: 'showtimes',      element: <AdminShowtimes /> },
           { path: 'pricing-rules',  element: <AdminPricingRules /> },
+          { path: 'combos',         element: <AdminCombos /> },
           { path: "reports", element: <AdminReports /> },
           { path: "settings", element: <AdminSettings /> },
           { path: "notifications", element: <AdminNotifications /> },

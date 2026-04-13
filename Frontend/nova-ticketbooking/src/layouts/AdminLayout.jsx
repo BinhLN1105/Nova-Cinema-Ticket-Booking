@@ -21,6 +21,7 @@ import {
   QrCode,
   Ticket,
   User,
+  PackageOpen,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { href: "/admin/movies", icon: Film, label: "Phim" },
   { href: "/admin/cinemas", icon: Building2, label: "Rạp chiếu" },
   { href: "/admin/showtimes", icon: Clock, label: "Suất chiếu" },
+  { href: "/admin/combos", icon: PackageOpen, label: "Combo & Bắp nước" },
   { href: "/admin/pricing-rules", icon: Settings, label: "Cấu hình giá" },
   { href: "/admin/promotions", icon: Ticket, label: "Khuyến mãi & Voucher" },
   { href: "/admin/bookings", icon: CalendarCheck, label: "Đặt vé" },

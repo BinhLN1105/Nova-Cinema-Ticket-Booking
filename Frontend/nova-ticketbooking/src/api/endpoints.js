@@ -243,11 +243,13 @@ export const chatbotApi = {
 export const comboApi = {
   getAvailable: () => api.get("/combos"),
   // Admin
+  create: (data) => api.post("/combos", data),
+  update: (id, data) => api.put(`/combos/${id}`, data),
+  delete: (id) => api.delete(`/combos/${id}`),
   uploadImage: (id, file) => {
     const formData = new FormData();
     formData.append("file", file);
     return api.post(`/combos/${id}/image`, formData);
   },
-
   uploadImageUrl: (id, url) => api.post(`/combos/${id}/image-url`, { url }),
 };

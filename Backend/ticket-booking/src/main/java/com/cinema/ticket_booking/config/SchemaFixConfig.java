@@ -60,6 +60,9 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 6. Thêm các cột Khuyến mãi cho Đơn hàng (Persistence Promotion)
         ensureBookingPromotionColumns();
 
+        // 6.1 Thêm Indices để tối ưu hóa Dashboard (Fix Timeout)
+        ensureBookingIndices();
+
         // 7. Cập nhật Constraint cho trạng thái Booking (Tránh lỗi CHECKED_IN)
         updateBookingStatusConstraint();
 
@@ -200,41 +203,47 @@ public class SchemaFixConfig implements CommandLineRunner {
         try {
             log.info("[SchemaFix] Đang kiểm tra các cột Khuyến mãi cho 'bookings'...");
             
+            // Giảm timeout để không làm treo cả app nếu DB bận
             try {
-                jdbcTemplate.execute("SET statement_timeout = 60000");
+                jdbcTemplate.execute("SET statement_timeout = 5000"); // 5 giây cho mỗi lệnh DDL
             } catch (Exception e) {
-                log.debug("Không thể tăng statement_timeout: {}", e.getMessage());
+                log.debug("Không thể set statement_timeout: {}", e.getMessage());
             }
 
             try {
                 jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS promotion_discount_amount NUMERIC(12,2) DEFAULT 0");
                 log.info("[SchemaFix] Đã đảm bảo cột 'promotion_discount_amount' tồn tại.");
             } catch (Exception e) {
-                log.warn("[SchemaFix] Lỗi khi thêm cột promotion_discount_amount: {}", e.getMessage());
+                log.warn("[SchemaFix] Bỏ qua lỗi thêm cột promotion_discount_amount (có thể do timeout): {}", e.getMessage());
             }
 
             try {
                 jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_promotion_name VARCHAR(255)");
                 log.info("[SchemaFix] Đã đảm bảo cột 'applied_promotion_name' tồn tại.");
             } catch (Exception e) {
-                log.warn("[SchemaFix] Lỗi khi thêm cột applied_promotion_name: {}", e.getMessage());
-            }
-
-            try {
-                jdbcTemplate.execute("UPDATE bookings SET promotion_discount_amount = 0 WHERE promotion_discount_amount IS NULL");
-            } catch (Exception e) {
-                log.debug("Bỏ qua lỗi cập nhật NULL promotion_discount_amount");
+                log.warn("[SchemaFix] Bỏ qua lỗi thêm cột applied_promotion_name: {}", e.getMessage());
             }
             
-            log.info("[SchemaFix] Hoàn tất tiến trình bảo trì bảng 'bookings'.");
-            
-            // 8. Dọn dẹp các cấu hình cũ không còn dùng
+            // Reset timeout về mặc định
             try {
-                jdbcTemplate.execute("DELETE FROM system_configs WHERE key = 'NO_SHOW_EXP_PENALTY_PERCENT'");
+                jdbcTemplate.execute("SET statement_timeout = 0");
             } catch (Exception ignore) {}
 
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi tổng quát khi bảo trì bookings: {}", e.getMessage());
+        }
+    }
+
+    private void ensureBookingIndices() {
+        try {
+            log.info("[SchemaFix] Đang tạo indices cho bảng 'bookings' để tăng tốc Dashboard...");
+            // Index cho thống kê doanh thu theo thời gian và trạng thái
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_bookings_dashboard_stats ON bookings(status, created_at)");
+            // Index cho việc tìm kiếm theo cinema
+            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_bookings_cinema_id ON bookings(cinema_id)");
+            log.info("[SchemaFix] Đã hoàn tất tạo indices cho 'bookings'.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể tạo indices: {}. Có thể DB đang bận.", e.getMessage());
         }
     }
 

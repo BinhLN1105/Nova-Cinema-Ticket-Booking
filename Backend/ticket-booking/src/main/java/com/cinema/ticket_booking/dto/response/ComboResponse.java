@@ -20,6 +20,7 @@ public class ComboResponse implements Serializable {
     private String name;
     private String description;
     private BigDecimal price;
+    private String type;
     private String imageUrl;
     private Boolean isAvailable;
 }

@@ -1,7 +1,7 @@
 package com.cinema.ticket_booking.repository;
 
 import com.cinema.ticket_booking.model.Showtime;
-import com.cinema.ticket_booking.enums.ShowtimeStatus;
+// import com.cinema.ticket_booking.enums.ShowtimeStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
