@@ -26,7 +26,7 @@ export default function ResetPasswordPage() {
   const [isSuccess, setIsSuccess] = useState(false);
 
   useEffect(() => {
-    if (!token) {
+    if (!token || token === "undefined") {
       toast.error("Thiếu token khôi phục mật khẩu!");
       navigate("/auth/login");
     }

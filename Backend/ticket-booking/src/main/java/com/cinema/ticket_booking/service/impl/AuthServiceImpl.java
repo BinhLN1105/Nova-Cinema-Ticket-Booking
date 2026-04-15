@@ -77,7 +77,7 @@ public class AuthServiceImpl implements AuthService {
                 .isActive(true)
                 .build();
 
-        userRepository.save(user);
+        user = userRepository.save(user);
         return buildAuthResponse(user);
     }
 
