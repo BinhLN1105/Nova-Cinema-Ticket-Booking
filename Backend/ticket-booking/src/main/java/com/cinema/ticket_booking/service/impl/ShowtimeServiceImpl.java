@@ -123,6 +123,21 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
     @Override
     @Transactional(readOnly = true)
+    public List<ShowtimeResponse> getByCinemaAndDate(UUID cinemaId, LocalDate date) {
+        int allowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
+        return showtimeRepository.findByCinemaAndDateScheduled(cinemaId, date)
+                .stream()
+                .filter(s -> s.getStartTime().plusMinutes(allowance).isAfter(LocalDateTime.now()))
+                .map(s -> {
+                    ShowtimeResponse r = showtimeMapper.toResponse(s);
+                    r.setAvailableSeats(showtimeSeatRepository
+                            .countByShowtimeIdAndStatus(s.getId(), SeatStatus.AVAILABLE));
+                    return r;
+                }).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public ShowtimeResponse getById(UUID id) {
         Showtime s = findById(id);
         ShowtimeResponse r = showtimeMapper.toResponse(s);

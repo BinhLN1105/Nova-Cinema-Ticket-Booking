@@ -14,6 +14,7 @@ public interface ShowtimeMapper {
     @Mapping(target = "moviePosterUrl", source = "movie.posterUrl")
     @Mapping(target = "movieDuration", source = "movie.duration")
     @Mapping(target = "movieRated", source = "movie.rated")
+    @Mapping(target = "movieGenres", expression = "java(showtime.getMovie().getGenres().stream().map(g -> g.getName()).toList())")
     @Mapping(target = "screenId", expression = "java(showtime.getScreen().getId().toString())")
     @Mapping(target = "screenName", source = "screen.name")
     @Mapping(target = "screenType", expression = "java(showtime.getScreen().getScreenType().name())")

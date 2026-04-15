@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Data
 @Builder
@@ -23,6 +24,7 @@ public class ShowtimeResponse {
     private String moviePosterUrl;
     private Integer movieDuration;
     private String movieRated;
+    private List<String> movieGenres;
 
     // Thông tin phòng + rạp
     private String screenId;

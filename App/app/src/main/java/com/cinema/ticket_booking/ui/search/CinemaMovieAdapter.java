@@ -42,6 +42,13 @@ public class CinemaMovieAdapter extends RecyclerView.Adapter<CinemaMovieAdapter.
         holder.tvTitle.setText(first.getMovieTitle());
         holder.tvInfo.setText(first.getScreenType() + " • Cinema Style");
         
+        // Hiển thị thể loại phim
+        if (first.getMovieGenres() != null && !first.getMovieGenres().isEmpty()) {
+            holder.tvGenres.setText(String.join(", ", first.getMovieGenres()));
+        } else {
+            holder.tvGenres.setText("Chưa phân loại");
+        }
+        
         Glide.with(holder.itemView.getContext())
             .load(first.getMoviePosterUrl())
             .placeholder(R.drawable.ic_movie_placeholder)

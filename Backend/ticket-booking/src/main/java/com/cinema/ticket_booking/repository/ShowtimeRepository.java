@@ -43,6 +43,18 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
       @Param("cinemaId") UUID cinemaId,
       @Param("date") LocalDate date);
 
+  // Lấy tất cả lịch chiếu tại 1 rạp theo ngày (không phân biệt phim)
+  @Query("""
+          SELECT s FROM Showtime s
+          WHERE s.screen.cinema.id = :cinemaId
+            AND CAST(s.startTime AS date) = :date
+            AND s.status = 'SCHEDULED'
+          ORDER BY s.startTime
+      """)
+  List<Showtime> findByCinemaAndDateScheduled(
+      @Param("cinemaId") UUID cinemaId,
+      @Param("date") LocalDate date);
+
   // Lấy suất chiếu đang diễn ra hoặc sắp bắt đầu (dùng cho Scheduler cập nhật
   // status)
   @Query("""
