@@ -33,13 +33,17 @@ public class RegisterFragment extends Fragment {
         binding.btnRegister.setOnClickListener(v -> {
             String email = binding.etEmail.getText().toString().trim();
             String password = binding.etPassword.getText().toString();
+            String confirmPassword = binding.etConfirmPassword.getText().toString();
             String name = binding.etFullName.getText().toString().trim();
-            String phone = binding.etPhone.getText().toString().trim();
             if (email.isEmpty() || password.isEmpty() || name.isEmpty()) {
                 SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập đầy đủ thông tin");
                 return;
             }
-            authViewModel.register(email, password, name, phone);
+            if (!password.equals(confirmPassword)) {
+                SnackbarHelper.showError(binding.getRoot(), "Mật khẩu không khớp");
+                return;
+            }
+            authViewModel.register(email, password, name);
         });
 
         binding.tvLogin.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
@@ -49,8 +53,11 @@ public class RegisterFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    Navigation.findNavController(requireView())
-                            .navigate(R.id.action_register_to_home);
+                    androidx.navigation.NavController navController = Navigation.findNavController(requireView());
+                    if (navController.getCurrentDestination() != null &&
+                            navController.getCurrentDestination().getId() == R.id.registerFragment) {
+                        navController.navigate(R.id.action_register_to_home);
+                    }
                 }
                 case ERROR -> {
                     binding.progressBar.setVisibility(View.GONE);
