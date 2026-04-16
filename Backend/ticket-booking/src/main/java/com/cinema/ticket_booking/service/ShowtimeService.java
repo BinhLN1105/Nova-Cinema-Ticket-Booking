@@ -20,6 +20,8 @@ public interface ShowtimeService {
 
     List<ShowtimeResponse> getByMovieCinemaAndDate(UUID movieId, UUID cinemaId, LocalDate date);
 
+    List<ShowtimeResponse> getByCinemaAndDate(UUID cinemaId, LocalDate date);
+
     ShowtimeResponse getById(UUID id);
 
     SeatMapResponse getSeatMap(UUID showtimeId);

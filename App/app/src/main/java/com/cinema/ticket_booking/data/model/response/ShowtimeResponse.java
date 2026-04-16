@@ -29,6 +29,8 @@ public class ShowtimeResponse {
     private String movieId;
     @SerializedName("moviePosterUrl")
     private String moviePosterUrl;
+    @SerializedName("movieGenres")
+    private java.util.List<String> movieGenres;
 
     public String getMovieId() {
         return movieId;
@@ -76,5 +78,9 @@ public class ShowtimeResponse {
 
     public long getAvailableSeats() {
         return availableSeats;
+    }
+
+    public java.util.List<String> getMovieGenres() {
+        return movieGenres;
     }
 }

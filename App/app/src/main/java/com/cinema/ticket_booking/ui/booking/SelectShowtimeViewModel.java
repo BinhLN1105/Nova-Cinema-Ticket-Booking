@@ -69,9 +69,10 @@ public class SelectShowtimeViewModel extends ViewModel {
         if (movieId != null) {
             this.movieId = movieId;
         }
-        if (this.movieId == null) return; // guard: không gọi API nếu chưa có movieId
         String date = selectedDate.getValue();
         String cinema = selectedCinemaId.getValue();
+        // Cần ít nhất movieId hoặc cinemaId để gọi API
+        if (this.movieId == null && cinema == null) return;
         showtimeRepo.getShowtimes(this.movieId, cinema, date).observeForever(showtimes::setValue);
     }
 

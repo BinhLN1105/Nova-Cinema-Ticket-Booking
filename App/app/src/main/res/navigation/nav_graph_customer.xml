@@ -147,6 +147,7 @@
         android:label="Chi tiết rạp">
         <argument android:name="cinemaId" app:argType="string"/>
         <argument android:name="cinemaName" app:argType="string"/>
+        <action android:id="@+id/action_selectShowtime_to_selectSeat" app:destination="@id/selectSeatFragment"/>
     </fragment>
 
     <fragment android:id="@+id/scannerFragment"

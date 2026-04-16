@@ -25,15 +25,22 @@ public class ShowtimeController {
 
     private final ShowtimeService showtimeService;
 
-    // GET /api/v1/showtimes?movieId=...&date=2024-12-01
+    // GET /api/v1/showtimes?movieId=...&cinemaId=...&date=2024-12-01
     @GetMapping
     public ResponseEntity<ApiResponse<List<ShowtimeResponse>>> getShowtimes(
-            @RequestParam UUID movieId,
+            @RequestParam(required = false) UUID movieId,
             @RequestParam(required = false) UUID cinemaId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        List<ShowtimeResponse> data = (cinemaId != null)
-                ? showtimeService.getByMovieCinemaAndDate(movieId, cinemaId, date)
-                : showtimeService.getByMovieAndDate(movieId, date);
+        List<ShowtimeResponse> data;
+        if (movieId != null && cinemaId != null) {
+            data = showtimeService.getByMovieCinemaAndDate(movieId, cinemaId, date);
+        } else if (movieId != null) {
+            data = showtimeService.getByMovieAndDate(movieId, date);
+        } else if (cinemaId != null) {
+            data = showtimeService.getByCinemaAndDate(cinemaId, date);
+        } else {
+            data = List.of(); // Không có filter → trả rỗng
+        }
         return ResponseEntity.ok(ApiResponse.success(data));
     }
 
