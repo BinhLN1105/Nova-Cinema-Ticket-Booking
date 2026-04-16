@@ -28,6 +28,7 @@ import com.cinema.ticket_booking.util.Resource;
 import com.cinema.ticket_booking.data.model.response.PageResponse;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.GridLayoutManager;
+import androidx.recyclerview.widget.PagerSnapHelper;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentHomeBinding;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -61,7 +62,10 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
-        binding.rvMovies.setLayoutManager(new GridLayoutManager(requireContext(), 2));
+        binding.rvMovies.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        PagerSnapHelper snapHelper = new PagerSnapHelper();
+        snapHelper.attachToRecyclerView(binding.rvMovies);
+
         binding.rvSearchResults.setLayoutManager(new GridLayoutManager(requireContext(), 2));
 
         // Mặc định khi vào app sẽ hiển thị danh sách phim Đang chiếu
@@ -331,18 +335,28 @@ public class HomeFragment extends Fragment {
         });
     }
 
+    private <T> List<List<T>> chunkList(List<T> list, int chunkSize) {
+        List<List<T>> chunks = new ArrayList<>();
+        for (int i = 0; i < list.size(); i += chunkSize) {
+            chunks.add(list.subList(i, Math.min(list.size(), i + chunkSize)));
+        }
+        return chunks;
+    }
+
     private void observeMovies(boolean nowShowing) {
         if (nowShowing) {
             viewModel.getNowShowing().observe(getViewLifecycleOwner(), resource -> {
                 if (resource.isSuccess() && resource.data != null) {
-                    binding.rvMovies.setAdapter(new MovieAdapter(resource.data.getContent(),
+                    List<List<MovieSummary>> pages = chunkList(resource.data.getContent(), 6);
+                    binding.rvMovies.setAdapter(new MoviePageAdapter(pages,
                             movieId -> navigateToDetail(requireView(), movieId)));
                 }
             });
         } else {
             viewModel.getComingSoon().observe(getViewLifecycleOwner(), resource -> {
                 if (resource.isSuccess() && resource.data != null) {
-                    binding.rvMovies.setAdapter(new MovieAdapter(resource.data.getContent(),
+                    List<List<MovieSummary>> pages = chunkList(resource.data.getContent(), 6);
+                    binding.rvMovies.setAdapter(new MoviePageAdapter(pages,
                             movieId -> navigateToDetail(requireView(), movieId)));
                 }
             });

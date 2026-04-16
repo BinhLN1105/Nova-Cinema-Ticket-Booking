@@ -6,7 +6,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.MovieSummary;
-import com.cinema.ticket_booking.databinding.ItemMovieBinding;
+import com.cinema.ticket_booking.databinding.ItemMovieGridBinding;
 import java.util.List;
 
 public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> {
@@ -26,7 +26,7 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
     @NonNull
     @Override
     public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        ItemMovieBinding b = ItemMovieBinding.inflate(
+        ItemMovieGridBinding b = ItemMovieGridBinding.inflate(
                 LayoutInflater.from(parent.getContext()), parent, false);
         return new ViewHolder(b);
     }
@@ -42,9 +42,9 @@ public class MovieAdapter extends RecyclerView.Adapter<MovieAdapter.ViewHolder> 
     }
 
     class ViewHolder extends RecyclerView.ViewHolder {
-        private final ItemMovieBinding b;
+        private final ItemMovieGridBinding b;
 
-        ViewHolder(ItemMovieBinding b) {
+        ViewHolder(ItemMovieGridBinding b) {
             super(b.getRoot());
             this.b = b;
         }
