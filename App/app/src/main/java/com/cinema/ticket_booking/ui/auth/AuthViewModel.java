@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.ui.auth;
 
 import androidx.lifecycle.LiveData;
+import androidx.lifecycle.MediatorLiveData;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 import com.cinema.ticket_booking.data.local.TokenManager;
@@ -8,6 +9,7 @@ import com.cinema.ticket_booking.data.model.request.*;
 import com.cinema.ticket_booking.data.model.response.AuthResponse;
 import com.cinema.ticket_booking.data.repository.AuthRepository;
 import com.cinema.ticket_booking.util.Resource;
+import com.cinema.ticket_booking.util.Resource.Status;
 import dagger.hilt.android.lifecycle.HiltViewModel;
 import javax.inject.Inject;
 
@@ -18,9 +20,9 @@ public class AuthViewModel extends ViewModel {
     private final TokenManager tokenManager;
 
     // LiveData các màn hình observe
-    private final MutableLiveData<Resource<AuthResponse>> authResult = new MutableLiveData<>();
-    private final MutableLiveData<Resource<Void>> passwordResult = new MutableLiveData<>();
-    private final MutableLiveData<Resource<String>> verifyOtpResult = new MutableLiveData<>();
+    private final MediatorLiveData<Resource<AuthResponse>> authResult = new MediatorLiveData<>();
+    private final MediatorLiveData<Resource<Void>> passwordResult = new MediatorLiveData<>();
+    private final MediatorLiveData<Resource<String>> verifyOtpResult = new MediatorLiveData<>();
 
     @Inject
     public AuthViewModel(AuthRepository authRepository, TokenManager tokenManager) {
@@ -43,35 +45,77 @@ public class AuthViewModel extends ViewModel {
     // ── Actions ───────────────────────────────────────────────────────────
 
     public void forgotPassword(String email) {
-        authRepository.forgotPassword(email).observeForever(result -> passwordResult.setValue(result));
+        LiveData<Resource<Void>> source = authRepository.forgotPassword(email);
+        passwordResult.addSource(source, result -> {
+            passwordResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                passwordResult.removeSource(source);
+            }
+        });
     }
 
     public void verifyOtp(String email, String otp) {
-        authRepository.verifyOtp(email, otp).observeForever(result -> verifyOtpResult.setValue(result));
+        LiveData<Resource<String>> source = authRepository.verifyOtp(email, otp);
+        verifyOtpResult.addSource(source, result -> {
+            verifyOtpResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                verifyOtpResult.removeSource(source);
+            }
+        });
     }
 
     public void resetPassword(String token, String newPassword) {
-        authRepository.resetPassword(token, newPassword).observeForever(result -> passwordResult.setValue(result));
+        LiveData<Resource<Void>> source = authRepository.resetPassword(token, newPassword);
+        passwordResult.addSource(source, result -> {
+            passwordResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                passwordResult.removeSource(source);
+            }
+        });
     }
 
-    public void register(String email, String password, String fullName, String phone) {
-        RegisterRequest request = new RegisterRequest(email, password, fullName, phone);
-        authRepository.register(request).observeForever(result -> authResult.setValue(result));
+    public void register(String email, String password, String fullName) {
+        RegisterRequest request = new RegisterRequest(email, password, fullName);
+        LiveData<Resource<AuthResponse>> source = authRepository.register(request);
+        authResult.addSource(source, result -> {
+            authResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                authResult.removeSource(source);
+            }
+        });
     }
 
     public void login(String email, String password) {
         LoginRequest request = new LoginRequest(email, password);
-        authRepository.login(request).observeForever(result -> authResult.setValue(result));
+        LiveData<Resource<AuthResponse>> source = authRepository.login(request);
+        authResult.addSource(source, result -> {
+            authResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                authResult.removeSource(source);
+            }
+        });
     }
 
     public void loginWithGoogle(String idToken) {
         SocialLoginRequest request = new SocialLoginRequest(idToken, "GOOGLE");
-        authRepository.socialLogin(request).observeForever(result -> authResult.setValue(result));
+        LiveData<Resource<AuthResponse>> source = authRepository.socialLogin(request);
+        authResult.addSource(source, result -> {
+            authResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                authResult.removeSource(source);
+            }
+        });
     }
 
     public void loginWithFacebook(String accessToken) {
         SocialLoginRequest request = new SocialLoginRequest(accessToken, "FACEBOOK");
-        authRepository.socialLogin(request).observeForever(result -> authResult.setValue(result));
+        LiveData<Resource<AuthResponse>> source = authRepository.socialLogin(request);
+        authResult.addSource(source, result -> {
+            authResult.setValue(result);
+            if (result.status != Status.LOADING) {
+                authResult.removeSource(source);
+            }
+        });
     }
 
     public void logout() {

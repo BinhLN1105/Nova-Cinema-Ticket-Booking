@@ -17,11 +17,33 @@
 
     <fragment android:id="@+id/forgotPasswordFragment"
         android:name="com.cinema.ticket_booking.ui.auth.ForgotPasswordFragment"
-        android:label="Quên mật khẩu" />
+        android:label="Quên mật khẩu">
+        <action android:id="@+id/action_forgot_to_verifyOtp" app:destination="@id/verifyOtpFragment"/>
+    </fragment>
 
     <fragment android:id="@+id/registerFragment"
         android:name="com.cinema.ticket_booking.ui.auth.RegisterFragment"
-        android:label="Đăng ký" />
+        android:label="Đăng ký">
+        <action android:id="@+id/action_register_to_home" app:destination="@id/homeFragment"
+            app:popUpTo="@id/loginFragment" app:popUpToInclusive="true"/>
+    </fragment>
+
+    <fragment android:id="@+id/verifyOtpFragment"
+        android:name="com.cinema.ticket_booking.ui.auth.VerifyOtpFragment"
+        android:label="Xác thực OTP">
+        <argument android:name="email" app:argType="string"/>
+        <action android:id="@+id/action_verifyOtp_to_resetPassword" app:destination="@id/resetPasswordFragment"/>
+    </fragment>
+
+    <fragment android:id="@+id/resetPasswordFragment"
+        android:name="com.cinema.ticket_booking.ui.auth.ResetPasswordFragment"
+        android:label="Đặt lại mật khẩu">
+        <argument android:name="resetToken" app:argType="string"/>
+        <action android:id="@+id/action_resetPassword_to_login"
+            app:destination="@id/loginFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true"/>
+    </fragment>
 
     <fragment android:id="@+id/homeFragment"
         android:name="com.cinema.ticket_booking.ui.home.HomeFragment"

@@ -10,6 +10,7 @@ import com.cinema.ticket_booking.util.Resource;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import com.google.gson.Gson;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Map;
@@ -121,8 +122,7 @@ public class AuthRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     result.setValue(Resource.success(null));
                 } else {
-                    String msg = response.body() != null ? response.body().getMessage() : "Gửi email thất bại";
-                    result.setValue(Resource.error(msg));
+                    result.setValue(Resource.error(getErrorMessage(response)));
                 }
             }
 
@@ -148,18 +148,7 @@ public class AuthRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     result.setValue(Resource.success(response.body().getData())); // Returns resetToken
                 } else {
-                    String msg = "Xác thực OTP thất bại";
-                    try {
-                        if (response.errorBody() != null) {
-                            String errorMsg = response.errorBody().string();
-                            if (errorMsg.contains("message")) {
-                                msg = errorMsg.substring(errorMsg.indexOf("message") + 10);
-                                msg = msg.substring(0, msg.indexOf("\""));
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    }
-                    result.setValue(Resource.error(msg));
+                    result.setValue(Resource.error(getErrorMessage(response)));
                 }
             }
 
@@ -181,8 +170,7 @@ public class AuthRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                     result.setValue(Resource.success(null));
                 } else {
-                    String msg = response.body() != null ? response.body().getMessage() : "Đặt lại mật khẩu thất bại";
-                    result.setValue(Resource.error(msg));
+                    result.setValue(Resource.error(getErrorMessage(response)));
                 }
             }
 
@@ -211,10 +199,26 @@ public class AuthRepository {
                     auth.getUser().getAvatarUrl());
             result.setValue(Resource.success(auth));
         } else {
-            String msg = response.body() != null
-                    ? response.body().getMessage()
-                    : "Đã xảy ra lỗi, vui lòng thử lại";
-            result.setValue(Resource.error(msg));
+            result.setValue(Resource.error(getErrorMessage(response)));
         }
+    }
+
+    private String getErrorMessage(Response<?> response) {
+        if (response.errorBody() != null) {
+            try {
+                ApiResponse<?> errorResponse = new Gson().fromJson(
+                        response.errorBody().charStream(), ApiResponse.class);
+                if (errorResponse != null && errorResponse.getMessage() != null) {
+                    return errorResponse.getMessage();
+                }
+            } catch (Exception e) {
+                return "Lỗi hệ thống (" + response.code() + ")";
+            }
+        }
+        Object body = response.body();
+        if (body instanceof ApiResponse) {
+            return ((ApiResponse<?>) body).getMessage();
+        }
+        return "Đã xảy ra lỗi, vui lòng thử lại";
     }
 }
