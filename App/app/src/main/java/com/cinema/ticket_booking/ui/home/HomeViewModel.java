@@ -101,16 +101,20 @@ public class HomeViewModel extends ViewModel {
     }
 
     private void loadMovies() {
-        movieRepository.getMovies("NOW_SHOWING", 0, 20)
-                .observeForever(nowShowing::setValue);
+        movieRepository.getMovies("NOW_SHOWING", 0, 20).observeForever(resource -> {
+            nowShowing.setValue(resource);
+            if (resource.isSuccess() && resource.data != null) {
+                featuredMovies.setValue(Resource.success(resource.data.getContent()));
+            } else if (resource.isError()) {
+                featuredMovies.setValue(Resource.error("Lỗi", null));
+            }
+        });
         movieRepository.getMovies("COMING_SOON", 0, 20)
                 .observeForever(comingSoon::setValue);
         voucherRepository.getActiveVouchers()
                 .observeForever(activeVouchers::setValue);
         promotionRepository.getActivePromotions()
                 .observeForever(activePromotions::setValue);
-        movieRepository.getFeaturedMovies()
-                .observeForever(featuredMovies::setValue);
         promotionRepository.getPopupPromotion()
                 .observeForever(popupPromotion::setValue);
     }
