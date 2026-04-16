@@ -55,8 +55,11 @@ public class ShowtimeAdapter extends RecyclerView.Adapter<ShowtimeAdapter.VH> {
                 time = time.substring(11, 16);
             tvTime.setText(time);
             tvType.setText(s.getScreenType());
+            tvType.setVisibility(View.VISIBLE);
             tvPrice.setText(String.format("%,.0fđ", s.getBasePrice()));
+            tvPrice.setVisibility(View.VISIBLE);
             tvSeats.setText(s.getAvailableSeats() + " ghế trống");
+            tvSeats.setVisibility(View.VISIBLE);
             itemView.setAlpha("CANCELLED".equals(s.getStatus()) ? 0.4f : 1f);
             itemView.setEnabled(!"CANCELLED".equals(s.getStatus()));
             itemView.setOnClickListener(v -> listener.onClick(s));

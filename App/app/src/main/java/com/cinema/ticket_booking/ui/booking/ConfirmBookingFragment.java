@@ -90,6 +90,24 @@ public class ConfirmBookingFragment extends Fragment {
             });
         });
 
+        // Payment methods select logic
+        binding.cvVnpay.setOnClickListener(v -> {
+            binding.rbVnpay.setChecked(true);
+            binding.rbMomo.setChecked(false);
+        });
+        binding.cvMomo.setOnClickListener(v -> {
+            binding.rbMomo.setChecked(true);
+            binding.rbVnpay.setChecked(false);
+        });
+        binding.rbVnpay.setOnClickListener(v -> {
+            binding.rbVnpay.setChecked(true);
+            binding.rbMomo.setChecked(false);
+        });
+        binding.rbMomo.setOnClickListener(v -> {
+            binding.rbMomo.setChecked(true);
+            binding.rbVnpay.setChecked(false);
+        });
+
         // Xác nhận đặt vé
         binding.btnConfirmBooking.setOnClickListener(v -> {
             viewModel.confirmBooking();

@@ -33,9 +33,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error(response.body() != null
-                            ? response.body().getMessage()
-                            : "Đặt vé thất bại"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Đặt vé thất bại")));
             }
 
             @Override
@@ -56,9 +54,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error(response.body() != null
-                            ? response.body().getMessage()
-                            : "Tính toán giá thất bại"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Tính toán giá thất bại")));
             }
 
             @Override
@@ -79,7 +75,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error("Tải lịch sử vé thất bại"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Tải lịch sử vé thất bại")));
             }
 
             @Override
@@ -100,7 +96,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error("Không tìm thấy vé"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Không tìm thấy vé")));
             }
 
             @Override
@@ -121,9 +117,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error(response.body() != null
-                            ? response.body().getMessage()
-                            : "Kiểm tra vé thất bại"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Kiểm tra vé thất bại")));
             }
 
             @Override
@@ -146,7 +140,7 @@ public class BookingRepository {
                 if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
                     result.setValue(Resource.success(response.body().getData()));
                 else
-                    result.setValue(Resource.error("Tạo thanh toán thất bại"));
+                    result.setValue(Resource.error(getErrorMessage(response, "Tạo thanh toán thất bại")));
             }
 
             @Override
@@ -155,5 +149,22 @@ public class BookingRepository {
             }
         });
         return result;
+    }
+
+    private String getErrorMessage(Response<?> response, String defaultMessage) {
+        if (response.body() != null && response.body() instanceof ApiResponse) {
+            String msg = ((ApiResponse<?>) response.body()).getMessage();
+            if (msg != null && !msg.isEmpty()) return msg;
+        }
+        try {
+            if (response.errorBody() != null) {
+                String errStr = response.errorBody().string();
+                org.json.JSONObject obj = new org.json.JSONObject(errStr);
+                if (obj.has("message")) return obj.getString("message");
+            }
+        } catch (Exception e) {
+            // Ignore parse error
+        }
+        return defaultMessage;
     }
 }
