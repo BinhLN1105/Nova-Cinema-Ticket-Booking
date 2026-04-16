@@ -81,3 +81,4 @@ public class ForgotPasswordFragment extends Fragment {
         binding = null;
     }
 }
+

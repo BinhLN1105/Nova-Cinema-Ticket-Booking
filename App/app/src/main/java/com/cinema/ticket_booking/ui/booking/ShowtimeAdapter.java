@@ -66,3 +66,4 @@ public class ShowtimeAdapter extends RecyclerView.Adapter<ShowtimeAdapter.VH> {
         }
     }
 }
+

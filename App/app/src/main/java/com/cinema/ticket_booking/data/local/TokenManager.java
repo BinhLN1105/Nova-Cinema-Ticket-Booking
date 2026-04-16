@@ -23,20 +23,37 @@ public class TokenManager {
     private final SharedPreferences prefs;
 
     public TokenManager(Context context) {
+        SharedPreferences sp;
         try {
             MasterKey masterKey = new MasterKey.Builder(context)
                     .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
                     .build();
 
-            prefs = EncryptedSharedPreferences.create(
+            sp = EncryptedSharedPreferences.create(
                     context,
                     PREFS_NAME,
                     masterKey,
                     EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
                     EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
         } catch (Exception e) {
-            throw new RuntimeException("Không thể khởi tạo EncryptedSharedPreferences", e);
+            // Handle Auto-Backup bug (keys lost but file restored)
+            try {
+                context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE).edit().clear().apply();
+                java.io.File dir = new java.io.File(context.getApplicationInfo().dataDir, "shared_prefs");
+                new java.io.File(dir, PREFS_NAME + ".xml").delete();
+                
+                MasterKey masterKey = new MasterKey.Builder(context)
+                        .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+                        .build();
+                sp = EncryptedSharedPreferences.create(
+                        context, PREFS_NAME, masterKey,
+                        EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                        EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM);
+            } catch (Exception ex) {
+                sp = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+            }
         }
+        this.prefs = sp;
     }
 
     // ── Save ─────────────────────────────────────────────────────────────

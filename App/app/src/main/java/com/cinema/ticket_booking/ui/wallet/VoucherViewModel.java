@@ -51,3 +51,4 @@ public class VoucherViewModel extends ViewModel {
         });
     }
 }
+

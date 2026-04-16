@@ -35,9 +35,10 @@ public class CinemaRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<List<CinemaResponse>>> c, Throwable t) {
-                r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+                r.setValue(Resource.error("Mất kết nối mạng, vui lòng kiểm tra lại Internet."));
             }
         });
         return r;
     }
 }
+

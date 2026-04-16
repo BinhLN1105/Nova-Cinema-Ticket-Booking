@@ -143,3 +143,4 @@ public class ReviewListFragment extends Fragment {
         binding = null;
     }
 }
+

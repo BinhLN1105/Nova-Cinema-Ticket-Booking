@@ -119,3 +119,4 @@ public class HomeViewModel extends ViewModel {
                 .observeForever(popupPromotion::setValue);
     }
 }
+

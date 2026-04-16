@@ -88,3 +88,4 @@ public class WalletFragment extends Fragment {
         binding = null;
     }
 }
+

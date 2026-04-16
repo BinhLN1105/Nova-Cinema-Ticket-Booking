@@ -161,3 +161,4 @@ public class MovieDetailFragment extends Fragment {
         binding = null;
     }
 }
+

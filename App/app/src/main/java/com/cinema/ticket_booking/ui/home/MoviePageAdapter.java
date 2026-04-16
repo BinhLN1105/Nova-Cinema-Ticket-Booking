@@ -62,3 +62,4 @@ public class MoviePageAdapter extends RecyclerView.Adapter<MoviePageAdapter.View
         }
     }
 }
+

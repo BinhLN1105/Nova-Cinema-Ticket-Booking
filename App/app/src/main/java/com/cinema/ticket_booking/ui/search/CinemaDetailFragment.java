@@ -142,3 +142,4 @@ public class CinemaDetailFragment extends Fragment {
         binding = null;
     }
 }
+

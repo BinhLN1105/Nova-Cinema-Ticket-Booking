@@ -58,8 +58,8 @@ public class AppModule {
 
     @Provides
     @Singleton
-    public BookingRepository provideBookingRepository(ApiService api) {
-        return new BookingRepository(api);
+    public BookingRepository provideBookingRepository(ApiService api, BookingDao bookingDao) {
+        return new BookingRepository(api, bookingDao);
     }
 
     @Provides

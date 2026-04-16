@@ -259,3 +259,4 @@ public class ConfirmBookingFragment extends Fragment {
         binding = null;
     }
 }
+

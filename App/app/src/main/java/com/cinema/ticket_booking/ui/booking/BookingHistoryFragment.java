@@ -331,3 +331,4 @@ public class BookingHistoryFragment extends Fragment {
         binding = null;
     }
 }
+

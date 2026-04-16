@@ -25,3 +25,4 @@ public class BookingDetailViewModel extends ViewModel {
         repo.getBookingDetail(id).observeForever(booking::setValue);
     }
 }
+

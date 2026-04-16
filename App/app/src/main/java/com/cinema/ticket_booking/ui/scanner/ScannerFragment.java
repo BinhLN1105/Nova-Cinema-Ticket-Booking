@@ -161,3 +161,4 @@ public class ScannerFragment extends Fragment {
         binding = null;
     }
 }
+

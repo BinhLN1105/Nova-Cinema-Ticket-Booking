@@ -7,7 +7,7 @@ import com.cinema.ticket_booking.data.local.dao.MovieDao;
 import com.cinema.ticket_booking.data.local.entity.BookingEntity;
 import com.cinema.ticket_booking.data.local.entity.MovieEntity;
 
-@Database(entities = { MovieEntity.class, BookingEntity.class }, version = 1, exportSchema = false)
+@Database(entities = { MovieEntity.class, BookingEntity.class }, version = 2, exportSchema = false)
 public abstract class AppDatabase extends RoomDatabase {
     public abstract MovieDao movieDao();
 

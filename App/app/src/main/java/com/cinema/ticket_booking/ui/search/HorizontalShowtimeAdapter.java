@@ -53,3 +53,4 @@ public class HorizontalShowtimeAdapter extends RecyclerView.Adapter<HorizontalSh
         }
     }
 }
+

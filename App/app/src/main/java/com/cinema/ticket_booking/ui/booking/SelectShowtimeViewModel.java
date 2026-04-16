@@ -91,3 +91,4 @@ public class SelectShowtimeViewModel extends ViewModel {
         return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
     }
 }
+
