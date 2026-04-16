@@ -11,7 +11,6 @@ const schema = z
   .object({
     fullName: z.string().min(2, "Tên ít nhất 2 ký tự"),
     email: z.string().email("Email không hợp lệ"),
-    phone: z.string().optional(),
     password: z.string().min(6, "Mật khẩu ít nhất 6 ký tự"),
     confirm: z.string(),
   })
@@ -35,12 +34,6 @@ export default function RegisterPage() {
   const fields = [
     { name: "fullName", icon: User, type: "text", placeholder: "Họ và tên" },
     { name: "email", icon: Mail, type: "email", placeholder: "Email" },
-    {
-      name: "phone",
-      icon: Phone,
-      type: "tel",
-      placeholder: "Số điện thoại (tuỳ chọn)",
-    },
     { name: "password", icon: Lock, type: "password", placeholder: "Mật khẩu" },
     {
       name: "confirm",

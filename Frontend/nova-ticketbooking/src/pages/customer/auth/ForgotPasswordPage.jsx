@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { Mail, ArrowLeft, KeyRound } from "lucide-react";
 import { authApi } from "@/api/endpoints";
 import { cn } from "@/utils";
 import toast from "react-hot-toast";
@@ -13,8 +13,8 @@ const schema = z.object({
 });
 
 export default function ForgotPasswordPage() {
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
 
   const {
     register,
@@ -28,49 +28,29 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true);
     try {
       await authApi.forgotPassword(data.email);
-      setIsSuccess(true);
-      toast.success("Yêu cầu đã được gửi!");
+      toast.success("Mã xác thực đã được gửi!");
+      // Chuyển sang trang nhập OTP kèm email qua query param
+      navigate(`/auth/verify-otp?email=${encodeURIComponent(data.email)}`);
     } catch (error) {
-      // Vì lý do bảo mật, backend luôn trả về thành công giả lập.
-      // Chỉ lỗi server thật sự mới rơi vào đây.
+      // Backend thường trả về thành công giả lập để bảo mật, 
+      // nhưng nếu lỗi hệ thống thật sự thì thông báo.
       toast.error("Có lỗi xảy ra, vui lòng thử lại sau.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isSuccess) {
-    return (
-      <div className="text-center py-8">
-        <div className="flex justify-center mb-6">
-          <div className="w-20 h-20 bg-green-500/20 rounded-full flex items-center justify-center">
-            <CheckCircle2 className="w-10 h-10 text-green-500" />
-          </div>
-        </div>
-        <h1 className="font-display text-3xl font-bold text-white mb-4">
-          Kiểm tra email của bạn
-        </h1>
-        <p className="text-cinema-300 mb-8 max-w-sm mx-auto">
-          Nếu email của bạn tồn tại trong hệ thống, chúng tôi đã gửi một liên kết đặt lại mật khẩu đến đó. Vui lòng kiểm tra cả hòm thư rác.
-        </p>
-        <Link
-          to="/auth/login"
-          className="btn-primary inline-flex items-center gap-2 px-8 py-3"
-        >
-          <ArrowLeft className="w-4 h-4" /> Quay lại đăng nhập
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div>
       <div className="mb-8">
+        <div className="w-12 h-12 bg-brand-500/10 rounded-xl flex items-center justify-center mb-4">
+          <KeyRound className="w-6 h-6 text-brand-400" />
+        </div>
         <h1 className="font-display text-3xl font-bold text-white mb-2">
           Quên mật khẩu?
         </h1>
         <p className="text-cinema-300">
-          Đừng lo lắng, hãy nhập email của bạn và chúng tôi sẽ gửi liên kết khôi phục.
+          Đừng lo lắng, hãy nhập email của bạn và chúng tôi sẽ gửi mã xác thực (OTP) để khôi phục.
         </p>
       </div>
 
@@ -107,10 +87,10 @@ export default function ForgotPasswordPage() {
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Đang xử lý...
+              Đang gửi mã...
             </span>
           ) : (
-            "Gửi liên kết khôi phục"
+            "Tiếp tục"
           )}
         </button>
       </form>

@@ -76,6 +76,8 @@ const ForgotPasswordPage = () =>
   lazy_(() => import("@/pages/customer/auth/ForgotPasswordPage"));
 const ResetPasswordPage = () =>
   lazy_(() => import("@/pages/customer/auth/ResetPasswordPage"));
+const VerifyOtpPage = () =>
+  lazy_(() => import("@/pages/customer/auth/VerifyOtpPage"));
 
 // Admin
 const AdminDashboard = () =>
@@ -155,6 +157,7 @@ export const router = createBrowserRouter([
           { path: "login", element: <LoginPage /> },
           { path: "register", element: <RegisterPage /> },
           { path: "forgot-password", element: <ForgotPasswordPage /> },
+          { path: "verify-otp", element: <VerifyOtpPage /> },
           { path: "reset-password", element: <ResetPasswordPage /> },
         ],
       },
