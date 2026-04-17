@@ -1,42 +1,22 @@
-# Chính sách thanh toán & hoàn vé — NovaTicket
+# Chính sách thanh toán & Hoàn tiền — NovaTicket
 
-## Các phương thức thanh toán được chấp nhận
+## 1. Phương thức thanh toán điện tử
+NovaTicket sử dụng cổng thanh toán **VNPay** làm giải pháp chính. Bạn có thể thanh toán qua:
+- **Ứng dụng ngân hàng (VNPAY-QR)**: Quét mã QR hoặc chuyển hướng thẳng đến App ngân hàng.
+- **Thẻ ATM nội địa**: Yêu cầu thẻ đã đăng ký Internet Banking.
+- **Điểm CinePoint**: Thanh toán bằng số dư điểm thưởng tích lũy trong tài khoản.
 
-NovaTicket hiện hỗ trợ các hình thức thanh toán sau:
-- **VNPay**: Thanh toán qua ví điện tử VNPay, thẻ ATM nội địa, thẻ tín dụng quốc tế (Visa, Mastercard).
-- **Chuyển khoản ngân hàng**: Hỗ trợ tất cả ngân hàng nội địa qua cổng VNPay.
-- **Ví điện tử**: MoMo, ZaloPay (sắp ra mắt).
+## 2. Quy trình xử lý lỗi thanh toán
+Nếu bạn đã bị trừ phí trong ứng dụng ngân hàng nhưng hệ thống NovaTicket báo "Thanh toán thất bại" hoặc không thấy vé:
+1. **Kiểm tra kết nối**: Đôi khi do mạng chậm, vé sẽ xuất hiện sau 1-2 phút.
+2. **Đối soát giao dịch**: Liên hệ tổng đài và cung cấp "Mã giao dịch VNPay" (có trong phần chi tiết biến động số dư của ngân hàng).
+3. **Xử lý**: Nhân viên sẽ xác minh và thực hiện cấp vé ngay lập tức hoặc hoàn lại số tiền tương ứng vào tài khoản của bạn dưới dạng điểm hoặc tiền mặt tùy trường hợp lỗi hệ thống.
 
-## Chính sách hoàn vé
+## 3. Chính sách hoàn vé do khách hàng chủ động hủy
+- **Điều kiện**: Hủy vé ít nhất **2 giờ** trước giờ chiếu.
+- **Mức hoàn**: 100% giá trị đơn hàng.
+- **Hình thức hoàn**: Hoàn bằng **CinePoint**.
+- **Giới hạn**: Không áp dụng hủy vé cho các suất chiếu đã bắt đầu hoặc vé đã quét mã QR tại rạp.
 
-### Trường hợp được hoàn vé 100%
-- Suất chiếu bị hủy do lỗi kỹ thuật của rạp hoặc phim không được chiếu.
-- Lỗi hệ thống dẫn đến đặt vé nhưng không có giao dịch thực tế.
-
-### Trường hợp được hoàn vé 70%
-- Hủy vé trước giờ chiếu **ít nhất 3 tiếng**.
-- Khách hàng cần liên hệ hotline hoặc chat support để được hỗ trợ.
-
-### Trường hợp KHÔNG được hoàn vé
-- Hủy vé **dưới 3 tiếng** trước giờ chiếu.
-- Vé đã được sử dụng (đã check-in tại rạp).
-- Vé mua trong các chương trình flash sale đặc biệt (có ghi chú "không hoàn vé").
-
-### Thời gian xử lý hoàn tiền
-- Hoàn qua VNPay: **3–5 ngày làm việc**.
-- Hoàn qua thẻ tín dụng: **7–15 ngày làm việc** (tùy ngân hàng phát hành).
-
-## Lỗi trừ tiền VNPay nhưng chưa nhận được vé
-
-Đây là lỗi phổ biến khi mạng không ổn định trong quá trình thanh toán.
-
-**Cách xử lý:**
-1. Kiểm tra mục "Lịch sử đặt vé" trong tài khoản NovaTicket.
-2. Nếu giao dịch hiển thị "Chờ xác nhận" sau 15 phút, liên hệ ngay:
-   - **Hotline**: 1900 6789 (8h–22h hàng ngày)
-   - **Email**: support@novaticket.vn
-   - **Chat trực tiếp** trên ứng dụng/website.
-3. Cung cấp: Mã giao dịch VNPay, số điện thoại đặt vé, thời gian giao dịch.
-4. Đội hỗ trợ sẽ xác minh và hoàn tiền trong **24 giờ**.
-
-**Lưu ý**: Tuyệt đối không đặt vé lại trước khi được xác nhận về giao dịch lỗi để tránh bị trừ tiền 2 lần.
+## 4. Bảo mật thanh toán
+Mọi thông tin thanh toán được xử lý trực tiếp qua hạ tầng bảo mật của VNPay, NovaTicket không lưu trữ thông tin thẻ hay tài khoản ngân hàng của khách hàng.

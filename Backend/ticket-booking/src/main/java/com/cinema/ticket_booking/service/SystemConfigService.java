@@ -10,4 +10,6 @@ public interface SystemConfigService {
     Map<String, String> getAllConfigs();
 
     void updateConfig(String key, String value, String description);
+    
+    void initDefaults();
 }

@@ -32,38 +32,42 @@ public class ShowtimeClosureJob {
     @Scheduled(fixedRate = 60000) // 1 minute
     @Transactional
     public void autoUpdateShowtimeStatuses() {
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        int lateAllowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
-        LocalDateTime nowMinusAllowance = now.minusMinutes(lateAllowance);
+        try {
+            LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+            int lateAllowance = systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10);
+            LocalDateTime nowMinusAllowance = now.minusMinutes(lateAllowance);
 
-        // 1. Chuyển sang ONGOING (Hết giờ đặt vé nhưng đang trong giờ chiếu)
-        List<Showtime> toOngoing = showtimeRepository.findShowtimesToMarkOngoing(nowMinusAllowance, now);
-        if (!toOngoing.isEmpty()) {
-            toOngoing.forEach(s -> s.setStatus(ShowtimeStatus.ONGOING));
-            showtimeRepository.saveAll(toOngoing);
-            log.info("Marked {} showtimes as ONGOING", toOngoing.size());
-        }
+            // 1. Chuyển sang ONGOING (Hết giờ đặt vé nhưng đang trong giờ chiếu)
+            List<Showtime> toOngoing = showtimeRepository.findShowtimesToMarkOngoing(nowMinusAllowance, now);
+            if (!toOngoing.isEmpty()) {
+                toOngoing.forEach(s -> s.setStatus(ShowtimeStatus.ONGOING));
+                showtimeRepository.saveAll(toOngoing);
+                log.info("Marked {} showtimes as ONGOING", toOngoing.size());
+            }
 
-        // 2. Chuyển sang FINISHED (Đã quá giờ kết thúc)
-        List<Showtime> toFinished = showtimeRepository.findShowtimesToMarkFinished(now);
-        if (!toFinished.isEmpty()) {
-            toFinished.forEach(s -> s.setStatus(ShowtimeStatus.FINISHED));
-            showtimeRepository.saveAll(toFinished);
-            log.info("Marked {} showtimes as FINISHED", toFinished.size());
+            // 2. Chuyển sang FINISHED (Đã quá giờ kết thúc)
+            List<Showtime> toFinished = showtimeRepository.findShowtimesToMarkFinished(now);
+            if (!toFinished.isEmpty()) {
+                toFinished.forEach(s -> s.setStatus(ShowtimeStatus.FINISHED));
+                showtimeRepository.saveAll(toFinished);
+                log.info("Marked {} showtimes as FINISHED", toFinished.size());
 
-            // Đánh dấu vé PAID chưa check-in thành EXPIRED (No-show, mất trắng)
-            int totalNoShows = 0;
-            for (Showtime s : toFinished) {
-                List<Booking> noShows = bookingRepository.findByShowtimeIdAndStatus(s.getId(), BookingStatus.PAID);
-                if (!noShows.isEmpty()) {
-                    noShows.forEach(b -> b.setStatus(BookingStatus.EXPIRED));
-                    bookingRepository.saveAll(noShows);
-                    totalNoShows += noShows.size();
+                // Đánh dấu vé PAID chưa check-in thành EXPIRED (No-show, mất trắng)
+                int totalNoShows = 0;
+                for (Showtime s : toFinished) {
+                    List<Booking> noShows = bookingRepository.findByShowtimeIdAndStatus(s.getId(), BookingStatus.PAID);
+                    if (!noShows.isEmpty()) {
+                        noShows.forEach(b -> b.setStatus(BookingStatus.EXPIRED));
+                        bookingRepository.saveAll(noShows);
+                        totalNoShows += noShows.size();
+                    }
+                }
+                if (totalNoShows > 0) {
+                    log.info("Marked {} no-show bookings as EXPIRED (No refund given)", totalNoShows);
                 }
             }
-            if (totalNoShows > 0) {
-                log.info("Marked {} no-show bookings as EXPIRED (No refund given)", totalNoShows);
-            }
+        } catch (Exception e) {
+            log.warn("[ShowtimeJob] Không thể thực hiện tiến trình tự động (có thể Database đang khởi tạo): {}", e.getMessage());
         }
     }
 }

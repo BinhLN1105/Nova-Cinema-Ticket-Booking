@@ -40,9 +40,13 @@ public class SchedulerServiceImpl implements SchedulerService {
     @Scheduled(cron = "0 * * * * *")
     @Transactional
     public void releaseExpiredSeatLocks() {
-        int released = showtimeSeatRepository.releaseExpiredLocks(LocalDateTime.now());
-        if (released > 0) {
-            log.info("[Scheduler] Đã giải phóng {} ghế hết hạn giữ chỗ", released);
+        try {
+            int released = showtimeSeatRepository.releaseExpiredLocks(LocalDateTime.now());
+            if (released > 0) {
+                log.info("[Scheduler] Đã giải phóng {} ghế hết hạn giữ chỗ", released);
+            }
+        } catch (Exception e) {
+            log.warn("[Scheduler] Chưa thể giải phóng ghế: {}", e.getMessage());
         }
     }
 
@@ -54,27 +58,32 @@ public class SchedulerServiceImpl implements SchedulerService {
     @Scheduled(cron = "0 */2 * * * *")
     @Transactional
     public void expireOverdueBookings() {
-        // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE (không dùng filter(null) nữa)
-        List<Booking> toExpire = bookingRepository.findByStatusAndExpiresAtBefore(
-                BookingStatus.PENDING, LocalDateTime.now());
+        try {
+            // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE (không dùng
+            // filter(null) nữa)
+            List<Booking> toExpire = bookingRepository.findByStatusAndExpiresAtBefore(
+                    BookingStatus.PENDING, LocalDateTime.now());
 
-        // 2. Giải phóng ghế của từng booking
-        for (Booking booking : toExpire) {
-            bookingItemRepository.findByBookingIdWithSeat(booking.getId()).forEach(item -> {
-                var ss = item.getShowtimeSeat();
-                if (ss.getStatus() == SeatStatus.LOCKED) {
-                    ss.setStatus(SeatStatus.AVAILABLE);
-                    ss.setLockedBy(null);
-                    ss.setLockedUntil(null);
-                    showtimeSeatRepository.save(ss);
-                }
-            });
-        }
+            // 2. Giải phóng ghế của từng booking
+            for (Booking booking : toExpire) {
+                bookingItemRepository.findByBookingIdWithSeat(booking.getId()).forEach(item -> {
+                    var ss = item.getShowtimeSeat();
+                    if (ss.getStatus() == SeatStatus.LOCKED) {
+                        ss.setStatus(SeatStatus.AVAILABLE);
+                        ss.setLockedBy(null);
+                        ss.setLockedUntil(null);
+                        showtimeSeatRepository.save(ss);
+                    }
+                });
+            }
 
-        // 3. Bulk update status → EXPIRED
-        int expired = bookingRepository.expireOverdueBookings(LocalDateTime.now());
-        if (expired > 0) {
-            log.info("[Scheduler] Đã expire {} booking quá hạn thanh toán", expired);
+            // 3. Bulk update status → EXPIRED
+            int expired = bookingRepository.expireOverdueBookings(LocalDateTime.now());
+            if (expired > 0) {
+                log.info("[Scheduler] Đã expire {} booking quá hạn thanh toán", expired);
+            }
+        } catch (Exception e) {
+            log.warn("[Scheduler] Chưa thể cập nhật booking hết hạn: {}", e.getMessage());
         }
     }
 
@@ -135,7 +144,8 @@ public class SchedulerServiceImpl implements SchedulerService {
         var pendingCampaigns = notificationCampaignRepository.findByStatusAndScheduledAtBefore(
                 CampaignStatus.PENDING, now);
 
-        if (pendingCampaigns.isEmpty()) return;
+        if (pendingCampaigns.isEmpty())
+            return;
 
         log.info("[Scheduler] Đang xử lý {} chiến dịch thông báo...", pendingCampaigns.size());
 
@@ -147,8 +157,7 @@ public class SchedulerServiceImpl implements SchedulerService {
                         campaign.getBody(),
                         campaign.getType(),
                         campaign.getTargetId(),
-                        campaign.getTargetTopic()
-                );
+                        campaign.getTargetTopic());
 
                 // 2. Update Status
                 campaign.setStatus(CampaignStatus.SENT);

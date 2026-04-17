@@ -1,52 +1,28 @@
-# Câu hỏi thường gặp & Chính sách ưu đãi — NovaTicket
+# Câu hỏi thường gặp & Chương trình thành viên NovaTicket
 
-## Ưu đãi theo đối tượng khách hàng
+## Chính sách thành viên NOVA Points
 
-### Sinh viên
-- Xuất trình thẻ sinh viên còn hiệu lực tại quầy hoặc upload ảnh thẻ lên ứng dụng.
-- Giảm **15%** giá vé thường (không áp dụng vé IMAX, 4DX, Dolby).
-- Áp dụng tối đa 2 vé/lượt mua.
-- Không cộng dồn với các mã voucher khác.
+### 1. Cách tích lũy điểm
+- Với mỗi **1.000đ** chi tiêu tại NovaTicket (vé phim, bắp nước), bạn sẽ nhận được **1 điểm thưởng**.
+- Điểm được tích lũy tự động dựa trên số tiền thực trả (sau khi trừ khuyến mãi).
 
-### Người cao tuổi (trên 60 tuổi)
-- Giảm **20%** cho tất cả suất chiếu trước 14h.
-- Cần xuất trình CMND/CCCD tại quầy.
+### 2. Hạng thành viên (Membership Tiers)
+Hệ thống NovaTicket phân chia 3 hạng thành viên dựa trên tổng chi tiêu:
+- **BRONZE**: Thành viên mới đăng ký.
+- **GOLD**: Tích lũy trên 2.000 điểm. Quyền lợi: Ưu tiên chọn ghế đẹp, tích điểm x1.2.
+- **DIAMOND**: Tích lũy trên 5.000 điểm. Quyền lợi: Tích điểm x1.5, vé xem phim miễn phí trong tháng sinh nhật.
 
-### Trẻ em dưới 3 tuổi
-- Miễn phí vé vào cửa (không có ghế riêng, ngồi cùng người lớn).
-- Trẻ từ 3–12 tuổi: giảm **30%** giá vé thường.
+## Câu hỏi thường gặp (FAQ)
 
-### Thứ 3 hàng tuần — Cinema Day
-- Giảm **25%** toàn bộ vé thường cho tất cả khách hàng.
-- Áp dụng tất cả rạp NovaTicket trên toàn quốc.
-- Không cần mã voucher, giảm tự động khi đặt vé ngày thứ 3.
+### 1. Tôi có thể hủy vé đã đặt không?
+Có. Bạn có thể hủy vé trực tiếp trong mục "Vé của tôi" trên ứng dụng. Lưu ý: Phải thực hiện hủy **ít nhất 2 giờ** trước khi suất chiếu bắt đầu.
 
-## Chương trình thành viên NOVA Points
+### 2. Sau khi hủy vé, tôi nhận lại tiền bằng cách nào?
+Tiền vé sau khi hủy sẽ được hoàn lại 100% dưới dạng **CinePoint** vào tài khoản của bạn. Bạn có thể dùng điểm này để thanh toán cho lần đặt vé tiếp theo.
 
-### Cách tích điểm
-- Mỗi **1.000đ** thanh toán = **1 điểm NOVA**.
-- Mua combo bắp nước: tích điểm x1.5.
-- Đặt vé qua ứng dụng mobile: cộng thêm 50 điểm/lần.
+### 3. Trẻ em có cần mua vé không?
+- Trẻ em dưới 0.9m: Miễn phí (ngồi chung ghế với người giám hộ).
+- Trẻ em từ 0.9m trở lên: Áp dụng giá vé ưu đãi cho trẻ em.
 
-### Cách dùng điểm
-- **500 điểm** = giảm **50.000đ** cho đơn hàng tiếp theo.
-- Điểm có hiệu lực **12 tháng** kể từ ngày tích.
-- Không quy đổi thành tiền mặt.
-
-### Hạng thành viên
-| Hạng | Điểm tích lũy | Quyền lợi thêm |
-|------|---------------|----------------|
-| Silver | 0 – 999 | Tích điểm cơ bản |
-| Gold | 1.000 – 4.999 | Tích điểm x1.2, ưu tiên chọn ghế |
-| Diamond | 5.000+ | Tích điểm x1.5, vé miễn phí sinh nhật |
-
-## Câu hỏi thường gặp khác
-
-### Tôi quên lấy vé, có lấy lại được không?
-Vé điện tử trên ứng dụng NovaTicket không cần in. Nhân viên rạp sẽ quét mã QR trực tiếp trên điện thoại của bạn. Nếu mất điện thoại, liên hệ hotline trước giờ chiếu ít nhất 30 phút.
-
-### Có thể đổi suất chiếu sau khi đã đặt không?
-Không hỗ trợ đổi suất trực tiếp. Cần hủy vé (nếu còn đủ thời gian theo chính sách hoàn vé) và đặt lại.
-
-### Ứng dụng báo đặt thành công nhưng không thấy vé?
-Đợi 5 phút và tải lại trang "Vé của tôi". Nếu vẫn không thấy, liên hệ support và cung cấp mã đơn hàng trong email xác nhận.
+### 4. Tôi đến muộn thì có được vào xem không?
+NovaTicket cho phép khách hàng vào phòng chiếu tối đa **10 phút** sau khi phim bắt đầu. Tuy nhiên, chúng tôi khuyến khích bạn đến sớm 15 phút để chuẩn bị bắp nước và ổn định chỗ ngồi.

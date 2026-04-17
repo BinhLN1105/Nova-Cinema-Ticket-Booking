@@ -1,5 +1,5 @@
 -- ── EXTENSIONS ────────────────────────────────────────────────────────
-CREATE EXTENSION IF NOT EXISTS pgvector;
+CREATE EXTENSION IF NOT EXISTS vector;
 
 -- ── USERS ─────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS users (

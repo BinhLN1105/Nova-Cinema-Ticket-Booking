@@ -73,7 +73,8 @@ def _build_llm():
             model=cfg.llm_model,
             google_api_key=cfg.gemini_api_key,
             temperature=cfg.llm_temperature,
-            convert_system_message_to_human=True   # Gemini quirk
+            # convert_system_message_to_human đã được tích hợp mặc định trong các ver mới
+            # gỡ bỏ để tránh lỗi Tool calling
         )
     elif cfg.openai_api_key:
         from langchain_openai import ChatOpenAI

@@ -1,44 +1,28 @@
-# Thông tin rạp chiếu — NovaTicket
+# Hệ thống rạp chiếu NovaTicket
 
-## NovaTicket Landmark 81
-- **Địa chỉ**: Tầng B1, Vincom Center Landmark 81, 720A Điện Biên Phủ, Q. Bình Thạnh, TP.HCM
-- **Hotline**: 028 3636 0000
-- **Giờ mở cửa**: 8:30 – 23:30 hàng ngày
-- **Số phòng chiếu**: 8 phòng (trong đó 1 phòng IMAX, 1 phòng 4DX)
-- **Bãi đậu xe**: Sử dụng bãi xe tòa nhà Landmark 81, tính phí riêng
+## 1. NovaTicket Landmark 81 (Trụ sở chính)
+- **Địa chỉ**: Tầng B1, Vincom Center Landmark 81, 720A Điện Biên Phủ, Q. Bình Thạnh, TP.HCM.
+- **Quy mô**: 8 phòng chiếu hiện đại (bao gồm 1 phòng IMAX Laser và 1 phòng Gold Class).
+- **Tiện ích**: Bãi giữ xe thông minh, khu vực chờ VIP, quầy bắp nước đa dạng.
+- **Giờ hoạt động**: 08:00 - 24:00.
 
-## NovaTicket Aeon Mall Bình Tân
-- **Địa chỉ**: Tầng 3, Aeon Mall Bình Tân, 1 Đường số 17A, Q. Bình Tân, TP.HCM
-- **Hotline**: 028 3636 1111
-- **Giờ mở cửa**: 9:00 – 23:00 hàng ngày
-- **Số phòng chiếu**: 6 phòng
-- **Bãi đậu xe**: Miễn phí 3 giờ đầu cho khách xem phim
+## 2. NovaTicket Aeon Mall Bình Tân
+- **Địa chỉ**: Tầng 3, TTTM Aeon Mall Bình Tân, 1 Đường số 17A, Q. Bình Tân, TP.HCM.
+- **Quy mô**: 7 phòng chiếu kỹ thuật số.
+- **Đặc điểm**: Rạp chuyên phục vụ gia đình với phòng chiếu Kids Cinema.
 
-## NovaTicket Vinhomes Grand Park
-- **Địa chỉ**: TTTM Sora Gardens II, Vinhomes Grand Park, TP. Thủ Đức
-- **Hotline**: 028 3636 2222
-- **Giờ mở cửa**: 9:00 – 23:30 hàng ngày
-- **Số phòng chiếu**: 5 phòng
+## 3. NovaTicket TP. Thủ Đức (Vinhomes Grand Park)
+- **Địa chỉ**: TTTM Vincom Mega Mall, Vinhomes Grand Park, TP. Thủ Đức.
+- **Quy mô**: 6 phòng chiếu tiêu chuẩn.
 
-## Loại phòng chiếu & giá vé
+---
 
-| Loại phòng | Giá thường (ngoài giờ cao điểm) | Giờ cao điểm (T6,T7,CN) |
-|------------|----------------------------------|--------------------------|
-| Standard 2D | 85.000đ | 105.000đ |
-| Standard 3D | 105.000đ | 125.000đ |
-| IMAX 2D | 145.000đ | 175.000đ |
-| IMAX 3D | 165.000đ | 195.000đ |
-| 4DX | 155.000đ | 185.000đ |
-| Dolby Atmos | 135.000đ | 160.000đ |
-| Ghế VIP (Sweetbox) | 200.000đ/2 người | 240.000đ/2 người |
+## Bảng giá vé niêm yết (Tham khảo)
 
-*Giờ cao điểm: từ 17h00 thứ Sáu đến hết Chủ nhật*
+| Loại ghế | Thứ 2 - Thứ 5 | Thứ 6 - CN & Lễ |
+| :--- | :--- | :--- |
+| Ghế đơn (Standard) | 85.000 VNĐ | 110.000 VNĐ |
+| Ghế đôi (Sweetbox) | 190.000 VNĐ | 230.000 VNĐ |
+| Ghế VIP (Premium) | 120.000 VNĐ | 150.000 VNĐ |
 
-## Combo bắp nước
-
-| Combo | Nội dung | Giá |
-|-------|----------|-----|
-| Combo 1 | 1 bắp vừa + 1 nước vừa | 65.000đ |
-| Combo 2 | 1 bắp lớn + 2 nước vừa | 95.000đ |
-| Combo 3 | 2 bắp lớn + 2 nước lớn | 145.000đ |
-| Combo Family | 4 bắp lớn + 4 nước lớn | 260.000đ |
+*Lưu ý: Hệ thống tự động áp dụng mức giá theo loại ghế khi bạn chọn ghế.*

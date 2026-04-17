@@ -7,7 +7,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.annotation.PostConstruct;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import java.util.Map;
@@ -19,7 +18,6 @@ public class SystemConfigServiceImpl implements SystemConfigService {
 
     private final SystemConfigRepository repository;
 
-    @PostConstruct
     @Transactional
     public void initDefaults() {
         // Initialize default configurations if they don't exist
