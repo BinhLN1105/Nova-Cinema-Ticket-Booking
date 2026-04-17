@@ -19,7 +19,7 @@ public interface VoucherService {
 
     void toggleActive(UUID id);
 
-    Voucher validateForOrder(String code, BigDecimal orderAmount);
+    Voucher validateForOrder(UUID userId, String code, BigDecimal orderAmount);
 
     void incrementUsedCount(UUID voucherId);
 

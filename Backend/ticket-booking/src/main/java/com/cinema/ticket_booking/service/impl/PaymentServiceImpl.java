@@ -34,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -152,6 +153,21 @@ public class PaymentServiceImpl implements PaymentService {
         return paymentMapper.toResponse(payment);
     }
 
+    // Ngưỡng tối thiểu của cổng thanh toán (10.000đ)
+    private static final BigDecimal MIN_GATEWAY_AMOUNT = BigDecimal.valueOf(10_000);
+    // Tỷ lệ quy đổi: 1 CP = 1.000đ
+    private static final BigDecimal CP_RATE = BigDecimal.valueOf(1_000);
+
+    /**
+     * Thuật toán tính CinePoint:
+     * 1. maxCpApplicable = floor(totalAmount / 1000) → số CP tối đa đơn này cho
+     * phép dùng
+     * 2. actualCp = min(maxCpApplicable, userBalance)
+     * 3. pointDiscount = actualCp * 1000
+     * 4. remaining = totalAmount - pointDiscount
+     * 5. Nếu 0 < remaining < 10.000 → giảm actualCp để remaining = 0 (full CP) hoặc
+     * >= 10.000
+     */
     @Override
     public PaymentResponse payWithWallet(UUID userId, UUID bookingId) {
         Booking booking = bookingService.findById(bookingId);
@@ -162,45 +178,138 @@ public class PaymentServiceImpl implements PaymentService {
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new BadRequestException("Đơn đặt vé không ở trạng thái chờ thanh toán");
         }
-        if (booking.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (booking.getExpiresAt() != null && booking.getExpiresAt().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Đơn đặt vé đã hết hạn, vui lòng đặt lại");
         }
 
-        long pointsNeeded = booking.getTotalAmount().divide(BigDecimal.valueOf(1000)).longValue();
+        BigDecimal totalAmount = booking.getTotalAmount();
         User user = booking.getUser();
+        long userBalance = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
 
-        long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
-        if (currentPoints < pointsNeeded) {
-            throw new BadRequestException("Số dư CinePoint không đủ để thanh toán. Vui lòng nạp thêm!");
+        // Kiểm tra xem có đủ điểm "Mua đứt" (Buyout) không
+        // Nếu dùng Ceil(totalAmount/1000) mà vẫn đủ số dư -> Cho phép thanh toán 100%
+        long cpNeededToCoverAll = totalAmount
+                .divide(CP_RATE, 0, RoundingMode.CEILING)
+                .longValue();
+
+        long actualCp;
+        BigDecimal pointDiscount;
+        BigDecimal remaining;
+
+        if (userBalance >= cpNeededToCoverAll && cpNeededToCoverAll > 0) {
+            // Trường hợp 1: Đủ điểm trả HẾT (Buyout)
+            actualCp = cpNeededToCoverAll;
+            pointDiscount = totalAmount; // Coi như giảm 100%
+            remaining = BigDecimal.ZERO;
+            log.info("Người dùng đủ điểm mua đứt: {} CP cho đơn hàng {}đ", actualCp, totalAmount);
+        } else {
+            // Trường hợp 2: Không đủ trả hết -> Thanh toán lai (Hybrid)
+            // Bước 1: Số CP tối đa đơn này cho phép (floor division)
+            long maxCpApplicable = totalAmount
+                    .divideToIntegralValue(CP_RATE)
+                    .longValue();
+
+            // Bước 2: Không dùng nhiều hơn số dư ví
+            actualCp = Math.min(maxCpApplicable, userBalance);
+
+            if (actualCp <= 0) {
+                throw new BadRequestException("Số dư CinePoint không đủ để thanh toán. Vui lòng nạp thêm!");
+            }
+
+            // Bước 3: Tính số tiền giảm từ CP
+            pointDiscount = BigDecimal.valueOf(actualCp).multiply(CP_RATE);
+
+            // Bước 4: Số tiền còn lại phải thanh toán qua cổng
+            remaining = totalAmount.subtract(pointDiscount);
+
+            // Bước 5: Kiểm tra ngưỡng tối thiểu cổng thanh toán (10.000đ)
+            // Nếu remaining > 0 nhưng < 10.000đ → phải điều chỉnh CP để không gây lỗi cổng
+            if (remaining.compareTo(BigDecimal.ZERO) > 0 && remaining.compareTo(MIN_GATEWAY_AMOUNT) < 0) {
+                // Giảm CP xuống sao cho remaining = totalAmount - newCp*1000 >= 10.000đ
+                long adjustedCp = totalAmount.subtract(MIN_GATEWAY_AMOUNT)
+                        .divideToIntegralValue(CP_RATE)
+                        .longValue();
+                adjustedCp = Math.max(0, Math.min(adjustedCp, userBalance));
+                actualCp = adjustedCp;
+                pointDiscount = BigDecimal.valueOf(actualCp).multiply(CP_RATE);
+                remaining = totalAmount.subtract(pointDiscount);
+                log.info("CinePoint điều chỉnh xuống {} CP để phần dư {}đ >= 10.000đ", actualCp, remaining);
+            }
         }
 
-        // Trừ CinePoint
-        user.setRewardPoints(currentPoints - pointsNeeded);
-        userRepository.save(user);
+        // Nếu full CP (remaining = 0) → hoàn tất toàn bộ bằng CP
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+            // Trừ CP, đánh dấu booking PAID ngay
+            user.setRewardPoints(userBalance - actualCp);
+            userRepository.save(user);
 
-        // Lưu lịch sử giao dịch Wallet
-        Transaction transaction = Transaction.builder()
-                .user(user)
-                .amount(booking.getTotalAmount())
-                .type(TransactionType.PAYMENT_CREDIT)
-                .status(TransactionStatus.SUCCESS)
-                .referenceId(booking.getBookingCode())
-                .description("Thanh toán vé bằng CinePoint")
-                .build();
-        transactionRepository.save(transaction);
+            Transaction transaction = Transaction.builder()
+                    .user(user)
+                    .amount(totalAmount)
+                    .type(TransactionType.PAYMENT_CREDIT)
+                    .status(TransactionStatus.SUCCESS)
+                    .referenceId(booking.getBookingCode())
+                    .description("Thanh toán toàn bộ bằng CinePoint (" + actualCp + " CP)")
+                    .build();
+            transactionRepository.save(transaction);
 
-        // Lưu lịch sử thanh toán hóa đơn
-        Payment payment = Payment.builder()
-                .booking(booking)
-                .amount(booking.getTotalAmount())
-                .method(PaymentMethod.WALLET)
-                .status(PaymentStatus.SUCCESS)
-                .paidAt(LocalDateTime.now())
-                .build();
-        paymentRepository.save(payment);
+            Payment payment = Payment.builder()
+                    .booking(booking)
+                    .amount(pointDiscount)
+                    .method(PaymentMethod.WALLET)
+                    .status(PaymentStatus.SUCCESS)
+                    .paidAt(LocalDateTime.now())
+                    .build();
+            paymentRepository.save(payment);
 
-        bookingService.confirmPaid(booking.getId());
-        return paymentMapper.toResponse(payment);
+            bookingService.confirmPaid(booking.getId());
+            log.info("Thanh toán full CinePoint: {} CP = {}đ, booking {}", actualCp, pointDiscount,
+                    booking.getBookingCode());
+            PaymentResponse response = paymentMapper.toResponse(payment);
+            response.setPointsUsed(actualCp);
+            response.setPointDiscount(pointDiscount);
+            response.setRemainingAmount(BigDecimal.ZERO);
+            return response;
+
+        } else {
+            // Thanh toán lai (CP + cổng thanh toán)
+            // Bước này: trừ CP ngay, trả về remaining để FE tiếp tục qua VNPay/MoMo
+            user.setRewardPoints(userBalance - actualCp);
+            userRepository.save(user);
+
+            Transaction transaction = Transaction.builder()
+                    .user(user)
+                    .amount(pointDiscount)
+                    .type(TransactionType.PAYMENT_CREDIT)
+                    .status(TransactionStatus.SUCCESS)
+                    .referenceId(booking.getBookingCode())
+                    .description("Dùng " + actualCp + " CP — còn lại " + remaining + "đ thanh toán qua cổng")
+                    .build();
+            transactionRepository.save(transaction);
+
+            // Cập nhật lại totalAmount của booking = phần còn lại cần thanh toán qua cổng
+            booking.setTotalAmount(remaining);
+            // Ghi nhận đã dùng CP một phần vào discountAmount
+            BigDecimal existingDiscount = booking.getDiscountAmount() != null ? booking.getDiscountAmount()
+                    : BigDecimal.ZERO;
+            booking.setDiscountAmount(existingDiscount.add(pointDiscount));
+
+            Payment payment = Payment.builder()
+                    .booking(booking)
+                    .amount(remaining)
+                    .method(PaymentMethod.WALLET)
+                    .status(PaymentStatus.PENDING)
+                    .build();
+            paymentRepository.save(payment);
+
+            PaymentResponse response = paymentMapper.toResponse(payment);
+            response.setPointsUsed(actualCp);
+            response.setPointDiscount(pointDiscount);
+            response.setRemainingAmount(remaining);
+            log.info("Thanh toán lai: {} CP = {}đ, còn lại {}đ, booking {}", actualCp, pointDiscount, remaining,
+                    booking.getBookingCode());
+            return response;
+        }
     }
 
     @Override

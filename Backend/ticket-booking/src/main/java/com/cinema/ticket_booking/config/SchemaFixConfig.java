@@ -87,7 +87,43 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 14. Đảm bảo bảng notification_campaigns tồn tại (Fix SQLGrammarException)
         ensureNotificationCampaignsTable();
 
+        // 15. Đảm bảo cột status trong user_vouchers (Fix SQLGrammarException)
+        ensureUserVoucherColumns();
+
+        // 16. Đảm bảo ràng buộc phương thức thanh toán cho phép WALLET
+        updatePaymentMethodConstraint();
+
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
+    }
+
+    private void updatePaymentMethodConstraint() {
+        try {
+            log.info("[SchemaFix] Đang cập nhật ràng buộc 'payments_method_check'...");
+            // PostgreSQL/Supabase: Xóa constraint cũ nếu tồn tại
+            jdbcTemplate.execute("ALTER TABLE payments DROP CONSTRAINT IF EXISTS payments_method_check");
+            log.info("[SchemaFix] Đã đảm bảo ràng buộc cho bảng 'payments' (đã xóa constraint cũ).");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Không thể cập nhật constraint payments: {}", e.getMessage());
+        }
+    }
+
+    private void ensureUserVoucherColumns() {
+        try {
+            log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'user_vouchers'...");
+            jdbcTemplate.execute("ALTER TABLE user_vouchers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'AVAILABLE'");
+            jdbcTemplate.execute("UPDATE user_vouchers SET status = 'AVAILABLE' WHERE status IS NULL");
+            jdbcTemplate.execute("ALTER TABLE user_vouchers ALTER COLUMN status SET NOT NULL");
+            
+            // Xóa cột is_used cũ nếu còn tồn tại để không bị lỗi NOT NULL constraint khi insert
+            try {
+                jdbcTemplate.execute("ALTER TABLE user_vouchers DROP COLUMN IF EXISTS is_used");
+                log.info("[SchemaFix] Đã dọn dẹp cột 'is_used' cũ trong 'user_vouchers'.");
+            } catch (Exception ignore) {}
+            
+            log.info("[SchemaFix] Đã đảm bảo cột 'status' tồn tại trong 'user_vouchers'.");
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi khi bảo trì bảng user_vouchers (status column): {}", e.getMessage());
+        }
     }
 
     private void ensureNotificationCampaignsTable() {

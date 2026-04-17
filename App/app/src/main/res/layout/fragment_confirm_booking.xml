@@ -179,71 +179,109 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- ── Voucher Input ─────────────────────────── -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="MÃ KHUYẾN MÃI"
-                android:textSize="12sp"
-                android:textColor="@color/on_surface_variant"
-                android:textStyle="bold"
-                android:layout_marginBottom="8dp"
-                android:layout_marginStart="8dp"/>
-
+            <!-- ── Voucher Station ─────────────────────────── -->
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
+                android:layout_height="wrap_content"
                 android:orientation="horizontal"
-                android:background="@drawable/bg_bottom_nav_rounded"
-                android:backgroundTint="#99262626"
                 android:gravity="center_vertical"
-                android:paddingHorizontal="8dp"
-                android:layout_marginBottom="4dp">
+                android:layout_marginBottom="8dp"
+                android:layout_marginStart="8dp">
 
                 <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="MÃ KHUYẾN MÃI"
+                    android:textSize="12sp"
+                    android:textColor="@color/on_surface_variant"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/btnSelectVoucherAction"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="🎟️"
-                    android:textSize="20sp"
-                    android:layout_marginStart="8dp"/>
-
-                <EditText
-                    android:id="@+id/etVoucher"
-                    android:layout_width="0dp"
-                    android:layout_height="match_parent"
-                    android:layout_weight="1"
-                    android:background="@null"
-                    android:hint="Nhập mã voucher..."
-                    android:textColorHint="@color/outline"
-                    android:textColor="@color/on_surface"
-                    android:inputType="textCapCharacters"
-                    android:textSize="14sp"
-                    android:layout_marginStart="12dp"/>
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btnApplyVoucher"
-                    android:layout_width="wrap_content"
-                    android:layout_height="40dp"
-                    android:text="ÁP DỤNG"
-                    android:layout_marginStart="8dp"
-                    app:backgroundTint="#33669dff"
-                    android:textColor="@color/secondary"
-                    app:cornerRadius="8dp"
+                    android:text="Chọn mã khác"
+                    android:textSize="12sp"
+                    android:textColor="@color/brand_primary"
                     android:textStyle="bold"
-                    android:textSize="10sp"/>
+                    android:paddingHorizontal="12dp"
+                    android:paddingVertical="4dp"
+                    android:background="@drawable/bg_bottom_nav_rounded"
+                    android:backgroundTint="#1A669dff" />
             </LinearLayout>
 
-            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="horizontal" android:layout_marginStart="8dp" android:layout_marginBottom="24dp" android:layout_marginTop="4dp">
-                <TextView android:id="@+id/tvVoucherInfo" android:layout_width="0dp"
-                    android:layout_height="wrap_content" android:layout_weight="1"
-                    android:textColor="@color/seat_available" android:visibility="gone"
-                    android:textSize="12sp" android:textStyle="bold"/>
-                <TextView android:id="@+id/btnClearVoucher" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:text="Xóa"
-                    android:textColor="@color/error" android:visibility="gone"
-                    android:textStyle="bold" android:paddingHorizontal="8dp" android:textSize="12sp"/>
-            </LinearLayout>
+            <!-- Voucher Box -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cvVoucherStation"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardBackgroundColor="@color/surface_container_highest"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp"
+                    android:gravity="center_vertical">
+                    
+                    <ImageView
+                        android:id="@+id/ivVoucherStationIcon"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_discount"
+                        app:tint="@color/brand_primary" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+
+                        <TextView
+                            android:id="@+id/tvVoucherStationTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Chưa chọn mã giảm giá"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="14sp"
+                            android:textStyle="bold"/>
+
+                        <TextView
+                            android:id="@+id/tvVoucherStationDesc"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Nhấn để chọn hoặc nhập mã..."
+                            android:textColor="@color/outline"
+                            android:textSize="10sp"
+                            android:layout_marginTop="2dp"/>
+                    </LinearLayout>
+
+                    <ImageButton
+                        android:id="@+id/btnClearVoucher"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:src="@drawable/ic_close"
+                        app:tint="@color/error"
+                        android:background="?selectableItemBackgroundBorderless"
+                        android:visibility="gone" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvVoucherInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#33d73357"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="8dp"
+                    android:textColor="@color/error"
+                    android:textSize="10sp"
+                    android:visibility="gone" />
+            </androidx.cardview.widget.CardView>
 
             <!-- ── Payment Methods ───────────────────────── -->
             <TextView
@@ -255,6 +293,69 @@
                 android:textStyle="bold"
                 android:layout_marginBottom="12dp"
                 android:layout_marginStart="8dp"/>
+
+            <!-- CinePoint (Wallet) Option -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/cvWallet"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                app:cardBackgroundColor="@color/surface_container_low"
+                app:cardCornerRadius="12dp"
+                app:cardElevation="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:paddingHorizontal="16dp">
+
+                    <androidx.cardview.widget.CardView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        app:cardCornerRadius="8dp"
+                        app:cardBackgroundColor="@color/primary">
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="match_parent"
+                            android:text="CP"
+                            android:gravity="center"
+                            android:textColor="@android:color/white"
+                            android:textSize="14sp"
+                            android:textStyle="bold"/>
+                    </androidx.cardview.widget.CardView>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="CinePoint (Ví)"
+                            android:textColor="@color/on_surface"
+                            android:textSize="14sp"
+                            android:textStyle="bold"/>
+                        <TextView
+                            android:id="@+id/tvWalletBalance"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Dùng điểm CinePoint để thanh toán"
+                            android:textColor="@color/on_surface_variant"
+                            android:textSize="10sp"/>
+                    </LinearLayout>
+
+                    <RadioButton
+                        android:id="@+id/rbWallet"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="false"
+                        android:buttonTint="@color/primary"/>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
 
             <!-- VNPay Option -->
             <androidx.cardview.widget.CardView

@@ -24,6 +24,7 @@ public class ConfirmBookingFragment extends Fragment {
 
     private FragmentConfirmBookingBinding binding;
     private ConfirmBookingViewModel viewModel;
+    private com.cinema.ticket_booking.ui.MainViewModel mainViewModel;
     private CountDownTimer countDownTimer;
 
     @Override
@@ -36,6 +37,7 @@ public class ConfirmBookingFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ConfirmBookingViewModel.class);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(com.cinema.ticket_booking.ui.MainViewModel.class);
 
         // Hiển thị thông tin đã chọn
         binding.tvMovieTitle.setText(SelectShowtimeViewModel.pendingMovieTitle);
@@ -71,46 +73,75 @@ public class ConfirmBookingFragment extends Fragment {
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
-        // Voucher
-        binding.btnApplyVoucher.setOnClickListener(v -> {
-            String code = binding.etVoucher.getText().toString().trim();
-            if (!code.isEmpty())
-                viewModel.validateVoucher(code);
-        });
-        binding.btnClearVoucher.setOnClickListener(v -> {
-            final String lastCode = binding.etVoucher.getText().toString().trim();
-            viewModel.clearVoucher();
-            binding.etVoucher.setText("");
-            binding.tvVoucherInfo.setVisibility(View.GONE);
-            binding.btnClearVoucher.setVisibility(View.GONE);
+        // Voucher Station
+        View.OnClickListener showVoucherSheet = v -> {
+            double cartTotal = (viewModel.getQuoteResult().getValue() != null && viewModel.getQuoteResult().getValue().data != null && viewModel.getQuoteResult().getValue().data.getSubtotal() != null)
+                    ? viewModel.getQuoteResult().getValue().data.getSubtotal() : 0.0;
+                    
+            VoucherSelectionBottomSheet sheet = VoucherSelectionBottomSheet.newInstance(
+                    viewModel.getMyVouchers(), cartTotal);
+                    
+            sheet.setListener(new VoucherSelectionBottomSheet.OnVoucherSelectedListener() {
+                @Override
+                public void onVoucherSelected(VoucherSummary voucher) {
+                    viewModel.applyVoucherDirectly(voucher);
+                }
 
-            SnackbarHelper.showWithAction(binding.getRoot(), "Đã gỡ mã giảm giá", "HOÀN TÁC", v2 -> {
-                binding.etVoucher.setText(lastCode);
-                viewModel.validateVoucher(lastCode);
+                @Override
+                public void onManualVoucherApplied(String code) {
+                    viewModel.validateVoucher(code);
+                }
             });
+            sheet.show(getChildFragmentManager(), "VoucherSheet");
+        };
+
+        binding.cvVoucherStation.setOnClickListener(showVoucherSheet);
+        binding.btnSelectVoucherAction.setOnClickListener(showVoucherSheet);
+
+        binding.btnClearVoucher.setOnClickListener(v -> {
+            viewModel.clearVoucher();
+            SnackbarHelper.showSuccess(binding.getRoot(), "Đã gỡ mã ưu đãi");
         });
 
         // Payment methods select logic
+        binding.cvWallet.setOnClickListener(v -> {
+            binding.rbWallet.setChecked(true);
+            binding.rbVnpay.setChecked(false);
+            binding.rbMomo.setChecked(false);
+        });
         binding.cvVnpay.setOnClickListener(v -> {
             binding.rbVnpay.setChecked(true);
+            binding.rbWallet.setChecked(false);
             binding.rbMomo.setChecked(false);
         });
         binding.cvMomo.setOnClickListener(v -> {
             binding.rbMomo.setChecked(true);
+            binding.rbWallet.setChecked(false);
             binding.rbVnpay.setChecked(false);
+        });
+        binding.rbWallet.setOnClickListener(v -> {
+            binding.rbWallet.setChecked(true);
+            binding.rbVnpay.setChecked(false);
+            binding.rbMomo.setChecked(false);
         });
         binding.rbVnpay.setOnClickListener(v -> {
             binding.rbVnpay.setChecked(true);
+            binding.rbWallet.setChecked(false);
             binding.rbMomo.setChecked(false);
         });
         binding.rbMomo.setOnClickListener(v -> {
             binding.rbMomo.setChecked(true);
+            binding.rbWallet.setChecked(false);
             binding.rbVnpay.setChecked(false);
         });
 
         // Xác nhận đặt vé
         binding.btnConfirmBooking.setOnClickListener(v -> {
-            viewModel.confirmBooking();
+            if (binding.rbWallet.isChecked()) {
+                viewModel.confirmBookingAndPayWithWallet();
+            } else {
+                viewModel.confirmBooking();
+            }
         });
 
         // ── Seed dữ liệu ban đầu từ Parcelable (Không gọi API lại nữa) ─────
@@ -156,6 +187,15 @@ public class ConfirmBookingFragment extends Fragment {
             }
         });
 
+        viewModel.getUserProfile().observe(getViewLifecycleOwner(), resource -> {
+            if (resource != null && resource.isSuccess() && resource.data != null) {
+                binding.tvWalletBalance.setText(String.format(Locale.getDefault(), 
+                        "Số dư hiện tại: %,d CP (≈ %,.0f ₫)", 
+                        resource.data.getCinePoints(), 
+                        resource.data.getCinePoints() * 1000.0));
+            }
+        });
+
         viewModel.getQuoteResult().observe(getViewLifecycleOwner(), resource -> {
             if (resource != null && resource.isSuccess() && resource.data != null) {
                 updatePriceDetails(resource.data);
@@ -173,8 +213,53 @@ public class ConfirmBookingFragment extends Fragment {
                     if (resource.data != null) {
                         Bundle args = new Bundle();
                         args.putString("bookingId", resource.data.getId());
-                        Navigation.findNavController(view)
-                                .navigate(R.id.action_confirmBooking_to_payment, args);
+                        
+                        if ("PAID".equals(resource.data.getStatus())) {
+                            mainViewModel.refreshUserProfile();
+                            Navigation.findNavController(view)
+                                    .navigate(R.id.action_confirmBooking_to_bookingDetail, args);
+                        } else {
+                            // Default flow: go to Payment (WebView)
+                            Navigation.findNavController(view)
+                                    .navigate(R.id.action_confirmBooking_to_payment, args);
+                        }
+                    }
+                }
+                case ERROR -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.btnConfirmBooking.setEnabled(true);
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
+                }
+            }
+        });
+
+        // Observer cho kết quả thanh toán ví (Hybrid Flow)
+        viewModel.getWalletPaymentResult().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null) return;
+            switch (resource.status) {
+                case LOADING -> {
+                    binding.progressBar.setVisibility(View.VISIBLE);
+                    binding.btnConfirmBooking.setEnabled(false);
+                }
+                case SUCCESS -> {
+                    binding.progressBar.setVisibility(View.GONE);
+                    if (resource.data != null) {
+                        if (resource.data.getRemainingAmount() != null && resource.data.getRemainingAmount() > 0) {
+                            // Hybrid Flow: Tiếp tục thanh toán phần còn lại qua VNPay
+                            Bundle args = new Bundle();
+                            args.putString("bookingId", resource.data.getBookingId());
+                            Navigation.findNavController(view)
+                                    .navigate(R.id.action_confirmBooking_to_payment, args);
+                            Toast.makeText(getContext(), "Vui lòng thanh toán số tiền còn lại qua VNPay", Toast.LENGTH_LONG).show();
+                        } else {
+                            // Full CinePoint Payment
+                            mainViewModel.refreshUserProfile();
+                            Bundle args = new Bundle();
+                            args.putString("bookingId", resource.data.getBookingId());
+                            Navigation.findNavController(view)
+                                    .navigate(R.id.action_confirmBooking_to_bookingDetail, args);
+                            Toast.makeText(getContext(), "Thanh toán bằng CinePoint thành công!", Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
                 case ERROR -> {
@@ -190,11 +275,12 @@ public class ConfirmBookingFragment extends Fragment {
         Locale locale = Locale.getDefault();
 
         // 1. Tiền vé + Combo (Gốc)
-        binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫", quote.getTotalOriginalAmount()));
+        binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫", 
+                quote.getTotalOriginalAmount() != null ? quote.getTotalOriginalAmount() : 0.0));
 
         // 2. Khuyến mãi hệ thống
-        double promo = quote.getPromotionDiscountAmount();
-        double voucherDiscount = quote.getDiscountAmount();
+        double promo = quote.getPromotionDiscountAmount() != null ? quote.getPromotionDiscountAmount() : 0.0;
+        double voucherDiscount = quote.getDiscountAmount() != null ? quote.getDiscountAmount() : 0.0;
 
         // Hiển thị KM hệ thống
         if (promo > 0) {
@@ -213,18 +299,37 @@ public class ConfirmBookingFragment extends Fragment {
             binding.tvDiscount.setVisibility(View.GONE);
         }
 
+        // Cập nhật Voucher Station UI
+        VoucherSummary applied = viewModel.getAppliedVoucher();
+        if (applied != null) {
+            binding.tvVoucherStationTitle.setText("✓ Mã Tốt Nhất: " + applied.getCode());
+            binding.tvVoucherStationTitle.setTextColor(0xFF4CAF50); // Green
+            binding.tvVoucherStationDesc.setText(applied.getDescription());
+            binding.btnClearVoucher.setVisibility(View.VISIBLE);
+        } else {
+            binding.tvVoucherStationTitle.setText("Chưa chọn mã giảm giá");
+            binding.tvVoucherStationTitle.setTextColor(getResources().getColor(R.color.on_surface_variant));
+            binding.tvVoucherStationDesc.setText("Nhấn để chọn hoặc nhập mã...");
+            binding.btnClearVoucher.setVisibility(View.GONE);
+        }
+
         // Hiển thị cảnh báo voucher (nếu có)
         if (quote.getWarningMessage() != null) {
             binding.tvVoucherInfo.setText("⚠️ " + quote.getWarningMessage());
-            binding.tvVoucherInfo.setTextColor(
-                    getResources().getColor(R.id.btnBack != 0 ? R.color.primary : android.R.color.holo_red_dark));
             binding.tvVoucherInfo.setVisibility(View.VISIBLE);
-        } else if (viewModel.getVoucher().getValue() != null && viewModel.getVoucher().getValue().isSuccess()) {
-            binding.tvVoucherInfo.setTextColor(getResources().getColor(android.R.color.black));
+        } else {
+            binding.tvVoucherInfo.setVisibility(View.GONE);
         }
 
         // 3. Tổng cộng
-        binding.tvTotal.setText(String.format(locale, "%,.0f ₫", quote.getTotalAmount()));
+        binding.tvTotal.setText(String.format(locale, "%,.0f ₫", 
+                quote.getTotalAmount() != null ? quote.getTotalAmount() : 0.0));
+
+        // 4. CinePoint (Hybrid Flow Status)
+        if (quote.getPointDiscount() != null && quote.getPointDiscount() > 0) {
+            binding.tvWalletBalance.setText(String.format(locale, "Sử dụng %,d CP: -%,.0f ₫ (Còn lại: %,.0f ₫)", 
+                    quote.getPointsUsed(), quote.getPointDiscount(), quote.getRemainingAmount()));
+        }
     }
 
     private void startCountdown(long duration) {

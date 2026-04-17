@@ -252,6 +252,29 @@ public class BookingRepository {
         return result;
     }
 
+    public LiveData<Resource<PaymentResponse>> payWithWallet(String bookingId) {
+        MutableLiveData<Resource<PaymentResponse>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.payWithWallet(bookingId).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<PaymentResponse>> call,
+                    @NonNull Response<ApiResponse<PaymentResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    result.setValue(Resource.success(response.body().getData()));
+                    getBookingDetail(bookingId);
+                } else {
+                    result.setValue(Resource.error(getErrorMessage(response, "Thanh toán ví thất bại")));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<PaymentResponse>> call, @NonNull Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
     private void cacheBookingAsync(BookingResponse res) {
         Executors.newSingleThreadExecutor().execute(() -> {
             BookingEntity e = new BookingEntity();

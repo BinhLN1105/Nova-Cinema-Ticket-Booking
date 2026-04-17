@@ -2,15 +2,20 @@ package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.VoucherRequest;
 import com.cinema.ticket_booking.dto.response.VoucherResponse;
-import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
+import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.enums.UserVoucherStatus;
 import com.cinema.ticket_booking.model.Voucher;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ConflictException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.VoucherMapper;
 import com.cinema.ticket_booking.repository.VoucherRepository;
+import com.cinema.ticket_booking.repository.BookingRepository;
+import com.cinema.ticket_booking.repository.UserVoucherRepository;
+import com.cinema.ticket_booking.dto.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.service.VoucherService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -26,10 +31,13 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class VoucherServiceImpl implements VoucherService {
 
     private final VoucherRepository voucherRepository;
+    private final BookingRepository bookingRepository;
     private final VoucherMapper voucherMapper;
+    private final UserVoucherRepository userVoucherRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -88,10 +96,37 @@ public class VoucherServiceImpl implements VoucherService {
      */
     @Override
     @Transactional(readOnly = true)
-    public Voucher validateForOrder(String code, BigDecimal orderAmount) {
-        return voucherRepository.findValidVoucher(code, LocalDateTime.now(), orderAmount)
+    public Voucher validateForOrder(UUID userId, String code, BigDecimal orderAmount) {
+        Voucher voucher = voucherRepository.findValidVoucher(code, LocalDateTime.now(), orderAmount)
                 .orElseThrow(() -> new BadRequestException(
                         "Mã giảm giá không hợp lệ, đã hết hạn, hết lượt dùng hoặc đơn hàng chưa đủ điều kiện"));
+
+        // Kiểm tra xem user đã dùng hoặc đang dùng mã này ở đơn hàng khác chưa
+        userVoucherRepository.findByUserIdAndVoucherId(userId, voucher.getId())
+                .ifPresent(uv -> {
+                    if (uv.getStatus() == UserVoucherStatus.USED) {
+                        throw new BadRequestException("Bạn đã sử dụng mã giảm giá này rồi");
+                    }
+                    if (uv.getStatus() == UserVoucherStatus.PENDING) {
+                        // ── Senior Logic: Lazy Release ──────────────────────
+                        // Kiểm tra xem có Booking PENDING nào THỰC SỰ còn hạn (expiresAt > now) đang
+                        // giữ mã này không
+                        boolean hasActiveBooking = bookingRepository
+                                .existsByUserIdAndVoucherIdAndStatusAndExpiresAtAfter(
+                                        userId, voucher.getId(), BookingStatus.PENDING, LocalDateTime.now());
+
+                        if (hasActiveBooking) {
+                            throw new BadRequestException(
+                                    "Mã giảm giá này đang được áp dụng trong một đơn hàng đang chờ thanh toán");
+                        } else {
+                            log.info(
+                                    "[LazyRelease] Voucher '{}' của user '{}' đã hết hạn giữ chỗ, cho phép đặt lại đơn mới.",
+                                    code, userId);
+                        }
+                    }
+                });
+
+        return voucher;
     }
 
     /**

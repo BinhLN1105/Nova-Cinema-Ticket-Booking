@@ -183,11 +183,9 @@ public class ProfileFragment extends Fragment {
 
             binding.btnNavReviews.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
             binding.btnNavHistory.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
-            binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment)); // Watchlist could map to
-                                                                                               // Search/Discover or
-                                                                                               // specific Screen
+            binding.btnNavWatchlist.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
             binding.btnNavGiftCards.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
+                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
 
             binding.btnRedeem.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));

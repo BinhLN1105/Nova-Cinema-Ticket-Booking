@@ -21,6 +21,8 @@ import com.cinema.ticket_booking.mapper.BookingMapper;
 import com.cinema.ticket_booking.repository.*;
 import com.cinema.ticket_booking.service.SeatLockService;
 import com.cinema.ticket_booking.service.SystemConfigService;
+import com.cinema.ticket_booking.enums.UserVoucherStatus;
+import com.cinema.ticket_booking.repository.UserVoucherRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -173,7 +175,7 @@ public class BookingServiceImpl implements BookingService {
 
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             try {
-                voucher = voucherService.validateForOrder(request.getVoucherCode(), amountAfterPromo);
+                voucher = voucherService.validateForOrder(userId, request.getVoucherCode(), amountAfterPromo);
                 discountAmount = voucher.calculateDiscount(amountAfterPromo);
             } catch (Exception e) {
                 warningMessage = "Mã giảm giá không hợp lệ hoặc đã hết hạn: " + e.getMessage();
@@ -305,10 +307,11 @@ public class BookingServiceImpl implements BookingService {
 
         // ── 6. Tạo Booking ───────────────────────────────────────────────
         Voucher voucher = quote.getVoucherCode() != null
-                ? voucherService.validateForOrder(quote.getVoucherCode(), quote.getSubtotal())
+                ? voucherService.validateForOrder(userId, quote.getVoucherCode(), quote.getSubtotal())
                 : null;
 
-        BookingStatus initialStatus = (method == PaymentMethod.CASH) ? BookingStatus.PAID : BookingStatus.PENDING;
+        boolean isZeroAmount = quote.getTotalAmount().compareTo(BigDecimal.ZERO) == 0;
+        BookingStatus initialStatus = (method == PaymentMethod.CASH || isZeroAmount) ? BookingStatus.PAID : BookingStatus.PENDING;
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -330,8 +333,25 @@ public class BookingServiceImpl implements BookingService {
 
         booking = bookingRepository.save(booking);
 
-        // Nếu là CASH, tạo QR sau khi đã có ID và cập nhật lại
-        if (method == PaymentMethod.CASH) {
+        // ── Auto-claim và chuyển UserVoucher sang PENDING ─────────────────
+        if (voucher != null) {
+            UserVoucher userVoucher = userVoucherRepository
+                    .findByUserIdAndVoucherId(user.getId(), voucher.getId())
+                    .orElseGet(() -> UserVoucher.builder()
+                            .user(user)
+                            .voucher(voucher)
+                            .status(UserVoucherStatus.AVAILABLE)
+                            .build());
+
+            if (userVoucher.getStatus() == UserVoucherStatus.USED) {
+                throw new BadRequestException("Bạn đã sử dụng mã giảm giá này trước đó");
+            }
+            userVoucher.setStatus(UserVoucherStatus.PENDING);
+            userVoucherRepository.save(userVoucher);
+        }
+
+        // Nếu là CASH hoặc giá = 0, tạo QR sau khi đã có ID và cập nhật lại
+        if (initialStatus == BookingStatus.PAID) {
             booking.setQrCode(qrCodeService.generateQrContent(booking));
             booking.setExpAdded(true); // Đồng bộ điểm luôn
             booking = bookingRepository.save(booking);
@@ -582,12 +602,12 @@ public class BookingServiceImpl implements BookingService {
 
         bookingRepository.save(booking);
 
-        // Tăng usedCount voucher và đánh dấu used trong ví
+        // Tăng usedCount voucher và chuyển trạng thái UserVoucher: PENDING → USED
         if (booking.getVoucher() != null) {
             voucherService.incrementUsedCount(booking.getVoucher().getId());
             userVoucherRepository.findByUserIdAndVoucherId(booking.getUser().getId(), booking.getVoucher().getId())
                     .ifPresent(uv -> {
-                        uv.setIsUsed(true);
+                        uv.setStatus(UserVoucherStatus.USED);
                         userVoucherRepository.save(uv);
                     });
         }
@@ -644,6 +664,15 @@ public class BookingServiceImpl implements BookingService {
 
         // 4. Nhả ghế
         releaseSeats(bookingId);
+
+        // 4b. Rollback UserVoucher: USED → AVAILABLE (hoàn lại quyền dùng mã khi hủy vé)
+        if (booking.getVoucher() != null) {
+            userVoucherRepository.findByUserIdAndVoucherId(booking.getUser().getId(), booking.getVoucher().getId())
+                    .ifPresent(uv -> {
+                        uv.setStatus(UserVoucherStatus.AVAILABLE);
+                        userVoucherRepository.save(uv);
+                    });
+        }
 
         // 5. Thu hồi EXP
         User bookingOwner = booking.getUser();

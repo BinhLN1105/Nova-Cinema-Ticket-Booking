@@ -32,9 +32,17 @@ export default function PaymentPage() {
         const payment = await bookingApi.createPayment(id)
         window.location.href = payment.paymentUrl
       } else if (selectedMethod === 'wallet') {
-        await bookingApi.payWithWallet(id)
-        toast.success('Thanh toán bằng CinePoint thành công!')
-        navigate('/booking/result?status=success')
+        const result = await bookingApi.payWithWallet(id)
+        // Hybrid: CP trừ xong nhưng còn dư cần qua cổng
+        if (result.remainingAmount && result.remainingAmount > 0) {
+          toast.success(`Đã trừ ${result.pointsUsed?.toLocaleString('vi-VN')} CP. Chuyển sang thanh toán ${formatCurrency(result.remainingAmount)} còn lại...`)
+          // Tạo URL thanh toán VNPay cho phần còn lại
+          const vnpayPayment = await bookingApi.createPayment(id)
+          window.location.href = vnpayPayment.paymentUrl
+        } else {
+          toast.success('Thanh toán bằng CinePoint thành công!')
+          navigate('/booking/result?status=success')
+        }
       } else {
         toast('Tính năng này đang được phát triển', { icon: '🚧' })
       }
@@ -47,12 +55,42 @@ export default function PaymentPage() {
   }
 
   const walletBalance = user?.rewardPoints ?? 0
-  const pointsNeeded = booking ? Math.floor(booking.totalAmount / 1000) : 0
-  const hasEnoughBalance = walletBalance >= pointsNeeded
+  const totalAmount = booking?.totalAmount ?? 0
+
+  // Thuật toán tính CP đồng bộ với Backend:
+  const cpNeededToCoverAll = Math.ceil(totalAmount / 1000)
+  const MIN_GATEWAY = 10_000
+
+  let displayCp = 0
+  let displayRemaining = totalAmount
+
+  if (walletBalance >= cpNeededToCoverAll && cpNeededToCoverAll > 0) {
+    // Trường hợp 1: Đủ điểm "Mua đứt" (Buyout)
+    displayCp = cpNeededToCoverAll
+    displayRemaining = 0
+  } else {
+    // Trường hợp 2: Thanh toán lai (Hybrid)
+    const maxCpApplicable = Math.floor(totalAmount / 1000)
+    const actualCp = Math.min(maxCpApplicable, walletBalance)
+    const remaining = totalAmount - (actualCp * 1000)
+
+    displayCp = actualCp
+    displayRemaining = remaining
+
+    if (remaining > 0 && remaining < MIN_GATEWAY) {
+      // Điều chỉnh: giảm CP để remaining >= 10.000đ (ngưỡng tối thiểu cổng)
+      displayCp = Math.max(0, Math.floor((totalAmount - MIN_GATEWAY) / 1000))
+      displayRemaining = totalAmount - displayCp * 1000
+    }
+  }
+
+  const hasEnoughBalance = walletBalance > 0 && displayCp > 0
 
   const paymentMethods = [
     { id: 'wallet', name: 'Ví CinePoint', icon: Coins, color: 'text-yellow-400',
-      desc: `Số dư: ${walletBalance?.toLocaleString('vi-VN') || 0} CP${!hasEnoughBalance ? ' (Không đủ)' : ''}`,
+      desc: hasEnoughBalance
+        ? `Dùng ${displayCp.toLocaleString('vi-VN')} CP = giảm ${formatCurrency(displayCp * 1000)}${displayRemaining > 0 ? ` · còn ${formatCurrency(displayRemaining)} qua cổng` : ' '}`
+        : `Số dư: ${walletBalance.toLocaleString('vi-VN')} CP (Không đủ)`,
       disabled: !hasEnoughBalance },
     { id: 'vnpay', name: 'VNPay', icon: CreditCard, color: 'text-blue-400', desc: 'Thanh toán qua ví VNPay hoặc quét mã QR' },
     { id: 'momo', name: 'MoMo', icon: Wallet, color: 'text-pink-500', desc: 'Thanh toán bằng ví điện tử MoMo' },
@@ -112,11 +150,13 @@ export default function PaymentPage() {
           className="w-full flex items-center justify-center gap-3 p-5 rounded-2xl
           bg-brand-600 hover:bg-brand-500 border border-brand-500 transition-all
           text-white font-semibold text-base shadow-glow-red disabled:opacity-60 disabled:cursor-not-allowed">
-          {isPaying ? (
+        {isPaying ? (
             <><Loader2 className="w-5 h-5 animate-spin" /> Đang xử lý...</>
-          ) : (
-            `Tiến hành thanh toán${selectedMethod === 'wallet' ? ` (${pointsNeeded} điểm)` : ''}`
-          )}
+          ) : selectedMethod === 'wallet' ? (
+            displayRemaining > 0
+              ? `Trừ ${displayCp.toLocaleString('vi-VN')} CP + ${formatCurrency(displayRemaining)} qua cổng`
+              : `Thanh toán ${displayCp.toLocaleString('vi-VN')} CP (miễn phí)`
+          ) : 'Tiến hành thanh toán'}
         </button>
 
         <div className="flex items-center justify-center gap-2 mt-6 text-cinema-400 text-xs">

@@ -74,6 +74,7 @@
     <color name="on_secondary">#000000</color>
     <color name="splash_bg">#0F172A</color>
     <color name="nova_red">#E11D48</color>
+    <color name="brand_primary">#E11D48</color>
     <color name="splash_text_primary">#FFFFFF</color>
     <color name="splash_text_secondary">#94A3B8</color>
 </resources>

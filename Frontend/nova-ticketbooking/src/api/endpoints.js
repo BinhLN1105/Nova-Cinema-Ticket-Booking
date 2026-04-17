@@ -161,6 +161,9 @@ export const userApi = {
   },
 
   uploadAvatarUrl: (url) => api.post("/users/me/avatar-url", { url }),
+  updateFcmToken: (token) => api.patch("/users/me/fcm-token?token=" + token),
+  getMyVouchers: () => api.get("/users/me/vouchers"),
+  claimVoucher: (code) => api.post("/users/me/vouchers/claim", { code }),
 };
 
 // ── Admin Check-In (QR image upload) ─────────

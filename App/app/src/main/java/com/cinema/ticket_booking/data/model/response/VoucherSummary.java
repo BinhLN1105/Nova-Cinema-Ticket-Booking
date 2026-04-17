@@ -15,8 +15,10 @@ public class VoucherSummary {
     private double maxDiscount;
     @SerializedName("minOrder")
     private double minOrder;
-    @SerializedName("validTo")
-    private String validTo;
+    @SerializedName("endDate")
+    private String endDate;
+    @SerializedName("status")
+    private String status;
 
     public String getCode() {
         return code;
@@ -42,7 +44,11 @@ public class VoucherSummary {
         return maxDiscount;
     }
 
-    public String getValidTo() {
-        return validTo;
+    public String getEndDate() {
+        return endDate;
+    }
+
+    public String getStatus() {
+        return status;
     }
 }

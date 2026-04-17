@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.data.repository;
 
 import androidx.lifecycle.*;
+import com.cinema.ticket_booking.data.model.request.NotificationSettingsRequest;
 import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.network.ApiService;
 import com.cinema.ticket_booking.util.Resource;
@@ -19,7 +20,7 @@ public class UserRepository {
         this.api = api;
     }
 
-    public LiveData<Resource<UserResponse>> getProfile() {
+    public LiveData<Resource<UserResponse>> getMyProfile() {
         MutableLiveData<Resource<UserResponse>> r = new MutableLiveData<>();
         r.setValue(Resource.loading());
         api.getMyProfile().enqueue(new Callback<>() {
@@ -39,12 +40,16 @@ public class UserRepository {
         return r;
     }
 
+    // Alias for backward compatibility
+    public LiveData<Resource<UserResponse>> getProfile() {
+        return getMyProfile();
+    }
+
     public LiveData<Resource<UserResponse>> updateNotificationSettings(Boolean marketing, Boolean transaction) {
         MutableLiveData<Resource<UserResponse>> r = new MutableLiveData<>();
         r.setValue(Resource.loading());
-        com.cinema.ticket_booking.data.model.request.NotificationSettingsRequest req = 
-            new com.cinema.ticket_booking.data.model.request.NotificationSettingsRequest(marketing, transaction);
-            
+        NotificationSettingsRequest req = new NotificationSettingsRequest(marketing, transaction);
+
         api.updateNotificationSettings(req).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<UserResponse>> c, Response<ApiResponse<UserResponse>> res) {
@@ -62,4 +67,3 @@ public class UserRepository {
         return r;
     }
 }
-

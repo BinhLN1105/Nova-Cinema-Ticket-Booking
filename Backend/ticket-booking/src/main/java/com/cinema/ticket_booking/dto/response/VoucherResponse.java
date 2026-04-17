@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.dto.response;
 
 import com.cinema.ticket_booking.enums.DiscountType;
 import com.cinema.ticket_booking.enums.VoucherApplicableTo;
+import com.cinema.ticket_booking.enums.UserVoucherStatus;
 import lombok.Builder;
 import lombok.Data;
 import lombok.AllArgsConstructor;
@@ -32,6 +33,7 @@ public class VoucherResponse implements Serializable {
     private LocalDateTime endDate;
     private VoucherApplicableTo applicableTo;
     private Boolean isActive;
+    private UserVoucherStatus status; // Add status field
 
     @Data
     @Builder
@@ -46,5 +48,6 @@ public class VoucherResponse implements Serializable {
         private BigDecimal maxDiscount;
         private BigDecimal minOrder;
         private LocalDateTime endDate;
+        private UserVoucherStatus status; // Add status field
     }
 }

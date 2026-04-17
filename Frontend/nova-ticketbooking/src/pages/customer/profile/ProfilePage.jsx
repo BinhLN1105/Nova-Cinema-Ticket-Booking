@@ -26,7 +26,8 @@ const TIER_THRESHOLDS = {
 const TABS = [
   { id: 'profile',       label: 'Thông tin',    icon: User },
   { id: 'tickets',       label: 'Vé của tôi',   icon: Ticket },
-  { id: 'giftcards',     label: 'Thẻ quà tặng', icon: Gift },
+  { id: 'vouchers',      label: 'Voucher',     icon: Gift },
+  { id: 'giftcards',     label: 'Thẻ quà tặng', icon: CreditCard },
   { id: 'notifications', label: 'Thông báo',    icon: Bell },
   { id: 'security',      label: 'Bảo mật',      icon: Shield },
   { id: 'appearance',    label: 'Giao diện',    icon: Palette },
@@ -84,6 +85,26 @@ export default function ProfilePage() {
     queryKey: ['my-notifications'],
     queryFn: () => notificationApi.getAll(0),
     enabled: activeTab === 'notifications',
+  })
+
+  // Vouchers
+  const { data: vouchersData, isLoading: vouchersLoading, refetch: refetchVouchers } = useQuery({
+    queryKey: ['my-vouchers'],
+    queryFn: () => userApi.getMyVouchers(),
+    enabled: activeTab === 'vouchers',
+  })
+
+  const [voucherCode, setVoucherCode] = useState('')
+  const claimMutation = useMutation({
+    mutationFn: (code) => userApi.claimVoucher(code),
+    onSuccess: () => {
+      toast.success('Lưu voucher thành công!')
+      setVoucherCode('')
+      refetchVouchers()
+    },
+    onError: (err) => {
+      toast.error(err?.response?.data?.message || 'Không thể lưu voucher này')
+    }
   })
 
   // Handle Push Toggle
@@ -322,6 +343,7 @@ export default function ProfilePage() {
                       isLoading={isUploadingAvatar}
                       aspectRatio="1:1"
                       helperText="Ảnh vuông (1:1) là tốt nhất."
+                      darkMode={true}
                     />
                   </div>
                 </div>
@@ -513,6 +535,115 @@ export default function ProfilePage() {
           {/* ── Security ────────────────── */}
           {activeTab === 'security' && (
             <SecurityTab user={user} />
+          )}
+
+          {/* ── Vouchers ────────────────── */}
+          {activeTab === 'vouchers' && (
+            <div className="space-y-6">
+              {/* Claim Input */}
+              <div className="card-cinema p-6 border-brand-500/20 bg-brand-500/5">
+                <h3 className="text-white font-bold mb-4 flex items-center gap-2">
+                  <Gift className="w-5 h-5 text-brand-400" />
+                  Nhập mã ưu đãi
+                </h3>
+                <div className="flex gap-3">
+                  <input 
+                    value={voucherCode}
+                    onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                    placeholder="VD: SUMMER2024"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-cinema-800 border border-white/10
+                      text-white placeholder-cinema-500 focus:border-brand-500/50 focus:outline-none transition-all font-mono tracking-wider"
+                  />
+                  <button 
+                    onClick={() => {
+                      if (!voucherCode.trim()) return toast.error('Vui lòng nhập mã')
+                      claimMutation.mutate(voucherCode)
+                    }}
+                    disabled={claimMutation.isPending}
+                    className="px-6 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold rounded-xl transition-all disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {claimMutation.isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                    Lưu mã
+                  </button>
+                </div>
+                <p className="text-[11px] text-cinema-400 mt-3 italic">
+                  * Nhập mã giảm giá bạn nhận được từ các chương trình khuyến mãi của NovaTicket.
+                </p>
+              </div>
+
+              {/* Voucher List */}
+              <div className="grid grid-cols-1 gap-4">
+                {vouchersLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="skeleton h-32 rounded-2xl" />
+                  ))
+                ) : !vouchersData?.length ? (
+                  <div className="card-cinema p-12 text-center border-dashed">
+                    <Gift className="w-12 h-12 text-cinema-700 mx-auto mb-3" />
+                    <p className="text-cinema-400">Bạn chưa có voucher nào trong ví</p>
+                  </div>
+                ) : (
+                  vouchersData.map(voucher => {
+                    const isUsed = voucher.status === 'USED'
+                    const isPending = voucher.status === 'PENDING'
+                    
+                    return (
+                      <div 
+                        key={voucher.id} 
+                        className={cn(
+                          "card-cinema overflow-hidden flex",
+                          isUsed && "opacity-50 grayscale",
+                          isPending && "border-amber-500/30 bg-amber-500/5"
+                        )}
+                      >
+                        {/* Status Sidebar */}
+                        <div className={cn(
+                          "w-1.5 flex-shrink-0",
+                          isUsed ? "bg-cinema-600" : 
+                          isPending ? "bg-amber-500" : 
+                          "bg-brand-500"
+                        )} />
+
+                        <div className="p-5 flex-1 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-[10px] font-bold tracking-widest text-brand-400 uppercase">Voucher Khuyến Mãi</span>
+                              <span className={cn(
+                                "px-1.5 py-0.5 text-[9px] font-black rounded uppercase tracking-tighter",
+                                isUsed ? "bg-cinema-700 text-cinema-400" :
+                                isPending ? "bg-amber-500/20 text-amber-500 border border-amber-500/30" :
+                                "bg-brand-500/20 text-brand-400 border border-brand-500/30"
+                              )}>
+                                {isUsed ? 'Đã sử dụng' : isPending ? 'Đang xử lý' : 'Sẵn sàng'}
+                              </span>
+                            </div>
+                            <h4 className="text-white font-bold text-lg leading-tight">{voucher.description}</h4>
+                            <p className="text-cinema-400 text-xs mt-1 font-mono tracking-widest bg-white/5 inline-block px-1.5 py-0.5 rounded uppercase">
+                              {voucher.code}
+                            </p>
+                            <p className="text-xs text-cinema-300 mt-2 font-medium">
+                              HSD: {formatDate(voucher.endDate)}
+                            </p>
+                          </div>
+
+                          <div className="flex flex-col items-end justify-center border-t sm:border-t-0 sm:border-l border-white/5 pt-4 sm:pt-0 sm:pl-8">
+                            <span className={cn(
+                              "text-3xl font-black font-display tracking-tight",
+                              isUsed ? "text-cinema-500" : isPending ? "text-amber-500" : "text-brand-400"
+                            )}>
+                              {voucher.discountType === 'PERCENTAGE' 
+                                ? `${voucher.discountValue}%` 
+                                : formatCurrency(voucher.discountValue)}
+                            </span>
+                            <span className="text-[10px] text-cinema-500 font-bold uppercase tracking-widest -mt-1">Giảm giá</span>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
           )}
 
           {/* ── Appearance ────────────────── */}

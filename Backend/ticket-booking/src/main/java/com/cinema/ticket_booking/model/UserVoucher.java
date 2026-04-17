@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.model;
 
+import com.cinema.ticket_booking.enums.UserVoucherStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -36,9 +37,10 @@ public class UserVoucher {
     @JoinColumn(name = "voucher_id", nullable = false)
     private Voucher voucher;
 
-    @Column(name = "is_used", nullable = false)
+    @Column(name = "status", nullable = false, length = 20)
+    @Enumerated(EnumType.STRING)
     @Builder.Default
-    private Boolean isUsed = false;
+    private UserVoucherStatus status = UserVoucherStatus.AVAILABLE;
 
     @CreationTimestamp
     @Column(name = "saved_at", updatable = false)
