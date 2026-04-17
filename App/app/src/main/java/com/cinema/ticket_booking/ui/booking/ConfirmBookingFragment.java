@@ -163,6 +163,7 @@ public class ConfirmBookingFragment extends Fragment {
         });
 
         viewModel.getBookingResult().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null) return;
             switch (resource.status) {
                 case LOADING -> {
                     binding.progressBar.setVisibility(View.VISIBLE);
@@ -173,6 +174,10 @@ public class ConfirmBookingFragment extends Fragment {
                     if (resource.data != null) {
                         Bundle args = new Bundle();
                         args.putString("bookingId", resource.data.getId());
+                        
+                        // Đặt lại state để không bị navigate lại vào Payment khi back về trang này
+                        viewModel.resetBookingResult();
+                        
                         Navigation.findNavController(view)
                                 .navigate(R.id.action_confirmBooking_to_payment, args);
                     }
@@ -181,6 +186,8 @@ public class ConfirmBookingFragment extends Fragment {
                     binding.progressBar.setVisibility(View.GONE);
                     binding.btnConfirmBooking.setEnabled(true);
                     SnackbarHelper.showError(binding.getRoot(), resource.message);
+                    // Dọn dẹp state lỗi để tránh lặp
+                    viewModel.resetBookingResult();
                 }
             }
         });

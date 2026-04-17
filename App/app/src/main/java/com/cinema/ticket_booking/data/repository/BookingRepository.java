@@ -114,6 +114,7 @@ public class BookingRepository {
                     summary.setTotalAmount(e.getTotalAmount());
                     summary.setStatus(e.getStatus());
                     summary.setCreatedAt(e.getCreatedAt());
+                    summary.setExpiresAt(e.getExpiresAt());
                     summaries.add(summary);
                 }
                 PageResponse<BookingSummary> pageResp = new PageResponse<>();

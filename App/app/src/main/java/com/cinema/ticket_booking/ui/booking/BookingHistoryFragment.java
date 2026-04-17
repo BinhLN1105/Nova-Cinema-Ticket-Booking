@@ -174,7 +174,13 @@ public class BookingHistoryFragment extends Fragment {
             } catch (Exception e) {
             }
 
-            boolean isUpcoming = ("PAID".equals(b.getStatus()) || "PENDING".equals(b.getStatus()) || "CHECKED_IN".equals(b.getStatus())) && isFuture;
+            // Vé PENDING luôn xuất hiện ở tab Hiện tại (Upcoming) để user có thể thanh toán.
+            // Vé CANCELLED với giờ chiếu tương lai cũng hiện ở Upcoming để user thấy trạng thái đã huỷ.
+            // Các vé PAID, CHECKED_IN chỉ xuất hiện ở Upcoming nếu giờ chiếu ở tương lai.
+            boolean isUpcoming = "PENDING".equalsIgnoreCase(b.getStatus()) ||
+                    (("PAID".equalsIgnoreCase(b.getStatus()) || 
+                      "CHECKED_IN".equalsIgnoreCase(b.getStatus()) ||
+                      "CANCELLED".equalsIgnoreCase(b.getStatus())) && isFuture);
 
             if (isUpcomingTab == isUpcoming) {
                 filtered.add(b);
@@ -297,6 +303,15 @@ public class BookingHistoryFragment extends Fragment {
                         if (response.isSuccessful()) {
                             SnackbarHelper.showSuccess(binding.getRoot(),
                                     "Hủy vé thành công! Điểm CP đã được cộng vào tài khoản.");
+                            // Cập nhật trạng thái ngay tại chỗ để user thấy "ĐÃ HỦY" liền
+                            for (BookingSummary b : allBookings) {
+                                if (bookingId.equals(b.getId())) {
+                                    b.setStatus("CANCELLED");
+                                    break;
+                                }
+                            }
+                            updateList();
+                            // Sau đó refresh ngầm từ server để đồng bộ
                             viewModel.refresh();
                         } else {
                             String msg = "Hủy vé thất bại";
