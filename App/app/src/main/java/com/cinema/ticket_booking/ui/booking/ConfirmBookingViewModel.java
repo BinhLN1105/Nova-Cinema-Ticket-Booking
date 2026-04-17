@@ -73,6 +73,10 @@ public class ConfirmBookingViewModel extends ViewModel {
         return bookingResult;
     }
 
+    public void resetBookingResult() {
+        bookingResult.setValue(null);
+    }
+
     public LiveData<Resource<BookingResponse>> getQuoteResult() {
         return quoteResult;
     }

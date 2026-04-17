@@ -10,6 +10,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import com.cinema.ticket_booking.R;
+import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentConfirmBookingBinding;
@@ -24,7 +25,7 @@ public class ConfirmBookingFragment extends Fragment {
 
     private FragmentConfirmBookingBinding binding;
     private ConfirmBookingViewModel viewModel;
-    private com.cinema.ticket_booking.ui.MainViewModel mainViewModel;
+    private MainViewModel mainViewModel;
     private CountDownTimer countDownTimer;
 
     @Override
@@ -37,7 +38,7 @@ public class ConfirmBookingFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(ConfirmBookingViewModel.class);
-        mainViewModel = new ViewModelProvider(requireActivity()).get(com.cinema.ticket_booking.ui.MainViewModel.class);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         // Hiển thị thông tin đã chọn
         binding.tvMovieTitle.setText(SelectShowtimeViewModel.pendingMovieTitle);
@@ -75,12 +76,15 @@ public class ConfirmBookingFragment extends Fragment {
 
         // Voucher Station
         View.OnClickListener showVoucherSheet = v -> {
-            double cartTotal = (viewModel.getQuoteResult().getValue() != null && viewModel.getQuoteResult().getValue().data != null && viewModel.getQuoteResult().getValue().data.getSubtotal() != null)
-                    ? viewModel.getQuoteResult().getValue().data.getSubtotal() : 0.0;
-                    
+            double cartTotal = (viewModel.getQuoteResult().getValue() != null
+                    && viewModel.getQuoteResult().getValue().data != null
+                    && viewModel.getQuoteResult().getValue().data.getSubtotal() != null)
+                            ? viewModel.getQuoteResult().getValue().data.getSubtotal()
+                            : 0.0;
+
             VoucherSelectionBottomSheet sheet = VoucherSelectionBottomSheet.newInstance(
                     viewModel.getMyVouchers(), cartTotal);
-                    
+
             sheet.setListener(new VoucherSelectionBottomSheet.OnVoucherSelectedListener() {
                 @Override
                 public void onVoucherSelected(VoucherSummary voucher) {
@@ -189,9 +193,9 @@ public class ConfirmBookingFragment extends Fragment {
 
         viewModel.getUserProfile().observe(getViewLifecycleOwner(), resource -> {
             if (resource != null && resource.isSuccess() && resource.data != null) {
-                binding.tvWalletBalance.setText(String.format(Locale.getDefault(), 
-                        "Số dư hiện tại: %,d CP (≈ %,.0f ₫)", 
-                        resource.data.getCinePoints(), 
+                binding.tvWalletBalance.setText(String.format(Locale.getDefault(),
+                        "Số dư hiện tại: %,d CP (≈ %,.0f ₫)",
+                        resource.data.getCinePoints(),
                         resource.data.getCinePoints() * 1000.0));
             }
         });
@@ -213,7 +217,7 @@ public class ConfirmBookingFragment extends Fragment {
                     if (resource.data != null) {
                         Bundle args = new Bundle();
                         args.putString("bookingId", resource.data.getId());
-                        
+
                         if ("PAID".equals(resource.data.getStatus())) {
                             mainViewModel.refreshUserProfile();
                             Navigation.findNavController(view)
@@ -235,7 +239,8 @@ public class ConfirmBookingFragment extends Fragment {
 
         // Observer cho kết quả thanh toán ví (Hybrid Flow)
         viewModel.getWalletPaymentResult().observe(getViewLifecycleOwner(), resource -> {
-            if (resource == null) return;
+            if (resource == null)
+                return;
             switch (resource.status) {
                 case LOADING -> {
                     binding.progressBar.setVisibility(View.VISIBLE);
@@ -250,7 +255,8 @@ public class ConfirmBookingFragment extends Fragment {
                             args.putString("bookingId", resource.data.getBookingId());
                             Navigation.findNavController(view)
                                     .navigate(R.id.action_confirmBooking_to_payment, args);
-                            Toast.makeText(getContext(), "Vui lòng thanh toán số tiền còn lại qua VNPay", Toast.LENGTH_LONG).show();
+                            Toast.makeText(getContext(), "Vui lòng thanh toán số tiền còn lại qua VNPay",
+                                    Toast.LENGTH_LONG).show();
                         } else {
                             // Full CinePoint Payment
                             mainViewModel.refreshUserProfile();
@@ -258,7 +264,8 @@ public class ConfirmBookingFragment extends Fragment {
                             args.putString("bookingId", resource.data.getBookingId());
                             Navigation.findNavController(view)
                                     .navigate(R.id.action_confirmBooking_to_bookingDetail, args);
-                            Toast.makeText(getContext(), "Thanh toán bằng CinePoint thành công!", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getContext(), "Thanh toán bằng CinePoint thành công!", Toast.LENGTH_SHORT)
+                                    .show();
                         }
                     }
                 }
@@ -275,7 +282,7 @@ public class ConfirmBookingFragment extends Fragment {
         Locale locale = Locale.getDefault();
 
         // 1. Tiền vé + Combo (Gốc)
-        binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫", 
+        binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫",
                 quote.getTotalOriginalAmount() != null ? quote.getTotalOriginalAmount() : 0.0));
 
         // 2. Khuyến mãi hệ thống
@@ -322,12 +329,12 @@ public class ConfirmBookingFragment extends Fragment {
         }
 
         // 3. Tổng cộng
-        binding.tvTotal.setText(String.format(locale, "%,.0f ₫", 
+        binding.tvTotal.setText(String.format(locale, "%,.0f ₫",
                 quote.getTotalAmount() != null ? quote.getTotalAmount() : 0.0));
 
         // 4. CinePoint (Hybrid Flow Status)
         if (quote.getPointDiscount() != null && quote.getPointDiscount() > 0) {
-            binding.tvWalletBalance.setText(String.format(locale, "Sử dụng %,d CP: -%,.0f ₫ (Còn lại: %,.0f ₫)", 
+            binding.tvWalletBalance.setText(String.format(locale, "Sử dụng %,d CP: -%,.0f ₫ (Còn lại: %,.0f ₫)",
                     quote.getPointsUsed(), quote.getPointDiscount(), quote.getRemainingAmount()));
         }
     }
@@ -364,4 +371,3 @@ public class ConfirmBookingFragment extends Fragment {
         binding = null;
     }
 }
-

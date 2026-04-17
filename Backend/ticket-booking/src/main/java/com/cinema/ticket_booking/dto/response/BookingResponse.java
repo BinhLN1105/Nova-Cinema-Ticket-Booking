@@ -109,5 +109,6 @@ public class BookingResponse implements Serializable {
         private BookingStatus status;
         private PaymentMethod paymentMethod;
         private LocalDateTime createdAt;
+        private LocalDateTime expiresAt;
     }
 }

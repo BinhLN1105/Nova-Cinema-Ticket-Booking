@@ -27,6 +27,8 @@ public class BookingSummary {
     private String status;
     @SerializedName("createdAt")
     private String createdAt;
+    @SerializedName("expiresAt")
+    private String expiresAt;
     @SerializedName("movieId")
     private String movieId;
 
@@ -132,5 +134,13 @@ public class BookingSummary {
 
     public void setMovieId(String movieId) {
         this.movieId = movieId;
+    }
+
+    public String getExpiresAt() {
+        return expiresAt;
+    }
+
+    public void setExpiresAt(String expiresAt) {
+        this.expiresAt = expiresAt;
     }
 }

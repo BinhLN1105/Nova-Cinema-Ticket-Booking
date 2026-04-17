@@ -275,6 +275,16 @@ public class ProfileFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Mỗi lần quay lại Profile, reload dữ liệu mới nhất (CP, EXP, tier...)
+        // Dùng refreshUserProfile() thay vì loadUserProfile() vì load sẽ skip nếu đã có data
+        if (tokenManager.isLoggedIn() && viewModel != null) {
+            viewModel.refreshUserProfile();
+        }
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;

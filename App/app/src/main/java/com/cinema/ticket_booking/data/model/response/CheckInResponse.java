@@ -11,6 +11,9 @@ public class CheckInResponse {
     private List<SeatItem> seats;
     private Boolean allCheckedIn;
     private String checkedInAt;
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
 
     public static class SeatItem {
         private String rowLabel;
@@ -32,4 +35,7 @@ public class CheckInResponse {
     public List<SeatItem> getSeats() { return seats; }
     public Boolean getAllCheckedIn() { return allCheckedIn; }
     public String getCheckedInAt() { return checkedInAt; }
+    public String getCustomerName() { return customerName; }
+    public String getCustomerEmail() { return customerEmail; }
+    public String getCustomerPhone() { return customerPhone; }
 }

@@ -174,7 +174,33 @@ public class BookingHistoryFragment extends Fragment {
             } catch (Exception e) {
             }
 
-            boolean isUpcoming = ("PAID".equals(b.getStatus()) || "PENDING".equals(b.getStatus())) && isFuture;
+            // Kiểm tra vé PENDING đã quá hạn thanh toán chưa
+            boolean isPendingExpired = false;
+            if ("PENDING".equalsIgnoreCase(b.getStatus()) && b.getExpiresAt() != null) {
+                try {
+                    Date expDate;
+                    try {
+                        expDate = sdf.parse(b.getExpiresAt());
+                    } catch (Exception e2) {
+                        expDate = sdf2.parse(b.getExpiresAt());
+                    }
+                    if (expDate != null && expDate.getTime() <= now) {
+                        isPendingExpired = true;
+                    }
+                } catch (Exception ignored) {}
+            }
+
+            // Vé PENDING còn hạn → tab Sắp chiếu (để user thanh toán)
+            // Vé PENDING quá hạn → tab Lịch sử
+            // Vé CANCELLED/PAID/CHECKED_IN với giờ chiếu tương lai → tab Sắp chiếu
+            boolean isUpcoming;
+            if ("PENDING".equalsIgnoreCase(b.getStatus())) {
+                isUpcoming = !isPendingExpired;
+            } else {
+                isUpcoming = ("PAID".equalsIgnoreCase(b.getStatus()) || 
+                              "CHECKED_IN".equalsIgnoreCase(b.getStatus()) ||
+                              "CANCELLED".equalsIgnoreCase(b.getStatus())) && isFuture;
+            }
 
             if (isUpcomingTab == isUpcoming) {
                 filtered.add(b);
@@ -297,6 +323,15 @@ public class BookingHistoryFragment extends Fragment {
                         if (response.isSuccessful()) {
                             SnackbarHelper.showSuccess(binding.getRoot(),
                                     "Hủy vé thành công! Điểm CP đã được cộng vào tài khoản.");
+                            // Cập nhật trạng thái ngay tại chỗ để user thấy "ĐÃ HỦY" liền
+                            for (BookingSummary b : allBookings) {
+                                if (bookingId.equals(b.getId())) {
+                                    b.setStatus("CANCELLED");
+                                    break;
+                                }
+                            }
+                            updateList();
+                            // Sau đó refresh ngầm từ server để đồng bộ
                             viewModel.refresh();
                         } else {
                             String msg = "Hủy vé thất bại";
@@ -323,6 +358,15 @@ public class BookingHistoryFragment extends Fragment {
                         SnackbarHelper.showError(binding.getRoot(), "Lỗi kết nối: " + t.getMessage());
                     }
                 });
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Mỗi khi quay lại tab Tickets, tự động refresh danh sách vé mới nhất
+        if (viewModel != null) {
+            viewModel.refresh();
+        }
     }
 
     @Override
