@@ -94,6 +94,13 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             Glide.with(b.ivPoster.getContext()).load(s.getMoviePosterUrl())
                     .placeholder(R.drawable.ic_movie_placeholder).into(b.ivPoster);
 
+            // Display Status Tag
+            String status = s.getStatus() != null ? s.getStatus().toUpperCase() : "UNKNOWN";
+            b.tvStatus.setText(formatStatusText(status));
+            b.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                    getStatusColor(b.getRoot().getContext(), status)
+            ));
+
             if ("PENDING".equalsIgnoreCase(s.getStatus())) {
                 b.btnViewTicket.setText("THANH TOÁN");
                 b.btnViewTicket.setIconResource(0);
@@ -143,6 +150,28 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                     return "4DX";
                 default:
                     return rawType;
+            }
+        }
+
+        private String formatStatusText(String status) {
+            switch (status) {
+                case "PAID": return "ĐÃ TT";
+                case "PENDING": return "CHỜ TT";
+                case "CHECKED_IN": return "ĐÃ QUÉT";
+                case "EXPIRED": return "HẾT HẠN";
+                case "CANCELLED": return "ĐÃ HỦY";
+                default: return status;
+            }
+        }
+
+        private int getStatusColor(android.content.Context ctx, String status) {
+            switch (status) {
+                case "PAID": return android.graphics.Color.parseColor("#4CAF50"); // Green
+                case "PENDING": return android.graphics.Color.parseColor("#FF9800"); // Orange
+                case "CHECKED_IN": return android.graphics.Color.parseColor("#2196F3"); // Blue
+                case "EXPIRED": return android.graphics.Color.parseColor("#9E9E9E"); // Grey
+                case "CANCELLED": return android.graphics.Color.parseColor("#F44336"); // Red
+                default: return android.graphics.Color.parseColor("#9E9E9E");
             }
         }
     }

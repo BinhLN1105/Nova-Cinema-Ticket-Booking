@@ -66,6 +66,21 @@
                     android:letterSpacing="0.1"
                     android:layout_marginStart="8dp"
                     android:text="2D"/>
+
+                <TextView
+                    android:id="@+id/tvStatus"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:background="#4CAF50"
+                    android:paddingHorizontal="6dp"
+                    android:paddingVertical="2dp"
+                    android:textAllCaps="true"
+                    android:letterSpacing="0.1"
+                    android:layout_marginStart="4dp"
+                    android:text="PAID"/>
             </LinearLayout>
 
             <TextView

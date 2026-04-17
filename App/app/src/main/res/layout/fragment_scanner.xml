@@ -1,123 +1,270 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:padding="24dp"
-    android:gravity="center_horizontal"
-    android:background="?attr/colorSurface">
+    android:layout_height="match_parent">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnLogout"
-        style="@style/Widget.Cinema.Button.Text"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Đăng xuất"
-        android:layout_gravity="end"
-        android:textColor="@color/error"/>
-
-    <ImageView
-        android:layout_width="120dp"
-        android:layout_height="120dp"
-        android:src="@drawable/ic_baseline_qr_code_scanner_24"
-        app:tint="?attr/colorPrimary"
-        android:layout_marginTop="32dp"
-        android:layout_marginBottom="16dp"/>
-
-    <TextView
-        android:id="@+id/tvScannerTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Quét vé xem phim"
-        android:textSize="24sp"
-        android:textStyle="bold"
-        android:textColor="?attr/colorOnSurface"/>
-
-    <TextView
-        android:id="@+id/tvScannerSubtitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Dành cho nhân viên kiểm soát vé tại rạp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:layout_marginBottom="32dp"/>
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btnScan"
-        style="@style/Widget.Cinema.Button.Primary"
+    <!-- MAIN UI (CAMERA MODE) -->
+    <LinearLayout
+        android:id="@+id/layoutMain"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="MỞ CAMERA QUÉT QR"
-        app:icon="@drawable/ic_baseline_qr_code_scanner_24"
-        app:iconGravity="textStart" />
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:padding="24dp"
+        android:gravity="center_horizontal"
+        android:background="?attr/colorSurface">
 
-    <ProgressBar
-        android:id="@+id/progressBar"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
-        android:visibility="gone" />
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnLogout"
+            style="@style/Widget.Cinema.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Đăng xuất"
+            android:layout_gravity="end"
+            android:textColor="@color/error"/>
 
-    <androidx.cardview.widget.CardView
-        android:id="@+id/cardResult"
-        style="@style/Widget.Cinema.Card"
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@drawable/ic_baseline_qr_code_scanner_24"
+            app:tint="?attr/colorPrimary"
+            android:layout_marginTop="32dp"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:id="@+id/tvScannerTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Soát Vé Phim"
+            android:textSize="24sp"
+            android:textStyle="bold"
+            android:textColor="?attr/colorOnSurface"/>
+
+        <TextView
+            android:id="@+id/tvScannerSubtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Dành cho nhân viên kiểm soát vé tại rạp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginBottom="32dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnScan"
+            style="@style/Widget.Cinema.Button.Primary"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="MỞ CAMERA QUÉT QR"
+            app:icon="@drawable/ic_baseline_qr_code_scanner_24"
+            app:iconGravity="textStart" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HOẶC"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textStyle="bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnManualInput"
+            style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+            android:layout_width="match_parent"
+            android:layout_height="50dp"
+            android:text="NHẬP MÃ VÉ THỦ CÔNG" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+    <!-- OVERLAY: SUCCESS -->
+    <LinearLayout
+        android:id="@+id/overlaySuccess"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="24dp"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#00C853"
+        android:gravity="center"
+        android:padding="24dp"
         android:visibility="gone"
-        tools:visibility="visible">
+        tools:visibility="gone">
 
-        <LinearLayout
+        <ImageView
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            android:src="@drawable/ic_check"
+            app:tint="@color/white"
+            android:layout_marginBottom="16dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="HỢP LỆ!"
+            android:textColor="@color/white"
+            android:textSize="32sp"
+            android:textStyle="bold"/>
+        
+        <TextView
+            android:id="@+id/tvSuccessCode"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:text="MC: BK123456"
+            android:textColor="#E8F5E9"
+            android:textSize="18sp"
+            android:layout_marginBottom="32dp"/>
+
+        <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp">
-
-            <TextView
-                android:id="@+id/tvCheckInStatus"
+            app:cardCornerRadius="12dp"
+            app:cardElevation="8dp"
+            app:cardBackgroundColor="@color/white"
+            android:layout_marginBottom="32dp">
+            
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Check-in thành công!"
-                android:textColor="@color/success"
-                android:textStyle="bold"
-                android:textSize="18sp"
-                android:gravity="center"
-                android:layout_marginBottom="16dp"/>
+                android:orientation="vertical"
+                android:padding="20dp">
+                
+                <TextView
+                    android:id="@+id/tvSuccessMovie"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="Daredevil: Tái Sinh 2"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="#212121"
+                    android:textAlignment="center"/>
 
-            <TextView
-                android:id="@+id/tvMovieTitle"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="Avengers: Endgame"
-                android:textStyle="bold"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="18sp"/>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"/>
+                    
+                <TextView
+                    android:id="@+id/tvSuccessCinema"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="CINEMA Q12 - H001"
+                    android:textColor="#424242"/>
 
-            <TextView
-                android:id="@+id/tvCinemaInfo"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="Nova Cinema 1 - Screen 2"
-                android:textColor="?android:attr/textColorSecondary"
-                android:layout_marginTop="4dp"/>
+                <TextView
+                    android:id="@+id/tvSuccessTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="Thời gian: 24/10/2026 19:30"
+                    android:textColor="#424242"
+                    android:layout_marginTop="4dp"/>
 
-            <TextView
-                android:id="@+id/tvStartTime"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="Thời gian: 19:30 - 24/10/2026"
-                android:textColor="?attr/colorOnSurface"
-                android:layout_marginTop="8dp"/>
+                <TextView
+                    android:id="@+id/tvSuccessSeats"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="Ghế: A1, A2"
+                    android:textColor="#D50000"
+                    android:textStyle="bold"
+                    android:textSize="18sp"
+                    android:layout_marginTop="8dp"/>
 
-            <TextView
-                android:id="@+id/tvSeats"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                tools:text="Ghế: A1, A2"
-                android:textStyle="bold"
-                android:textColor="?attr/colorPrimary"
-                android:layout_marginTop="8dp"/>
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-</LinearLayout>
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#E0E0E0"
+                    android:layout_marginTop="12dp"
+                    android:layout_marginBottom="12dp"/>
+
+                <TextView
+                    android:id="@+id/tvSuccessCustomer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="Khách: John Doe"
+                    android:textColor="#1976D2"
+                    android:textStyle="bold"/>
+
+                <TextView
+                    android:id="@+id/tvSuccessEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="john@gmail.com"
+                    android:textColor="#424242"
+                    android:textSize="12sp"/>
+
+                <TextView
+                    android:id="@+id/tvSuccessPhone"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    tools:text="0123456789"
+                    android:textColor="#424242"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="2dp"/>
+            </LinearLayout>
+        </androidx.cardview.widget.CardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseSuccess"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="QUÉT KHÁCH TIẾP THEO"
+            app:backgroundTint="#1B5E20"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+
+    <!-- OVERLAY: ERROR -->
+    <LinearLayout
+        android:id="@+id/overlayError"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#D50000"
+        android:gravity="center"
+        android:padding="24dp"
+        android:visibility="gone"
+        tools:visibility="gone">
+
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:src="@android:drawable/ic_dialog_alert"
+            app:tint="@color/white"
+            android:layout_marginBottom="24dp"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TỪ CHỐI!"
+            android:textColor="@color/white"
+            android:textSize="40sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp"/>
+
+        <TextView
+            android:id="@+id/tvErrorMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            tools:text="Vé này đã được Check-in vào lúc 19:30"
+            android:textColor="@color/white"
+            android:textSize="20sp"
+            android:textAlignment="center"
+            android:layout_marginBottom="64dp"/>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnCloseError"
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
+            android:text="CHẤP NHẬN &amp; ĐÓNG"
+            app:backgroundTint="#B71C1C"
+            android:textColor="@color/white"
+            app:cornerRadius="8dp" />
+    </LinearLayout>
+</FrameLayout>

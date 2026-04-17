@@ -528,6 +528,9 @@ public class BookingServiceImpl implements BookingService {
                 .seats(seatItems)
                 .allCheckedIn(true)
                 .checkedInAt(now)
+                .customerName(booking.getUser() != null ? booking.getUser().getFullName() : "Khách vãng lai")
+                .customerEmail(booking.getUser() != null ? booking.getUser().getEmail() : "")
+                .customerPhone(booking.getUser() != null ? booking.getUser().getPhone() : "")
                 .build();
     }
 

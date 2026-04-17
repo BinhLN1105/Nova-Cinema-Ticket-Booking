@@ -174,7 +174,7 @@ public class BookingHistoryFragment extends Fragment {
             } catch (Exception e) {
             }
 
-            boolean isUpcoming = ("PAID".equals(b.getStatus()) || "PENDING".equals(b.getStatus())) && isFuture;
+            boolean isUpcoming = ("PAID".equals(b.getStatus()) || "PENDING".equals(b.getStatus()) || "CHECKED_IN".equals(b.getStatus())) && isFuture;
 
             if (isUpcomingTab == isUpcoming) {
                 filtered.add(b);
