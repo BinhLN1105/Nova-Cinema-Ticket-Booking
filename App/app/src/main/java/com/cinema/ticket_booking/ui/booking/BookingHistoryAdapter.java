@@ -106,40 +106,83 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
             ));
 
             if ("PENDING".equalsIgnoreCase(s.getStatus())) {
-                b.btnViewTicket.setText("THANH TOÁN");
-                b.btnViewTicket.setIconResource(0);
-                b.btnViewTicket.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.error)));
-                b.btnViewTicket.setOnClickListener(v -> listener.onPayClick(s.getId()));
                 b.btnReview.setVisibility(View.GONE);
-                
-                // Countdown Logic
+
+                // Kiểm tra vé PENDING đã quá hạn thanh toán chưa
+                boolean isExpired = false;
                 if (s.getExpiresAt() != null) {
                     try {
                         java.text.SimpleDateFormat sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
                         java.util.Date expDate = sdfIn.parse(s.getExpiresAt());
-                        if (expDate != null) {
-                            long diffInMillis = expDate.getTime() - System.currentTimeMillis();
-                            if (diffInMillis > 0) {
-                                b.tvCountdown.setVisibility(View.VISIBLE);
-                                countDownTimer = new android.os.CountDownTimer(diffInMillis, 1000) {
-                                    public void onTick(long millisUntilFinished) {
-                                        long m = (millisUntilFinished / 1000) / 60;
-                                        long sec = (millisUntilFinished / 1000) % 60;
-                                        b.tvCountdown.setText(String.format(java.util.Locale.getDefault(), "Hủy sau: %02d:%02d", m, sec));
-                                    }
-                                    public void onFinish() {
-                                        b.tvCountdown.setText("Đã quá hạn");
-                                    }
-                                }.start();
-                            } else {
-                                b.tvCountdown.setVisibility(View.VISIBLE);
-                                b.tvCountdown.setText("Đã quá hạn");
-                            }
+                        if (expDate != null && expDate.getTime() <= System.currentTimeMillis()) {
+                            isExpired = true;
                         }
                     } catch (Exception ignored) {}
+                }
+
+                if (isExpired) {
+                    // Vé PENDING đã quá hạn: hiển thị nút "ĐÃ HẾT HẠN" bị vô hiệu hoá
+                    b.tvCountdown.setVisibility(View.VISIBLE);
+                    b.tvCountdown.setText("Đã quá hạn");
+                    b.btnViewTicket.setText("ĐÃ HẾT HẠN");
+                    b.btnViewTicket.setIconResource(0);
+                    b.btnViewTicket.setEnabled(false);
+                    b.btnViewTicket.setAlpha(0.6f);
+                    b.btnViewTicket.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#9E9E9E")));
+                    b.btnViewTicket.setOnClickListener(null);
+                    // Cập nhật status tag
+                    b.tvStatus.setText("HẾT HẠN");
+                    b.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                            android.graphics.Color.parseColor("#9E9E9E")));
                 } else {
-                    b.tvCountdown.setVisibility(View.GONE);
+                    // Vé PENDING còn hạn: hiển thị nút thanh toán + countdown
+                    b.btnViewTicket.setText("THANH TOÁN");
+                    b.btnViewTicket.setIconResource(0);
+                    b.btnViewTicket.setEnabled(true);
+                    b.btnViewTicket.setAlpha(1f);
+                    b.btnViewTicket.setBackgroundTintList(
+                            android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.error)));
+                    b.btnViewTicket.setOnClickListener(v -> listener.onPayClick(s.getId()));
+                
+                    // Countdown Logic
+                    if (s.getExpiresAt() != null) {
+                        try {
+                            java.text.SimpleDateFormat sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
+                            java.util.Date expDate = sdfIn.parse(s.getExpiresAt());
+                            if (expDate != null) {
+                                long diffInMillis = expDate.getTime() - System.currentTimeMillis();
+                                if (diffInMillis > 0) {
+                                    b.tvCountdown.setVisibility(View.VISIBLE);
+                                    countDownTimer = new android.os.CountDownTimer(diffInMillis, 1000) {
+                                        public void onTick(long millisUntilFinished) {
+                                            long m = (millisUntilFinished / 1000) / 60;
+                                            long sec = (millisUntilFinished / 1000) % 60;
+                                            b.tvCountdown.setText(String.format(java.util.Locale.getDefault(), "Hủy sau: %02d:%02d", m, sec));
+                                        }
+                                        public void onFinish() {
+                                            b.tvCountdown.setText("Đã quá hạn");
+                                            // Khi countdown chạy xong, disable nút thanh toán luôn
+                                            b.btnViewTicket.setText("ĐÃ HẾT HẠN");
+                                            b.btnViewTicket.setEnabled(false);
+                                            b.btnViewTicket.setAlpha(0.6f);
+                                            b.btnViewTicket.setBackgroundTintList(
+                                                    android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#9E9E9E")));
+                                            b.btnViewTicket.setOnClickListener(null);
+                                            b.tvStatus.setText("HẾT HẠN");
+                                            b.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
+                                                    android.graphics.Color.parseColor("#9E9E9E")));
+                                        }
+                                    }.start();
+                                } else {
+                                    b.tvCountdown.setVisibility(View.VISIBLE);
+                                    b.tvCountdown.setText("Đã quá hạn");
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    } else {
+                        b.tvCountdown.setVisibility(View.GONE);
+                    }
                 }
                 
             } else if ("CANCELLED".equalsIgnoreCase(s.getStatus())) {

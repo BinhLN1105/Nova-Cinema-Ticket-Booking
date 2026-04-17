@@ -41,11 +41,18 @@ public class BookingDetailFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(BookingDetailViewModel.class);
 
         String bookingId = getArguments() != null ? getArguments().getString("bookingId") : null;
+        boolean paymentSuccess = getArguments() != null && getArguments().getBoolean("paymentSuccess", false);
         if (bookingId != null)
             viewModel.loadBooking(bookingId);
 
-        binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
-        binding.btnBackTop.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
+        // Nếu từ thanh toán thành công -> nút back chuyển sang tab Tickets
+        if (paymentSuccess) {
+            binding.btnBack.setOnClickListener(v -> navigateToTicketsTab());
+            binding.btnBackTop.setOnClickListener(v -> navigateToTicketsTab());
+        } else {
+            binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
+            binding.btnBackTop.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
+        }
 
         binding.ivToggleCode.setOnClickListener(v -> {
             isCodeVisible = !isCodeVisible;
@@ -229,6 +236,22 @@ public class BookingDetailFragment extends Fragment {
             case "IMAX": return "IMAX";
             case "FOUR_DX": return "4DX";
             default: return rawType;
+        }
+    }
+
+    private void navigateToTicketsTab() {
+        try {
+            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
+                    requireActivity().findViewById(R.id.bottomNav);
+            if (bottomNav != null) {
+                // Pop toàn bộ back stack về root trước
+                Navigation.findNavController(requireView()).popBackStack(R.id.homeFragment, false);
+                // Chuyển sang tab Tickets
+                bottomNav.setSelectedItemId(R.id.bookingHistoryFragment);
+            }
+        } catch (Exception e) {
+            // Fallback: quay về home
+            Navigation.findNavController(requireView()).popBackStack(R.id.homeFragment, false);
         }
     }
 
