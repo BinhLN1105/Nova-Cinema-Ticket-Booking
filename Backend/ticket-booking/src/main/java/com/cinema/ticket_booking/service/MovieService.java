@@ -9,6 +9,8 @@ import com.cinema.ticket_booking.enums.MovieStatus;
 import org.springframework.data.domain.Pageable;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.cinema.ticket_booking.enums.PlatformType;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
@@ -22,7 +24,7 @@ public interface MovieService {
 
     MovieResponse getById(UUID id);
     
-    List<MovieResponse.Summary> getFeaturedMovies();
+    List<MovieResponse.Summary> getFeaturedMovies(PlatformType platform);
 
     List<MovieResponse.Summary> getNowShowingByCinema(UUID cinemaId);
 

@@ -6,7 +6,7 @@ import { useMovies } from '@/hooks'
 import { cn, formatDate, getRatedColor } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { promotionApi } from '@/api/endpoints'
+import { promotionApi, movieApi } from '@/api/endpoints'
 
 // ── Skeleton ──────────────────────────────────
 function MovieSkeleton() {
@@ -115,7 +115,7 @@ function Hero({ featured }) {
           from-cinema-900 via-cinema-800/80 to-cinema-900" />
         {featured && (
           <img
-            src={featured.posterUrl}
+            src={featured.backdropUrl || featured.posterUrl}
             alt=""
             className="w-full h-full object-cover opacity-20"
             style={{ objectPosition: 'center 20%' }}
@@ -270,7 +270,13 @@ function PromotionsCarousel() {
 export default function HomePage() {
   const { t } = useTranslation()
   const { nowShowing, comingSoon } = useMovies()
-  const featured = nowShowing.data?.content?.[0]
+
+  const { data: featuredMoviesResponse } = useQuery({
+    queryKey: ['featured-movies', 'WEB'],
+    queryFn: () => movieApi.getFeaturedMovies("WEB")
+  })
+  
+  const featured = featuredMoviesResponse?.[0] || nowShowing.data?.content?.[0]
 
   useEffect(() => {
   }, [featured, nowShowing.status]);

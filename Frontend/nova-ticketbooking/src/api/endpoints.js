@@ -24,6 +24,7 @@ export const movieApi = {
     api.get("/movies", { status: "COMING_SOON", page, size: 12 }),
   getById: (id) => api.get(`/movies/${id}`),
   search: (q, page = 0) => api.get("/movies/search", { q, page, size: 12 }),
+  getFeaturedMovies: (platform = "WEB") => api.get("/home/featured-movies", { platform }),
   getGenres: () => api.get("/movies/genres"),
   canReview: (id) => api.get(`/movies/${id}/can-review`),
   // Admin

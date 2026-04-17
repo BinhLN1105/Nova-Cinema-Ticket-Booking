@@ -260,6 +260,36 @@ export default function SettingsPage() {
                 </Field>
               )}
 
+              {/* Web Banner Config */}
+              <div className="pt-6 border-t border-gray-100 space-y-6">
+                <h2 className="font-bold text-gray-900 text-lg font-display mb-2">Cấu hình Trang chủ (Web)</h2>
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl text-sm text-blue-700 leading-relaxed mb-6">
+                  Thiết lập cách hiển thị phim trên Banner nổi bật (Hero Banner) của Website. Dùng ảnh Backdrop chất lượng cao.
+                </div>
+
+                <Field label="Chế độ hiển thị Banner (Web)" info="Lựa chọn tiêu chí để lọc phim hiển thị trên Website.">
+                  <Select 
+                    value={localConfigs['HERO_SECTION_WEB_MODE'] || 'TOP_RATING'} 
+                    onChange={(e) => handleConfigChange('HERO_SECTION_WEB_MODE', e.target.value)}
+                    options={[
+                      { value: 'TOP_SALES',   label: '🔥 Top Sales (Bán chạy nhất)' },
+                      { value: 'TOP_RATING',   label: '⭐ Top Rating (Đánh giá cao nhất)' },
+                      { value: 'NEW_RELEASE', label: '🆕 New Release (Phim mới nhất)' },
+                      { value: 'MANUAL',      label: '🖱️ Manual (Admin tự chọn phim)' },
+                    ]} 
+                  />
+                </Field>
+
+                {localConfigs['HERO_SECTION_WEB_MODE'] === 'MANUAL' && (
+                  <Field label="Danh sách phim tự chọn (Web)" info="Tìm kiếm và chọn các bộ phim bạn muốn hiển thị cố định mảng Web.">
+                    <MoviePicker 
+                      value={localConfigs['HERO_SECTION_WEB_IDS'] || ''} 
+                      onChange={(val) => handleConfigChange('HERO_SECTION_WEB_IDS', val)} 
+                    />
+                  </Field>
+                )}
+              </div>
+
               <div className="pt-4 border-t border-gray-100 flex items-center justify-between">
                 <p className="text-xs text-gray-400 max-w-xs">
                   * Thay đổi sẽ có hiệu lực ngay lập tức khi người dùng làm mới trang chủ trên ứng dụng.
