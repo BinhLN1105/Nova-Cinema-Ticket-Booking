@@ -62,4 +62,26 @@ public class VoucherRepository {
         });
         return r;
     }
+
+    public LiveData<Resource<List<VoucherSummary>>> getMyVouchers() {
+        MutableLiveData<Resource<List<VoucherSummary>>> r = new MutableLiveData<>();
+        r.setValue(Resource.loading());
+        api.getMyVouchers().enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<List<VoucherSummary>>> c,
+                    Response<ApiResponse<List<VoucherSummary>>> res) {
+                if (res.isSuccessful() && res.body() != null && res.body().isSuccess())
+                    r.setValue(Resource.success(res.body().getData()));
+                else
+                    r.setValue(Resource.error(
+                            res.body() != null ? res.body().getMessage() : "Không lấy được danh sách khuyến mãi"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<List<VoucherSummary>>> c, Throwable t) {
+                r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return r;
+    }
 }

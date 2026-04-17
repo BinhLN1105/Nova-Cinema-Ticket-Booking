@@ -187,3 +187,4 @@ public class EditProfileFragment extends Fragment {
         binding = null;
     }
 }
+

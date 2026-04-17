@@ -28,15 +28,15 @@ public class BookingResponse implements Parcelable {
     @SerializedName("screenType")
     private String screenType;
     @SerializedName("subtotal")
-    private double subtotal;
+    private Double subtotal;
     @SerializedName("discountAmount")
-    private double discountAmount;
+    private Double discountAmount;
     @SerializedName("totalAmount")
-    private double totalAmount;
+    private Double totalAmount;
     @SerializedName("totalOriginalAmount")
-    private double totalOriginalAmount;
+    private Double totalOriginalAmount;
     @SerializedName("promotionDiscountAmount")
-    private double promotionDiscountAmount;
+    private Double promotionDiscountAmount;
     @SerializedName("appliedPromotionName")
     private String appliedPromotionName;
     @SerializedName("warningMessage")
@@ -49,6 +49,12 @@ public class BookingResponse implements Parcelable {
     private List<SeatItem> seats;
     @SerializedName("combos")
     private List<ComboItem> combos;
+    @SerializedName("pointsUsed")
+    private Long pointsUsed;
+    @SerializedName("pointDiscount")
+    private Double pointDiscount;
+    @SerializedName("remainingAmount")
+    private Double remainingAmount;
 
     protected BookingResponse(Parcel in) {
         id = in.readString();
@@ -61,17 +67,38 @@ public class BookingResponse implements Parcelable {
         cinemaAddress = in.readString();
         screenName = in.readString();
         screenType = in.readString();
-        subtotal = in.readDouble();
-        discountAmount = in.readDouble();
-        totalAmount = in.readDouble();
-        totalOriginalAmount = in.readDouble();
-        promotionDiscountAmount = in.readDouble();
+        
+        if (in.readByte() == 0) subtotal = null;
+        else subtotal = in.readDouble();
+        
+        if (in.readByte() == 0) discountAmount = null;
+        else discountAmount = in.readDouble();
+        
+        if (in.readByte() == 0) totalAmount = null;
+        else totalAmount = in.readDouble();
+        
+        if (in.readByte() == 0) totalOriginalAmount = null;
+        else totalOriginalAmount = in.readDouble();
+        
+        if (in.readByte() == 0) promotionDiscountAmount = null;
+        else promotionDiscountAmount = in.readDouble();
+        
         appliedPromotionName = in.readString();
         warningMessage = in.readString();
         qrCode = in.readString();
         expiresAt = in.readString();
         seats = in.createTypedArrayList(SeatItem.CREATOR);
         combos = in.createTypedArrayList(ComboItem.CREATOR);
+
+        // Read Hybrid Fields with Null Safety
+        if (in.readByte() == 0) pointsUsed = null;
+        else pointsUsed = in.readLong();
+        
+        if (in.readByte() == 0) pointDiscount = null;
+        else pointDiscount = in.readDouble();
+        
+        if (in.readByte() == 0) remainingAmount = null;
+        else remainingAmount = in.readDouble();
     }
 
     public static final Creator<BookingResponse> CREATOR = new Creator<BookingResponse>() {
@@ -103,19 +130,50 @@ public class BookingResponse implements Parcelable {
         dest.writeString(cinemaAddress);
         dest.writeString(screenName);
         dest.writeString(screenType);
-        dest.writeString(screenType); // redundant? No, wait. 
-        // dest.writeString(screenType) was twice in previous thought, I'll fix.
-        dest.writeDouble(subtotal);
-        dest.writeDouble(discountAmount);
-        dest.writeDouble(totalAmount);
-        dest.writeDouble(totalOriginalAmount);
-        dest.writeDouble(promotionDiscountAmount);
+        
+        if (subtotal == null) dest.writeByte((byte) 0);
+        else { dest.writeByte((byte) 1); dest.writeDouble(subtotal); }
+        
+        if (discountAmount == null) dest.writeByte((byte) 0);
+        else { dest.writeByte((byte) 1); dest.writeDouble(discountAmount); }
+        
+        if (totalAmount == null) dest.writeByte((byte) 0);
+        else { dest.writeByte((byte) 1); dest.writeDouble(totalAmount); }
+        
+        if (totalOriginalAmount == null) dest.writeByte((byte) 0);
+        else { dest.writeByte((byte) 1); dest.writeDouble(totalOriginalAmount); }
+        
+        if (promotionDiscountAmount == null) dest.writeByte((byte) 0);
+        else { dest.writeByte((byte) 1); dest.writeDouble(promotionDiscountAmount); }
+        
         dest.writeString(appliedPromotionName);
         dest.writeString(warningMessage);
         dest.writeString(qrCode);
         dest.writeString(expiresAt);
         dest.writeTypedList(seats);
         dest.writeTypedList(combos);
+
+        // Write Hybrid Fields with Null Safety
+        if (pointsUsed == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeLong(pointsUsed);
+        }
+
+        if (pointDiscount == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeDouble(pointDiscount);
+        }
+
+        if (remainingAmount == null) {
+            dest.writeByte((byte) 0);
+        } else {
+            dest.writeByte((byte) 1);
+            dest.writeDouble(remainingAmount);
+        }
     }
 
     // Default constructor for Retrofit/GSON
@@ -142,16 +200,16 @@ public class BookingResponse implements Parcelable {
     public void setScreenName(String screenName) { this.screenName = screenName; }
     public String getScreenType() { return screenType; }
     public void setScreenType(String screenType) { this.screenType = screenType; }
-    public double getSubtotal() { return subtotal; }
-    public void setSubtotal(double subtotal) { this.subtotal = subtotal; }
-    public double getDiscountAmount() { return discountAmount; }
-    public void setDiscountAmount(double discountAmount) { this.discountAmount = discountAmount; }
-    public double getTotalAmount() { return totalAmount; }
-    public void setTotalAmount(double totalAmount) { this.totalAmount = totalAmount; }
-    public double getTotalOriginalAmount() { return totalOriginalAmount; }
-    public void setTotalOriginalAmount(double totalOriginalAmount) { this.totalOriginalAmount = totalOriginalAmount; }
-    public double getPromotionDiscountAmount() { return promotionDiscountAmount; }
-    public void setPromotionDiscountAmount(double promotionDiscountAmount) { this.promotionDiscountAmount = promotionDiscountAmount; }
+    public Double getSubtotal() { return subtotal; }
+    public void setSubtotal(Double subtotal) { this.subtotal = subtotal; }
+    public Double getDiscountAmount() { return discountAmount; }
+    public void setDiscountAmount(Double discountAmount) { this.discountAmount = discountAmount; }
+    public Double getTotalAmount() { return totalAmount; }
+    public void setTotalAmount(Double totalAmount) { this.totalAmount = totalAmount; }
+    public Double getTotalOriginalAmount() { return totalOriginalAmount; }
+    public void setTotalOriginalAmount(Double totalOriginalAmount) { this.totalOriginalAmount = totalOriginalAmount; }
+    public Double getPromotionDiscountAmount() { return promotionDiscountAmount; }
+    public void setPromotionDiscountAmount(Double promotionDiscountAmount) { this.promotionDiscountAmount = promotionDiscountAmount; }
     public String getAppliedPromotionName() { return appliedPromotionName; }
     public void setAppliedPromotionName(String appliedPromotionName) { this.appliedPromotionName = appliedPromotionName; }
     public String getWarningMessage() { return warningMessage; }
@@ -164,6 +222,13 @@ public class BookingResponse implements Parcelable {
     public void setSeats(List<SeatItem> seats) { this.seats = seats; }
     public List<ComboItem> getCombos() { return combos; }
     public void setCombos(List<ComboItem> combos) { this.combos = combos; }
+
+    public Long getPointsUsed() { return pointsUsed; }
+    public void setPointsUsed(Long pointsUsed) { this.pointsUsed = pointsUsed; }
+    public Double getPointDiscount() { return pointDiscount; }
+    public void setPointDiscount(Double pointDiscount) { this.pointDiscount = pointDiscount; }
+    public Double getRemainingAmount() { return remainingAmount; }
+    public void setRemainingAmount(Double remainingAmount) { this.remainingAmount = remainingAmount; }
 
     public static class SeatItem implements Parcelable {
         @SerializedName("rowLabel")

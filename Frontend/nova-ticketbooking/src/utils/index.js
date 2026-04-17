@@ -143,3 +143,27 @@ export const storage = {
   },
   remove: (key) => localStorage.removeItem(key),
 };
+
+// ── Voucher Utility ───────────────────────────
+export function calculateActualDiscount(cartTotal, voucher) {
+  if (!voucher || !cartTotal || cartTotal <= 0) return 0;
+  
+  // Kiểm tra minOrder
+  if (voucher.minOrder && cartTotal < voucher.minOrder) return 0;
+
+  // Tính discount
+  let discountAmount = 0;
+  if (voucher.discountType === 'PERCENTAGE') {
+    discountAmount = (cartTotal * voucher.discountValue) / 100;
+  } else {
+    // FIXED_AMOUNT
+    discountAmount = voucher.discountValue;
+  }
+  
+  // Giám sát Max Discount
+  if (voucher.maxDiscount && voucher.maxDiscount > 0 && discountAmount > voucher.maxDiscount) {
+    discountAmount = voucher.maxDiscount;
+  }
+  
+  return discountAmount;
+}

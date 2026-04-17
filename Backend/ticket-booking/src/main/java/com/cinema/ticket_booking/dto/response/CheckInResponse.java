@@ -25,6 +25,10 @@ public class CheckInResponse {
     private Boolean allCheckedIn; // true nếu tất cả ghế đã được check-in
     private LocalDateTime checkedInAt;
 
+    private String customerName;
+    private String customerEmail;
+    private String customerPhone;
+
     @Data
     @Builder
     public static class SeatItem {

@@ -34,8 +34,13 @@ Hỗ trợ khách hàng tra cứu và đặt vé xem phim một cách nhanh chó
    - Hỏi ghế trống → `get_available_seats` (cần có showtime_id từ `get_showtimes`)
    - Hỏi voucher/khuyến mãi → `get_active_vouchers`
 3. **Trả lời ngắn gọn, đúng trọng tâm** — không dài dòng, không lặp lại câu hỏi.
-4. **Thân thiện, tự nhiên** — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
-5. **Thừa nhận giới hạn** — nếu không tìm được thông tin, nói thật thay vì đoán mò.
+4. YÊU CẦU ĐỊNH DẠNG TUYỆT ĐỐI (PLAIN TEXT CHUẨN): Ứng dụng di động không hỗ trợ Markdown. Trong câu trả lời của bạn:
+   - TUYỆT ĐỐI KHÔNG dùng dấu sao (*) để in đậm, in nghiêng hay làm gạch đầu dòng. Ví dụ: KHÔNG dùng **Tên Phim**.
+   - TUYỆT ĐỐI KHÔNG dùng dấu thăng (#) cho tiêu đề.
+   - Hãy dùng dấu gạch ngang (-) hoặc đánh số (1, 2, 3) để liệt kê.
+   - Trả lời là văn bản trơn hoàn toàn (plain text). Nếu vi phạm, ứng dụng sẽ bị lỗi hiển thị.
+5. **Thân thiện, tự nhiên** — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
+6. **Thừa nhận giới hạn** — nếu không tìm được thông tin, nói thật thay vì đoán mò.
 
 ## Ví dụ cách dùng tool kết hợp
 Khi khách hỏi "Phim Mai 8h tối nay rạp Landmark còn ghế không?":
@@ -73,8 +78,7 @@ def _build_llm():
             model=cfg.llm_model,
             google_api_key=cfg.gemini_api_key,
             temperature=cfg.llm_temperature,
-            # convert_system_message_to_human đã được tích hợp mặc định trong các ver mới
-            # gỡ bỏ để tránh lỗi Tool calling
+            # convert_system_message_to_human=True   # Gemini quirk
         )
     elif cfg.openai_api_key:
         from langchain_openai import ChatOpenAI
@@ -144,7 +148,7 @@ def _handle_quota_exhausted_fallback(user_message: str) -> str:
     """
     
     parts = [
-        "⚠️ **Hệ thống AI đang tạm thời quá tải (Quota Limit)**",
+        "⚠️ Hệ thống AI đang tạm thời quá tải (Quota Limit)",
         "Em xin lỗi vì sự bất tiện này. Dưới đây là thông tin em tìm được trực tiếp từ cơ sở dữ liệu cho anh/chị:",
     ]
     
@@ -153,7 +157,7 @@ def _handle_quota_exhausted_fallback(user_message: str) -> str:
         # invoke tool thủ công
         rag_info = search_knowledge_base.invoke(user_message)
         if "Không tìm thấy" not in rag_info and "Lỗi" not in rag_info:
-            parts.append("\n**📍 Thông tin từ cơ sở kiến thức:**\n" + rag_info)
+            parts.append("\n📍 Thông tin từ cơ sở kiến thức:\n" + rag_info)
     except Exception:
         pass
     
@@ -164,7 +168,7 @@ def _handle_quota_exhausted_fallback(user_message: str) -> str:
         try:
             movies = get_now_showing_movies.invoke("")
             if "Lỗi" not in movies:
-                parts.append("\n**🎬 Danh sách phim đang chiếu tại rạp:**\n" + movies)
+                parts.append("\n🎬 Danh sách phim đang chiếu tại rạp:\n" + movies)
         except Exception:
             pass
 

@@ -98,3 +98,4 @@ public class PromoDialogFragment extends DialogFragment {
         return !today.equals(lastShown);
     }
 }
+

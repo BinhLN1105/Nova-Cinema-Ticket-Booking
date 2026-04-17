@@ -112,6 +112,8 @@
         <argument android:name="expireTime" app:argType="long" android:defaultValue="0L" />
         <argument android:name="initialQuote" app:argType="com.cinema.ticket_booking.data.model.response.BookingResponse" app:nullable="true" android:defaultValue="@null" />
         <action android:id="@+id/action_confirmBooking_to_payment" app:destination="@id/paymentFragment"/>
+        <action android:id="@+id/action_confirmBooking_to_bookingDetail" app:destination="@id/bookingDetailFragment"
+            app:popUpTo="@id/homeFragment" app:popUpToInclusive="false"/>
     </fragment>
 
     <fragment android:id="@+id/paymentFragment"

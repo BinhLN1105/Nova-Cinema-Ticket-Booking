@@ -1,12 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Tag, Plus, Minus, ShoppingBag, ArrowRight } from 'lucide-react'
-import { showtimeApi, voucherApi } from '@/api/endpoints'
+import { showtimeApi, voucherApi, userApi } from '@/api/endpoints'
 import { useBooking } from '@/hooks'
-import { formatCurrency, formatDateTime, cn } from '@/utils'
+import { formatCurrency, formatDateTime, cn, calculateActualDiscount } from '@/utils'
 import BookingTimer from '@/components/common/ui/BookingTimer'
+import { VoucherModal } from '@/components/customer/VoucherModal'
 
 export default function ConfirmBooking() {
   const navigate = useNavigate()
@@ -15,6 +16,42 @@ export default function ConfirmBooking() {
   const [voucherError, setVoucherError] = useState('')
   const [isValidating, setIsValidating] = useState(false)
   const [isLoadingQuote, setIsLoadingQuote] = useState(true)
+  const [isVoucherModalOpen, setIsVoucherModalOpen] = useState(false)
+
+  // Auto-calculated fields
+  const cartTotalAmount = booking.originalTotal || 0
+
+  // Load user's vouchers
+  const { data: userVouchers } = useQuery({
+    queryKey: ['my-vouchers-checkout'],
+    queryFn: () => userApi.getMyVouchers(),
+    staleTime: 0
+  })
+
+  // Auto Select Best Voucher when loaded
+  useEffect(() => {
+    if (userVouchers && userVouchers.length > 0 && cartTotalAmount > 0 && !booking.appliedVoucher) {
+      let maxDiscount = 0;
+      let bestVoucher = null;
+
+      userVouchers.forEach(v => {
+        if (v.status !== 'AVAILABLE') return;
+        if (v.minOrder && cartTotalAmount < v.minOrder) return;
+        
+        const actual = calculateActualDiscount(cartTotalAmount, v);
+        if (actual > maxDiscount) {
+          maxDiscount = actual;
+          bestVoucher = { ...v, code: v.code }; // Map properly
+        }
+      });
+
+      if (bestVoucher) {
+        // Assume bestVoucher has enough info, wait, we need to format it to match what validate does, 
+        // or just apply it directly since backend quote endpoint will recalculate it securely.
+        booking.applyVoucher(bestVoucher);
+      }
+    }
+  }, [userVouchers, cartTotalAmount]);
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -117,33 +154,42 @@ export default function ConfirmBooking() {
 
 
           <div className="card-cinema p-5">
-            <div className="flex items-center gap-2 mb-4">
-              <Tag className="w-4 h-4 text-gold-400" />
-              <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Mã giảm giá</h3>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Tag className="w-4 h-4 text-gold-400" />
+                <h3 className="text-sm font-semibold text-white uppercase tracking-wider">Mã ưu đãi</h3>
+              </div>
+              <button 
+                onClick={() => setIsVoucherModalOpen(true)}
+                className="text-xs font-bold text-brand-400 bg-brand-500/10 px-3 py-1.5 rounded hover:bg-brand-500/20 transition"
+              >
+                Chọn mã khác {userVouchers && userVouchers.length > 0 ? `(${userVouchers.length})` : ''}
+              </button>
             </div>
+            
             {booking.appliedVoucher ? (
               <div className="flex items-center justify-between p-3 rounded-xl
                 bg-green-500/10 border border-green-500/30">
                 <div>
-                  <p className="text-green-400 font-medium text-sm">{booking.appliedVoucher.code}</p>
-                  <p className="text-green-300/70 text-xs">{booking.appliedVoucher.description}</p>
+                  <p className="text-green-400 font-bold text-sm">✓ Mã Tốt Nhất: {booking.appliedVoucher.code}</p>
+                  <p className="text-green-300/80 text-xs mt-1">{booking.appliedVoucher.description || 'Đã áp dụng ưu đãi'}</p>
                 </div>
                 <button onClick={() => booking.clearVoucher()}
-                  className="text-gray-300 hover:text-white text-xs transition-colors">Xóa</button>
+                  className="text-gray-400 hover:text-white text-xs px-2 py-1 transition-colors">Xóa</button>
               </div>
             ) : (
-              <div className="flex gap-2">
-                <input value={voucherInput} onChange={e => setVoucherInput(e.target.value.toUpperCase())}
-                  placeholder="Nhập mã voucher" className="input-cinema flex-1 text-sm" />
-                <button onClick={applyVoucher}
-                  className="px-4 py-2 rounded-xl bg-brand-500/15 border border-brand-500/30
-                    text-brand-400 hover:bg-brand-500/25 transition-all text-sm font-medium">
-                  Áp dụng
+              <div className="flex justify-between items-center bg-cinema-800 p-3 rounded-xl border border-white/5">
+                <p className="text-cinema-400 text-sm italic">Chưa chọn mã giảm giá nào</p>
+                <button 
+                  onClick={() => setIsVoucherModalOpen(true)}
+                  className="text-sm text-brand-400 font-bold"
+                >
+                  Chọn ngay
                 </button>
               </div>
             )}
-            {voucherError && <p className="text-brand-400 text-xs mt-2">{voucherError}</p>}
-            {booking.warningMessage && <p className="text-brand-400 text-xs mt-2">{booking.warningMessage}</p>}
+            {voucherError && <p className="text-red-400 text-xs mt-3 bg-red-400/10 p-2 rounded">{voucherError}</p>}
+            {booking.warningMessage && <p className="text-amber-400 text-xs mt-3 bg-amber-400/10 p-2 rounded">{booking.warningMessage}</p>}
           </div>
 
           {/* Price breakdown */}
@@ -243,6 +289,26 @@ export default function ConfirmBooking() {
           </button>
         </div>
       </div>
+
+      <VoucherModal 
+        isOpen={isVoucherModalOpen}
+        onClose={() => setIsVoucherModalOpen(false)}
+        vouchers={userVouchers}
+        cartTotal={cartTotalAmount}
+        onSelectVoucher={(v) => { booking.applyVoucher(v); setVoucherError(''); }}
+        onManualClaim={async (code) => {
+          try {
+             // Directly validate with Backend and apply
+             const v = await voucherApi.validate(code);
+             booking.applyVoucher(v);
+             setVoucherError('');
+             setIsVoucherModalOpen(false);
+          } catch (err) {
+             setVoucherError(err?.response?.data?.message || 'Mã không hợp lệ hoặc đã hết hạn');
+             setIsVoucherModalOpen(false);
+          }
+        }}
+      />
     </div>
   )
 }

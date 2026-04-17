@@ -13,7 +13,7 @@
         <ImageButton android:id="@+id/btnBack" android:layout_width="40dp" android:layout_height="40dp"
             android:src="@drawable/ic_back" android:background="?selectableItemBackgroundBorderless" android:tint="@color/primary"/>
         <TextView android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1"
-            android:text="QUẢN LÝ GIFTCARD" android:textColor="@color/primary"
+            android:text="QUẢN LÝ VOUCHER" android:textColor="@color/primary"
             android:textSize="18sp" android:textStyle="bold" android:layout_marginStart="8dp"
             android:textAllCaps="true" android:letterSpacing="0.05"/>
     </LinearLayout>
@@ -36,14 +36,14 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="NẠP GIFTCARD"
+                android:text="LƯU MÃ VOUCHER"
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@color/on_surface"/>
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Nhập mã voucher để cộng dồn vào số dư tài khoản của bạn."
+                android:text="Nhập mã voucher để lưu vào tài khoản của bạn."
                 android:textColor="@color/on_surface_variant"
                 android:textSize="12sp"
                 android:layout_marginTop="4dp"
@@ -55,7 +55,7 @@
                 android:layout_height="56dp"
                 android:background="@drawable/bg_bottom_nav_rounded"
                 android:backgroundTint="@color/surface_container_lowest"
-                android:hint="Nhập mã quà tặng tại đây..."
+                android:hint="Nhập mã ưu đãi tại đây..."
                 android:textColorHint="#80adaaaa"
                 android:textColor="@color/on_surface"
                 android:paddingHorizontal="24dp"
@@ -85,7 +85,7 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:text="GIFTCARD CỦA TÔI"
+                    android:text="VOUCHER CỦA TÔI"
                     android:textSize="18sp"
                     android:textStyle="bold"
                     android:textColor="@color/on_surface"/>
@@ -129,53 +129,6 @@
                     android:nestedScrollingEnabled="false"
                     android:layout_marginBottom="32dp"/>
             </FrameLayout>
-
-            <!-- ── Mua Giftcard Mới Section ──────────────── -->
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="MUA GIFTCARD MỚI"
-                android:textSize="18sp"
-                android:textStyle="bold"
-                android:textColor="@color/on_surface"
-                android:layout_marginBottom="16dp"/>
-                
-            <androidx.cardview.widget.CardView
-                android:layout_width="match_parent"
-                android:layout_height="200dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="0dp">
-                
-                <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
-                    <!-- Placeholder backgroundImage -->
-                    <ImageView android:layout_width="match_parent" android:layout_height="match_parent"
-                        android:src="@drawable/ic_movie_placeholder" android:scaleType="centerCrop"/>
-                    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#66000000"/>
-                    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="@drawable/bg_gradient_bottom"/>
-                    
-                    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                        android:orientation="vertical" android:layout_gravity="bottom" android:padding="24dp">
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="SPECIAL EDITION" android:textColor="@color/primary"
-                            android:textSize="10sp" android:textStyle="bold" android:letterSpacing="0.1"/>
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Tặng Trải Nghiệm Cinema" android:textColor="@color/on_surface"
-                            android:textSize="20sp" android:textStyle="bold" android:layout_marginTop="4dp" android:layout_marginBottom="12dp"/>
-                            
-                        <LinearLayout android:layout_width="wrap_content" android:layout_height="wrap_content" android:orientation="horizontal">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="100K" android:textColor="@color/on_surface" android:textSize="10sp" android:textStyle="bold"
-                                android:background="@drawable/bg_chip_outline" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:layout_marginEnd="8dp"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="200K" android:textColor="@color/on_surface" android:textSize="10sp" android:textStyle="bold"
-                                android:background="@drawable/bg_chip_outline" android:paddingHorizontal="12dp" android:paddingVertical="4dp" android:layout_marginEnd="8dp"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                                android:text="MUA NGAY" android:textColor="@color/on_primary" android:textSize="10sp" android:textStyle="bold"
-                                android:background="@drawable/bg_chip_filled" android:backgroundTint="@color/primary" android:paddingHorizontal="12dp" android:paddingVertical="4dp"/>
-                        </LinearLayout>
-                    </LinearLayout>
-                </FrameLayout>
-            </androidx.cardview.widget.CardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 </LinearLayout>

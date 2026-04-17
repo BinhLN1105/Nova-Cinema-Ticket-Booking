@@ -9,3 +9,4 @@ import com.journeyapps.barcodescanner.CaptureActivity;
 public class PortraitCaptureActivity extends CaptureActivity {
     // No implementation needed, just used for Manifest declaration
 }
+

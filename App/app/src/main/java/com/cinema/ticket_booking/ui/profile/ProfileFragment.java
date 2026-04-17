@@ -110,6 +110,33 @@ public class ProfileFragment extends Fragment {
                 if (resource.message != null && resource.message.contains("401")) {
                     tokenManager.clearAll();
                     updateUI(false);
+                } else {
+                    // Mạng lỗi (Offline) -> Lấy dữ liệu đệm từ TokenManager
+                    binding.tvName.setText(tokenManager.getUserName() != null ? tokenManager.getUserName() : "Không rõ");
+                    binding.tvEmail.setText(tokenManager.getUserEmail() != null ? tokenManager.getUserEmail() : "Đang offline");
+                    
+                    binding.tvTierBadge.setText("⭐ TIER");
+                    binding.tvCurrentTier.setText("CẤP ĐỘ: OFFLINE");
+                    binding.tvCinePoints.setText("-");
+                    binding.tvPointsToNext.setText("KHÔNG THỂ TẢI EXP");
+                    binding.progressBarRank.setProgress(0);
+
+                    if (tokenManager.getAvatarUrl() != null && !tokenManager.getAvatarUrl().isEmpty()) {
+                        binding.ivAvatar.clearColorFilter();
+                        Glide.with(this)
+                                .load(tokenManager.getAvatarUrl())
+                                .transform(new com.bumptech.glide.load.resource.bitmap.CircleCrop())
+                                .placeholder(R.drawable.ic_profile)
+                                .error(R.drawable.ic_profile)
+                                .into(binding.ivAvatar);
+                    } else {
+                        Glide.with(this).clear(binding.ivAvatar);
+                        binding.ivAvatar.setImageResource(R.drawable.ic_profile);
+                    }
+
+                    if (resource.message != null && !resource.message.isEmpty()) {
+                        SnackbarHelper.showError(binding.getRoot(), "Đang xem ở chế độ Offline");
+                    }
                 }
             }
         });
@@ -156,11 +183,9 @@ public class ProfileFragment extends Fragment {
 
             binding.btnNavReviews.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
             binding.btnNavHistory.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
-            binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment)); // Watchlist could map to
-                                                                                               // Search/Discover or
-                                                                                               // specific Screen
+            binding.btnNavWatchlist.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
             binding.btnNavGiftCards.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
+                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
 
             binding.btnRedeem.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
@@ -250,8 +275,19 @@ public class ProfileFragment extends Fragment {
     }
 
     @Override
+    public void onResume() {
+        super.onResume();
+        // Mỗi lần quay lại Profile, reload dữ liệu mới nhất (CP, EXP, tier...)
+        // Dùng refreshUserProfile() thay vì loadUserProfile() vì load sẽ skip nếu đã có data
+        if (tokenManager.isLoggedIn() && viewModel != null) {
+            viewModel.refreshUserProfile();
+        }
+    }
+
+    @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
 }
+

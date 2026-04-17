@@ -48,8 +48,7 @@ public class VoucherFragment extends Fragment {
             if (code.isEmpty()) {
                 SnackbarHelper.showError(binding.getRoot(), "Vui lòng nhập mã voucher");
             } else {
-                SnackbarHelper.showSuccess(binding.getRoot(), "Tính năng nạp thẻ đang được phát triển!");
-                binding.etVoucherCode.setText("");
+                viewModel.claimVoucher(code);
             }
         });
 
@@ -58,9 +57,8 @@ public class VoucherFragment extends Fragment {
 
         viewModel.getVouchers().observe(getViewLifecycleOwner(), resource -> {
             binding.progressBar.setVisibility(View.GONE);
-            if (resource.isSuccess() && resource.data != null
-                    && resource.data.getContent() != null) {
-                List<VoucherSummary> vouchers = resource.data.getContent();
+            if (resource.isSuccess() && resource.data != null) {
+                List<VoucherSummary> vouchers = resource.data;
                 if (vouchers.isEmpty()) {
                     binding.tvEmpty.setVisibility(View.VISIBLE);
                     binding.rvVouchers.setVisibility(View.GONE);
@@ -68,6 +66,27 @@ public class VoucherFragment extends Fragment {
                     binding.tvEmpty.setVisibility(View.GONE);
                     binding.rvVouchers.setVisibility(View.VISIBLE);
                     binding.rvVouchers.setAdapter(new VoucherAdapter(vouchers));
+                }
+            } else if (resource.isError()) {
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
+            }
+        });
+
+        viewModel.getClaimResult().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null) return;
+            if (resource.isLoading()) {
+                binding.btnApplyVoucher.setEnabled(false);
+                binding.btnApplyVoucher.setText("Đang xử lý...");
+            } else {
+                binding.btnApplyVoucher.setEnabled(true);
+                binding.btnApplyVoucher.setText("Lưu mã");
+                if (resource.isSuccess()) {
+                    SnackbarHelper.showSuccess(binding.getRoot(), "Lưu mã ưu đãi thành công!");
+                    binding.etVoucherCode.setText("");
+                    viewModel.clearClaimResult();
+                } else {
+                    SnackbarHelper.showError(binding.getRoot(), resource.message);
+                    viewModel.clearClaimResult();
                 }
             }
         });
@@ -99,8 +118,8 @@ public class VoucherFragment extends Fragment {
             VoucherSummary v = items.get(position);
             holder.tvCode.setText(v.getCode());
             holder.tvDescription.setText(v.getDescription());
-            holder.tvValidTo.setText("HSD: " + (v.getValidTo() != null
-                    ? v.getValidTo().substring(0, 10)
+            holder.tvValidTo.setText("HSD: " + (v.getEndDate() != null
+                    ? v.getEndDate().substring(0, 10)
                     : "N/A"));
 
             String discount;
@@ -110,6 +129,30 @@ public class VoucherFragment extends Fragment {
                 discount = String.format("-%,.0f₫", v.getDiscountValue());
             }
             holder.tvDiscount.setText(discount);
+
+            // ── Status Visualization ─────────────────────────────────────────
+            String status = v.getStatus() != null ? v.getStatus() : "AVAILABLE";
+            switch (status) {
+                case "USED":
+                    holder.tvStatus.setText("Đã sử dụng");
+                    holder.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0x33888888));
+                    holder.tvStatus.setTextColor(0xFF888888);
+                    holder.itemView.setAlpha(0.5f);
+                    break;
+                case "PENDING":
+                    holder.tvStatus.setText("Đang xử lý");
+                    holder.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0x33FF9800));
+                    holder.tvStatus.setTextColor(0xFFFF9800);
+                    holder.itemView.setAlpha(1.0f);
+                    break;
+                case "AVAILABLE":
+                default:
+                    holder.tvStatus.setText("Sẵn sàng");
+                    holder.tvStatus.setBackgroundTintList(android.content.res.ColorStateList.valueOf(0x33669dff));
+                    holder.tvStatus.setTextColor(0xFF669DFF);
+                    holder.itemView.setAlpha(1.0f);
+                    break;
+            }
         }
 
         @Override
@@ -118,7 +161,7 @@ public class VoucherFragment extends Fragment {
         }
 
         static class VH extends RecyclerView.ViewHolder {
-            TextView tvCode, tvDescription, tvValidTo, tvDiscount;
+            TextView tvCode, tvDescription, tvValidTo, tvDiscount, tvStatus;
 
             VH(@NonNull View itemView) {
                 super(itemView);
@@ -126,7 +169,9 @@ public class VoucherFragment extends Fragment {
                 tvDescription = itemView.findViewById(R.id.tvDescription);
                 tvValidTo = itemView.findViewById(R.id.tvValidTo);
                 tvDiscount = itemView.findViewById(R.id.tvDiscount);
+                tvStatus = itemView.findViewById(R.id.tvStatus);
             }
         }
     }
 }
+

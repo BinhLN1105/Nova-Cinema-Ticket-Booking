@@ -29,3 +29,4 @@ public class ChatMessage {
         return isLoading;
     }
 }
+

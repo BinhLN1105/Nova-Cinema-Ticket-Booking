@@ -103,3 +103,4 @@ public class ChatbotBottomSheet extends BottomSheetDialogFragment {
         binding = null;
     }
 }
+

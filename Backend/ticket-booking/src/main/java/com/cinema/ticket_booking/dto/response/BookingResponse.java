@@ -51,6 +51,11 @@ public class BookingResponse implements Serializable {
     private BigDecimal totalAmount; // Tổng sau cùng
     private String warningMessage; // Thông báo cảnh báo (ví dụ Voucher hết hạn)
 
+    // ── CinePoint hybrid payment fields ─────────────────────────────────
+    private Long pointsUsed;
+    private BigDecimal pointDiscount;
+    private BigDecimal remainingAmount;
+
     // QR Code (chỉ có khi status = PAID)
     private String qrCode;
 
@@ -104,5 +109,6 @@ public class BookingResponse implements Serializable {
         private BookingStatus status;
         private PaymentMethod paymentMethod;
         private LocalDateTime createdAt;
+        private LocalDateTime expiresAt;
     }
 }

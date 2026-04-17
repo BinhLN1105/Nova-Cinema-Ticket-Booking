@@ -292,3 +292,4 @@ public class SelectSeatFragment extends Fragment {
         binding = null;
     }
 }
+

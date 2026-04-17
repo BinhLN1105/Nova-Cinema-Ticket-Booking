@@ -3,12 +3,14 @@ package com.cinema.ticket_booking.controller;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.MovieResponse;
 import com.cinema.ticket_booking.dto.response.PromotionResponse;
+import com.cinema.ticket_booking.enums.PlatformType;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.PromotionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -30,8 +32,9 @@ public class HomeLayoutController {
      * Returns a list of featured movies based on Admin configuration (Mode/Manual).
      */
     @GetMapping("/featured-movies")
-    public ResponseEntity<ApiResponse<List<MovieResponse.Summary>>> getFeaturedMovies() {
-        return ResponseEntity.ok(ApiResponse.success(movieService.getFeaturedMovies()));
+    public ResponseEntity<ApiResponse<List<MovieResponse.Summary>>> getFeaturedMovies(
+            @RequestParam(defaultValue = "ANDROID") PlatformType platform) {
+        return ResponseEntity.ok(ApiResponse.success(movieService.getFeaturedMovies(platform)));
     }
 
     /**

@@ -172,3 +172,4 @@ public class SearchFragment extends Fragment {
         binding = null;
     }
 }
+

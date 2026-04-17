@@ -27,6 +27,12 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         createIfMissing("CLEANUP_TIME_MINUTES", "15", "Thời gian dọn phòng sau mỗi suất chiếu (phút)");
         createIfMissing("CANCEL_MIN_HOURS_BEFORE", "2", "Thời gian tối thiểu cho phép hủy vé trước giờ chiếu (giờ)");
         createIfMissing("REFUND_PERCENT_CINEPOINT", "100", "Phần trăm số tiền hoàn lại dưới dạng CinePoint (%)");
+        
+        // Homepage Banner Configs
+        createIfMissing("HERO_SECTION_MODE", "TOP_SALES", "Chế độ hiển thị banner Android (TOP_RATING, NEW_RELEASE, MANUAL, TOP_SALES)");
+        createIfMissing("HERO_SECTION_IDS", "", "Danh sách ID phim cho banner Android (Dùng cho chế độ MANUAL)");
+        createIfMissing("HERO_SECTION_WEB_MODE", "TOP_RATING", "Chế độ hiển thị banner Web (TOP_RATING, NEW_RELEASE, MANUAL, TOP_SALES)");
+        createIfMissing("HERO_SECTION_WEB_IDS", "", "Danh sách ID phim cho banner Web (Dùng cho chế độ MANUAL)");
     }
 
     private void createIfMissing(String key, String defaultValue, String description) {

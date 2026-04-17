@@ -98,6 +98,13 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("status") BookingStatus status,
             @Param("thresholdDate") LocalDateTime thresholdDate);
 
+    // ── Voucher Lazy Release: check if a voucher is TRULY locked ─────────
+    boolean existsByUserIdAndVoucherIdAndStatusAndExpiresAtAfter(
+            UUID userId,
+            UUID voucherId,
+            BookingStatus status,
+            LocalDateTime now);
+
     // ── Dashboard Admin Queries ──────────────────────────────────────────
 
     @Query(value = "SELECT COALESCE(SUM(b.total_amount), 0) FROM bookings b " +

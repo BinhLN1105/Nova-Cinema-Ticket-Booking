@@ -56,3 +56,4 @@ public class MainViewModel extends ViewModel {
         return userRepository.updateNotificationSettings(marketing, transaction);
     }
 }
+

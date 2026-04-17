@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.controller;
 
 import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
+import com.cinema.ticket_booking.dto.request.ClaimVoucherRequest;
 import com.cinema.ticket_booking.dto.request.FcmTokenRequest;
 import com.cinema.ticket_booking.dto.request.NotificationSettingsRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
@@ -63,7 +64,7 @@ public class UserController {
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody NotificationSettingsRequest request) {
         return ResponseEntity.ok(ApiResponse.success(
-                userService.updateNotificationSettings(currentUser.getId(), request), 
+                userService.updateNotificationSettings(currentUser.getId(), request),
                 "Cập nhật cài đặt thông báo thành công"));
     }
 
@@ -72,7 +73,7 @@ public class UserController {
     public ResponseEntity<ApiResponse<UserResponse>> uploadAvatar(
             @AuthenticationPrincipal User currentUser,
             @RequestParam("file") MultipartFile file) throws IOException {
-        
+
         // 1. Validate File Size (<10MB)
         long maxSize = 10 * 1024 * 1024;
         if (file.getSize() > maxSize) {
@@ -95,10 +96,11 @@ public class UserController {
             @AuthenticationPrincipal User currentUser,
             @RequestBody Map<String, String> request) throws IOException {
         String url = request.get("url");
-        if (url == null || url.isBlank()) throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
-        
+        if (url == null || url.isBlank())
+            throw new IllegalArgumentException("Vui lòng cung cấp URL ảnh");
+
         return ResponseEntity.ok(ApiResponse.success(
-                userService.updateAvatarFromUrl(currentUser.getId(), url), 
+                userService.updateAvatarFromUrl(currentUser.getId(), url),
                 "Cập nhật ảnh đại diện từ URL thành công"));
     }
 
@@ -111,12 +113,12 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.success(null, "Đổi mật khẩu thành công"));
     }
 
-    // POST /api/v1/users/me/vouchers/{voucherId}
-    @PostMapping("/me/vouchers/{voucherId}")
-    public ResponseEntity<ApiResponse<Void>> saveVoucher(
+    // POST /api/v1/users/me/vouchers/claim
+    @PostMapping("/me/vouchers/claim")
+    public ResponseEntity<ApiResponse<Void>> claimVoucher(
             @AuthenticationPrincipal User currentUser,
-            @PathVariable UUID voucherId) {
-        userVoucherService.saveVoucher(currentUser.getId(), voucherId);
+            @Valid @RequestBody ClaimVoucherRequest request) {
+        userVoucherService.claimVoucher(currentUser.getId(), request.getCode());
         return ResponseEntity.ok(ApiResponse.success(null, "Đã lưu mã ưu đãi vào ví"));
     }
 

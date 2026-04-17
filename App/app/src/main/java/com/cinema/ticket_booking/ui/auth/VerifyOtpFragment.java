@@ -107,3 +107,4 @@ public class VerifyOtpFragment extends Fragment {
         binding = null;
     }
 }
+

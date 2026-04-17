@@ -20,7 +20,7 @@ import ImageUploader from '@/components/admin/ImageUploader'
 const voucherSchema = z.object({
   code:          z.string().min(3, 'Mã ít nhất 3 ký tự').toUpperCase(),
   description:   z.string().min(5, 'Mô tả ít nhất 5 ký tự'),
-  discountType:  z.enum(['PERCENTAGE', 'FIXED']),
+  discountType:  z.enum(['PERCENTAGE', 'FIXED_AMOUNT']),
   discountValue: z.coerce.number().min(1, 'Giá trị phải > 0'),
   minOrder:      z.coerce.number().min(0),
   maxDiscount:   z.coerce.number().optional(),
@@ -358,7 +358,7 @@ function VouchersTab() {
             <Field label="Loại giảm giá" required>
               <Select {...register('discountType')} options={[
                 { value: 'PERCENTAGE', label: '% Phần trăm' },
-                { value: 'FIXED',      label: '₫ Số tiền cố định' },
+                { value: 'FIXED_AMOUNT',      label: '₫ Số tiền cố định' },
               ]} />
             </Field>
             <Field label={discountType === 'PERCENTAGE' ? 'Phần trăm giảm (%)' : 'Số tiền giảm (₫)'}

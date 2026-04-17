@@ -64,3 +64,4 @@ public class NotificationFragment extends Fragment {
         binding = null;
     }
 }
+

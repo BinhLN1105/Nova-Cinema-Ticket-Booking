@@ -130,14 +130,18 @@ public interface ApiService {
         @GET("payments/booking/{bookingId}")
         Call<ApiResponse<PaymentResponse>> getPaymentStatus(@Path("bookingId") String bookingId);
 
+        @POST("payments/wallet/{bookingId}")
+        Call<ApiResponse<PaymentResponse>> payWithWallet(@Path("bookingId") String bookingId);
+
         // ── Voucher ───────────────────────────────────────────────────────────
         @GET("vouchers/validate")
         Call<ApiResponse<VoucherSummary>> validateVoucher(@Query("code") String code);
 
-        @GET("vouchers/me")
-        Call<ApiResponse<PageResponse<VoucherSummary>>> getMyVouchers(
-                        @Query("page") int page,
-                        @Query("size") int size);
+        @GET("users/me/vouchers")
+        Call<ApiResponse<List<VoucherSummary>>> getMyVouchers();
+
+        @POST("users/me/vouchers/claim")
+        Call<ApiResponse<Void>> claimVoucher(@Body ClaimVoucherRequest request);
 
         @GET("vouchers/active")
         Call<ApiResponse<List<VoucherSyncResponse>>> getActiveVouchers();

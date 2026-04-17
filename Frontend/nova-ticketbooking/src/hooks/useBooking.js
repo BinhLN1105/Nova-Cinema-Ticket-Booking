@@ -14,7 +14,11 @@ export function useBooking() {
       console.log("Booking created successfully:", booking);
       window.scrollTo(0, 0);
       if (booking?.id) {
-        navigate(`/booking/payment/${booking.id}`);
+        if (booking.status === 'PAID') {
+          navigate(`/booking/result/${booking.id}`);
+        } else {
+          navigate(`/booking/payment/${booking.id}`);
+        }
         // Delay reset để đảm bảo không mất state khi redirect
         setTimeout(() => store.reset(), 500);
       } else {

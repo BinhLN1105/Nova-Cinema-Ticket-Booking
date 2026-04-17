@@ -26,3 +26,4 @@ public class SearchViewModel extends ViewModel {
         repo.getCinemas(city).observeForever(cinemas::setValue);
     }
 }
+

@@ -103,15 +103,18 @@ public class HomeViewModel extends ViewModel {
     private void loadMovies() {
         movieRepository.getMovies("NOW_SHOWING", 0, 20)
                 .observeForever(nowShowing::setValue);
+                
+        movieRepository.getFeaturedMovies()
+                .observeForever(featuredMovies::setValue);
+
         movieRepository.getMovies("COMING_SOON", 0, 20)
                 .observeForever(comingSoon::setValue);
         voucherRepository.getActiveVouchers()
                 .observeForever(activeVouchers::setValue);
         promotionRepository.getActivePromotions()
                 .observeForever(activePromotions::setValue);
-        movieRepository.getFeaturedMovies()
-                .observeForever(featuredMovies::setValue);
         promotionRepository.getPopupPromotion()
                 .observeForever(popupPromotion::setValue);
     }
 }
+

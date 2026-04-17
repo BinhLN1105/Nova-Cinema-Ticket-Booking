@@ -18,6 +18,15 @@ public class PaymentResponse {
     @SerializedName("paidAt")
     private String paidAt;
 
+    @SerializedName("pointsUsed")
+    private Long pointsUsed;
+
+    @SerializedName("pointDiscount")
+    private Double pointDiscount;
+
+    @SerializedName("remainingAmount")
+    private Double remainingAmount;
+
     public String getId() {
         return id;
     }
@@ -40,5 +49,17 @@ public class PaymentResponse {
 
     public String getPaidAt() {
         return paidAt;
+    }
+
+    public Long getPointsUsed() {
+        return pointsUsed;
+    }
+
+    public Double getPointDiscount() {
+        return pointDiscount;
+    }
+
+    public Double getRemainingAmount() {
+        return remainingAmount;
     }
 }

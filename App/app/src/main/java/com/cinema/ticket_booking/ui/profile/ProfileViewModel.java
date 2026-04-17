@@ -36,3 +36,4 @@ public class ProfileViewModel extends ViewModel {
         return userRepo.updateNotificationSettings(marketing, transaction);
     }
 }
+

@@ -6,6 +6,6 @@ import java.util.List;
 import java.util.UUID;
 
 public interface UserVoucherService {
-    void saveVoucher(UUID userId, UUID voucherId);
+    void claimVoucher(UUID userId, String code);
     List<VoucherResponse> getMyVouchers(UUID userId);
 }

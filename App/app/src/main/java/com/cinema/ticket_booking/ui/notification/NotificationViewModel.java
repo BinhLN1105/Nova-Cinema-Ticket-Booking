@@ -30,3 +30,4 @@ public class NotificationViewModel extends ViewModel {
         repo.getNotifications(0).observeForever(notifications::setValue);
     }
 }
+

@@ -55,3 +55,4 @@ public class HeroAdapter extends RecyclerView.Adapter<HeroAdapter.HeroViewHolder
         }
     }
 }
+

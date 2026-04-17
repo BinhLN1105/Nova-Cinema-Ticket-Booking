@@ -42,23 +42,13 @@ public class PaymentFragment extends Fragment {
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (binding != null && binding.webView.canGoBack()) {
-                    binding.webView.goBack();
-                } else {
-                    Navigation.findNavController(view).popBackStack();
-                }
+                // Thoát cực gắt: Xóa toàn bộ stack và nhảy thẳng về Home
+                Navigation.findNavController(view).popBackStack(R.id.homeFragment, false);
             }
         });
 
         binding.btnBack.setOnClickListener(v -> {
-            boolean handled = false;
-            if (binding.webView.canGoBack()) {
-                binding.webView.goBack();
-                handled = true;
-            }
-            if (!handled) {
-                Navigation.findNavController(view).popBackStack();
-            }
+            Navigation.findNavController(view).popBackStack(R.id.homeFragment, false);
         });
 
         // Tạo payment URL rồi load WebView
@@ -164,6 +154,20 @@ public class PaymentFragment extends Fragment {
             public void onPageFinished(WebView wv, String url) {
                 android.util.Log.d("PaymentFragment", "Page finished: " + url);
                 binding.progressBar.setVisibility(View.GONE);
+                
+                // Tiêm JS để cố gắng ẩn thanh Header/Nút back của VNPay Web (nếu có)
+                wv.evaluateJavascript(
+                    "try {" +
+                    // Cố gắng ẩn các element chứa nút "back" ở vnpay
+                    "   var headers = document.querySelectorAll('header, .header, .nav, .navbar');" +
+                    "   for (var i = 0; i < headers.length; i++) {" +
+                    "       headers[i].style.display = 'none';" +
+                    "   }" +
+                    "   var backs = document.querySelectorAll('[class*=\"back\" i], [id*=\"back\" i]');" +
+                    "   for (var i = 0; i < backs.length; i++) {" +
+                    "       backs[i].style.display = 'none';" +
+                    "   }" +
+                    "} catch(e) {}", null);
             }
 
             @Override
@@ -192,3 +196,4 @@ public class PaymentFragment extends Fragment {
         binding = null;
     }
 }
+

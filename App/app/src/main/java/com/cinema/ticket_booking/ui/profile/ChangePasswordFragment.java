@@ -140,3 +140,4 @@ public class ChangePasswordFragment extends Fragment {
         binding = null;
     }
 }
+

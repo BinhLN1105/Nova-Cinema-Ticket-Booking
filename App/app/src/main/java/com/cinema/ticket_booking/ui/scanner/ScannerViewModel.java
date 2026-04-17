@@ -35,3 +35,4 @@ public class ScannerViewModel extends ViewModel {
         bookingRepo.checkIn(qrCode).observeForever(checkInResult::setValue);
     }
 }
+

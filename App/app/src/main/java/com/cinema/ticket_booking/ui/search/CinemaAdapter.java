@@ -71,3 +71,4 @@ public class CinemaAdapter extends RecyclerView.Adapter<CinemaAdapter.CinemaView
         }
     }
 }
+
