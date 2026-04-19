@@ -13,7 +13,7 @@ __pycache__/
 .env
 
 # Database (Local Persistence)
-chroma_db/
+faiss_index/
 
 # IDE
 .vscode/

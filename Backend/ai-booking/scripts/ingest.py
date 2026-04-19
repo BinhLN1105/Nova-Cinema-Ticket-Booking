@@ -53,16 +53,16 @@ def run_ingestion(data_dir: str = "data"):
     print("   (Lần đầu sẽ download model ~500MB, chờ 1–2 phút...)")
     embedder = EmbeddingModel(cfg.embedding_model)
 
-    print(f"\n💾 Lưu vào ChromaDB tại: {cfg.chroma_persist_dir}")
-    store = VectorStore(embedder)
+    print(f"\n💾 Lưu vào FAISS index tại: {cfg.vector_db_dir}")
+    store = VectorStore(embedder, persist_dir=cfg.vector_db_dir)
     store.reset_collection()   # Xóa cũ, nạp lại hoàn toàn
     store.add_documents(chunks)
 
     elapsed = time.time() - start
     print(f"\n{'=' * 55}")
     print(f"  ✅ Hoàn thành trong {elapsed:.1f}s")
-    print(f"  📊 {len(chunks)} chunks đã lưu vào ChromaDB")
-    print(f"  📁 Vector DB tại: {cfg.chroma_persist_dir}")
+    print(f"  📊 {len(chunks)} chunks đã lưu vào FAISS index")
+    print(f"  📁 Index tại: {cfg.vector_db_dir}")
     print("=" * 55)
 
 

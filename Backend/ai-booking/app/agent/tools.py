@@ -30,7 +30,7 @@ def _get_vector_store() -> VectorStore:
     embedder = EmbeddingModel(cfg.embedding_model)
     return VectorStore(
         embedder,
-        persist_dir=cfg.chroma_persist_dir,
+        persist_dir=cfg.vector_db_dir,
         collection_name=cfg.chroma_collection
     )
 

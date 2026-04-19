@@ -8,6 +8,7 @@ import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import androidx.navigation.NavController;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentRegisterBinding;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -53,7 +54,7 @@ public class RegisterFragment extends Fragment {
                 case LOADING -> binding.progressBar.setVisibility(View.VISIBLE);
                 case SUCCESS -> {
                     binding.progressBar.setVisibility(View.GONE);
-                    androidx.navigation.NavController navController = Navigation.findNavController(requireView());
+                    NavController navController = Navigation.findNavController(requireView());
                     if (navController.getCurrentDestination() != null &&
                             navController.getCurrentDestination().getId() == R.id.registerFragment) {
                         navController.navigate(R.id.action_register_to_home);
@@ -73,4 +74,3 @@ public class RegisterFragment extends Fragment {
         binding = null;
     }
 }
-

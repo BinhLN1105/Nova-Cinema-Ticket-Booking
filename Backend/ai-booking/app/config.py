@@ -14,15 +14,16 @@ class Settings(BaseSettings):
     # LLM
     gemini_api_key:  str = ""
     openai_api_key:  str = ""
+    cohere_api_key:  str = ""
     llm_model:       str = "gemini-2.5-flash"
     llm_temperature: float = 0.1
 
-    # ChromaDB
-    chroma_persist_dir: str = "./chroma_db"
+    # Vector DB (FAISS)
+    vector_db_dir:     str = "./faiss_index"
     chroma_collection:  str = "nova_knowledge"
 
     # Embedding
-    embedding_model: str = "intfloat/multilingual-e5-base"
+    embedding_model: str = "embed-multilingual-v3.0"
 
     # Chunking
     chunk_size:    int = 400

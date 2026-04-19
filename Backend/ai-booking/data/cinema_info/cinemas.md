@@ -22,7 +22,7 @@
 | Loại ghế | Thứ 2 - Thứ 5 | Thứ 6 - CN & Lễ |
 | :--- | :--- | :--- |
 | Ghế đơn (Standard) | 85.000 VNĐ | 110.000 VNĐ |
-| Ghế đôi (Sweetbox) | 190.000 VNĐ | 230.000 VNĐ |
+| Ghế đôi (Couple) | 190.000 VNĐ | 230.000 VNĐ |
 | Ghế VIP (Premium) | 120.000 VNĐ | 150.000 VNĐ |
 
 *Lưu ý: Hệ thống tự động áp dụng mức giá theo loại ghế khi bạn chọn ghế.*

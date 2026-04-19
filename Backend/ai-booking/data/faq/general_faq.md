@@ -9,13 +9,14 @@
 ### 2. Hạng thành viên (Membership Tiers)
 Hệ thống NovaTicket phân chia 3 hạng thành viên dựa trên tổng chi tiêu:
 - **BRONZE**: Thành viên mới đăng ký.
-- **GOLD**: Tích lũy trên 2.000 điểm. Quyền lợi: Ưu tiên chọn ghế đẹp, tích điểm x1.2.
-- **DIAMOND**: Tích lũy trên 5.000 điểm. Quyền lợi: Tích điểm x1.5, vé xem phim miễn phí trong tháng sinh nhật.
+- **SILVER**: Tích lũy trên 500 điểm. Quyền lợi: Ưu tiên chọn ghế đẹp, tích điểm x1.2, quà lưu niệm.
+- **GOLD**: Tích lũy trên 3.000 điểm. Quyền lợi: Ưu tiên chọn ghế đẹp, tích điểm x1.5, quà lưu niệm.
+- **DIAMOND**: Tích lũy trên 10.000 điểm. Quyền lợi: Tích điểm x2, vé xem phim miễn phí trong tháng sinh nhật, quà lưu niệm.
 
 ## Câu hỏi thường gặp (FAQ)
 
 ### 1. Tôi có thể hủy vé đã đặt không?
-Có. Bạn có thể hủy vé trực tiếp trong mục "Vé của tôi" trên ứng dụng. Lưu ý: Phải thực hiện hủy **ít nhất 2 giờ** trước khi suất chiếu bắt đầu.
+Có. Bạn có thể hủy vé trực tiếp trong mục "Vé của tôi" trên ứng dụng. Lưu ý: Phải thực hiện hủy **ít nhất 2 giờ** trước khi suất chiếu bắt đầu hoặc liên hệ hotline 1900 1234 để được hỗ trợ.
 
 ### 2. Sau khi hủy vé, tôi nhận lại tiền bằng cách nào?
 Tiền vé sau khi hủy sẽ được hoàn lại 100% dưới dạng **CinePoint** vào tài khoản của bạn. Bạn có thể dùng điểm này để thanh toán cho lần đặt vé tiếp theo.

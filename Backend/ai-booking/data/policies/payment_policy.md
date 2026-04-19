@@ -4,6 +4,7 @@
 NovaTicket sử dụng cổng thanh toán **VNPay** làm giải pháp chính. Bạn có thể thanh toán qua:
 - **Ứng dụng ngân hàng (VNPAY-QR)**: Quét mã QR hoặc chuyển hướng thẳng đến App ngân hàng.
 - **Thẻ ATM nội địa**: Yêu cầu thẻ đã đăng ký Internet Banking.
+- **Ví điện tử Momo**: Hiện đang trong quá trình tích hợp.
 - **Điểm CinePoint**: Thanh toán bằng số dư điểm thưởng tích lũy trong tài khoản.
 
 ## 2. Quy trình xử lý lỗi thanh toán
