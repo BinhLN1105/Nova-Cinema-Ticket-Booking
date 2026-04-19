@@ -35,11 +35,12 @@ Dự án tích hợp sâu các tiện ích thanh toán trực tuyến (`VNPay`),
 
 ## 💻 Công Nghệ Sử Dụng
 
-- **📱 Mobile App**: Java / Kotlin (Android Native), Navigation Graph, ViewModel, Retrofit.
-- **🖥️ Web Frontend**: React.js, Zustand (State Management), Tailwind CSS, Vite.
-- **⚙️ Backend Core**: Java 21, Spring Boot 3+, Spring Security (JWT, Google OAuth2), Hibernate / JPA.
+- **📱 Mobile App**: Java (Android Native), MVVM, Hilt, Navigation Component, Retrofit 2.
+- **🗚️ Web Frontend**: React.js, Zustand (State Management), Tailwind CSS, Vite.
+- **⚙️ Backend Core**: Java 21, Spring Boot 4, Spring Security (JWT, Google OAuth2), Hibernate / JPA, Flyway.
+- **🤖 AI Service**: Python 3.10+, FastAPI, LangChain, **FAISS** (Vector DB), **Cohere API** (Embedding), **Google Gemini API** (LLM).
 - **🗄️ Database & Cache**: PostgreSQL (Supabase), Redis (Token Blacklisting & Caching).
-- **🔌 3rd Party Integration**: VNPay API, Firebase Cloud Messaging (FCM), Cloudinary/S3 (Image Storage).
+- **🔌 3rd Party Integration**: VNPay API, Firebase Cloud Messaging (FCM), Cloudinary (Image Storage).
 
 ---
 
@@ -56,14 +57,14 @@ Dự án tích hợp sâu các tiện ích thanh toán trực tuyến (`VNPay`),
 
 ```text
 .
-├── App/                            # Ứng dụng Mobile Android (Client application)
-├── Backend/                        # Dịch vụ Backend
-│   └── ticket-booking/             # Project Spring Boot API
+├── App/                            # Ứng dụng Mobile Android
+├── Backend/
+│   ├── ticket-booking/             # Project Spring Boot API
+│   └── ai-booking/                 # Python AI RAG Service (FastAPI)
 ├── Frontend/                       # Web Frontend (Admin/Staff CMS & POS System)
-├── Database/                       # Scripts SQL cấu trúc, backup dữ liệu
-├── docs/                           # Tài liệu thiết kế hệ thống bổ sung
-├── Cinema_Entity_Design.docx       # Tài liệu thiết kế Database (ERD)
-└── structure.txt                   # Phân lớp kiến trúc dự án
+├── Database/                       # Scripts SQL cấu trúc
+├── docs/                           # Tài liệu thiết kế hệ thống
+└── Cinema_Entity_Design.docx       # Tài liệu thiết kế Database (ERD)
 ```
 
 ---
@@ -128,15 +129,27 @@ npm run dev
 2. Đợi Sync Gradle. Cấu hình file `local.properties` (ví dụ: `BASE_URL=http://localhost:8080/api/`).
 3. Chạy App trên Emulator hoặc thiết bị thật.
 
-### 4️⃣ Khởi chạy AI RAG Server (Python)
-Đây là service đảm nhận việc tìm kiếm phim theo Context bằng VectorDB và giao tiếp model LLM.
+### 4️⃣ Khởi chạy AI RAG Service (Python)
+Dịch vụ AI chịu trách nhiệm trả lời câu hỏi người dùng dựa trên ngữ cảnh (RAG) và tích hợp với Java API.
+- **Embedding**: Cohere API (`embed-multilingual-v3.0`) — không cần GPU.
+- **LLM**: Google Gemini API (`gemini-2.5-flash`) — miễn phí cao.
+- **Vector DB**: FAISS (lưu trữ local, không cần server riêng).
 
 ```bash
-cd ai-booking
+cd Backend/ai-booking
+python -m venv venv
+venv\Scripts\activate     # Windows
 pip install -r requirements.txt
-uvicorn main:app --reload
+
+# Lần đầu: Nạp dữ liệu vào FAISS index
+python scripts/ingest.py
+
+# Khởi động server
+uvicorn app.main:app --reload --port 8000
 ```
 > 💡 AI FastAPI Server sẽ hoạt động tại: `http://localhost:8000`
+> 
+> ⚠️ Cần có `GEMINI_API_KEY` và `COHERE_API_KEY` được khai báo trong file `Backend/ai-booking/.env`.
 
 ---
 

@@ -21,10 +21,13 @@ public class FlywayConfig {
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
                 // Quan trọng: Tắt transactional lock để tương thích với Supabase Transaction
-                // Pooler (port 6543/5432)
+                // Pooler
                 .configuration(Collections.singletonMap("flyway.postgresql.transactional.lock", "false"))
+                // .validateOnMigrate(false) // Đã sửa xong - có thể bật lại hoặc xóa nếu muốn
+                // .repair()
                 .load();
 
+        // flyway.repair(); // Đã chạy xong một lần, bây giờ có thể comment lại
         flyway.migrate();
         return flyway;
     }
