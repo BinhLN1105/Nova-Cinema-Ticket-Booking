@@ -633,10 +633,15 @@ public class BookingServiceImpl implements BookingService {
             if (booking.getCinema() != null) {
                 booking.getCinema().getName();
             }
-            if (booking.getShowtime() != null && booking.getShowtime().getScreen() != null) {
-                booking.getShowtime().getScreen().getName();
-                if (booking.getShowtime().getScreen().getCinema() != null) {
-                    booking.getShowtime().getScreen().getCinema().getName();
+            if (booking.getShowtime() != null) {
+                if (booking.getShowtime().getMovie() != null) {
+                    booking.getShowtime().getMovie().getTitle();
+                }
+                if (booking.getShowtime().getScreen() != null) {
+                    booking.getShowtime().getScreen().getName();
+                    if (booking.getShowtime().getScreen().getCinema() != null) {
+                        booking.getShowtime().getScreen().getCinema().getName();
+                    }
                 }
             }
             // Force load combos
