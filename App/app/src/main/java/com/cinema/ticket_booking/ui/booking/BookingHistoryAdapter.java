@@ -186,16 +186,27 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                 }
                 
             } else if ("CANCELLED".equalsIgnoreCase(s.getStatus())) {
-                // Vé đã huỷ: hiển thị nút "ĐÃ HỦY" bị vô hiệu hoá
+                // Vé đã huỷ: nút Hủy vé (btnReview) chuyển thành "ĐÃ HỦY VÉ", xám đi và vô hiệu hóa
                 b.tvCountdown.setVisibility(View.GONE);
-                b.btnViewTicket.setText("ĐÃ HỦY");
-                b.btnViewTicket.setIconResource(0);
-                b.btnViewTicket.setEnabled(false);
-                b.btnViewTicket.setAlpha(0.6f);
+                
+                b.btnViewTicket.setText("VÉ ĐIỆN TỬ");
+                b.btnViewTicket.setIconResource(R.drawable.ic_qr_code);
+                b.btnViewTicket.setEnabled(true);
+                b.btnViewTicket.setAlpha(1f);
                 b.btnViewTicket.setBackgroundTintList(
-                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#9E9E9E")));
-                b.btnViewTicket.setOnClickListener(null);
-                b.btnReview.setVisibility(View.GONE);
+                        android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.primary)));
+                b.btnViewTicket.setOnClickListener(v -> listener.onClick(s.getId()));
+
+                b.btnReview.setVisibility(View.VISIBLE);
+                b.btnReview.setText("ĐÃ HỦY VÉ");
+                b.btnReview.setIconResource(0);
+                b.btnReview.setEnabled(false);
+                b.btnReview.setAlpha(0.6f);
+                b.btnReview.setBackgroundTintList(
+                        android.content.res.ColorStateList.valueOf(android.graphics.Color.parseColor("#E0E0E0")));
+                b.btnReview.setTextColor(android.graphics.Color.parseColor("#757575"));
+                b.btnReview.setStrokeWidth(0); // Bỏ border
+                b.btnReview.setOnClickListener(null);
             } else {
                 b.tvCountdown.setVisibility(View.GONE);
                 b.btnViewTicket.setText("VÉ ĐIỆN TỬ");
@@ -225,6 +236,9 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                     b.btnReview.setVisibility(View.VISIBLE);
                     b.btnReview.setText("ĐÁNH GIÁ");
                     b.btnReview.setIconResource(0);
+                    b.btnReview.setEnabled(true);
+                    b.btnReview.setAlpha(1f);
+                    b.btnReview.setTextColor(b.getRoot().getContext().getColor(R.color.on_surface));
                     b.btnReview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                             b.getRoot().getContext().getColor(R.color.primary)));
                     b.btnReview.setOnClickListener(v -> listener.onReviewClick(s));
@@ -233,6 +247,9 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                     b.btnReview.setVisibility(View.VISIBLE);
                     b.btnReview.setText("HỦY VÉ");
                     b.btnReview.setIconResource(0);
+                    b.btnReview.setEnabled(true);
+                    b.btnReview.setAlpha(1f);
+                    b.btnReview.setTextColor(b.getRoot().getContext().getColor(R.color.on_surface));
                     b.btnReview.setBackgroundTintList(android.content.res.ColorStateList.valueOf(
                             b.getRoot().getContext().getColor(R.color.error)));
                     b.btnReview.setOnClickListener(v -> listener.onCancelClick(s));

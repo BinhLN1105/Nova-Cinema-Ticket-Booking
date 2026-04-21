@@ -50,7 +50,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     boolean existsByCinemaId(@Param("cinemaId") UUID cinemaId);
 
     // ── Atomic Actions ──────────────────────────────────────────────────────
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query("UPDATE Booking b SET b.status = 'CANCELLED', b.cancellationToken = null, b.cancellationTokenExpiry = null, b.earnedExp = 0 WHERE b.id = :bookingId AND b.status = 'PAID'")
     int cancelPaidBooking(@Param("bookingId") UUID bookingId);
 
