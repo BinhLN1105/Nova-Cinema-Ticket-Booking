@@ -47,21 +47,34 @@ public class PaymentController {
         }
 
         // GET /api/v1/payments/vnpay/callback hoặc /api/v1/payment/vnpay-return
-        // Endpoint này PUBLIC (không cần token) vì VNPay gọi từ trình duyệt
-        @GetMapping({"/payments/vnpay/callback", "/payment/vnpay-return"})
-        public void vnpayCallback(@RequestParam Map<String, String> params, HttpServletResponse response) throws IOException {
-                paymentService.handleVnpayCallback(params);
+        @GetMapping({ "/payments/vnpay/callback", "/payment/vnpay-return" })
+        public void vnpayCallback(@RequestParam Map<String, String> params, HttpServletResponse response)
+                        throws IOException {
                 String responseCode = params.get("vnp_ResponseCode");
+                String txnRef = params.get("vnp_TxnRef");
                 String source = params.get("source");
+
+                // Quyết định URL đích dựa trên kết quả
+                String status = "00".equals(responseCode) ? "success" : "failed";
+
+                try {
+                        paymentService.handleVnpayCallback(params);
+                } catch (Exception e) {
+
+                }
 
                 if ("mobile".equals(source)) {
                         // Mobile app → redirect về deep link để WebView chặn
-                        String deepLink = "cinema://payment/result?vnp_ResponseCode=" + responseCode;
+                        String deepLink = "cinema://payment/result?vnp_ResponseCode=" + responseCode + "&status="
+                                        + status;
+
                         response.sendRedirect(deepLink);
                 } else {
                         // Web frontend
-                        String status = "00".equals(responseCode) ? "success" : "failed";
-                        response.sendRedirect(frontendUrl + "/booking/result?status=" + status);
+                        String redirectUrl = frontendUrl + "/booking/result?status=" + status + "&vnp_ResponseCode="
+                                        + responseCode;
+
+                        response.sendRedirect(redirectUrl);
                 }
         }
 

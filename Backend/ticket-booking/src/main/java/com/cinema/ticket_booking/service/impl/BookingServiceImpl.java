@@ -615,9 +615,21 @@ public class BookingServiceImpl implements BookingService {
                     });
         }
 
-        // Send confirmation email ONLY if it's an online order or a specific customer
-        // was selected
+        // Prepare data for Async Email (Avoid LazyLoading Exception)
         if (shouldSendEmail(booking)) {
+            // Force load booking items and seats
+            booking.getBookingItems().forEach(item -> {
+                if (item.getShowtimeSeat() != null && item.getShowtimeSeat().getSeat() != null) {
+                    item.getShowtimeSeat().getSeat().getSeatLabel();
+                }
+            });
+            // Force load combos
+            booking.getBookingCombos().forEach(bc -> {
+                if (bc.getCombo() != null) {
+                    bc.getCombo().getName();
+                }
+            });
+            
             emailService.sendBookingConfirmationEmail(booking);
         }
     }

@@ -21,17 +21,23 @@
         </div>
         
         <div class="content">
-            <p>Chào <strong th:text="${customerName}">Khách hàng</strong>,</p>
+            <p>Chào <strong th:text="${userName}">Khách hàng</strong>,</p>
             <p>Tuyệt vời! Bạn đã đặt vé xem phim thành công tại hệ thống của Nova Ticket.</p>
             
             <div class="details">
                 <p><strong>Phim:</strong> <span th:text="${movieTitle}">Movie Title</span></p>
                 <p><strong>Rạp chiếu:</strong> <span th:text="${cinemaName}">Cinema Name</span> - <span th:text="${screenName}">Screen</span></p>
-                <p><strong>Thời gian:</strong> <span th:text="${showTime}">01/01/2026 18:00</span></p>
-                <p><strong>Tổng tiền:</strong> <span th:text="${totalAmount}">0</span> VNĐ</p>
+                <p><strong>Ghế:</strong> <span th:text="${seats}">A1, A2</span></p>
+                <p><strong>Thời gian chiếu:</strong> <span th:text="${#temporals.format(showtime, 'HH:mm dd/MM/yyyy')}">18:00 01/01/2026</span></p>
+                <p><strong>Ngày đặt vé:</strong> <span th:text="${#temporals.format(orderDate, 'HH:mm dd/MM/yyyy')}">10:00 01/01/2026</span></p>
+                <p><strong>Tổng tiền:</strong> <span style="color: #e50914; font-weight: bold;" th:text="${#numbers.formatDecimal(totalAmount, 0, 'POINT', 0, 'POINT') + ' VNĐ'}">0 VNĐ</span></p>
             </div>
             
-            <p>Vui lòng xuất trình mã vé trên ứng dụng Nova Ticket hoặc quét QR Code tại quầy khi đến rạp. Chúc bạn có một buổi xem phim vui vẻ!</p>
+            <p th:if="${discountAmount > 0}" style="font-size: 0.9em; color: #666;">
+                * Đã áp dụng giảm giá: <span th:text="${#numbers.formatDecimal(discountAmount, 0, 'POINT', 0, 'POINT') + ' VNĐ'}">0 VNĐ</span>
+            </p>
+
+            <p style="margin-top: 20px;">Vui lòng xuất trình mã vé trên ứng dụng Nova Ticket hoặc quét QR Code tại quầy khi đến rạp. Chúc bạn có một buổi xem phim vui vẻ!</p>
         </div>
         
         <div class="footer">

@@ -142,17 +142,25 @@ Kết quả mong đợi:
 
 ---
 
-### Bước 4: Khởi động server
+### Bước 4: Khởi động Python server
 
+#### 1. Chạy trực tiếp (Development)
 ```bash
-# Development (tự reload khi code thay đổi)
 uvicorn app.main:app --reload --port 8000
-
-# Production
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
 ```
 
-> 💡 AI FastAPI Server hoạt động tại: `http://localhost:8000`
+#### 2. Dùng Docker (Khuyên dùng cho Production)
+```bash
+docker build --build-arg COHERE_API_KEY="your-cohere-key" -t novaticket-ai .
+
+docker run -p 8000:8000 \
+  -e GEMINI_API_KEY="your-gemini-key" \
+  -e COHERE_API_KEY="your-cohere-key" \
+  novaticket-ai
+```
+
+> 💡 **Trên Azure/Render:** Điền `GEMINI_API_KEY` và `COHERE_API_KEY` vào phần **Environment Variables** trong bảng điều khiển.
+hoạt động tại: `http://localhost:8000`
 
 ---
 
