@@ -99,4 +99,15 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
 
   // Kiểm tra xem phim đã từng có suất chiếu nào chưa
   boolean existsByMovieId(UUID movieId);
+
+  // Đếm số suất chiếu (không huỷ) của rạp trong ngày — dùng cho Staff Dashboard
+  @Query("""
+      SELECT COUNT(s) FROM Showtime s
+      WHERE s.screen.cinema.id = :cinemaId
+        AND s.status != 'CANCELLED'
+        AND CAST(s.startTime AS date) = :date
+  """)
+  long countByCinemaAndDate(
+      @Param("cinemaId") UUID cinemaId,
+      @Param("date") java.time.LocalDate date);
 }

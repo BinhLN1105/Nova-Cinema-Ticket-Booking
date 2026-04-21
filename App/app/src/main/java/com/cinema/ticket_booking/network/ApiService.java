@@ -198,4 +198,8 @@ public interface ApiService {
 
         @GET("home/popup-promotion")
         Call<ApiResponse<PromotionResponse>> getPopupPromotion();
+
+        // ── Staff Dashboard ───────────────────────────────────────────────────
+        @GET("staff/dashboard/stats")
+        Call<ApiResponse<StaffDashboardStatsResponse>> getStaffDashboardStats();
 }

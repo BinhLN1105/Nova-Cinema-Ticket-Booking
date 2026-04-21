@@ -97,4 +97,10 @@ public class AppModule {
     public NotificationRepository provideNotificationRepository(ApiService api) {
         return new NotificationRepository(api);
     }
+
+    @Provides
+    @Singleton
+    public StaffRepository provideStaffRepository(ApiService api) {
+        return new StaffRepository(api);
+    }
 }

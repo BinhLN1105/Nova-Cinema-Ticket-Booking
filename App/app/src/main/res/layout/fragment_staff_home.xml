@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background">
 
+    <!-- App Bar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="@color/surface_container">
+        android:background="@color/surface_container"
+        app:elevation="0dp">
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
@@ -27,84 +28,239 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="20dp">
 
+            <!-- Header chào hỏi -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:layout_marginBottom="24dp">
+
+                <TextView
+                    android:id="@+id/tvWelcome"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Xin chào, Nhân viên! 👋"
+                    android:textSize="22sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/on_surface"
+                    android:letterSpacing="0.01" />
+
+                <TextView
+                    android:id="@+id/tvDate"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:text="Hôm nay"
+                    android:textSize="13sp"
+                    android:textColor="@color/on_surface_variant" />
+            </LinearLayout>
+
+            <!-- Label THỐNG KÊ NHANH -->
             <TextView
-                android:id="@+id/tvWelcome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Xin chào, Nhân viên!"
-                android:textSize="20sp"
+                android:text="THỐNG KÊ NHANH"
+                android:textSize="11sp"
                 android:textStyle="bold"
-                android:textColor="@color/on_surface"/>
+                android:letterSpacing="0.12"
+                android:textColor="@color/primary"
+                android:layout_marginBottom="12dp" />
 
+            <!-- CARD 1: Suất chiếu hôm nay -->
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="24dp"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp"
-                app:cardBackgroundColor="@color/surface_container_highest">
-                
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="#0D1B2A"
+                app:strokeWidth="0dp">
+
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="16dp">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="THỐNG KÊ NHANH"
-                        android:textSize="12sp"
-                        android:textStyle="bold"
-                        android:textColor="@color/primary"/>
-                    
-                    <GridLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:columnCount="2">
-                        
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="15" android:textSize="24sp" android:textStyle="bold" android:textColor="@color/on_surface"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Suất chiếu hôm nay" android:textSize="10sp"/>
-                        </LinearLayout>
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:gravity="center_vertical">
 
-                        <LinearLayout android:layout_width="0dp" android:layout_height="wrap_content" android:layout_columnWeight="1" android:orientation="vertical">
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="142" android:textSize="24sp" android:textStyle="bold" android:textColor="@color/primary"/>
-                            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Vé đã soát" android:textSize="10sp"/>
-                        </LinearLayout>
-                    </GridLayout>
+                    <!-- Icon background circle -->
+                    <FrameLayout
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:background="@drawable/bg_stat_icon_circle"
+                        android:backgroundTint="#1A3A5C">
+
+                        <ImageView
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_movie"
+                            app:tint="#F5C518" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+
+                        <TextView
+                            android:id="@+id/tvShowtimesValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="--"
+                            android:textSize="30sp"
+                            android:textStyle="bold"
+                            android:textColor="#F5C518" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Suất chiếu hôm nay"
+                            android:textSize="13sp"
+                            android:textColor="#AABBCC" />
+                    </LinearLayout>
+
+                    <!-- Loading indicator -->
+                    <ProgressBar
+                        android:id="@+id/pbShowtimes"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:visibility="gone"
+                        android:indeterminateTint="#F5C518" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnPOS"
+            <!-- CARD 2: Vé đã soát hôm nay -->
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
-                android:layout_height="64dp"
-                android:layout_marginTop="24dp"
-                android:text="BÁM VÉ TẠI QUẦY (POS)"
-                app:cornerRadius="16dp"
-                app:icon="@drawable/ic_ticket"
-                app:backgroundTint="@color/surface_container_low"
-                android:textColor="@color/on_surface_variant" />
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="12dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="#0D1B2A"
+                app:strokeWidth="0dp">
 
-            <TextView
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:gravity="center_vertical">
+
+                    <FrameLayout
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:background="@drawable/bg_stat_icon_circle"
+                        android:backgroundTint="#1A3A2C">
+
+                        <ImageView
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_qr_scanner"
+                            app:tint="#4CAF84" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+
+                        <TextView
+                            android:id="@+id/tvCheckedTodayValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="--"
+                            android:textSize="30sp"
+                            android:textStyle="bold"
+                            android:textColor="#4CAF84" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Vé đã soát hôm nay"
+                            android:textSize="13sp"
+                            android:textColor="#AABBCC" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- CARD 3: Vé đã soát trong tháng -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="24dp"
+                app:cardCornerRadius="18dp"
+                app:cardElevation="6dp"
+                app:cardBackgroundColor="#0D1B2A"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="20dp"
+                    android:gravity="center_vertical">
+
+                    <FrameLayout
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:background="@drawable/bg_stat_icon_circle"
+                        android:backgroundTint="#2A1A3A">
+
+                        <ImageView
+                            android:layout_width="26dp"
+                            android:layout_height="26dp"
+                            android:layout_gravity="center"
+                            android:src="@drawable/ic_ticket"
+                            app:tint="#B48EF5" />
+                    </FrameLayout>
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:orientation="vertical"
+                        android:layout_marginStart="16dp">
+
+                        <TextView
+                            android:id="@+id/tvCheckedMonthValue"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="--"
+                            android:textSize="30sp"
+                            android:textStyle="bold"
+                            android:textColor="#B48EF5" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Vé đã soát trong tháng"
+                            android:textSize="13sp"
+                            android:textColor="#AABBCC" />
+                    </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Nút refresh -->
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnRefresh"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="32dp"
-                android:text="Lịch trực của bạn"
-                android:textStyle="bold"
-                android:textColor="@color/on_surface"/>
-            
-            <TextView
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:text="Ca: 08:00 - 16:00 (Hôm nay)"
-                android:padding="12dp"
-                android:background="@drawable/bg_bottom_nav_rounded"
-                android:backgroundTint="@color/surface_container_low"/>
+                android:layout_gravity="center_horizontal"
+                android:text="Làm mới"
+                android:textSize="13sp"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_refresh"
+                app:backgroundTint="@color/surface_container"
+                android:textColor="@color/on_surface_variant"
+                android:paddingHorizontal="20dp" />
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>

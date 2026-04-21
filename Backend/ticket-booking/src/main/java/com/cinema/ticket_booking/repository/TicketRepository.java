@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -33,4 +34,20 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
           AND t.isUsed = false
     """)
     boolean areAllTicketsUsed(@Param("bookingId") UUID bookingId);
+
+    // Đếm vé đã soát của một rạp trong khoảng thời gian (dùng cho Staff Dashboard)
+    @Query("""
+        SELECT COUNT(t) FROM Ticket t
+        JOIN t.bookingItem bi
+        JOIN bi.showtimeSeat ss
+        JOIN ss.showtime st
+        WHERE st.screen.cinema.id = :cinemaId
+          AND t.isUsed = true
+          AND t.usedAt >= :from
+          AND t.usedAt < :to
+    """)
+    long countCheckedInByCinemaAndDateRange(
+            @Param("cinemaId") UUID cinemaId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to);
 }
