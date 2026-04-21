@@ -62,15 +62,17 @@
     <!-- Trợ lý ảo CineAI (Nút nổi có thể kéo thả, nằm ở lớp trên cùng) -->
     <com.cinema.ticket_booking.util.DraggableFAB
         android:id="@+id/aiFab"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
         android:layout_gravity="bottom|end"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="112dp"
-        android:src="@drawable/ic_baseline_chat_24"
-        app:backgroundTint="@color/secondary"
+        android:src="@drawable/ic_ai_chat"
+        android:scaleType="centerCrop"
+        app:backgroundTint="#FF000000"
+        app:tint="@null"
         app:elevation="30dp"
-        app:fabSize="mini"
-        app:tint="@color/white" />
+        app:fabSize="normal"
+        app:maxImageSize="56dp" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>
