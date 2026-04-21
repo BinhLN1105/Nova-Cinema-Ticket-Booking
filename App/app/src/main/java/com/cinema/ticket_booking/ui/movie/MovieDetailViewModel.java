@@ -55,6 +55,16 @@ public class MovieDetailViewModel extends ViewModel {
         reviewRepo.createReview(new ReviewRequest(movieId, bookingId, rating, comment))
                 .observeForever(createReviewResult::setValue);
     }
+    public LiveData<Resource<ReviewResponse>> getReviewResult() {
+        return createReviewResult;
+    }
+
+    public void submitReview(ReviewRequest request) {
+        // Reset về null trước để tránh observer nhận lại giá trị cũ khi mở sheet mới
+        createReviewResult.setValue(null);
+        reviewRepo.createReview(request).observeForever(createReviewResult::setValue);
+    }
+
     public LiveData<Resource<ReviewResponse>> createReview(ReviewRequest request) {
         return reviewRepo.createReview(request);
     }

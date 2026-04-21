@@ -112,9 +112,11 @@ public class ProfileFragment extends Fragment {
                     updateUI(false);
                 } else {
                     // Mạng lỗi (Offline) -> Lấy dữ liệu đệm từ TokenManager
-                    binding.tvName.setText(tokenManager.getUserName() != null ? tokenManager.getUserName() : "Không rõ");
-                    binding.tvEmail.setText(tokenManager.getUserEmail() != null ? tokenManager.getUserEmail() : "Đang offline");
-                    
+                    binding.tvName
+                            .setText(tokenManager.getUserName() != null ? tokenManager.getUserName() : "Không rõ");
+                    binding.tvEmail.setText(
+                            tokenManager.getUserEmail() != null ? tokenManager.getUserEmail() : "Đang offline");
+
                     binding.tvTierBadge.setText("⭐ TIER");
                     binding.tvCurrentTier.setText("CẤP ĐỘ: OFFLINE");
                     binding.tvCinePoints.setText("-");
@@ -181,9 +183,16 @@ public class ProfileFragment extends Fragment {
                         new android.content.Intent(requireActivity(), com.cinema.ticket_booking.ui.MainActivity.class));
             });
 
-            binding.btnNavReviews.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
-            binding.btnNavHistory.setOnClickListener(v -> switchToTab(R.id.bookingHistoryFragment));
-            binding.btnNavWatchlist.setOnClickListener(v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_voucher));
+            binding.btnNavReviews.setOnClickListener(v -> {
+                // Chuyển sang tab Tickets, mở sẵn tab "Lịch sử" (phim đã xem → đánh giá)
+                com.google.android.material.bottomnavigation.BottomNavigationView nav = requireActivity()
+                        .findViewById(com.cinema.ticket_booking.R.id.bottomNav);
+                android.os.Bundle args = new android.os.Bundle();
+                args.putString("MapsToTab", "HISTORY");
+                androidx.navigation.Navigation.findNavController(requireView())
+                        .navigate(com.cinema.ticket_booking.R.id.bookingHistoryFragment, args);
+            });
+            binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment));
             binding.btnNavGiftCards.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
 
@@ -208,7 +217,6 @@ public class ProfileFragment extends Fragment {
 
             View.OnClickListener loginListener = v -> Navigation.findNavController(requireView())
                     .navigate(R.id.action_profile_to_login);
-            binding.btnNavHistory.setOnClickListener(loginListener);
             binding.btnNavGiftCards.setOnClickListener(loginListener);
             binding.btnRedeem.setOnClickListener(loginListener);
             binding.btnNavWatchlist.setOnClickListener(loginListener);
@@ -240,7 +248,8 @@ public class ProfileFragment extends Fragment {
             // Sync to Backend
             viewModel.updateNotificationSettings(isChecked, binding.switchTransactionNotify.isChecked())
                     .observe(getViewLifecycleOwner(), res -> {
-                        if (res.isSuccess()) SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn khuyến mãi");
+                        if (res.isSuccess())
+                            SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn khuyến mãi");
                     });
         });
 
@@ -250,7 +259,8 @@ public class ProfileFragment extends Fragment {
                 // Show Warning Dialog before allowing to turn OFF
                 new MaterialAlertDialogBuilder(requireContext())
                         .setTitle("⚠️ Tắt thông báo vé?")
-                        .setMessage("Nếu tắt tính năng này, bạn sẽ không nhận được mã QR soát vé tự động và các thông báo thay đổi lịch chiếu khẩn cấp. Bạn có chắc chắn muốn tắt không?")
+                        .setMessage(
+                                "Nếu tắt tính năng này, bạn sẽ không nhận được mã QR soát vé tự động và các thông báo thay đổi lịch chiếu khẩn cấp. Bạn có chắc chắn muốn tắt không?")
                         .setPositiveButton("VẪN TẮT", (dialog, which) -> {
                             syncTransactionSetting(false);
                         })
@@ -270,7 +280,8 @@ public class ProfileFragment extends Fragment {
     private void syncTransactionSetting(boolean isEnabled) {
         viewModel.updateNotificationSettings(binding.switchMarketingNotify.isChecked(), isEnabled)
                 .observe(getViewLifecycleOwner(), res -> {
-                    if (res.isSuccess()) SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn giao dịch");
+                    if (res.isSuccess())
+                        SnackbarHelper.showRaw(binding.getRoot(), "Đã cập nhật tùy chọn giao dịch");
                 });
     }
 
@@ -278,7 +289,8 @@ public class ProfileFragment extends Fragment {
     public void onResume() {
         super.onResume();
         // Mỗi lần quay lại Profile, reload dữ liệu mới nhất (CP, EXP, tier...)
-        // Dùng refreshUserProfile() thay vì loadUserProfile() vì load sẽ skip nếu đã có data
+        // Dùng refreshUserProfile() thay vì loadUserProfile() vì load sẽ skip nếu đã có
+        // data
         if (tokenManager.isLoggedIn() && viewModel != null) {
             viewModel.refreshUserProfile();
         }
@@ -290,4 +302,3 @@ public class ProfileFragment extends Fragment {
         binding = null;
     }
 }
-

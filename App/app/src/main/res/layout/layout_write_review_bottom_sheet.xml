@@ -74,7 +74,10 @@
             android:minLines="3"
             android:gravity="top"
             android:textColor="@color/on_surface"
-            android:inputType="textMultiLine"/>
+            android:inputType="textMultiLine|textCapSentences"
+            android:imeOptions="actionDone"
+            android:maxLines="8"
+            android:scrollbars="vertical"/>
     </com.google.android.material.textfield.TextInputLayout>
 
     <FrameLayout
@@ -87,8 +90,9 @@
             android:layout_width="match_parent"
             android:layout_height="56dp"
             android:text="GỬI ĐÁNH GIÁ"
-            android:textColor="@color/on_primary"
+            android:textColor="#FFFFFF"
             android:textStyle="bold"
+            app:backgroundTint="@color/primary"
             app:cornerRadius="12dp" />
 
         <ProgressBar

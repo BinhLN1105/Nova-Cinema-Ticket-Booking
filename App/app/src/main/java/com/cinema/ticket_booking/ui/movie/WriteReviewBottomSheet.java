@@ -1,16 +1,17 @@
 package com.cinema.ticket_booking.ui.movie;
 
+import android.content.Context;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.lifecycle.ViewModelProvider;
-import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.request.ReviewRequest;
 import com.cinema.ticket_booking.databinding.LayoutWriteReviewBottomSheetBinding;
-import com.cinema.ticket_booking.ui.booking.BookingHistoryViewModel;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -22,6 +23,8 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
     private String movieId;
     private String movieTitle;
     private String bookingId;
+    // Fix 3: Cờ chặn submit nhiều lần liên tiếp
+    private boolean isSubmitting = false;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -47,7 +50,22 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
 
         binding.tvMovieName.setText(movieTitle);
 
-        // Pre-check review status (Nova Strategy: One Review Per Movie)
+        // Fix 4: Bấm vùng ngoài EditText → ẩn bàn phím
+        binding.getRoot().setOnTouchListener((v, event) -> {
+            hideKeyboard();
+            return false;
+        });
+
+        // Fix 4: Nút Done trên bàn phím → ẩn bàn phím
+        binding.etComment.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_DONE) {
+                hideKeyboard();
+                return true;
+            }
+            return false;
+        });
+
+        // Pre-check trạng thái review của user với phim này
         setLoading(true);
         viewModel.checkReviewEligibility(movieId).observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null) {
@@ -58,55 +76,70 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
                     binding.etComment.setText(data.getExistingReview().getComment());
                     binding.btnSubmit.setText("CẬP NHẬT ĐÁNH GIÁ");
                 }
-                
-                // If bookingId was not passed (from Profile/Notification), use the eligible one from backend
+                // Nếu không truyền bookingId từ ngoài vào, dùng bookingId hợp lệ từ backend
                 if (bookingId == null || bookingId.isEmpty()) {
                     bookingId = data.getBookingId();
                 }
-                
-                if (bookingId == null && !data.isAlreadyReviewed()) {
-                    setLoading(false);
-                    SnackbarHelper.showError(binding.getRoot(), "Không tìm thấy vé hợp lệ để đánh giá!");
-                    binding.btnSubmit.setEnabled(false);
-                }
+                binding.btnSubmit.setEnabled(true);
             } else if (resource.isError()) {
+                // Vẫn cho phép thử submit, backend sẽ trả lỗi cụ thể
                 setLoading(false);
-                SnackbarHelper.showError(binding.getRoot(), resource.message);
-                binding.btnSubmit.setEnabled(false);
+                binding.btnSubmit.setEnabled(true);
+            }
+        });
+
+        // Fix 3: Observer đặt bên ngoài onClick để không bị nhân lên mỗi lần bấm
+        viewModel.getReviewResult().observe(getViewLifecycleOwner(), resReview -> {
+            if (resReview == null) return;
+            if (resReview.isSuccess()) {
+                isSubmitting = false;
+                Toast.makeText(requireContext(), "Đánh giá thành công!", Toast.LENGTH_SHORT).show();
+                dismiss();
+            } else if (resReview.isError()) {
+                isSubmitting = false;
+                setLoading(false);
+                Toast.makeText(requireContext(), resReview.message, Toast.LENGTH_LONG).show();
             }
         });
 
         binding.btnSubmit.setOnClickListener(v -> {
+            if (isSubmitting) return; // Chặn double-tap
+            if (bookingId == null || bookingId.isEmpty()) {
+                Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim này trước khi đánh giá!", Toast.LENGTH_LONG).show();
+                return;
+            }
+            
             String comment = binding.etComment.getText().toString().trim();
             int rating = (int) binding.ratingBar.getRating();
-
             if (comment.isEmpty()) {
                 binding.etComment.setError("Vui lòng nhập cảm nhận");
                 return;
             }
-
+            hideKeyboard();
+            isSubmitting = true;
             setLoading(true);
-            ReviewRequest request = new ReviewRequest(movieId, bookingId, rating, comment);
-
-            viewModel.createReview(request).observe(getViewLifecycleOwner(), resReview -> {
-                if (resReview.isSuccess()) {
-                    SnackbarHelper.showInfo(binding.getRoot(), "Đánh giá thành công!");
-                    try {
-                        var historyVm = new ViewModelProvider(requireActivity()).get(com.cinema.ticket_booking.ui.booking.BookingHistoryViewModel.class);
-                        historyVm.refresh();
-                    } catch (Exception ignored) {}
-                    dismiss();
-                } else if (resReview.isError()) {
-                    setLoading(false);
-                    SnackbarHelper.showError(binding.getRoot(), resReview.message);
-                }
-            });
+            viewModel.submitReview(new ReviewRequest(movieId, bookingId, rating, comment));
         });
     }
 
+    private void hideKeyboard() {
+        if (binding == null) return;
+        View focused = binding.getRoot().findFocus();
+        if (focused != null) {
+            InputMethodManager imm = (InputMethodManager)
+                    requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null) imm.hideSoftInputFromWindow(focused.getWindowToken(), 0);
+            focused.clearFocus();
+        }
+    }
+
     private void setLoading(boolean isLoading) {
+        if (binding == null) return;
         binding.btnSubmit.setEnabled(!isLoading);
-        binding.btnSubmit.setText(isLoading ? "" : "GỬI ĐÁNH GIÁ");
+        String currentText = binding.btnSubmit.getText().toString();
+        if (!isLoading && currentText.isEmpty()) {
+            binding.btnSubmit.setText("GỬI ĐÁNH GIÁ");
+        }
         binding.progressBar.setVisibility(isLoading ? View.VISIBLE : View.GONE);
     }
 
@@ -116,4 +149,3 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
         binding = null;
     }
 }
-

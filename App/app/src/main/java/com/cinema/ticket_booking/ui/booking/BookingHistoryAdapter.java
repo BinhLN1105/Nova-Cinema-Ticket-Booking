@@ -206,8 +206,22 @@ public class BookingHistoryAdapter extends RecyclerView.Adapter<BookingHistoryAd
                         android.content.res.ColorStateList.valueOf(b.getRoot().getContext().getColor(R.color.primary)));
                 b.btnViewTicket.setOnClickListener(v -> listener.onClick(s.getId()));
 
-                // Show Review button if status is CHECKED_IN
-                if ("CHECKED_IN".equalsIgnoreCase(s.getStatus())) {
+                // Show Review button if status is CHECKED_IN or PAID+Past
+                boolean isPast = false;
+                if (s.getStartTime() != null) {
+                    try {
+                        java.text.SimpleDateFormat sdfIn = s.getStartTime().contains("T") 
+                            ? new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault())
+                            : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                        java.util.Date startDate = sdfIn.parse(s.getStartTime());
+                        if (startDate != null && startDate.getTime() < System.currentTimeMillis()) {
+                            isPast = true;
+                        }
+                    } catch (Exception ignored) {}
+                }
+
+                if ("CHECKED_IN".equalsIgnoreCase(s.getStatus()) || 
+                   ("PAID".equalsIgnoreCase(s.getStatus()) && isPast)) {
                     b.btnReview.setVisibility(View.VISIBLE);
                     b.btnReview.setText("ĐÁNH GIÁ");
                     b.btnReview.setIconResource(0);
