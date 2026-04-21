@@ -20,14 +20,13 @@ public class FlywayConfig {
                 .locations("classpath:db/migration")
                 .baselineOnMigrate(true)
                 .baselineVersion("0")
+                .outOfOrder(true) // Cho phép chạy các bản migration cũ chưa áp dụng
                 // Quan trọng: Tắt transactional lock để tương thích với Supabase Transaction
                 // Pooler
                 .configuration(Collections.singletonMap("flyway.postgresql.transactional.lock", "false"))
-                // .validateOnMigrate(false) // Đã sửa xong - có thể bật lại hoặc xóa nếu muốn
-                // .repair()
                 .load();
 
-        // flyway.repair(); // Đã chạy xong một lần, bây giờ có thể comment lại
+        // flyway.repair(); // Sửa lại checksum và các lỗi nhỏ trong bảng history
         flyway.migrate();
         return flyway;
     }

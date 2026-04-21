@@ -117,8 +117,9 @@ public class PaymentServiceImpl implements PaymentService {
         String responseCode = params.get("vnp_ResponseCode");
 
         // 1. Xác minh chữ ký
-        if (!verifyVnpaySignature(params, receivedHash)) {
-            throw new PaymentException("Chữ ký VNPay không hợp lệ");
+        String vnp_SecureHash = params.get("vnp_SecureHash");
+        if (!verifyVnpaySignature(params, vnp_SecureHash)) {
+            throw new PaymentException("Chữ ký VNPay không hợp lệ (Checksum failed)");
         }
 
         // 2. Tìm Payment theo txnRef
@@ -350,19 +351,56 @@ public class PaymentServiceImpl implements PaymentService {
     }
 
     private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
+        // Tạo một bản sao để tránh làm hỏng map gốc nếu cần dùng sau này
+        Map<String, String> vnp_Params = new HashMap<>(params);
+
+        // Bắt buộc loại bỏ SecureHash trước khi tính toán
+        vnp_Params.remove("vnp_SecureHash");
+        vnp_Params.remove("vnp_SecureHashType");
+
+        // Lọc các tham số bắt đầu bằng vnp_ và sắp xếp
         Map<String, String> filtered = new TreeMap<>();
-        params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType")) {
+        vnp_Params.forEach((k, v) -> {
+            if (k.startsWith("vnp_") && v != null && !v.isBlank()) {
                 filtered.put(k, v);
             }
         });
+
         try {
-            String hashData = buildHashData(filtered);
+            // VNPay 2.1.0: Dùng chuỗi Raw (KHÔNG URL Encode) để verify
+            String hashData = buildRawHashData(filtered);
             String computedHash = hmacSha512(hashData, vnpayHashSecret);
-            return computedHash.equals(receivedHash);
+            return computedHash.equalsIgnoreCase(receivedHash);
         } catch (Exception e) {
+            log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());
             return false;
         }
+    }
+
+    private String buildRawHashData(Map<String, String> params) {
+        List<String> fieldNames = new ArrayList<>(params.keySet());
+        Collections.sort(fieldNames);
+
+        StringBuilder hashData = new StringBuilder();
+        for (String fieldName : fieldNames) {
+            String fieldValue = params.get(fieldName);
+            if ((fieldValue != null) && (fieldValue.length() > 0)) {
+                // Bước 1: Build Key=Value
+                hashData.append(fieldName).append("=");
+
+                // Bước 2: Encode Value theo chuẩn VNPay (Space -> +)
+                // URLEncoder.encode() chuyển Space thành +
+                String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII);
+                hashData.append(encodedValue);
+
+                hashData.append("&");
+            }
+        }
+        // Xóa dấu '&' cuối cùng
+        if (hashData.length() > 0) {
+            hashData.setLength(hashData.length() - 1);
+        }
+        return hashData.toString();
     }
 
     private String buildHashData(Map<String, String> params) {

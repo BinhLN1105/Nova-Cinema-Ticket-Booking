@@ -32,9 +32,9 @@ public class WalletController {
             @AuthenticationPrincipal User currentUser,
             @Valid @RequestBody TopUpRequest request,
             HttpServletRequest httpRequest) {
-        
+
         // baseUrl for return url
-        String scheme = httpRequest.getScheme(); 
+        String scheme = httpRequest.getScheme();
         String serverName = httpRequest.getServerName();
         int serverPort = httpRequest.getServerPort();
         String returnUrlBase = scheme + "://" + serverName + ":" + serverPort;
@@ -44,10 +44,19 @@ public class WalletController {
     }
 
     @GetMapping("/vnpay-return")
-    public void vnpayCallback(@RequestParam Map<String, String> params, HttpServletResponse response) throws IOException {
-        walletService.handleVnpayCallback(params);
+    public void vnpayCallback(@RequestParam Map<String, String> params, HttpServletResponse response)
+            throws IOException {
         String responseCode = params.get("vnp_ResponseCode");
+        String txnRef = params.get("vnp_TxnRef");
         String status = "00".equals(responseCode) ? "success" : "failed";
-        response.sendRedirect(frontendUrl + "/profile?topup=" + status);
+
+        try {
+            walletService.handleVnpayCallback(params);
+        } catch (Exception e) {
+        }
+
+        String redirectUrl = frontendUrl + "/profile?topup=" + status + "&vnp_ResponseCode=" + responseCode;
+
+        response.sendRedirect(redirectUrl);
     }
 }
