@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="8dp"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:cardBackgroundColor="#111827"
+    app:strokeWidth="1dp"
+    app:strokeColor="#1E3A5F">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:padding="14dp">
+
+        <!-- Movie Poster thumbnail -->
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/ivPoster"
+            android:layout_width="52dp"
+            android:layout_height="72dp"
+            android:scaleType="centerCrop"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.App.RoundedCorner8"
+            android:background="#1E2D3D" />
+
+        <!-- Info column -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:layout_marginStart="12dp">
+
+            <TextView
+                android:id="@+id/tvMovieTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Tên phim"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#FFFFFF"
+                android:maxLines="2"
+                android:ellipsize="end" />
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="6dp">
+
+                <ImageView
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:src="@drawable/ic_history"
+                    app:tint="#7A8BA0"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tvStartTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="20:30"
+                    android:textSize="12sp"
+                    android:textColor="#7A8BA0" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tvScreenName"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Phòng 3"
+                android:textSize="11sp"
+                android:textColor="#4A5568"
+                android:layout_marginTop="2dp" />
+        </LinearLayout>
+
+        <!-- Badge urgency -->
+        <TextView
+            android:id="@+id/tvUrgency"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingHorizontal="10dp"
+            android:paddingVertical="5dp"
+            android:text="12 phút"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:textColor="#F5C518"
+            android:background="@drawable/bg_badge_upcoming"
+            android:layout_marginStart="8dp" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

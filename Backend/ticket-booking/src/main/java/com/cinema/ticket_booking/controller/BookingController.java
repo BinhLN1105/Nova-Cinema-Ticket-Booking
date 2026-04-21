@@ -7,6 +7,7 @@ import com.cinema.ticket_booking.dto.response.CheckInResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.BookingService;
+import com.cinema.ticket_booking.service.impl.ScanLogServiceImpl;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +27,7 @@ import java.util.UUID;
 public class BookingController {
 
         private final BookingService bookingService;
+        private final ScanLogServiceImpl scanLogService;
 
         // POST /api/v1/bookings — tạo đơn đặt vé
         @PostMapping
@@ -87,8 +89,14 @@ public class BookingController {
         public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(
                         @AuthenticationPrincipal User currentUser,
                         @RequestParam String qrCode) {
-                return ResponseEntity.ok(ApiResponse.success(
-                                bookingService.checkIn(currentUser, qrCode), "Check-in thành công"));
+                try {
+                        CheckInResponse result = bookingService.checkIn(currentUser, qrCode);
+                        return ResponseEntity.ok(ApiResponse.success(result, "Check-in thành công"));
+                } catch (Exception e) {
+                        // Ghi log scan thất bại vào ScanLog (transaction độc lập)
+                        scanLogService.logFailedScan(currentUser, qrCode, e.getMessage());
+                        throw e; // Re-throw để GlobalExceptionHandler xử lý
+                }
         }
 
         // GET /api/v1/bookings/cancel-policy — Lấy chính sách hoàn vé

@@ -110,4 +110,20 @@ public interface ShowtimeRepository extends JpaRepository<Showtime, UUID> {
   long countByCinemaAndDate(
       @Param("cinemaId") UUID cinemaId,
       @Param("date") java.time.LocalDate date);
+
+  // Lấy suất chiếu sắp bắt đầu trong 60 phút tới — dùng cho Staff Dashboard
+  @Query("""
+      SELECT s FROM Showtime s
+      JOIN FETCH s.movie m
+      JOIN FETCH s.screen sc
+      WHERE sc.cinema.id = :cinemaId
+        AND s.status != 'CANCELLED'
+        AND s.startTime >= :from
+        AND s.startTime <= :until
+      ORDER BY s.startTime ASC
+  """)
+  List<Showtime> findUpcomingByCinema(
+      @Param("cinemaId") UUID cinemaId,
+      @Param("from") LocalDateTime from,
+      @Param("until") LocalDateTime until);
 }

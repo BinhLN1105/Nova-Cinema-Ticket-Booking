@@ -16,6 +16,10 @@
         android:name="com.cinema.ticket_booking.ui.scanner.ScannerFragment"
         android:label="Soát vé" />
 
+    <fragment android:id="@+id/checkInHistoryFragment"
+        android:name="com.cinema.ticket_booking.ui.staff.CheckInHistoryFragment"
+        android:label="Lịch sử soát vé" />
+
     <fragment android:id="@+id/profileFragment"
         android:name="com.cinema.ticket_booking.ui.profile.ProfileFragment"
         android:label="Tài khoản">
@@ -28,3 +32,4 @@
         android:label="Đăng nhập" />
 
 </navigation>
+

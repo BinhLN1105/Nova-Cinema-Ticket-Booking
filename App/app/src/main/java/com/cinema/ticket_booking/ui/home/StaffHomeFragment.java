@@ -9,12 +9,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.cinema.ticket_booking.databinding.FragmentStaffHomeBinding;
-import com.cinema.ticket_booking.util.SnackbarHelper;
+import com.cinema.ticket_booking.ui.staff.UpcomingShowtimeAdapter;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 
 import dagger.hilt.android.AndroidEntryPoint;
@@ -24,9 +26,11 @@ public class StaffHomeFragment extends Fragment {
 
     private FragmentStaffHomeBinding binding;
     private StaffHomeViewModel viewModel;
+    private UpcomingShowtimeAdapter upcomingAdapter;
 
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
         binding = FragmentStaffHomeBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -37,44 +41,91 @@ public class StaffHomeFragment extends Fragment {
 
         viewModel = new ViewModelProvider(this).get(StaffHomeViewModel.class);
 
-        // Hiển thị ngày hôm nay
-        LocalDate today = LocalDate.now();
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy", new Locale("vi", "VN"));
-        binding.tvDate.setText(today.format(formatter));
+        setupUpcomingRecyclerView();
+        setupDate();
+        observeViewModel();
 
-        // Quan sát dữ liệu thống kê
+        binding.btnRefresh.setOnClickListener(v -> viewModel.refresh());
+    }
+
+    private void setupUpcomingRecyclerView() {
+        upcomingAdapter = new UpcomingShowtimeAdapter();
+        binding.rvUpcomingShowtimes.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.rvUpcomingShowtimes.setAdapter(upcomingAdapter);
+        binding.rvUpcomingShowtimes.setNestedScrollingEnabled(false);
+    }
+
+    private void setupDate() {
+        SimpleDateFormat sdf = new SimpleDateFormat("EEEE, dd/MM/yyyy", new Locale("vi", "VN"));
+        String today = sdf.format(new Date());
+        binding.tvDate.setText(today);
+    }
+
+    private void observeViewModel() {
+        // Stats — badge tự nhảy khi polling cập nhật
         viewModel.stats.observe(getViewLifecycleOwner(), stats -> {
             if (stats != null) {
-                binding.tvShowtimesValue.setText(String.valueOf(stats.totalShowtimesToday));
-                binding.tvCheckedTodayValue.setText(String.valueOf(stats.ticketsCheckedToday));
-                binding.tvCheckedMonthValue.setText(String.valueOf(stats.ticketsCheckedThisMonth));
+                animateNumber(binding.tvShowtimesValue, stats.totalShowtimesToday);
+                animateNumber(binding.tvCheckedTodayValue, stats.ticketsCheckedToday);
+                animateNumber(binding.tvCheckedMonthValue, stats.ticketsCheckedThisMonth);
             }
         });
 
-        // Quan sát trạng thái loading
+        // Loading indicator
         viewModel.isLoading.observe(getViewLifecycleOwner(), isLoading -> {
-            if (isLoading != null && binding.pbShowtimes != null) {
-                binding.pbShowtimes.setVisibility(isLoading ? View.VISIBLE : View.GONE);
-            }
-            if (isLoading != null && isLoading) {
+            if (Boolean.TRUE.equals(isLoading)) {
                 binding.tvShowtimesValue.setText("--");
                 binding.tvCheckedTodayValue.setText("--");
                 binding.tvCheckedMonthValue.setText("--");
             }
         });
 
-        // Quan sát lỗi
-        viewModel.error.observe(getViewLifecycleOwner(), errorMsg -> {
-            if (errorMsg != null && !errorMsg.isEmpty()) {
-                SnackbarHelper.showError(binding.getRoot(), errorMsg);
+        // Upcoming showtimes
+        viewModel.upcomingShowtimes.observe(getViewLifecycleOwner(), list -> {
+            if (list == null || list.isEmpty()) {
+                binding.tvUpcomingEmpty.setVisibility(View.VISIBLE);
+                binding.rvUpcomingShowtimes.setVisibility(View.GONE);
+            } else {
+                binding.tvUpcomingEmpty.setVisibility(View.GONE);
+                binding.rvUpcomingShowtimes.setVisibility(View.VISIBLE);
+                upcomingAdapter.submitList(list);
             }
         });
 
-        // Nút làm mới
-        binding.btnRefresh.setOnClickListener(v -> {
-            viewModel.loadStats();
-            SnackbarHelper.showSuccess(binding.getRoot(), "Đang cập nhật...");
+        // Error state — hiện toast khi API lỗi
+        viewModel.error.observe(getViewLifecycleOwner(), error -> {
+            if (error != null) {
+                android.widget.Toast.makeText(requireContext(), error, android.widget.Toast.LENGTH_SHORT).show();
+            }
         });
+    }
+
+    /**
+     * Hiệu ứng nhảy số đơn giản — đặt text trực tiếp nhưng với highlight ngắn
+     * Để làm animation đếm số thực sự cần CountUp custom animator.
+     */
+    private void animateNumber(android.widget.TextView tv, long newValue) {
+        long currentValue;
+        try {
+            String current = tv.getText().toString().trim();
+            currentValue = "--".equals(current) ? -1 : Long.parseLong(current);
+        } catch (NumberFormatException e) {
+            currentValue = -1;
+        }
+
+        if (currentValue != newValue) {
+            // Flash animation nhỏ khi số thay đổi
+            tv.animate()
+                    .alpha(0.3f)
+                    .setDuration(150)
+                    .withEndAction(() -> {
+                        tv.setText(String.valueOf(newValue));
+                        tv.animate().alpha(1f).setDuration(200).start();
+                    })
+                    .start();
+        } else {
+            tv.setText(String.valueOf(newValue));
+        }
     }
 
     @Override

@@ -202,4 +202,12 @@ public interface ApiService {
         // ── Staff Dashboard ───────────────────────────────────────────────────
         @GET("staff/dashboard/stats")
         Call<ApiResponse<StaffDashboardStatsResponse>> getStaffDashboardStats();
+
+        @GET("staff/dashboard/upcoming-showtimes")
+        Call<ApiResponse<List<UpcomingShowtimeResponse>>> getUpcomingShowtimes();
+
+        @GET("staff/check-in-history")
+        Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> getCheckInHistory(
+                        @Query("page") int page,
+                        @Query("size") int size);
 }

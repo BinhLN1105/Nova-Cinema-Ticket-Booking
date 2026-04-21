@@ -6,14 +6,14 @@
     <item android:id="@+id/searchFragment"
         android:icon="@drawable/ic_search"
         android:title="Lịch chiếu" />
-    
+
     <item android:id="@+id/dummyItem"
         android:title=""
         android:enabled="false" />
 
-    <item android:id="@+id/posPlaceholder"
-        android:icon="@drawable/ic_ticket"
-        android:title="Bán vé" />
+    <item android:id="@+id/checkInHistoryFragment"
+        android:icon="@drawable/ic_history"
+        android:title="Lịch sử" />
     <item android:id="@+id/profileFragment"
         android:icon="@drawable/ic_profile"
         android:title="Cá nhân" />

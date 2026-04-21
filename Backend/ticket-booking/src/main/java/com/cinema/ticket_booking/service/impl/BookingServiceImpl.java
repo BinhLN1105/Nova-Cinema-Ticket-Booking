@@ -66,6 +66,7 @@ public class BookingServiceImpl implements BookingService {
     private final UserVoucherRepository userVoucherRepository;
     private final PricingRuleRepository pricingRuleRepository;
     private final UserExpHistoryRepository userExpHistoryRepository;
+    private final ScanLogRepository scanLogRepository;
 
     // ── Tạo booking ───────────────────────────────────────────────────────
 
@@ -539,7 +540,34 @@ public class BookingServiceImpl implements BookingService {
                 .isUsed(true)
                 .build()).toList();
 
-        return CheckInResponse.builder()
+        // Build ghế string để lưu vào ScanLog
+        String seatsStr = tickets.stream()
+                .map(t -> String.valueOf(t.getBookingItem().getShowtimeSeat().getSeat().getRowLabel())
+                        + t.getBookingItem().getShowtimeSeat().getSeat().getColNumber())
+                .sorted()
+                .collect(Collectors.joining(", "));
+
+        // Lấy StaffProfile để lấy cinema của nhân viên
+        Cinema staffCinema = staffProfileRepository.findByUserId(staff.getId())
+                .map(StaffProfile::getCinema)
+                .orElse(booking.getShowtime().getScreen().getCinema());
+
+        // Ghi ScanLog — thành công
+        scanLogRepository.save(ScanLog.builder()
+                .staff(staff)
+                .cinema(staffCinema)
+                .booking(booking)
+                .qrCodeRaw(qrCode)
+                .success(true)
+                .movieTitle(booking.getShowtime().getMovie().getTitle())
+                .moviePosterUrl(booking.getShowtime().getMovie().getPosterUrl())
+                .customerName(booking.getUser() != null ? booking.getUser().getFullName() : "Khách vãng lai")
+                .customerPhone(booking.getUser() != null ? booking.getUser().getPhone() : "")
+                .seatsChecked(seatsStr)
+                .screenName(booking.getShowtime().getScreen().getName())
+                .build());
+
+        CheckInResponse checkInResponse = CheckInResponse.builder()
                 .bookingCode(booking.getBookingCode())
                 .movieTitle(booking.getShowtime().getMovie().getTitle())
                 .startTime(booking.getShowtime().getStartTime())
@@ -552,6 +580,8 @@ public class BookingServiceImpl implements BookingService {
                 .customerEmail(booking.getUser() != null ? booking.getUser().getEmail() : "")
                 .customerPhone(booking.getUser() != null ? booking.getUser().getPhone() : "")
                 .build();
+
+        return checkInResponse;
     }
 
     // ── Gọi từ PaymentService sau khi thanh toán thành công ───────────────
