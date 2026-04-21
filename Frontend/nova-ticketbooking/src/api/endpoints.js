@@ -136,8 +136,9 @@ export const bookingApi = {
 
 // ── Reviews ───────────────────────────────────
 export const reviewApi = {
-  getByMovie: (movieId, page = 0) =>
-    api.get(`/movies/${movieId}/reviews`, { page, size: 10 }),
+  getByMovie: (movieId, params = {}) =>
+    api.get(`/reviews`, { movieId, page: 0, size: 5, ...params }),
+  getStats: (movieId) => api.get(`/reviews/stats`, { movieId }),
   create: (data) => api.post("/reviews", data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };

@@ -12,12 +12,34 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface ReviewRepository extends JpaRepository<Review, UUID> {
 
   // Lấy review của 1 phim (chỉ hiển thị review công khai, mới nhất trước)
   Page<Review> findByMovieIdAndIsVisibleTrueOrderByCreatedAtDesc(UUID movieId, Pageable pageable);
+
+  // Thống kê số lượng review theo từng mức sao
+  @Query("""
+          SELECT r.rating, COUNT(r) FROM Review r
+          WHERE r.movie.id = :movieId AND r.isVisible = true
+          GROUP BY r.rating
+          ORDER BY r.rating DESC
+      """)
+  List<Object[]> getStarDistribution(@Param("movieId") UUID movieId);
+
+  // Lấy review với filter theo sao và sort linh hoạt
+  @Query("""
+          SELECT r FROM Review r
+          WHERE r.movie.id = :movieId
+            AND r.isVisible = true
+            AND (:rating IS NULL OR r.rating = :rating)
+      """)
+  Page<Review> findByMovieFiltered(
+      @Param("movieId") UUID movieId,
+      @Param("rating") Integer rating,
+      Pageable pageable);
 
   // Kiểm tra user đã review phim này chưa (1 Review / 1 Phim / 1 Account)
   boolean existsByUserIdAndMovieId(UUID userId, UUID movieId);

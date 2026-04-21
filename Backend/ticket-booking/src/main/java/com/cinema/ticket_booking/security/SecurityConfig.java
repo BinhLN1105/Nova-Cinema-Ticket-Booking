@@ -63,6 +63,7 @@ public class SecurityConfig {
                                                                 "/api/v1/showtimes/**",
                                                                 "/api/v1/combos",
                                                                 "/api/v1/reviews",
+                                                                "/api/v1/reviews/**",
                                                                 "/api/v1/vouchers/validate",
                                                                 "/api/v1/vouchers/active",
                                                                 "/api/v1/promotions/**",
