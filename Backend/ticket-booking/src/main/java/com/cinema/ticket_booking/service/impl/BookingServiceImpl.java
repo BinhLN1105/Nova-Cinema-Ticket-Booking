@@ -619,10 +619,26 @@ public class BookingServiceImpl implements BookingService {
         if (shouldSendEmail(booking)) {
             // Force load booking items and seats
             booking.getBookingItems().forEach(item -> {
-                if (item.getShowtimeSeat() != null && item.getShowtimeSeat().getSeat() != null) {
-                    item.getShowtimeSeat().getSeat().getSeatLabel();
+                if (item.getShowtimeSeat() != null) {
+                    if (item.getShowtimeSeat().getSeat() != null) {
+                        item.getShowtimeSeat().getSeat().getSeatLabel();
+                    }
+                    if (item.getShowtimeSeat().getShowtime() != null && 
+                        item.getShowtimeSeat().getShowtime().getScreen() != null) {
+                        item.getShowtimeSeat().getShowtime().getScreen().getName();
+                    }
                 }
             });
+            // Force load cinema info
+            if (booking.getCinema() != null) {
+                booking.getCinema().getName();
+            }
+            if (booking.getShowtime() != null && booking.getShowtime().getScreen() != null) {
+                booking.getShowtime().getScreen().getName();
+                if (booking.getShowtime().getScreen().getCinema() != null) {
+                    booking.getShowtime().getScreen().getCinema().getName();
+                }
+            }
             // Force load combos
             booking.getBookingCombos().forEach(bc -> {
                 if (bc.getCombo() != null) {
