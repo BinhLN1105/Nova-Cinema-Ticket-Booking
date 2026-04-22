@@ -17,10 +17,15 @@ import com.cinema.ticket_booking.service.ReviewService;
 import com.cinema.ticket_booking.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
+import java.util.Map;
+import java.util.List;
+import java.util.HashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -47,6 +52,46 @@ public class ReviewServiceImpl implements ReviewService {
         return PageResponse.of(
                 reviewRepository.findByMovieIdAndIsVisibleTrueOrderByCreatedAtDesc(movieId, pageable)
                         .map(reviewMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<ReviewResponse> getByMovieFiltered(UUID movieId, Integer ratingFilter, String sort,
+            Pageable pageable) {
+        Sort sorting;
+        if ("lowest".equalsIgnoreCase(sort)) {
+            sorting = Sort.by("rating").ascending();
+        } else if ("newest".equalsIgnoreCase(sort)) {
+            sorting = Sort.by("createdAt").descending();
+        } else {
+            // default is highest
+            sorting = Sort.by("rating").descending();
+        }
+
+        Pageable newPageable = PageRequest.of(pageable.getPageNumber(), pageable.getPageSize(), sorting);
+
+        return PageResponse.of(
+                reviewRepository.findByMovieFiltered(movieId, ratingFilter, newPageable)
+                        .map(reviewMapper::toResponse));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<Integer, Long> getStarDistribution(UUID movieId) {
+        List<Object[]> results = reviewRepository.getStarDistribution(movieId);
+        Map<Integer, Long> map = new HashMap<>();
+        // Initialize with zeros for all 1-5 stars
+        for (int i = 1; i <= 5; i++) {
+            map.put(i, 0L);
+        }
+        for (Object[] row : results) {
+            if (row != null && row.length == 2 && row[0] != null && row[1] != null) {
+                Integer stars = ((Number) row[0]).intValue();
+                Long count = ((Number) row[1]).longValue();
+                map.put(stars, count);
+            }
+        }
+        return map;
     }
 
     @Override
