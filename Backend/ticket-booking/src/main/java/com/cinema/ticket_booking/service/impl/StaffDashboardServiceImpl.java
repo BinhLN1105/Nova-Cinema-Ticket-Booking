@@ -7,6 +7,7 @@ import com.cinema.ticket_booking.dto.response.UpcomingShowtimeItem;
 import com.cinema.ticket_booking.model.ScanLog;
 import com.cinema.ticket_booking.model.StaffProfile;
 import com.cinema.ticket_booking.model.User;
+import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.ScanLogRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.repository.StaffProfileRepository;
@@ -31,6 +32,7 @@ public class StaffDashboardServiceImpl {
     private final StaffProfileRepository staffProfileRepository;
     private final ShowtimeRepository showtimeRepository;
     private final TicketRepository ticketRepository;
+    private final BookingRepository bookingRepository;
     private final ScanLogRepository scanLogRepository;
 
     // ── Stats Dashboard ─────────────────────────────────────────────────────
@@ -84,16 +86,22 @@ public class StaffDashboardServiceImpl {
     }
 
     // ── Check-in History ────────────────────────────────────────────────────
+    // Sử dụng bảng scan_logs để hiển thị cả Thành công và Thất bại
 
     public PageResponse<CheckInHistoryItemResponse> getCheckInHistory(User currentUser, Pageable pageable) {
         UUID cinemaId = getCinemaId(currentUser);
+        
+        // Nova: Tự động bù đắp dữ liệu log từ bookings nếu phát hiện bảng log đang trống
+        // Điều này giúp đồng bộ dữ liệu 1/6 (cũ) của bạn vào lịch sử.
+        backfillCheckInLogsIfNeeded(cinemaId);
+
         Page<ScanLog> page = scanLogRepository.findByCinemaIdOrderByScannedAtDesc(cinemaId, pageable);
 
         List<CheckInHistoryItemResponse> content = page.getContent().stream()
                 .map(log -> CheckInHistoryItemResponse.builder()
-                        .bookingCode(log.getBooking() != null ? log.getBooking().getBookingCode() : null)
-                        .customerName(log.getCustomerName())
-                        .customerPhone(log.getCustomerPhone())
+                        .bookingCode(log.getBooking() != null ? log.getBooking().getBookingCode() : "N/A")
+                        .customerName(log.getCustomerName() != null ? log.getCustomerName() : "Khách vãng lai")
+                        .customerPhone(log.getCustomerPhone() != null ? log.getCustomerPhone() : "Chưa có SĐT")
                         .movieTitle(log.getMovieTitle())
                         .moviePosterUrl(log.getMoviePosterUrl())
                         .screenName(log.getScreenName())
@@ -105,6 +113,37 @@ public class StaffDashboardServiceImpl {
                 .collect(Collectors.toList());
 
         return PageResponse.of(page, content);
+    }
+
+    /** Nova: Tự động tạo log từ các đơn đã CHECKED_IN cũ để đồng bộ lịch sử */
+    private void backfillCheckInLogsIfNeeded(UUID cinemaId) {
+        long logCount = scanLogRepository.countByCinemaId(cinemaId);
+        if (logCount == 0) {
+            // Lấy 20 đơn CHECKED_IN gần nhất để đưa vào log
+            List<com.cinema.ticket_booking.model.Booking> recentBookings = bookingRepository
+                .findTop20ByCinemaIdAndStatusOrderByCreatedAtDesc(cinemaId, com.cinema.ticket_booking.enums.BookingStatus.CHECKED_IN);
+            
+            for (com.cinema.ticket_booking.model.Booking b : recentBookings) {
+                String seatsStr = b.getBookingItems().stream()
+                        .filter(bi -> bi.getShowtimeSeat() != null && bi.getShowtimeSeat().getSeat() != null)
+                        .map(bi -> bi.getShowtimeSeat().getSeat().getRowLabel() + String.valueOf(bi.getShowtimeSeat().getSeat().getColNumber()))
+                        .collect(Collectors.joining(", "));
+
+                ScanLog log = ScanLog.builder()
+                        .cinema(b.getCinema()) // Sửa từ .cinemaId(cinemaId) thành .cinema(b.getCinema())
+                        .booking(b)
+                        .customerName(b.getUser() != null ? b.getUser().getFullName() : "Khách vãng lai")
+                        .customerPhone(b.getUser() != null ? b.getUser().getPhone() : "")
+                        .movieTitle(b.getShowtime() != null ? b.getShowtime().getMovie().getTitle() : "N/A")
+                        .moviePosterUrl(b.getShowtime() != null ? b.getShowtime().getMovie().getPosterUrl() : null)
+                        .screenName(b.getShowtime() != null ? b.getShowtime().getScreen().getName() : "N/A")
+                        .seatsChecked(seatsStr)
+                        .scannedAt(b.getCreatedAt())
+                        .success(true)
+                        .build();
+                scanLogRepository.save(log);
+            }
+        }
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────

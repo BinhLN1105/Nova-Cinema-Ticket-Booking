@@ -82,7 +82,10 @@ public class StaffHomeFragment extends Fragment {
 
         // Upcoming showtimes
         viewModel.upcomingShowtimes.observe(getViewLifecycleOwner(), list -> {
-            if (list == null || list.isEmpty()) {
+            boolean hasItems = list != null && !list.isEmpty();
+            // Ẩn/hiện subtitle "(trong 60 phút tới)" để tránh mâu thuẫn khi trống
+            binding.tvUpcomingSubtitle.setVisibility(hasItems ? View.VISIBLE : View.GONE);
+            if (!hasItems) {
                 binding.tvUpcomingEmpty.setVisibility(View.VISIBLE);
                 binding.rvUpcomingShowtimes.setVisibility(View.GONE);
             } else {

@@ -12,6 +12,25 @@
         android:name="com.cinema.ticket_booking.ui.search.SearchFragment"
         android:label="Lịch chiếu" />
 
+    <!-- Cinema Detail — xem lịch chiếu theo rạp -->
+    <fragment android:id="@+id/cinemaDetailFragment"
+        android:name="com.cinema.ticket_booking.ui.search.CinemaDetailFragment"
+        android:label="Chi tiết rạp">
+        <argument android:name="cinemaId" app:argType="string"/>
+        <argument android:name="cinemaName" app:argType="string"/>
+        <!-- Staff chỉ xem lịch, không đặt vé → navigate đến seat để xem, không booking -->
+        <action android:id="@+id/action_selectShowtime_to_selectSeat"
+            app:destination="@id/selectSeatFragment"
+            app:popUpTo="@id/searchFragment" />
+    </fragment>
+
+    <!-- Select Seat (readonly view cho staff — chỉ xem sơ đồ ghế) -->
+    <fragment android:id="@+id/selectSeatFragment"
+        android:name="com.cinema.ticket_booking.ui.booking.SelectSeatFragment"
+        android:label="Sơ đồ ghế">
+        <argument android:name="showtimeId" app:argType="string"/>
+    </fragment>
+
     <fragment android:id="@+id/scannerFragment"
         android:name="com.cinema.ticket_booking.ui.scanner.ScannerFragment"
         android:label="Soát vé" />
@@ -32,4 +51,3 @@
         android:label="Đăng nhập" />
 
 </navigation>
-

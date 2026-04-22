@@ -48,6 +48,9 @@ public class CheckInHistoryAdapter extends RecyclerView.Adapter<CheckInHistoryAd
         }
         holder.tvScreenAndSeats.setText(screenSeats.isEmpty() ? "-" : screenSeats);
 
+        // Booking code
+        holder.tvBookingCode.setText(item.bookingCode != null ? "#" + item.bookingCode : "");
+
         // Customer name
         holder.tvCustomerName.setText(item.customerName != null ? item.customerName : "Khách vãng lai");
 
@@ -96,13 +99,14 @@ public class CheckInHistoryAdapter extends RecyclerView.Adapter<CheckInHistoryAd
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivMoviePoster;
         TextView tvMovieTitle, tvScreenAndSeats, tvCustomerName, tvScannedAt,
-                tvStatusBadge, tvFailReason;
+                tvStatusBadge, tvFailReason, tvBookingCode;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             ivMoviePoster = itemView.findViewById(R.id.ivMoviePoster);
             tvMovieTitle = itemView.findViewById(R.id.tvMovieTitle);
             tvScreenAndSeats = itemView.findViewById(R.id.tvScreenAndSeats);
+            tvBookingCode = itemView.findViewById(R.id.tvBookingCode);
             tvCustomerName = itemView.findViewById(R.id.tvCustomerName);
             tvScannedAt = itemView.findViewById(R.id.tvScannedAt);
             tvStatusBadge = itemView.findViewById(R.id.tvStatusBadge);

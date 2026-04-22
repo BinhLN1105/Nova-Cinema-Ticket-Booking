@@ -13,4 +13,6 @@ public interface ScanLogRepository extends JpaRepository<ScanLog, UUID> {
 
     /** Lấy lịch sử soát vé của một rạp, sắp xếp theo thời gian mới nhất */
     Page<ScanLog> findByCinemaIdOrderByScannedAtDesc(UUID cinemaId, Pageable pageable);
+
+    long countByCinemaId(UUID cinemaId);
 }

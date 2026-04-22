@@ -304,6 +304,31 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
             @Param("search") String search,
             Pageable pageable);
 
+    // ── Staff: Lịch sử check-in theo rạp (cho màn hình Lịch sử soát vé) ──
+    @Query(value = """
+            SELECT DISTINCT b FROM Booking b
+            JOIN FETCH b.user u
+            JOIN FETCH b.showtime s
+            JOIN FETCH s.movie
+            JOIN FETCH s.screen sc
+            LEFT JOIN FETCH b.bookingItems bi
+            LEFT JOIN FETCH bi.showtimeSeat ss
+            LEFT JOIN FETCH ss.seat
+            WHERE b.cinema.id = :cinemaId
+              AND b.status = 'CHECKED_IN'
+            ORDER BY b.createdAt DESC
+            """,
+            countQuery = """
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.cinema.id = :cinemaId
+              AND b.status = 'CHECKED_IN'
+            """)
+    Page<Booking> findCheckedInByCinemaOrderByCreatedAtDesc(
+            @Param("cinemaId") UUID cinemaId,
+            Pageable pageable);
+
+    List<Booking> findTop20ByCinemaIdAndStatusOrderByCreatedAtDesc(UUID cinemaId, BookingStatus status);
+
     // ── Projections ───────────────────────────────────────────────────────
 
     interface RevenueByDayProjection {
