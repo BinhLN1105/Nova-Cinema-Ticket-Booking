@@ -49,17 +49,20 @@ public class StaffDashboardController {
     }
 
     /**
-     * GET /api/v1/staff/check-in-history?page=0&size=20
+     * GET /api/v1/staff/check-in-history?filter=TODAY|THIS_MONTH&page=0&size=20
      * Lịch sử soát vé (cả thành công và thất bại), phân trang, mới nhất trước.
+     * filter=TODAY  : chỉ lấy hôm nay
+     * filter=THIS_MONTH : chỉ lấy tháng này (mặc định)
      */
     @GetMapping("/check-in-history")
     @PreAuthorize("hasAnyRole('STAFF', 'ADMIN')")
     public ResponseEntity<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> getCheckInHistory(
             @AuthenticationPrincipal User currentUser,
+            @RequestParam(defaultValue = "THIS_MONTH") String filter,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        var pageable = PageRequest.of(page, size, Sort.by("scannedAt").descending());
+            @RequestParam(defaultValue = "50") int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
         return ResponseEntity.ok(ApiResponse.success(
-                staffDashboardService.getCheckInHistory(currentUser, pageable), "Thành công"));
+                staffDashboardService.getCheckInHistory(currentUser, filter, pageable), "Thành công"));
     }
 }

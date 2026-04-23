@@ -329,6 +329,35 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
 
     List<Booking> findTop20ByCinemaIdAndStatusOrderByCreatedAtDesc(UUID cinemaId, BookingStatus status);
 
+    // ── Staff: Lịch sử check-in theo rạp + khoảng thời gian (TODAY / THIS_MONTH) ──
+    @Query(value = """
+            SELECT DISTINCT b FROM Booking b
+            JOIN FETCH b.user u
+            JOIN FETCH b.showtime s
+            JOIN FETCH s.movie
+            JOIN FETCH s.screen sc
+            LEFT JOIN FETCH b.bookingItems bi
+            LEFT JOIN FETCH bi.showtimeSeat ss
+            LEFT JOIN FETCH ss.seat
+            WHERE b.cinema.id = :cinemaId
+              AND b.status = 'CHECKED_IN'
+              AND b.createdAt >= :from
+              AND b.createdAt < :to
+            ORDER BY b.createdAt DESC
+            """,
+            countQuery = """
+            SELECT COUNT(b) FROM Booking b
+            WHERE b.cinema.id = :cinemaId
+              AND b.status = 'CHECKED_IN'
+              AND b.createdAt >= :from
+              AND b.createdAt < :to
+            """)
+    Page<Booking> findCheckedInByCinemaAndDateRange(
+            @Param("cinemaId") UUID cinemaId,
+            @Param("from") LocalDateTime from,
+            @Param("to") LocalDateTime to,
+            Pageable pageable);
+
     // ── Projections ───────────────────────────────────────────────────────
 
     interface RevenueByDayProjection {

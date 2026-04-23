@@ -94,7 +94,7 @@ public interface ApiService {
         Call<ApiResponse<List<ShowtimeResponse>>> getShowtimes(
                         @Query("movieId") String movieId,
                         @Query("cinemaId") String cinemaId,
-                        @Query("date") String date); // format: yyyy-MM-dd
+                        @Query("date") String date);
 
         @GET("showtimes/{id}/seats")
         Call<ApiResponse<SeatMapResponse>> getSeatMap(@Path("id") String showtimeId);
@@ -211,6 +211,7 @@ public interface ApiService {
 
         @GET("staff/check-in-history")
         Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> getCheckInHistory(
+                        @Query("filter") String filter,
                         @Query("page") int page,
                         @Query("size") int size);
 }

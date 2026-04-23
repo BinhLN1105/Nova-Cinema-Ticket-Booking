@@ -10,12 +10,47 @@
         android:layout_height="wrap_content"
         android:background="#0A0E1A"
         app:elevation="0dp">
+
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="Lịch sử soát vé"
             app:titleTextColor="#F5C518" />
+
+        <!-- Tab bar: Hôm nay / Tháng này -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:orientation="horizontal"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="0dp">
+
+            <TextView
+                android:id="@+id/tabToday"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Hôm nay"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                android:textColor="#F5C518"
+                android:background="@drawable/bg_tab_selected" />
+
+            <TextView
+                android:id="@+id/tabThisMonth"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="Tháng này"
+                android:gravity="center"
+                android:textSize="14sp"
+                android:textColor="#6B7E94"
+                android:background="@drawable/bg_tab_unselected" />
+
+        </LinearLayout>
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <LinearLayout
