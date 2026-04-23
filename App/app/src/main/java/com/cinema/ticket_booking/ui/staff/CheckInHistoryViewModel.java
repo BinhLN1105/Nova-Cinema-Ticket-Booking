@@ -24,8 +24,13 @@ public class CheckInHistoryViewModel extends ViewModel {
 
     private final StaffRepository staffRepository;
 
-    private final MutableLiveData<List<CheckInHistoryItemResponse>> _items = new MutableLiveData<>(new ArrayList<>());
-    public final LiveData<List<CheckInHistoryItemResponse>> items = _items;
+    // Tab "Hôm nay"
+    private final MutableLiveData<List<CheckInHistoryItemResponse>> _todayItems = new MutableLiveData<>(new ArrayList<>());
+    public final LiveData<List<CheckInHistoryItemResponse>> todayItems = _todayItems;
+
+    // Tab "Tháng này"
+    private final MutableLiveData<List<CheckInHistoryItemResponse>> _monthItems = new MutableLiveData<>(new ArrayList<>());
+    public final LiveData<List<CheckInHistoryItemResponse>> monthItems = _monthItems;
 
     private final MutableLiveData<Boolean> _isLoading = new MutableLiveData<>(false);
     public final LiveData<Boolean> isLoading = _isLoading;
@@ -33,59 +38,70 @@ public class CheckInHistoryViewModel extends ViewModel {
     private final MutableLiveData<String> _error = new MutableLiveData<>();
     public final LiveData<String> error = _error;
 
-    private int currentPage = 0;
-    private boolean isLastPage = false;
-    private boolean isFetching = false;
-
     @Inject
     public CheckInHistoryViewModel(StaffRepository staffRepository) {
         this.staffRepository = staffRepository;
-        loadNextPage();
+        // Load cả 2 tab ngay khi khởi tạo
+        loadToday();
+        loadThisMonth();
     }
 
-    public void loadNextPage() {
-        if (isFetching || isLastPage) return;
-        isFetching = true;
+    public void loadToday() {
         _isLoading.setValue(true);
-
-        staffRepository.getCheckInHistory(currentPage, 20)
+        staffRepository.getCheckInHistory("TODAY", 0, 50)
                 .enqueue(new Callback<ApiResponse<PageResponse<CheckInHistoryItemResponse>>>() {
                     @Override
                     public void onResponse(Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> call,
                                            Response<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> response) {
                         _isLoading.setValue(false);
-                        isFetching = false;
                         if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
                             PageResponse<CheckInHistoryItemResponse> page = response.body().getData();
-                            if (page != null) {
-                                List<CheckInHistoryItemResponse> current = new ArrayList<>(
-                                        _items.getValue() != null ? _items.getValue() : new ArrayList<>());
-                                if (page.getContent() != null) {
-                                    current.addAll(page.getContent());
-                                }
-                                _items.setValue(current);
-                                isLastPage = page.isLast();
-                                currentPage++;
+                            if (page != null && page.getContent() != null) {
+                                _todayItems.setValue(page.getContent());
+                            } else {
+                                _todayItems.setValue(new ArrayList<>());
                             }
                         } else {
-                            _error.setValue("Không thể tải lịch sử soát vé");
+                            _error.setValue("Không thể tải lịch sử hôm nay");
                         }
                     }
 
                     @Override
                     public void onFailure(Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> call, Throwable t) {
                         _isLoading.setValue(false);
-                        isFetching = false;
                         _error.setValue("Lỗi kết nối: " + t.getMessage());
                     }
                 });
     }
 
+    public void loadThisMonth() {
+        staffRepository.getCheckInHistory("THIS_MONTH", 0, 100)
+                .enqueue(new Callback<ApiResponse<PageResponse<CheckInHistoryItemResponse>>>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> call,
+                                           Response<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> response) {
+                        if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                            PageResponse<CheckInHistoryItemResponse> page = response.body().getData();
+                            if (page != null && page.getContent() != null) {
+                                _monthItems.setValue(page.getContent());
+                            } else {
+                                _monthItems.setValue(new ArrayList<>());
+                            }
+                        }
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> call, Throwable t) {
+                        // silent fail - today tab sẽ show error nếu có
+                    }
+                });
+    }
+
     public void refresh() {
-        currentPage = 0;
-        isLastPage = false;
-        isFetching = false;
-        _items.setValue(new ArrayList<>());
-        loadNextPage();
+        _error.setValue(null);
+        _todayItems.setValue(new ArrayList<>());
+        _monthItems.setValue(new ArrayList<>());
+        loadToday();
+        loadThisMonth();
     }
 }

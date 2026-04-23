@@ -4,11 +4,11 @@ import com.cinema.ticket_booking.dto.response.CheckInHistoryItemResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.StaffDashboardResponse;
 import com.cinema.ticket_booking.dto.response.UpcomingShowtimeItem;
-import com.cinema.ticket_booking.model.ScanLog;
+import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.StaffProfile;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.repository.BookingRepository;
-import com.cinema.ticket_booking.repository.ScanLogRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.repository.StaffProfileRepository;
 import com.cinema.ticket_booking.repository.TicketRepository;
@@ -33,7 +33,6 @@ public class StaffDashboardServiceImpl {
     private final ShowtimeRepository showtimeRepository;
     private final TicketRepository ticketRepository;
     private final BookingRepository bookingRepository;
-    private final ScanLogRepository scanLogRepository;
 
     // ── Stats Dashboard ─────────────────────────────────────────────────────
 
@@ -86,64 +85,80 @@ public class StaffDashboardServiceImpl {
     }
 
     // ── Check-in History ────────────────────────────────────────────────────
-    // Sử dụng bảng scan_logs để hiển thị cả Thành công và Thất bại
+    // Query trực tiếp từ bảng bookings (CHECKED_IN) vì đây là source of truth.
+    // filter = "TODAY" hoặc "THIS_MONTH"
 
-    public PageResponse<CheckInHistoryItemResponse> getCheckInHistory(User currentUser, Pageable pageable) {
+    public PageResponse<CheckInHistoryItemResponse> getCheckInHistory(
+            User currentUser, String filter, Pageable pageable) {
+
         UUID cinemaId = getCinemaId(currentUser);
-        
-        // Nova: Tự động bù đắp dữ liệu log từ bookings nếu phát hiện bảng log đang trống
-        // Điều này giúp đồng bộ dữ liệu 1/6 (cũ) của bạn vào lịch sử.
-        backfillCheckInLogsIfNeeded(cinemaId);
 
-        Page<ScanLog> page = scanLogRepository.findByCinemaIdOrderByScannedAtDesc(cinemaId, pageable);
+        // Xác định khoảng thời gian theo filter
+        LocalDateTime from;
+        LocalDateTime to = LocalDateTime.now().plusSeconds(1);
+
+        if ("TODAY".equalsIgnoreCase(filter)) {
+            from = LocalDate.now().atStartOfDay();
+        } else {
+            // THIS_MONTH (mặc định)
+            YearMonth month = YearMonth.now();
+            from = month.atDay(1).atStartOfDay();
+        }
+
+        Page<Booking> page = bookingRepository.findCheckedInByCinemaAndDateRange(
+                cinemaId, from, to, pageable);
 
         List<CheckInHistoryItemResponse> content = page.getContent().stream()
-                .map(log -> CheckInHistoryItemResponse.builder()
-                        .bookingCode(log.getBooking() != null ? log.getBooking().getBookingCode() : "N/A")
-                        .customerName(log.getCustomerName() != null ? log.getCustomerName() : "Khách vãng lai")
-                        .customerPhone(log.getCustomerPhone() != null ? log.getCustomerPhone() : "Chưa có SĐT")
-                        .movieTitle(log.getMovieTitle())
-                        .moviePosterUrl(log.getMoviePosterUrl())
-                        .screenName(log.getScreenName())
-                        .seatsChecked(log.getSeatsChecked())
-                        .success(log.isSuccess())
-                        .failReason(log.getFailReason())
-                        .scannedAt(log.getScannedAt())
-                        .build())
+                .map(booking -> {
+                    // Tổng hợp tên ghế từ booking items
+                    String seatsStr = "";
+                    try {
+                        if (booking.getBookingItems() != null) {
+                            seatsStr = booking.getBookingItems().stream()
+                                    .filter(bi -> bi.getShowtimeSeat() != null
+                                            && bi.getShowtimeSeat().getSeat() != null)
+                                    .map(bi -> String.valueOf(bi.getShowtimeSeat().getSeat().getRowLabel())
+                                            + bi.getShowtimeSeat().getSeat().getColNumber())
+                                    .sorted()
+                                    .collect(Collectors.joining(", "));
+                        }
+                    } catch (Exception ignored) {}
+
+                    String movieTitle = null;
+                    String posterUrl = null;
+                    String screenName = null;
+                    LocalDateTime scannedAt = booking.getCreatedAt();
+
+                    try {
+                        if (booking.getShowtime() != null) {
+                            if (booking.getShowtime().getMovie() != null) {
+                                movieTitle = booking.getShowtime().getMovie().getTitle();
+                                posterUrl = booking.getShowtime().getMovie().getPosterUrl();
+                            }
+                            if (booking.getShowtime().getScreen() != null) {
+                                screenName = booking.getShowtime().getScreen().getName();
+                            }
+                        }
+                    } catch (Exception ignored) {}
+
+                    return CheckInHistoryItemResponse.builder()
+                            .bookingCode(booking.getBookingCode())
+                            .customerName(booking.getUser() != null
+                                    ? booking.getUser().getFullName() : "Khách vãng lai")
+                            .customerPhone(booking.getUser() != null
+                                    ? booking.getUser().getPhone() : "")
+                            .movieTitle(movieTitle != null ? movieTitle : "N/A")
+                            .moviePosterUrl(posterUrl)
+                            .screenName(screenName)
+                            .seatsChecked(seatsStr)
+                            .success(true) // booking CHECKED_IN = thành công
+                            .failReason(null)
+                            .scannedAt(scannedAt)
+                            .build();
+                })
                 .collect(Collectors.toList());
 
         return PageResponse.of(page, content);
-    }
-
-    /** Nova: Tự động tạo log từ các đơn đã CHECKED_IN cũ để đồng bộ lịch sử */
-    private void backfillCheckInLogsIfNeeded(UUID cinemaId) {
-        long logCount = scanLogRepository.countByCinemaId(cinemaId);
-        if (logCount == 0) {
-            // Lấy 20 đơn CHECKED_IN gần nhất để đưa vào log
-            List<com.cinema.ticket_booking.model.Booking> recentBookings = bookingRepository
-                .findTop20ByCinemaIdAndStatusOrderByCreatedAtDesc(cinemaId, com.cinema.ticket_booking.enums.BookingStatus.CHECKED_IN);
-            
-            for (com.cinema.ticket_booking.model.Booking b : recentBookings) {
-                String seatsStr = b.getBookingItems().stream()
-                        .filter(bi -> bi.getShowtimeSeat() != null && bi.getShowtimeSeat().getSeat() != null)
-                        .map(bi -> bi.getShowtimeSeat().getSeat().getRowLabel() + String.valueOf(bi.getShowtimeSeat().getSeat().getColNumber()))
-                        .collect(Collectors.joining(", "));
-
-                ScanLog log = ScanLog.builder()
-                        .cinema(b.getCinema()) // Sửa từ .cinemaId(cinemaId) thành .cinema(b.getCinema())
-                        .booking(b)
-                        .customerName(b.getUser() != null ? b.getUser().getFullName() : "Khách vãng lai")
-                        .customerPhone(b.getUser() != null ? b.getUser().getPhone() : "")
-                        .movieTitle(b.getShowtime() != null ? b.getShowtime().getMovie().getTitle() : "N/A")
-                        .moviePosterUrl(b.getShowtime() != null ? b.getShowtime().getMovie().getPosterUrl() : null)
-                        .screenName(b.getShowtime() != null ? b.getShowtime().getScreen().getName() : "N/A")
-                        .seatsChecked(seatsStr)
-                        .scannedAt(b.getCreatedAt())
-                        .success(true)
-                        .build();
-                scanLogRepository.save(log);
-            }
-        }
     }
 
     // ── Helper ──────────────────────────────────────────────────────────────

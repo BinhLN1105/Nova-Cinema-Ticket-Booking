@@ -31,7 +31,7 @@ public class StaffRepository {
         return apiService.getUpcomingShowtimes();
     }
 
-    public Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> getCheckInHistory(int page, int size) {
-        return apiService.getCheckInHistory(page, size);
+    public Call<ApiResponse<PageResponse<CheckInHistoryItemResponse>>> getCheckInHistory(String filter, int page, int size) {
+        return apiService.getCheckInHistory(filter, page, size);
     }
 }

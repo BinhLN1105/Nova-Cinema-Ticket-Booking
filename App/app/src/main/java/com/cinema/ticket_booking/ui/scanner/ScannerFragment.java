@@ -91,10 +91,14 @@ public class ScannerFragment extends Fragment {
         } else {
             binding.tvScannerTitle.setText("Soát Vé Phim");
             binding.tvScannerSubtitle.setText("Dành cho nhân viên kiểm soát vé tại rạp");
-            binding.btnLogout.setText("Quay lại");
+            binding.btnLogout.setText("Quay lại Dashboard");
             binding.btnManualInput.setVisibility(View.VISIBLE);
             binding.btnLogout.setOnClickListener(v -> {
-                Navigation.findNavController(view).navigate(R.id.action_scanner_to_login);
+                // Quay về màn hình trước (staffHomeFragment) thay vì navigate sang login
+                if (!Navigation.findNavController(view).popBackStack()) {
+                    // Fallback: nếu không có back stack thì về staffHomeFragment
+                    Navigation.findNavController(view).navigate(R.id.staffHomeFragment);
+                }
             });
         }
 

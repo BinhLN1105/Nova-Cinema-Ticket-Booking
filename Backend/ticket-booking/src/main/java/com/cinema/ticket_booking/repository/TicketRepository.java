@@ -35,7 +35,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     """)
     boolean areAllTicketsUsed(@Param("bookingId") UUID bookingId);
 
-    // Đếm vé đã soát của một rạp trong khoảng thời gian (dùng cho Staff Dashboard)
+    // Đếm số vé (ghế) đã soát của một rạp trong khoảng thời gian (dùng cho Staff Dashboard)
     @Query("""
         SELECT COUNT(t) FROM Ticket t
         JOIN t.bookingItem bi
