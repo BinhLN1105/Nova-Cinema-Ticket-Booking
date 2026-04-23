@@ -25,9 +25,13 @@ public class ReviewRepository {
     }
 
     public LiveData<Resource<PageResponse<ReviewResponse>>> getReviews(String movieId, int page, int size) {
+        return getReviews(movieId, page, size, null);
+    }
+
+    public LiveData<Resource<PageResponse<ReviewResponse>>> getReviews(String movieId, int page, int size, Integer rating) {
         MutableLiveData<Resource<PageResponse<ReviewResponse>>> result = new MutableLiveData<>();
         result.setValue(Resource.loading());
-        apiService.getReviews(movieId, page, size).enqueue(new Callback<>() {
+        apiService.getReviews(movieId, page, size, rating).enqueue(new Callback<>() {
             @Override
             public void onResponse(Call<ApiResponse<PageResponse<ReviewResponse>>> call,
                     Response<ApiResponse<PageResponse<ReviewResponse>>> response) {

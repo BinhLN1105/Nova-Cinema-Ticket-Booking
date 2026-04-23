@@ -40,6 +40,9 @@ public class CheckInHistoryAdapter extends RecyclerView.Adapter<CheckInHistoryAd
         // Movie title
         holder.tvMovieTitle.setText(item.movieTitle != null ? item.movieTitle : "Không xác định");
 
+        // Cinema name
+        holder.tvCinemaName.setText(item.cinemaName != null ? item.cinemaName : "Hệ thống Nova");
+
         // Screen + Seats
         String screenSeats = "";
         if (item.screenName != null) screenSeats += item.screenName;
@@ -98,13 +101,14 @@ public class CheckInHistoryAdapter extends RecyclerView.Adapter<CheckInHistoryAd
 
     static class ViewHolder extends RecyclerView.ViewHolder {
         ImageView ivMoviePoster;
-        TextView tvMovieTitle, tvScreenAndSeats, tvCustomerName, tvScannedAt,
+        TextView tvMovieTitle, tvCinemaName, tvScreenAndSeats, tvCustomerName, tvScannedAt,
                 tvStatusBadge, tvFailReason, tvBookingCode;
 
         ViewHolder(@NonNull View itemView) {
             super(itemView);
             ivMoviePoster = itemView.findViewById(R.id.ivMoviePoster);
             tvMovieTitle = itemView.findViewById(R.id.tvMovieTitle);
+            tvCinemaName = itemView.findViewById(R.id.tvCinemaName);
             tvScreenAndSeats = itemView.findViewById(R.id.tvScreenAndSeats);
             tvBookingCode = itemView.findViewById(R.id.tvBookingCode);
             tvCustomerName = itemView.findViewById(R.id.tvCustomerName);

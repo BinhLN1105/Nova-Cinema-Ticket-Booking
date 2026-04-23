@@ -13,6 +13,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentCheckInHistoryBinding;
+import com.cinema.ticket_booking.ui.MainViewModel;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -22,6 +23,7 @@ public class CheckInHistoryFragment extends Fragment {
     private FragmentCheckInHistoryBinding binding;
     private CheckInHistoryViewModel viewModel;
     private CheckInHistoryAdapter adapter;
+    private MainViewModel mainViewModel;
 
     private boolean isShowingToday = true; // Mặc định tab "Hôm nay"
 
@@ -37,10 +39,76 @@ public class CheckInHistoryFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
 
         viewModel = new ViewModelProvider(this).get(CheckInHistoryViewModel.class);
+        mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
         setupRecyclerView();
         setupTabs();
+        setupToolbar();
         observeViewModel();
+
+        // Đọc filter từ: 1. Arguments (điều hướng cũ), 2. SharedViewModel (từ Dashboard card)
+        handleFilterRequest();
+    }
+
+    private void setupToolbar() {
+        binding.toolbar.setNavigationIcon(R.drawable.ic_back);
+        binding.toolbar.setNavigationOnClickListener(v -> {
+            // Pop backstack để quay lại màn hình trước (nếu được push qua action)
+            // Nếu không có backstack, không làm gì (màn hình gốc từ BottomNav)
+            if (!androidx.navigation.Navigation
+                    .findNavController(requireActivity(), R.id.nav_host_fragment)
+                    .popBackStack()) {
+                // Không có gì để pop → quay về Dashboard qua BottomNav
+                View bnvView = requireActivity().findViewById(R.id.bottomNav);
+                if (bnvView instanceof com.google.android.material.bottomnavigation.BottomNavigationView) {
+                    ((com.google.android.material.bottomnavigation.BottomNavigationView) bnvView)
+                            .setSelectedItemId(R.id.staffHomeFragment);
+                }
+            }
+        });
+    }
+
+    /**
+     * Xử lý filter từ 2 nguồn:
+     * 1. Arguments được truyền qua navigate() (flow cũ - dự phòng)
+     * 2. MainViewModel.pendingHistoryFilter (flow mới từ Dashboard cards)
+     */
+    private void handleFilterRequest() {
+        // Đọc từ SharedViewModel TRƯỚC (ưu tiên cao hơn)
+        String sharedFilter = mainViewModel.getPendingHistoryFilter().getValue();
+        if (sharedFilter != null) {
+            applyFilter(sharedFilter);
+            mainViewModel.consumeHistoryFilter(); // Reset để không apply lại lần sau
+            return;
+        }
+
+        // Dự phòng: đọc từ Arguments
+        if (getArguments() != null) {
+            String argFilter = getArguments().getString("filter");
+            if (argFilter != null) {
+                applyFilter(argFilter);
+            }
+        }
+
+        // Observe nếu filter đến sau (trường hợp fragment đã được tạo trước)
+        mainViewModel.getPendingHistoryFilter().observe(getViewLifecycleOwner(), filter -> {
+            if (filter != null) {
+                applyFilter(filter);
+                mainViewModel.consumeHistoryFilter();
+            }
+        });
+    }
+
+    private void applyFilter(String filter) {
+        if ("TODAY".equals(filter)) {
+            isShowingToday = true;
+            setTabSelected(true);
+            showCurrentTab();
+        } else if ("THIS_MONTH".equals(filter)) {
+            isShowingToday = false;
+            setTabSelected(false);
+            showCurrentTab();
+        }
     }
 
     private void setupRecyclerView() {
@@ -50,8 +118,7 @@ public class CheckInHistoryFragment extends Fragment {
     }
 
     private void setupTabs() {
-        // Mặc định: tab Hôm nay active
-        setTabSelected(true);
+        setTabSelected(true); // Mặc định: tab Hôm nay active
 
         binding.tabToday.setOnClickListener(v -> {
             if (!isShowingToday) {
@@ -99,7 +166,6 @@ public class CheckInHistoryFragment extends Fragment {
             }
         });
 
-        // Observe cả 2 tab, khi data thay đổi thì refresh list nếu tab đó đang active
         viewModel.todayItems.observe(getViewLifecycleOwner(), items -> {
             if (isShowingToday) showList(items);
         });

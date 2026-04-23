@@ -20,16 +20,19 @@ public class ReviewListFragment extends Fragment {
     private MovieDetailViewModel viewModel;
     private ReviewAdapter adapter;
     private String movieId;
-    private String movieTitle;
     private int currentPage = 0;
     private boolean isLastPage = false;
     private boolean isLoading = false;
+    private Integer currentRatingFilter = null; // null = tất cả
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         if (getArguments() != null) {
             movieId = getArguments().getString("movieId");
+            if (getArguments().containsKey("rating")) {
+                currentRatingFilter = getArguments().getInt("rating");
+            }
         }
     }
 
@@ -47,13 +50,11 @@ public class ReviewListFragment extends Fragment {
 
         setupToolbar();
         setupRecyclerView();
+        setupStarFilter();
         setupObservers();
-        
-        binding.swipeRefresh.setOnRefreshListener(this::refreshData);
-        
-        // Initial load
-        refreshData();
 
+        binding.swipeRefresh.setOnRefreshListener(this::refreshData);
+        refreshData();
         checkEligibility();
     }
 
@@ -70,11 +71,10 @@ public class ReviewListFragment extends Fragment {
         binding.rvReviews.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(@NonNull RecyclerView recyclerView, int dx, int dy) {
-                if (dy > 0) { // Scrolling down
+                if (dy > 0) {
                     int visibleItemCount = layoutManager.getChildCount();
                     int totalItemCount = layoutManager.getItemCount();
                     int pastVisibleItems = layoutManager.findFirstVisibleItemPosition();
-
                     if (!isLoading && !isLastPage) {
                         if ((visibleItemCount + pastVisibleItems) >= totalItemCount) {
                             loadMoreData();
@@ -85,23 +85,57 @@ public class ReviewListFragment extends Fragment {
         });
     }
 
+    private void setupStarFilter() {
+        // Thiết lập trạng thái chip ban đầu dựa trên filter được truyền vào
+        if (currentRatingFilter != null) {
+            int chipId;
+            if (currentRatingFilter == 5) chipId = R.id.chip5Star;
+            else if (currentRatingFilter == 4) chipId = R.id.chip4Star;
+            else if (currentRatingFilter == 3) chipId = R.id.chip3Star;
+            else if (currentRatingFilter == 2) chipId = R.id.chip2Star;
+            else if (currentRatingFilter == 1) chipId = R.id.chip1Star;
+            else chipId = R.id.chipAll;
+            binding.chipGroupFilter.check(chipId);
+        }
+
+        binding.chipGroupFilter.setOnCheckedStateChangeListener((group, checkedIds) -> {
+            if (checkedIds.isEmpty()) return;
+            int checkedId = checkedIds.get(0);
+            if (checkedId == R.id.chipAll) {
+                currentRatingFilter = null;
+            } else if (checkedId == R.id.chip5Star) {
+                currentRatingFilter = 5;
+            } else if (checkedId == R.id.chip4Star) {
+                currentRatingFilter = 4;
+            } else if (checkedId == R.id.chip3Star) {
+                currentRatingFilter = 3;
+            } else if (checkedId == R.id.chip2Star) {
+                currentRatingFilter = 2;
+            } else if (checkedId == R.id.chip1Star) {
+                currentRatingFilter = 1;
+            }
+            refreshData();
+        });
+    }
+
     private void setupObservers() {
         viewModel.getReviews().observe(getViewLifecycleOwner(), resource -> {
+            if (resource == null) return;
             isLoading = false;
             binding.swipeRefresh.setRefreshing(false);
             binding.progressBar.setVisibility(View.GONE);
 
-            switch (resource.status) {
-                case SUCCESS -> {
-                    if (resource.data != null) {
-                        if (currentPage == 0) adapter.clear();
+            if (resource.isSuccess()) {
+                if (resource.data != null) {
+                    if (currentPage == 0) adapter.clear();
+                    if (resource.data.getContent() != null) {
                         adapter.addAll(resource.data.getContent());
-                        isLastPage = resource.data.isLast();
-                        
-                        binding.tvEmpty.setVisibility(adapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
                     }
+                    isLastPage = resource.data.isLast();
+                    binding.tvEmpty.setVisibility(adapter.getItemCount() == 0 ? View.VISIBLE : View.GONE);
                 }
-                case ERROR -> SnackbarHelper.showError(binding.getRoot(), resource.message);
+            } else if (resource.isError() && resource.message != null) {
+                SnackbarHelper.showError(binding.getRoot(), resource.message);
             }
         });
     }
@@ -120,7 +154,7 @@ public class ReviewListFragment extends Fragment {
     private void loadData() {
         isLoading = true;
         if (currentPage == 0) binding.progressBar.setVisibility(View.VISIBLE);
-        viewModel.loadReviewsPaged(movieId, currentPage, 10);
+        viewModel.loadReviewsFiltered(movieId, currentPage, 10, currentRatingFilter);
     }
 
     private void checkEligibility() {
@@ -143,4 +177,3 @@ public class ReviewListFragment extends Fragment {
         binding = null;
     }
 }
-

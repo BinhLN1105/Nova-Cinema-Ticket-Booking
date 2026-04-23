@@ -81,6 +81,17 @@
                     android:background="@drawable/bg_badge_success"
                     android:layout_marginStart="6dp" />
             </LinearLayout>
+            
+            <!-- Cinema Name -->
+            <TextView
+                android:id="@+id/tvCinemaName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nova Cinema Thủ Đức"
+                android:textSize="11sp"
+                android:textColor="#F5C518"
+                android:layout_marginTop="2dp"
+                android:textStyle="bold" />
 
             <!-- Dòng 2: Phòng + Ghế -->
             <LinearLayout

@@ -83,6 +83,20 @@ public class MovieDetailFragment extends Fragment {
             args.putString("movieId", movieId);
             Navigation.findNavController(v).navigate(R.id.action_movieDetail_to_reviewList, args);
         });
+
+        binding.btnFilterReview.setOnClickListener(v -> {
+            // Navigate thẳng vào màn hình Tất cả đánh giá
+            // User sẽ dùng ChipGroup trong ReviewListFragment để lọc sao
+            Bundle args = new Bundle();
+            args.putString("movieId", movieId);
+            try {
+                Navigation.findNavController(requireView())
+                        .navigate(R.id.action_movieDetail_to_reviewList, args);
+            } catch (Exception e) {
+                android.widget.Toast.makeText(requireContext(),
+                        "Không thể mở đánh giá", android.widget.Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void setupObservers(View view) {

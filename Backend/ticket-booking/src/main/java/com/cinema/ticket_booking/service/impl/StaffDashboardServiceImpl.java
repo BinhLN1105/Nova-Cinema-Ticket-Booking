@@ -127,6 +127,7 @@ public class StaffDashboardServiceImpl {
                     String movieTitle = null;
                     String posterUrl = null;
                     String screenName = null;
+                    String cinemaName = null;
                     LocalDateTime scannedAt = booking.getCreatedAt();
 
                     try {
@@ -139,6 +140,9 @@ public class StaffDashboardServiceImpl {
                                 screenName = booking.getShowtime().getScreen().getName();
                             }
                         }
+                        if (booking.getCinema() != null) {
+                            cinemaName = booking.getCinema().getName();
+                        }
                     } catch (Exception ignored) {}
 
                     return CheckInHistoryItemResponse.builder()
@@ -150,6 +154,7 @@ public class StaffDashboardServiceImpl {
                             .movieTitle(movieTitle != null ? movieTitle : "N/A")
                             .moviePosterUrl(posterUrl)
                             .screenName(screenName)
+                            .cinemaName(cinemaName)
                             .seatsChecked(seatsStr)
                             .success(true) // booking CHECKED_IN = thành công
                             .failReason(null)

@@ -150,12 +150,12 @@ public interface ApiService {
         @GET("combos")
         Call<ApiResponse<List<ComboResponse>>> getCombos();
 
-        // ── Review ────────────────────────────────────────────────────────────
         @GET("reviews")
         Call<ApiResponse<PageResponse<ReviewResponse>>> getReviews(
                         @Query("movieId") String movieId,
                         @Query("page") int page,
-                        @Query("size") int size);
+                        @Query("size") int size,
+                        @Query("rating") Integer rating); // null = tất cả, 1-5 = lọc theo sao
 
         @POST("reviews")
         Call<ApiResponse<ReviewResponse>> createReview(@Body ReviewRequest request);

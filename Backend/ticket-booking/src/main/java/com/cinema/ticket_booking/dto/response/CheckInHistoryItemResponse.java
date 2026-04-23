@@ -15,6 +15,7 @@ public class CheckInHistoryItemResponse {
     private String movieTitle;
     private String moviePosterUrl;
     private String screenName;
+    private String cinemaName;
     private String seatsChecked;      // "A3, A4, B5"
     private boolean success;
     private String failReason;        // null nếu thành công

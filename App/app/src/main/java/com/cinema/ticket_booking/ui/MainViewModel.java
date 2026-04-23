@@ -19,6 +19,8 @@ public class MainViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final AuthRepository authRepository;
     private final MutableLiveData<Resource<UserResponse>> userProfile = new MutableLiveData<>();
+    /** Tab cần mở khi CheckInHistoryFragment được hiển thị từ Dashboard */
+    private final MutableLiveData<String> pendingHistoryFilter = new MutableLiveData<>();
 
     @Inject
     public MainViewModel(UserRepository userRepository, AuthRepository authRepository) {
@@ -54,6 +56,20 @@ public class MainViewModel extends ViewModel {
 
     public LiveData<Resource<UserResponse>> updateNotificationSettings(boolean marketing, boolean transaction) {
         return userRepository.updateNotificationSettings(marketing, transaction);
+    }
+
+    /** Gọi từ Dashboard khi muốn mở History ở tab cụ thể */
+    public void requestHistoryTab(String filter) {
+        pendingHistoryFilter.setValue(filter);
+    }
+
+    /** Gọi từ CheckInHistoryFragment sau khi đã đọc filter để reset */
+    public void consumeHistoryFilter() {
+        pendingHistoryFilter.setValue(null);
+    }
+
+    public LiveData<String> getPendingHistoryFilter() {
+        return pendingHistoryFilter;
     }
 }
 

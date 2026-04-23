@@ -122,6 +122,15 @@
                         android:layout_weight="1"
                         android:text="Đánh giá từ người xem" android:textColor="@color/on_surface"
                         android:textStyle="bold" android:textSize="18sp"/>
+                    
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFilterReview"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Lọc sao ▾"
+                        app:icon="@drawable/ic_star"
+                        android:textColor="@color/tertiary"/>
+
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnWriteReview"
                         style="@style/Widget.MaterialComponents.Button.TextButton"

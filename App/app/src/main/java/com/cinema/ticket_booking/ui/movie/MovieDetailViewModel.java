@@ -51,6 +51,10 @@ public class MovieDetailViewModel extends ViewModel {
         reviewRepo.getReviews(movieId, page, size).observeForever(reviews::setValue);
     }
 
+    public void loadReviewsFiltered(String movieId, int page, int size, Integer rating) {
+        reviewRepo.getReviews(movieId, page, size, rating).observeForever(reviews::setValue);
+    }
+
     public void submitReview(String movieId, String bookingId, int rating, String comment) {
         reviewRepo.createReview(new ReviewRequest(movieId, bookingId, rating, comment))
                 .observeForever(createReviewResult::setValue);

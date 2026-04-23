@@ -308,6 +308,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query(value = """
             SELECT DISTINCT b FROM Booking b
             JOIN FETCH b.user u
+            JOIN FETCH b.cinema c
             JOIN FETCH b.showtime s
             JOIN FETCH s.movie
             JOIN FETCH s.screen sc
@@ -333,6 +334,7 @@ public interface BookingRepository extends JpaRepository<Booking, UUID> {
     @Query(value = """
             SELECT DISTINCT b FROM Booking b
             JOIN FETCH b.user u
+            JOIN FETCH b.cinema c
             JOIN FETCH b.showtime s
             JOIN FETCH s.movie
             JOIN FETCH s.screen sc

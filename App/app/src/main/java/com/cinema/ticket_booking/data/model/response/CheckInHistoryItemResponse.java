@@ -22,6 +22,9 @@ public class CheckInHistoryItemResponse {
     @SerializedName("screenName")
     public String screenName;
 
+    @SerializedName("cinemaName")
+    public String cinemaName;
+
     @SerializedName("seatsChecked")
     public String seatsChecked;
 
