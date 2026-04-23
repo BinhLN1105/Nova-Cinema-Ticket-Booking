@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Shield, CreditCard, Wallet, Building2, CheckCircle2, Coins, Loader2 } from 'lucide-react'
-import { bookingApi } from '@/api/endpoints'
 import { useAuth } from '@/hooks'
+import { useAuthStore } from '@/stores/authStore'
+import { authApi, bookingApi } from '@/api/endpoints'
 import { formatCurrency } from '@/utils'
 import toast from 'react-hot-toast'
 
@@ -41,6 +42,10 @@ export default function PaymentPage() {
           window.location.href = vnpayPayment.paymentUrl
         } else {
           toast.success('Thanh toán bằng CinePoint thành công!')
+          // Refresh profile to update CP balance
+          const { setUser } = useAuthStore.getState()
+          const updatedUser = await authApi.me()
+          setUser(updatedUser)
           navigate('/booking/result?status=success')
         }
       } else {

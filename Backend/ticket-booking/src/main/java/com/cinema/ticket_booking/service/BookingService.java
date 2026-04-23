@@ -25,6 +25,12 @@ public interface BookingService {
 
     void cancelBooking(User actionUser, UUID bookingId);
 
+    void cancelRequest(UUID userId, UUID bookingId);
+
+    void cancelConfirm(String token, UUID bookingId);
+
+    
+
     Booking findById(UUID id);
 
     UUID getEligibleBookingForReview(UUID userId, UUID movieId);

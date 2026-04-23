@@ -118,6 +118,7 @@ public class ReviewServiceImpl implements ReviewService {
             review = existingReviewOpt.get();
             review.setRating(request.getRating());
             review.setComment(request.getComment());
+            review.setIsVisible(true); // Đảm bảo hiện lại nếu trước đó bị ẩn
             review.setBooking(booking); // Cập nhật sang booking mới nhất (nếu muốn)
         } else {
             // Tạo review mới - Phải có vé đã xem

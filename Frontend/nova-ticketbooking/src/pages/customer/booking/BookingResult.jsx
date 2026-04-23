@@ -3,14 +3,28 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { CheckCircle2, XCircle, Ticket, Home } from 'lucide-react'
 import { useBookingStore } from '@/stores/bookingStore'
+import { useAuthStore } from '@/stores/authStore'
+import { authApi } from '@/api/endpoints'
 
 export default function BookingResult() {
   const [params] = useSearchParams()
   const { reset } = useBookingStore()
   const status = params.get('status') ?? 'success'
+  const { setUser } = useAuthStore()
   const isSuccess = status === 'success' || status === '00'
 
-  useEffect(() => { if (isSuccess) reset() }, [])
+  useEffect(() => { 
+    if (isSuccess) {
+      reset()
+      // Refresh profile to update CP balance - Delay 500ms to ensure DB commit is visible
+      const timer = setTimeout(() => {
+        authApi.me().then(user => {
+          setUser(user)
+        }).catch(err => console.error('Failed to refresh profile:', err))
+      }, 500)
+      return () => clearTimeout(timer)
+    } 
+  }, [isSuccess])
 
   return (
     <div className="min-h-screen bg-cinema-900 flex items-center justify-center px-4">

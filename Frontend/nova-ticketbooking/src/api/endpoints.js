@@ -124,6 +124,7 @@ export const bookingApi = {
   getMyAll: (page = 0, size = 10) => api.get("/bookings/me", { page, size }),
   getById: (id) => api.get(`/bookings/${id}`),
   cancelRequest: (id) => api.post(`/bookings/${id}/cancel-request`),
+  cancelDirect: (id) => api.post(`/bookings/${id}/cancel`),
   cancelConfirm: (token, bookingId) => api.post(`/bookings/cancel-confirm?token=${token}&bookingId=${bookingId}`),
   createPayment: (bookingId) =>
     api.post(`/payments`, { bookingId }),

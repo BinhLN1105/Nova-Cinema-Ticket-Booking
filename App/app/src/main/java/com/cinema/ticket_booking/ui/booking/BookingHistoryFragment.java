@@ -311,7 +311,7 @@ public class BookingHistoryFragment extends Fragment {
     private void executeCancelBooking(String bookingId) {
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        apiService.cancelBooking(bookingId)
+        apiService.cancelRequest(bookingId)
                 .enqueue(new retrofit2.Callback<ApiResponse<Void>>() {
                     @Override
                     public void onResponse(@NonNull Call<ApiResponse<Void>> call,
@@ -322,19 +322,12 @@ public class BookingHistoryFragment extends Fragment {
 
                         if (response.isSuccessful()) {
                             SnackbarHelper.showSuccess(binding.getRoot(),
-                                    "Hủy vé thành công! Điểm CP đã được cộng vào tài khoản.");
-                            // Cập nhật trạng thái ngay tại chỗ để user thấy "ĐÃ HỦY" liền
-                            for (BookingSummary b : allBookings) {
-                                if (bookingId.equals(b.getId())) {
-                                    b.setStatus("CANCELLED");
-                                    break;
-                                }
-                            }
-                            updateList();
-                            // Sau đó refresh ngầm từ server để đồng bộ
+                                    "Yêu cầu hủy đã được gửi! Vui lòng kiểm tra email để xác nhận.");
+                            // Không cần cập nhật trạng thái ngay vì chưa thực sự hủy,
+                            // user sẽ được điều hướng bởi email sau.
                             viewModel.refresh();
                         } else {
-                            String msg = "Hủy vé thất bại";
+                            String msg = "Gửi yêu cầu hủy vé thất bại";
                             try {
                                 if (response.errorBody() != null) {
                                     String body = response.errorBody().string();

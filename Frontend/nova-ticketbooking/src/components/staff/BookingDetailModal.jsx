@@ -1,8 +1,9 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { 
   X, Printer, Ticket, ShoppingBag, Clock, 
-  MapPin, CreditCard, User, Calendar, Search
+  MapPin, CreditCard, User, Calendar, Search, AlertCircle
 } from 'lucide-react'
+import { toast } from 'react-hot-toast'
 import { bookingApi } from '@/api/endpoints'
 import { formatCurrency, formatDateTime, getStatusBadge, cn } from '@/utils'
 import { Modal } from '@/components/common/ui/Modal'
@@ -10,16 +11,37 @@ import { StatusBadge } from '@/components/common/ui/AdminTable'
 import { QRCodeCanvas } from 'qrcode.react'
 
 export default function BookingDetailModal({ bookingId, onClose }) {
+  const queryClient = useQueryClient()
+  
   const { data: booking, isLoading } = useQuery({
     queryKey: ['booking', 'detail', bookingId],
     queryFn: () => bookingApi.getById(bookingId),
     enabled: !!bookingId
   })
 
+  const cancelMutation = useMutation({
+    mutationFn: () => bookingApi.cancelDirect(bookingId),
+    onSuccess: () => {
+      toast.success('Hủy đơn hàng thành công')
+      queryClient.invalidateQueries({ queryKey: ['booking', 'detail', bookingId] })
+      queryClient.invalidateQueries({ queryKey: ['admin', 'bookings'] })
+      queryClient.invalidateQueries({ queryKey: ['staff', 'bookings'] })
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi hủy đơn hàng')
+    }
+  })
+
   if (!bookingId) return null
 
   const handlePrint = () => {
     window.print()
+  }
+
+  const handleCancel = () => {
+    if (window.confirm('Bạn có chắc chắn muốn hủy đơn hàng này? Thao tác này sẽ hoàn tiền CP trực tiếp cho khách hàng.')) {
+      cancelMutation.mutate()
+    }
   }
 
   const isFandB = !booking?.showtimeId
@@ -55,12 +77,22 @@ export default function BookingDetailModal({ bookingId, onClose }) {
                 </div>
               </div>
               
-              <button 
-                onClick={handlePrint}
-                className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-200"
-              >
-                <Printer className="w-4 h-4" /> In vé & Hóa đơn
-              </button>
+              <div className="flex gap-2">
+                {booking.status === 'PAID' && (
+                  <button 
+                    onClick={handleCancel}
+                    className="flex items-center justify-center gap-2 px-5 py-2.5 border border-red-200 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl font-bold text-sm transition-all shadow-sm"
+                  >
+                    Hủy đơn hàng
+                  </button>
+                )}
+                <button 
+                  onClick={handlePrint}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm transition-all shadow-md shadow-blue-200"
+                >
+                  <Printer className="w-4 h-4" /> In vé & Hóa đơn
+                </button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

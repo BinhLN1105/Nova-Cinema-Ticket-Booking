@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; }
+        .header { text-align: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { color: #fbc02d; margin: 0; }
+        .content { margin-bottom: 30px; }
+        .button-container { text-align: center; margin: 30px 0; }
+        .btn { background-color: #fbc02d; color: #000; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .footer { font-size: 0.85em; color: #777; text-align: center; border-top: 1px solid #eee; padding-top: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Xác nhận yêu cầu hủy vé</h1>
+            <p>Mã đơn vé: <strong th:text="${bookingCode}">BK123456</strong></p>
+        </div>
+        
+        <div class="content">
+            <p>Chào <strong th:text="${customerName}">Khách hàng</strong>,</p>
+            <p>Chúng tôi nhận được yêu cầu hủy vé cho bộ phim <strong th:text="${movieTitle}">Movie</strong>.</p>
+            <p>Để hoàn tất thủ tục hủy vé và nhận lại CinePoint, vui lòng nhấn vào nút bên dưới để xác nhận. <strong>Lưu ý: Liên kết này chỉ có hiệu lực trong vòng 15 phút.</strong></p>
+        </div>
+
+        <div class="button-container">
+            <a th:href="${confirmUrl}" class="btn">Xác nhận hủy vé</a>
+            <div style="margin-top: 15px;">
+                <a th:href="${appConfirmUrl}" class="btn" style="background-color: transparent; border: 2px solid #fbc02d; color: #fbc02d; padding: 10px 20px;">Xác nhận nhanh trên Ứng dụng</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <p>Nếu bạn không thực hiện yêu cầu này, vui lòng bỏ qua email này. Vé của bạn vẫn sẽ có hiệu lực bình thường.</p>
+        </div>
+        
+        <div class="footer">
+            <p>Trân trọng,<br>Đội ngũ Nova Ticket</p>
+        </div>
+    </div>
+</body>
+</html>

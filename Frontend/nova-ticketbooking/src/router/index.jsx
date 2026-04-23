@@ -55,6 +55,8 @@ const PaymentPage = () =>
   lazy_(() => import("@/pages/customer/booking/PaymentPage"));
 const BookingResult = () =>
   lazy_(() => import("@/pages/customer/booking/BookingResult"));
+const AppRedirect = () =>
+  lazy_(() => import("@/pages/customer/booking/AppRedirect"));
 const CancelConfirmPage = () =>
   lazy_(() => import("@/pages/customer/bookings/CancelConfirmPage"));
 const TicketsPage = () =>
@@ -127,6 +129,7 @@ export const router = createBrowserRouter([
       { path: 'promotions',      element: <PromotionsPage /> },
       { path: "gift-cards",      element: <GiftCardPage /> },
       { path: "gift-cards/result", element: <GiftCardResult /> },
+      { path: "app-redirect", element: <AppRedirect /> },
       // Protected customer routes
       {
         element: <RequireAuth role="CUSTOMER" />,

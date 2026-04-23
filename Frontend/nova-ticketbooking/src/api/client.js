@@ -43,7 +43,7 @@ apiClient.interceptors.response.use(
         }).then((token) => {
           original.headers.Authorization = `Bearer ${token}`;
           return apiClient(original);
-        });
+        }).catch(err => Promise.reject(err));
       }
 
       original._retry = true;
@@ -67,17 +67,22 @@ apiClient.interceptors.response.use(
       } catch (err) {
         processQueue(err);
         useAuthStore.getState().logout();
-        toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
+        // Chỉ hiện toast 1 lần để tránh spam
+        if (!window._isSessionExpiredToasted) {
+          window._isSessionExpiredToasted = true;
+          toast.error("Phiên đăng nhập hết hạn, vui lòng đăng nhập lại");
+          setTimeout(() => { window._isSessionExpiredToasted = false; }, 5000);
+        }
         return Promise.reject(err);
       } finally {
         isRefreshing = false;
       }
     }
 
-    // Show error toast for non-401 errors
-    if (error.response?.status !== 401) {
+    // Chỉ báo lỗi nếu không phải 401 và không phải 404
+    if (error.response?.status !== 401 && error.response?.status !== 404) {
       const message = error.response?.data?.message || "Đã xảy ra lỗi";
-      if (error.response?.status !== 404) toast.error(message);
+      toast.error(message);
     }
 
     return Promise.reject(error);

@@ -24,5 +24,9 @@ public class BookingDetailViewModel extends ViewModel {
     public void loadBooking(String id) {
         repo.getBookingDetail(id).observeForever(booking::setValue);
     }
+
+    public LiveData<Resource<Void>> cancelConfirm(String token, String bookingId) {
+        return repo.cancelConfirm(token, bookingId);
+    }
 }
 
