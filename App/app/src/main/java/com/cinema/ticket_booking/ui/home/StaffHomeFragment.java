@@ -173,6 +173,17 @@ public class StaffHomeFragment extends Fragment {
                 Toast.makeText(requireContext(), error, Toast.LENGTH_SHORT).show();
             }
         });
+
+        mainViewModel.getUserProfile().observe(getViewLifecycleOwner(), resource -> {
+            if (resource != null && resource.isSuccess() && resource.data != null) {
+                binding.tvWelcome.setText("Xin chào, " + resource.data.getFullName() + "! 👋");
+                if (resource.data.getCinemaName() != null && !resource.data.getCinemaName().isEmpty()) {
+                    binding.tvCinemaName.setText("Rạp: " + resource.data.getCinemaName());
+                } else {
+                    binding.tvCinemaName.setText("Rạp: Chưa phân công");
+                }
+            }
+        });
     }
 
     private void animateNumber(android.widget.TextView tv, long newValue) {

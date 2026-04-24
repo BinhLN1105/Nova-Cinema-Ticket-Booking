@@ -136,7 +136,7 @@ public class MainActivity extends AppCompatActivity {
             }
 
             // Kiểm tra xem màn hình hiện tại có cần ẩn nút AI Assistant không
-            if (HIDE_AI_FAB.contains(dest.getId())) {
+            if (HIDE_AI_FAB.contains(dest.getId()) || "STAFF".equals(tokenManager.getUserRole())) {
                 binding.aiFab.setVisibility(View.GONE);
             } else {
                 binding.aiFab.setVisibility(View.VISIBLE);
