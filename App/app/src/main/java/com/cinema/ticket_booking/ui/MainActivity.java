@@ -227,6 +227,19 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
+        // Handle URI deep links: cinema://cancel-confirm?token={token}&bookingId={id}
+        if (uri != null && "cinema".equals(uri.getScheme()) && "cancel-confirm".equals(uri.getHost())) {
+            String token = uri.getQueryParameter("token");
+            String bookingId = uri.getQueryParameter("bookingId");
+            if (token != null && bookingId != null) {
+                Bundle args = new Bundle();
+                args.putString("token", token);
+                args.putString("bookingId", bookingId);
+                navController.navigate(R.id.cancelConfirmFragment, args);
+                return;
+            }
+        }
+
         // 2. Handle FCM notification taps: type + targetId from data payload
         String type = intent.getStringExtra("type");
         String targetId = intent.getStringExtra("targetId");

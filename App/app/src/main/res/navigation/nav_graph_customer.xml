@@ -179,4 +179,11 @@
         android:name="com.cinema.ticket_booking.ui.profile.ChangePasswordFragment"
         android:label="Đổi mật khẩu" />
 
+    <fragment android:id="@+id/cancelConfirmFragment"
+        android:name="com.cinema.ticket_booking.ui.booking.CancelConfirmFragment"
+        android:label="Xác nhận hủy vé">
+        <argument android:name="token" app:argType="string"/>
+        <argument android:name="bookingId" app:argType="string"/>
+    </fragment>
+
 </navigation>

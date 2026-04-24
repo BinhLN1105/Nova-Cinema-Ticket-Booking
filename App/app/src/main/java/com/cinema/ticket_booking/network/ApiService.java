@@ -120,8 +120,11 @@ public interface ApiService {
         @GET("bookings/cancel-policy")
         Call<ApiResponse<Map<String, Object>>> getCancelPolicy();
 
-        @POST("bookings/{id}/cancel")
-        Call<ApiResponse<Void>> cancelBooking(@Path("id") String id);
+        @POST("bookings/{id}/cancel-request")
+        Call<ApiResponse<Void>> cancelRequest(@Path("id") String id);
+
+        @POST("bookings/cancel-confirm")
+        Call<ApiResponse<Void>> cancelConfirm(@Query("token") String token, @Query("bookingId") String bookingId);
 
         // ── Payment ───────────────────────────────────────────────────────────
         @POST("payments")

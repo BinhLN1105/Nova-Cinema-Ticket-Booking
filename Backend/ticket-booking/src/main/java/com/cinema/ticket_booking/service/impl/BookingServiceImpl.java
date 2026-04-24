@@ -786,6 +786,60 @@ public class BookingServiceImpl implements BookingService {
         }
     }
 
+    @Override
+    public void cancelRequest(UUID userId, UUID bookingId) {
+        Booking booking = findById(bookingId);
+        if (!booking.getUser().getId().equals(userId)) {
+            throw new BadRequestException("Bạn không có quyền huỷ đơn đặt vé này");
+        }
+        if (booking.getStatus() != BookingStatus.PAID) {
+            throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");
+        }
+
+        // Kiểm tra thời gian
+        LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
+        int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
+        if (LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+            throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
+        }
+
+        // Sinh token và lưu
+        String token = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+        booking.setCancellationToken(token);
+        booking.setCancellationTokenExpiry(LocalDateTime.now().plusMinutes(15));
+        bookingRepository.save(booking);
+
+        // Gửi email - Initialize lazy fields for async thread
+        if (booking.getUser() != null) {
+            booking.getUser().getEmail();
+            booking.getUser().getFullName();
+        }
+        if (booking.getShowtime() != null && booking.getShowtime().getMovie() != null) {
+            booking.getShowtime().getMovie().getTitle();
+        }
+        
+        emailService.sendCancellationRequestEmail(booking, token);
+    }
+
+    @Override
+    public void cancelConfirm(String token, UUID bookingId) {
+        Booking booking = findById(bookingId);
+        if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
+            throw new BadRequestException("Mã xác nhận không chính xác");
+        }
+        if (booking.getCancellationTokenExpiry().isBefore(LocalDateTime.now())) {
+            throw new BadRequestException("Mã xác nhận đã hết hạn");
+        }
+
+        // Xóa token để tránh dùng lại
+        booking.setCancellationToken(null);
+        booking.setCancellationTokenExpiry(null);
+        bookingRepository.save(booking);
+
+        // Thực hiện hủy vé (tận dụng logic cancelBooking đã có)
+        cancelBooking(booking.getUser(), bookingId);
+    }
+
     // ── Private ───────────────────────────────────────────────────────────
 
     private void updateMembershipTier(User user) {

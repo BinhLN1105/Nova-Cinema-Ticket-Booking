@@ -7,6 +7,7 @@ import com.cinema.ticket_booking.dto.response.CheckInResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.BookingService;
+import com.cinema.ticket_booking.service.SystemConfigService;
 import com.cinema.ticket_booking.service.impl.ScanLogServiceImpl;
 
 import jakarta.validation.Valid;
@@ -20,6 +21,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -28,6 +30,7 @@ public class BookingController {
 
         private final BookingService bookingService;
         private final ScanLogServiceImpl scanLogService;
+        private final SystemConfigService systemConfigService;
 
         // POST /api/v1/bookings — tạo đơn đặt vé
         @PostMapping
@@ -71,16 +74,38 @@ public class BookingController {
                                 bookingService.getDetail(currentUser.getId(), id)));
         }
 
-        // POST /api/v1/bookings/{id}/cancel — Huỷ vé (Customer tự hủy hoặc Staff/Admin
-        // hủy hộ)
+        // POST /api/v1/bookings/{id}/cancel — Huỷ vé trực tiếp (Chỉ dành cho
+        // Staff/Admin)
         @PostMapping("/{id}/cancel")
-        @PreAuthorize("isAuthenticated()")
+        @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
         public ResponseEntity<ApiResponse<Void>> cancelBooking(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID id) {
                 bookingService.cancelBooking(currentUser, id);
                 return ResponseEntity.ok(
                                 ApiResponse.success(null, "Huỷ vé thành công. Điểm CP đã được cộng vào tài khoản."));
+        }
+
+        // POST /api/v1/bookings/{id}/cancel-request — Gửi yêu cầu hủy vé qua email
+        @PostMapping("/{id}/cancel-request")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResponse<Void>> cancelRequest(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable UUID id) {
+                bookingService.cancelRequest(currentUser.getId(), id);
+                return ResponseEntity.ok(
+                                ApiResponse.success(null,
+                                                "Yêu cầu hủy vé đã được gửi. Vui lòng kiểm tra email để xác nhận."));
+        }
+
+        // POST /api/v1/bookings/cancel-confirm — Xác nhận hủy vé từ link email
+        @PostMapping("/cancel-confirm")
+        public ResponseEntity<ApiResponse<Void>> cancelConfirm(
+                        @RequestParam String token,
+                        @RequestParam UUID bookingId) {
+                bookingService.cancelConfirm(token, bookingId);
+                return ResponseEntity.ok(
+                                ApiResponse.success(null, "Xác nhận hủy vé thành công."));
         }
 
         // POST /api/v1/bookings/check-in [STAFF, ADMIN] — quét QR tại rạp
@@ -101,11 +126,10 @@ public class BookingController {
 
         // GET /api/v1/bookings/cancel-policy — Lấy chính sách hoàn vé
         @GetMapping("/cancel-policy")
-        public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> getCancelPolicy(
-                        @org.springframework.beans.factory.annotation.Autowired com.cinema.ticket_booking.service.SystemConfigService configService) {
-                java.util.Map<String, Object> policy = new java.util.HashMap<>();
-                policy.put("refundPercent", configService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100));
-                policy.put("minHoursBefore", configService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2));
+        public ResponseEntity<ApiResponse<Map<String, Object>>> getCancelPolicy() {
+                Map<String, Object> policy = new java.util.HashMap<>();
+                policy.put("refundPercent", systemConfigService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100));
+                policy.put("minHoursBefore", systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2));
                 return ResponseEntity.ok(ApiResponse.success(policy));
         }
 }

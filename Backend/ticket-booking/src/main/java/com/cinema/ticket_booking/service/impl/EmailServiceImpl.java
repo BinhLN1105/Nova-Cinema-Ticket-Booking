@@ -28,7 +28,6 @@ public class EmailServiceImpl implements EmailService {
     @Value("${app.frontend.url}")
     private String frontendUrl;
 
-
     @Override
     @Async("asyncExecutor")
     public void sendPasswordResetOtpEmail(User user, String otp) {
@@ -61,9 +60,9 @@ public class EmailServiceImpl implements EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
             helper.setTo(booking.getUser().getEmail());
-            String subject = booking.getShowtime() != null 
-                ? "[Nova Ticket] Đặt vé thành công - Mã vé: " + booking.getBookingCode()
-                : "[Nova Ticket] Đặt bắp nước thành công - Mã đơn: " + booking.getBookingCode();
+            String subject = booking.getShowtime() != null
+                    ? "[Nova Ticket] Đặt vé thành công - Mã vé: " + booking.getBookingCode()
+                    : "[Nova Ticket] Đặt bắp nước thành công - Mã đơn: " + booking.getBookingCode();
             helper.setSubject(subject);
 
             boolean isConcessionOnly = booking.getShowtime() == null;
@@ -74,7 +73,8 @@ public class EmailServiceImpl implements EmailService {
             context.setVariable("bookingCode", booking.getBookingCode());
             context.setVariable("orderDate", booking.getCreatedAt());
             context.setVariable("totalAmount", booking.getTotalAmount());
-            context.setVariable("discountAmount", booking.getDiscountAmount().add(booking.getPromotionDiscountAmount()));
+            context.setVariable("discountAmount",
+                    booking.getDiscountAmount().add(booking.getPromotionDiscountAmount()));
 
             // Cinema info
             String cinemaName = "Nova Cinema";
@@ -131,10 +131,10 @@ public class EmailServiceImpl implements EmailService {
             Context context = new Context();
             context.setVariable("customerName", booking.getUser().getFullName());
             context.setVariable("bookingCode", booking.getBookingCode());
-            
-            String movieTitle = booking.getShowtime() != null 
-                ? booking.getShowtime().getMovie().getTitle() 
-                : "Bắp nước & Combo";
+
+            String movieTitle = booking.getShowtime() != null
+                    ? booking.getShowtime().getMovie().getTitle()
+                    : "Bắp nước & Combo";
             context.setVariable("movieTitle", movieTitle);
             context.setVariable("reason", reason != null ? reason : "Hệ thống tự động hủy theo yêu cầu.");
 
@@ -144,6 +144,39 @@ public class EmailServiceImpl implements EmailService {
             mailSender.send(message);
         } catch (Exception e) {
             System.err.println("CRITICAL ERROR: Failed to send cancellation email: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    @Async("asyncExecutor")
+    public void sendCancellationRequestEmail(Booking booking, String token) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+
+            helper.setTo(booking.getUser().getEmail());
+            helper.setSubject("[Nova Ticket] Xác nhận hủy vé - " + booking.getBookingCode());
+
+            Context context = new Context();
+            context.setVariable("customerName", booking.getUser().getFullName());
+            context.setVariable("bookingCode", booking.getBookingCode());
+            context.setVariable("movieTitle", booking.getShowtime().getMovie().getTitle());
+
+            String confirmUrl = String.format("%s/booking/cancel-confirm?token=%s&bookingId=%s",
+                    frontendUrl, token, booking.getId());
+            String appConfirmUrl = String.format("%s/app-redirect?token=%s&bookingId=%s", 
+                frontendUrl, token, booking.getId());
+                
+            context.setVariable("confirmUrl", confirmUrl);
+            context.setVariable("appConfirmUrl", appConfirmUrl);
+
+            String htmlContent = templateEngine.process("cancellation-request", context);
+            helper.setText(htmlContent, true);
+
+            mailSender.send(message);
+        } catch (Exception e) {
+            System.err.println("CRITICAL ERROR: Failed to send cancellation request email: " + e.getMessage());
             e.printStackTrace();
         }
     }

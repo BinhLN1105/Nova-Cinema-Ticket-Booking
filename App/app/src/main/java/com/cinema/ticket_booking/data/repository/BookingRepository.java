@@ -276,6 +276,30 @@ public class BookingRepository {
         return result;
     }
 
+    public LiveData<Resource<Void>> cancelConfirm(String token, String bookingId) {
+        MutableLiveData<Resource<Void>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.cancelConfirm(token, bookingId).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(@NonNull Call<ApiResponse<Void>> call,
+                    @NonNull Response<ApiResponse<Void>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess()) {
+                    result.setValue(Resource.success(null));
+                    // Refresh detail to update status
+                    getBookingDetail(bookingId);
+                } else {
+                    result.setValue(Resource.error(getErrorMessage(response, "Xác nhận huỷ vé thất bại")));
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<ApiResponse<Void>> call, @NonNull Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
+
     private void cacheBookingAsync(BookingResponse res) {
         Executors.newSingleThreadExecutor().execute(() -> {
             BookingEntity e = new BookingEntity();
