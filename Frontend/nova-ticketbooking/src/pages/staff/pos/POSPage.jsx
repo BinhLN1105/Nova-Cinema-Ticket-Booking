@@ -111,31 +111,50 @@ export default function POSPage() {
   const hasCombos = Object.keys(selectedCombos).length > 0;
 
   useEffect(() => {
-    // Quote trigger: must have at least seats OR combos
     if (selectedShowtime || hasCombos) {
+      // 1. HIỂN THỊ TẠM THỜI (Optimistic UI): Cộng giá cơ bản để nhân viên thấy giá nhảy ngay lập tức
+      const comboTotal = Object.entries(selectedCombos).reduce((acc, [id, qty]) => {
+        const combo = combosResp?.find(c => c.id === id);
+        return acc + (combo?.price || 0) * qty;
+      }, 0);
+      const seatTotal = selectedSeats.reduce((acc, s) => acc + (s.price || 0), 0);
+      
+      // Cập nhật giá hiển thị tạm thời (giữ nguyên các khoản giảm giá cũ để tránh nháy màn hình)
+      setQuote(prev => ({
+        ...prev,
+        totalAmount: comboTotal + seatTotal - (prev?.discountAmount || 0) - (prev?.promotionDiscountAmount || 0),
+        discountAmount: prev?.discountAmount || 0,
+        promotionDiscountAmount: prev?.promotionDiscountAmount || 0,
+        appliedPromotionName: prev?.appliedPromotionName || null
+      }));
+
+      // 2. ĐỒNG BỘ CHUẨN (Debounced Sync): Sau 800ms không thao tác mới gọi BE để lấy Khuyến mãi chính xác
       const timer = setTimeout(async () => {
         try {
           const comboItems = Object.entries(selectedCombos).map(([id, qty]) => ({ comboId: id, quantity: qty }));
           const resp = await bookingApi.getQuote({
-            showtimeId: selectedShowtime?.id, // Optional
+            showtimeId: selectedShowtime?.id,
             showtimeSeatIds: selectedSeats.map(s => s.showtimeSeatId),
             combos: comboItems,
             voucherCode: voucherCode || undefined
           });
+          
+          // Cập nhật lại giá CHUẨN từ Backend (có khuyến mãi bắp nước, ghế, voucher...)
           setQuote(resp);
           setVoucherError(null);
         } catch (e) {
           console.error(e);
           if (voucherCode) {
-            setVoucherError(e.response?.data?.message || 'Voucher không hợp lệ hoặc không đủ điều kiện');
+            setVoucherError(e.response?.data?.message || 'Voucher không hợp lệ');
           }
         }
-      }, 400); // 400ms debounce
+      }, 800); 
+
       return () => clearTimeout(timer);
     } else {
       setQuote(null);
     }
-  }, [selectedShowtime, selectedSeats, selectedCombos, voucherCode]);
+  }, [selectedShowtime, selectedSeats, selectedCombos, voucherCode, combosResp]);
 
   // --- VNPAY Polling Logic ---
   useEffect(() => {
@@ -243,30 +262,68 @@ export default function POSPage() {
           {!activeCinemaId && (
             <div className="text-slate-500 text-sm italic text-center mt-4">Vui lòng chọn rạp để xem suất chiếu</div>
           )}
-          {showtimesResp?.content?.length === 0 && activeCinemaId && (
-            <div className="text-slate-500 text-sm italic text-center mt-4">Không có suất chiếu nào hôm nay</div>
-          )}
-          {showtimesResp?.content?.map(st => (
-            <button
-              key={st.id}
-              onClick={() => {
-                setSelectedShowtime(st);
-                setSelectedSeats([]);
-                setSelectedCombos({});
-                setPaymentStep('selection');
-              }}
-              className={cn(
-                "w-full text-left p-3 rounded-xl border transition-all hover:bg-slate-700/50",
-                selectedShowtime?.id === st.id ? "border-brand-500 bg-brand-500/10 shadow-lg" : "border-slate-800 bg-slate-900/50"
-              )}
-            >
-              <div className="font-bold text-white truncate">{st.movieTitle}</div>
-              <div className="text-xs text-slate-400 mt-1 flex justify-between">
-                <span>{st.screenName}</span>
-                <span className="text-brand-400 font-mono text-sm">{st.startTime.split('T')[1].substring(0, 5)}</span>
-              </div>
-            </button>
-          ))}
+          
+          {(() => {
+            const now = new Date();
+            const showtimes = showtimesResp?.content || [];
+            
+            // Lọc bỏ các suất đã kết thúc (Ended)
+            const activeShowtimes = showtimes.filter(st => {
+              const endTime = new Date(st.endTime);
+              return now < endTime;
+            });
+
+            if (activeCinemaId && activeShowtimes.length === 0) {
+              return <div className="text-slate-500 text-sm italic text-center mt-4">Không có suất chiếu nào khả dụng</div>;
+            }
+
+            return activeShowtimes.map(st => {
+              const startTime = new Date(st.startTime);
+              const diffMinutes = (now - startTime) / (1000 * 60);
+              
+              // Trạng thái 1 & 2: Mở bán vs Đang chiếu
+              const isRunning = diffMinutes > 15;
+
+              return (
+                <button
+                  key={st.id}
+                  disabled={isRunning}
+                  onClick={() => {
+                    setSelectedShowtime(st);
+                    setSelectedSeats([]);
+                    setSelectedCombos({});
+                    setPaymentStep('selection');
+                  }}
+                  className={cn(
+                    "w-full text-left p-3 rounded-xl border transition-all",
+                    isRunning 
+                      ? "opacity-50 cursor-not-allowed bg-slate-800/30 border-slate-800" 
+                      : selectedShowtime?.id === st.id 
+                        ? "border-brand-500 bg-brand-500/10 shadow-lg" 
+                        : "border-slate-800 bg-slate-900/50 hover:bg-slate-700/50"
+                  )}
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="font-bold text-white truncate flex-1">{st.movieTitle}</div>
+                    {isRunning && (
+                      <span className="text-[10px] bg-red-500/20 text-red-400 px-1.5 py-0.5 rounded border border-red-500/30 font-bold ml-2 shrink-0">
+                        ĐANG CHIẾU
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-1 flex justify-between">
+                    <span>{st.screenName}</span>
+                    <span className={cn(
+                      "font-mono text-sm",
+                      isRunning ? "text-slate-500" : "text-brand-400"
+                    )}>
+                      {st.startTime.split('T')[1].substring(0, 5)}
+                    </span>
+                  </div>
+                </button>
+              );
+            });
+          })()}
         </div>
       </aside>
 

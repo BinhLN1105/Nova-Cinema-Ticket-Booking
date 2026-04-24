@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Ticket, Search } from 'lucide-react'
+import { Ticket, Search, ShoppingBag } from 'lucide-react'
 import { bookingApi } from '@/api/endpoints'
 import { AdminCard, PageHeader, Table, Pagination, StatusBadge } from '@/components/common/ui/AdminTable'
 import { SearchInput, Select } from '@/components/common/ui/FormElements'
@@ -27,15 +27,24 @@ export default function StaffBookingsPage() {
     },
     {
       key: 'movie', header: 'Phim',
-      render: (b) => (
-        <div className="flex items-center gap-2.5">
-          <img src={b.moviePosterUrl} alt={b.movieTitle} className="w-8 h-11 object-cover rounded-lg flex-shrink-0" />
-          <div>
-            <p className="font-medium text-gray-800 text-sm line-clamp-1 max-w-[140px]">{b.movieTitle}</p>
-            <p className="text-xs text-gray-400">{b.seatCount} ghế</p>
+      render: (b) => {
+        const isFBOnly = !b.moviePosterUrl;
+        return (
+          <div className="flex items-center gap-2.5">
+            {isFBOnly ? (
+              <div className="w-8 h-11 bg-brand-500/10 rounded-lg flex items-center justify-center border border-brand-500/20 flex-shrink-0">
+                <ShoppingBag className="w-5 h-5 text-brand-500" />
+              </div>
+            ) : (
+              <img src={b.moviePosterUrl} alt={b.movieTitle} className="w-8 h-11 object-cover rounded-lg flex-shrink-0" />
+            )}
+            <div>
+              <p className="font-medium text-gray-800 text-sm line-clamp-1 max-w-[140px]">{b.movieTitle || 'Hóa đơn F&B'}</p>
+              <p className="text-xs text-gray-400">{b.seatCount > 0 ? `${b.seatCount} ghế` : 'Chỉ bắp nước'}</p>
+            </div>
           </div>
-        </div>
-      ),
+        )
+      },
     },
     {
       key: 'startTime', header: 'Suất chiếu',

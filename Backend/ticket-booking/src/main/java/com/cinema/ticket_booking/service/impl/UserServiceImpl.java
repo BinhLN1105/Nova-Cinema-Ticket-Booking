@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.ChangePasswordRequest;
 import com.cinema.ticket_booking.dto.request.UpdateProfileRequest;
+import com.cinema.ticket_booking.dto.request.NotificationSettingsRequest;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.exception.BadRequestException;
@@ -12,6 +13,7 @@ import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.MembershipTier;
+import com.cinema.ticket_booking.enums.UserRole;
 import com.cinema.ticket_booking.repository.StaffProfileRepository;
 import com.cinema.ticket_booking.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
@@ -46,7 +48,7 @@ public class UserServiceImpl implements UserService {
     public UserResponse getProfile(UUID userId) {
         User user = findById(userId);
         UserResponse response = userMapper.toResponse(user);
-        if (user.getRole() == com.cinema.ticket_booking.enums.UserRole.STAFF) {
+        if (user.getRole() == UserRole.STAFF) {
             staffProfileRepository.findByUserId(user.getId())
                     .filter(sp -> sp.getCinema() != null)
                     .ifPresent(sp -> {
@@ -121,13 +123,15 @@ public class UserServiceImpl implements UserService {
 
             if (oldUrl != null && !oldUrl.isEmpty() && !oldUrl.contains("default-avatar")) {
                 String publicId = cloudinaryService.extractPublicId(oldUrl);
-                if (publicId != null) cloudinaryService.deleteImageAsync(publicId);
+                if (publicId != null)
+                    cloudinaryService.deleteImageAsync(publicId);
             }
             return userMapper.toResponse(user);
         } catch (Exception e) {
             if (newUrl != null) {
                 String newPublicId = cloudinaryService.extractPublicId(newUrl);
-                if (newPublicId != null) cloudinaryService.deleteImageAsync(newPublicId);
+                if (newPublicId != null)
+                    cloudinaryService.deleteImageAsync(newPublicId);
             }
             throw new RuntimeException("Cập nhật ảnh đại diện từ URL thất bại: " + e.getMessage());
         }
@@ -160,17 +164,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserResponse updateNotificationSettings(UUID userId, com.cinema.ticket_booking.dto.request.NotificationSettingsRequest request) {
+    public UserResponse updateNotificationSettings(UUID userId,
+            NotificationSettingsRequest request) {
         User user = findById(userId);
         boolean marketingChanged = false;
-        
+
         if (request.getAllowMarketingNotification() != null) {
             if (!request.getAllowMarketingNotification().equals(user.getAllowMarketingNotification())) {
                 marketingChanged = true;
             }
             user.setAllowMarketingNotification(request.getAllowMarketingNotification());
         }
-        
+
         if (request.getAllowTransactionNotification() != null) {
             user.setAllowTransactionNotification(request.getAllowTransactionNotification());
         }
@@ -186,20 +191,22 @@ public class UserServiceImpl implements UserService {
     }
 
     /**
-     * Đồng bộ Topic ngay từ Backend để xử lý Edge Case "Tắt trên Web - App chưa mở".
+     * Đồng bộ Topic ngay từ Backend để xử lý Edge Case "Tắt trên Web - App chưa
+     * mở".
      * Fail-safe: Không quăng lỗi ra ngoài làm rollback giao dịch DB.
      */
     private void syncTopicSubscriptionsInBackend(User user) {
         List<String> tokens = Collections.singletonList(user.getFcmToken());
         String topic = "nova_all_users";
         String vipTopic = "nova_vip_users";
-        boolean isVip = user.getMembershipTier() == MembershipTier.GOLD 
-                     || user.getMembershipTier() == MembershipTier.DIAMOND;
+        boolean isVip = user.getMembershipTier() == MembershipTier.GOLD
+                || user.getMembershipTier() == MembershipTier.DIAMOND;
 
         try {
             if (user.getAllowMarketingNotification()) {
                 FirebaseMessaging.getInstance().subscribeToTopic(tokens, topic);
-                if (isVip) FirebaseMessaging.getInstance().subscribeToTopic(tokens, vipTopic);
+                if (isVip)
+                    FirebaseMessaging.getInstance().subscribeToTopic(tokens, vipTopic);
                 log.info("[FCM Admin] ✓ Subscribed {} to topic(s)", user.getEmail());
             } else {
                 FirebaseMessaging.getInstance().unsubscribeFromTopic(tokens, topic);
