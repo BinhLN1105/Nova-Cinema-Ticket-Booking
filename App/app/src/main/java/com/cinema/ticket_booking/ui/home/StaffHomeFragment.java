@@ -108,9 +108,12 @@ public class StaffHomeFragment extends Fragment {
         });
     }
 
-    /** Điều hướng an toàn đến CinemaDetailFragment */
     private void navigateToCinemaDetail(String cinemaId, String cinemaName) {
         if (!isAdded() || binding == null) return;
+        if (cinemaId == null || cinemaId.isEmpty()) {
+            Toast.makeText(requireContext(), "Nhân viên chưa được phân công rạp!", Toast.LENGTH_SHORT).show();
+            return;
+        }
         try {
             Bundle args = new Bundle();
             args.putString("cinemaId", cinemaId);

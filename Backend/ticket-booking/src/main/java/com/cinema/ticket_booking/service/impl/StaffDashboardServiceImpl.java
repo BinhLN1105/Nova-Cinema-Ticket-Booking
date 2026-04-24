@@ -68,46 +68,6 @@ public class StaffDashboardServiceImpl {
                 LocalDateTime now = LocalDateTime.now();
                 LocalDateTime until = now.plusMinutes(60);
 
-<<<<<<< HEAD
-                    String movieTitle = null;
-                    String posterUrl = null;
-                    String screenName = null;
-                    String cinemaName = null;
-                    LocalDateTime scannedAt = booking.getCreatedAt();
-
-                    try {
-                        if (booking.getShowtime() != null) {
-                            if (booking.getShowtime().getMovie() != null) {
-                                movieTitle = booking.getShowtime().getMovie().getTitle();
-                                posterUrl = booking.getShowtime().getMovie().getPosterUrl();
-                            }
-                            if (booking.getShowtime().getScreen() != null) {
-                                screenName = booking.getShowtime().getScreen().getName();
-                            }
-                        }
-                        if (booking.getCinema() != null) {
-                            cinemaName = booking.getCinema().getName();
-                        }
-                    } catch (Exception ignored) {}
-
-                    return CheckInHistoryItemResponse.builder()
-                            .bookingCode(booking.getBookingCode())
-                            .customerName(booking.getUser() != null
-                                    ? booking.getUser().getFullName() : "Khách vãng lai")
-                            .customerPhone(booking.getUser() != null
-                                    ? booking.getUser().getPhone() : "")
-                            .movieTitle(movieTitle != null ? movieTitle : "N/A")
-                            .moviePosterUrl(posterUrl)
-                            .screenName(screenName)
-                            .cinemaName(cinemaName)
-                            .seatsChecked(seatsStr)
-                            .success(true) // booking CHECKED_IN = thành công
-                            .failReason(null)
-                            .scannedAt(scannedAt)
-                            .build();
-                })
-                .collect(Collectors.toList());
-=======
                 return showtimeRepository.findUpcomingByCinema(cinemaId, now, until)
                                 .stream()
                                 .map(showtime -> {
@@ -137,7 +97,6 @@ public class StaffDashboardServiceImpl {
         // ── Check-in History ────────────────────────────────────────────────────
         // Query trực tiếp từ bảng bookings (CHECKED_IN) vì đây là source of truth.
         // filter = "TODAY" hoặc "THIS_MONTH"
->>>>>>> a6283c38c447627e731d9fc2cd0f66940d6ee502
 
         public PageResponse<CheckInHistoryItemResponse> getCheckInHistory(
                         User currentUser, String filter, Pageable pageable) {
@@ -182,6 +141,7 @@ public class StaffDashboardServiceImpl {
                                         String movieTitle = null;
                                         String posterUrl = null;
                                         String screenName = null;
+                                        String cinemaName = null;
                                         LocalDateTime scannedAt = booking.getCreatedAt();
 
                                         try {
@@ -197,6 +157,9 @@ public class StaffDashboardServiceImpl {
                                                                                 .getName();
                                                         }
                                                 }
+                                                if (booking.getCinema() != null) {
+                                                        cinemaName = booking.getCinema().getName();
+                                                }
                                         } catch (Exception ignored) {
                                         }
 
@@ -211,6 +174,7 @@ public class StaffDashboardServiceImpl {
                                                         .movieTitle(movieTitle != null ? movieTitle : "N/A")
                                                         .moviePosterUrl(posterUrl)
                                                         .screenName(screenName)
+                                                        .cinemaName(cinemaName)
                                                         .seatsChecked(seatsStr)
                                                         .success(true) // booking CHECKED_IN = thành công
                                                         .failReason(null)

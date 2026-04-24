@@ -12,6 +12,7 @@ import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.service.UserService;
 import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.MembershipTier;
+import com.cinema.ticket_booking.repository.StaffProfileRepository;
 import com.cinema.ticket_booking.service.CloudinaryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,12 +39,22 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
     private final RefreshTokenRepository refreshTokenRepository;
     private final CloudinaryService cloudinaryService;
+    private final StaffProfileRepository staffProfileRepository;
 
     @Override
     @Transactional(readOnly = true)
     public UserResponse getProfile(UUID userId) {
         User user = findById(userId);
-        return userMapper.toResponse(user);
+        UserResponse response = userMapper.toResponse(user);
+        if (user.getRole() == com.cinema.ticket_booking.enums.UserRole.STAFF) {
+            staffProfileRepository.findByUserId(user.getId())
+                    .filter(sp -> sp.getCinema() != null)
+                    .ifPresent(sp -> {
+                        response.setCinemaId(sp.getCinema().getId().toString());
+                        response.setCinemaName(sp.getCinema().getName());
+                    });
+        }
+        return response;
     }
 
     @Override
