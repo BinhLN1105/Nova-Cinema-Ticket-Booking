@@ -4,8 +4,10 @@ import android.os.Bundle;
 import android.view.*;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
+import android.os.Bundle;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentProfileBinding;
@@ -13,6 +15,7 @@ import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.util.SnackbarHelper;
+import com.cinema.ticket_booking.data.model.response.UserResponse;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.firebase.messaging.FirebaseMessaging;
 import javax.inject.Inject;
@@ -185,9 +188,9 @@ public class ProfileFragment extends Fragment {
 
             binding.btnNavReviews.setOnClickListener(v -> {
                 // Chuyển sang tab Tickets, mở sẵn tab "Lịch sử" (phim đã xem → đánh giá)
-                com.google.android.material.bottomnavigation.BottomNavigationView nav = requireActivity()
+                BottomNavigationView nav = requireActivity()
                         .findViewById(com.cinema.ticket_booking.R.id.bottomNav);
-                android.os.Bundle args = new android.os.Bundle();
+                Bundle args = new android.os.Bundle();
                 args.putString("MapsToTab", "HISTORY");
                 androidx.navigation.Navigation.findNavController(requireView())
                         .navigate(com.cinema.ticket_booking.R.id.bookingHistoryFragment, args);
@@ -195,6 +198,8 @@ public class ProfileFragment extends Fragment {
             binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment));
             binding.btnNavGiftCards.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
+            binding.btnNavPromotions.setOnClickListener(
+                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_global_promotionList));
 
             binding.btnRedeem.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
@@ -221,6 +226,7 @@ public class ProfileFragment extends Fragment {
             binding.btnRedeem.setOnClickListener(loginListener);
             binding.btnNavWatchlist.setOnClickListener(loginListener);
             binding.btnNavReviews.setOnClickListener(loginListener);
+            binding.btnNavPromotions.setOnClickListener(loginListener);
             binding.rowChangePassword.setOnClickListener(loginListener);
             binding.btnEditProfile.setOnClickListener(loginListener);
 
@@ -230,7 +236,7 @@ public class ProfileFragment extends Fragment {
         }
     }
 
-    private void setupNotificationSwitches(com.cinema.ticket_booking.data.model.response.UserResponse user) {
+    private void setupNotificationSwitches(UserResponse user) {
         // Initial State
         binding.switchTransactionNotify.setOnCheckedChangeListener(null);
         binding.switchMarketingNotify.setOnCheckedChangeListener(null);

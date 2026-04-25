@@ -4,6 +4,8 @@
     android:id="@+id/nav_graph"
     app:startDestination="@id/splashFragment">
 
+    <action android:id="@+id/action_global_promotionList" app:destination="@id/promotionListFragment"/>
+
     <fragment android:id="@+id/splashFragment"
         android:name="com.cinema.ticket_booking.ui.splash.SplashFragment"
         android:label="Splash">
@@ -61,7 +63,12 @@
         android:label="Trang chủ">
         <action android:id="@+id/action_home_to_movieDetail" app:destination="@id/movieDetailFragment"/>
         <action android:id="@+id/action_home_to_chatbot" app:destination="@id/chatbotFragment"/>
+        <action android:id="@+id/action_home_to_promotionList" app:destination="@id/promotionListFragment"/>
     </fragment>
+
+    <fragment android:id="@+id/promotionListFragment"
+        android:name="com.cinema.ticket_booking.ui.promotion.PromotionListFragment"
+        android:label="Khuyến Mãi" />
 
     <fragment android:id="@+id/searchFragment"
         android:name="com.cinema.ticket_booking.ui.search.SearchFragment"
@@ -83,6 +90,7 @@
             app:popUpTo="@id/homeFragment" app:popUpToInclusive="true"/>
         <action android:id="@+id/action_profile_to_wallet" app:destination="@id/walletFragment"/>
         <action android:id="@+id/action_profile_to_voucher" app:destination="@id/voucherFragment"/>
+        <action android:id="@+id/action_profile_to_promotionList" app:destination="@id/promotionListFragment" />
     </fragment>
 
     <fragment android:id="@+id/movieDetailFragment"

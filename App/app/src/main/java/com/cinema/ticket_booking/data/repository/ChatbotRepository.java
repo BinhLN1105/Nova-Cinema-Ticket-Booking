@@ -38,9 +38,13 @@ public class ChatbotRepository {
                     String botReply = response.body().getData().get("reply");
                     result.setValue(Resource.success(botReply));
                 } else {
-                    result.setValue(Resource.error(response.body() != null
-                            ? response.body().getMessage()
-                            : "AI Chatbot không phản hồi"));
+                    if (response.code() == 401) {
+                        result.setValue(Resource.error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại để sử dụng Chatbot!"));
+                    } else {
+                        result.setValue(Resource.error(response.body() != null
+                                ? response.body().getMessage()
+                                : "AI Chatbot không phản hồi"));
+                    }
                 }
             }
 

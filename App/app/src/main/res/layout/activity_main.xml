@@ -69,9 +69,10 @@
         android:layout_marginBottom="112dp"
         android:src="@drawable/ic_ai_chat"
         android:scaleType="centerCrop"
-        app:backgroundTint="#FF000000"
+        app:backgroundTint="@color/transparent"
         app:tint="@null"
-        app:elevation="30dp"
+        app:elevation="0dp"
+        app:borderWidth="0dp"
         app:fabSize="normal"
         app:maxImageSize="56dp" />
 

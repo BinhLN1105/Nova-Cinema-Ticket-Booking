@@ -4,6 +4,12 @@
     android:id="@+id/nav_graph_customer"
     app:startDestination="@id/homeFragment">
 
+    <action android:id="@+id/action_global_promotionList" app:destination="@id/promotionListFragment"/>
+
+    <fragment android:id="@+id/promotionListFragment"
+        android:name="com.cinema.ticket_booking.ui.promotion.PromotionListFragment"
+        android:label="Khuyến Mãi" />
+
 
 
     <fragment android:id="@+id/loginFragment"

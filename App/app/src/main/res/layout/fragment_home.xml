@@ -250,17 +250,34 @@
                     tools:listitem="@layout/item_movie" />
 
                 <!-- Khu vực Khuyến mãi & Vouchers -->
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="KHUYẾN MÃI HOT"
-                    android:textColor="@color/on_surface"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginTop="32dp"
-                    android:layout_marginStart="24dp"
-                    android:layout_marginBottom="16dp"/>
+                    android:layout_marginHorizontal="24dp"
+                    android:layout_marginBottom="16dp">
 
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="KHUYẾN MÃI HOT"
+                        android:textColor="@color/on_surface"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvSeeAllPromotions"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Xem tất cả"
+                        android:textColor="@color/primary"
+                        android:textStyle="bold"
+                        android:textSize="14sp"
+                        android:padding="4dp" />
+                </LinearLayout>                
                 <com.google.android.material.card.MaterialCardView
                     android:id="@+id/cvPromoContainer"
                     android:layout_width="match_parent"

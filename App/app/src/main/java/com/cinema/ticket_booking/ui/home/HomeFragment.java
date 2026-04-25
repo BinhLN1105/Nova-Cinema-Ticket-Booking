@@ -6,37 +6,45 @@ import com.cinema.ticket_booking.data.model.response.VoucherSyncResponse;
 import com.cinema.ticket_booking.data.model.response.PromotionResponse;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.google.android.material.tabs.TabLayoutMediator;
-import androidx.viewpager2.widget.ViewPager2;
-import java.util.List;
-
-import android.os.Bundle;
-import android.view.*;
-import android.widget.ArrayAdapter;
-import android.widget.ListView;
-import android.widget.Toast;
-import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.cinema.ticket_booking.util.Resource;
+import com.cinema.ticket_booking.data.model.response.PageResponse;
 import com.cinema.ticket_booking.data.model.response.CinemaResponse;
+import com.cinema.ticket_booking.R;
+import com.cinema.ticket_booking.databinding.FragmentHomeBinding;
+
+import com.google.android.material.bottomsheet.BottomSheetDialog;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.tabs.TabLayout.Tab;
+import com.google.android.material.tabs.TabLayout;
+
 import java.text.SimpleDateFormat;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Locale;
+
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
-import com.cinema.ticket_booking.util.Resource;
-import com.cinema.ticket_booking.data.model.response.PageResponse;
+import androidx.viewpager2.widget.ViewPager2;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.PagerSnapHelper;
-import com.cinema.ticket_booking.R;
-import com.cinema.ticket_booking.databinding.FragmentHomeBinding;
 import dagger.hilt.android.AndroidEntryPoint;
-
+import android.widget.ArrayAdapter;
+import android.widget.ListView;
+import android.widget.Toast;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.content.Intent;
+import android.content.Context;
+import android.view.inputmethod.InputMethodManager;
+import android.view.*;
+import android.net.Uri;
 
 @AndroidEntryPoint
 public class HomeFragment extends Fragment {
@@ -62,7 +70,8 @@ public class HomeFragment extends Fragment {
         super.onViewCreated(view, savedInstanceState);
         viewModel = new ViewModelProvider(this).get(HomeViewModel.class);
 
-        binding.rvMovies.setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
+        binding.rvMovies
+                .setLayoutManager(new LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false));
         PagerSnapHelper snapHelper = new PagerSnapHelper();
         snapHelper.attachToRecyclerView(binding.rvMovies);
 
@@ -73,19 +82,19 @@ public class HomeFragment extends Fragment {
 
         // Lắng nghe sự kiện chuyển Tab giữa "ĐANG CHIẾU" và "SẮP CHIẾU"
         binding.tabLayoutMovies
-                .addOnTabSelectedListener(new com.google.android.material.tabs.TabLayout.OnTabSelectedListener() {
+                .addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
                     @Override
-                    public void onTabSelected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    public void onTabSelected(TabLayout.Tab tab) {
                         // tab.getPosition() == 0 là Tab Đang chiếu, 1 là Tab Sắp chiếu
                         observeMovies(tab.getPosition() == 0);
                     }
 
                     @Override
-                    public void onTabUnselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    public void onTabUnselected(TabLayout.Tab tab) {
                     }
 
                     @Override
-                    public void onTabReselected(com.google.android.material.tabs.TabLayout.Tab tab) {
+                    public void onTabReselected(TabLayout.Tab tab) {
                     }
                 });
 
@@ -102,7 +111,9 @@ public class HomeFragment extends Fragment {
                     @Override
                     public void onPageSelected(int position) {
                         super.onPageSelected(position);
-                        updateHeroOverlay(movies.get(position));
+                        if (!movies.isEmpty()) {
+                            updateHeroOverlay(movies.get(position % movies.size()));
+                        }
                         // Restart auto-scroll timer
                         if (heroRunnable != null) {
                             heroHandler.removeCallbacks(heroRunnable);
@@ -134,7 +145,29 @@ public class HomeFragment extends Fragment {
                 binding.tabLayoutPromo.setVisibility(View.VISIBLE);
 
                 PromotionAdapter promotionAdapter = new PromotionAdapter(resource.data, promotion -> {
-                    // Xử lý khi người dùng bấm vào banner khuyến mãi (nếu cần)
+                    String url = promotion.getTargetUrl();
+                    if (url != null && !url.trim().isEmpty()) {
+                        try {
+                            if (url.startsWith("/")) {
+                                if (url.startsWith("/movie") || url.startsWith("/movies") || url.startsWith("/promotion") || url.startsWith("/promotions")) {
+                                    Navigation.findNavController(binding.getRoot()).navigate(R.id.action_global_promotionList);
+                                } else if (url.startsWith("/cinema")) {
+                                    BottomNavigationView bottomNav = requireActivity().findViewById(R.id.bottomNav);
+                                    if (bottomNav != null) {
+                                        bottomNav.setSelectedItemId(R.id.searchFragment);
+                                    }
+                                } else {
+                                    SnackbarHelper.showInfo(binding.getRoot(),
+                                            "Khuyến mãi được tự động áp dụng khi thanh toán!");
+                                }
+                            } else {
+                                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                                startActivity(intent);
+                            }
+                        } catch (Exception e) {
+                            SnackbarHelper.showError(binding.getRoot(), "Không thể mở liên kết!");
+                        }
+                    }
                 });
                 binding.vpPromotions.setAdapter(promotionAdapter);
 
@@ -143,12 +176,18 @@ public class HomeFragment extends Fragment {
                         (tab, position) -> {
                         }).attach();
 
+                binding.tvSeeAllPromotions.setVisibility(View.VISIBLE);
+                binding.tvSeeAllPromotions.setOnClickListener(v -> {
+                    Navigation.findNavController(binding.getRoot()).navigate(R.id.action_global_promotionList);
+                });
+
                 // Thiết lập tự động chuyển banner sau mỗi 4 giây
                 setupAutoScrollForBanners(resource.data.size());
 
             } else {
                 binding.cvPromoContainer.setVisibility(View.GONE);
                 binding.tabLayoutPromo.setVisibility(View.GONE);
+                binding.tvSeeAllPromotions.setVisibility(View.GONE);
                 if (bannerRunnable != null) {
                     bannerHandler.removeCallbacks(bannerRunnable);
                 }
@@ -166,7 +205,7 @@ public class HomeFragment extends Fragment {
                 .setOnClickListener(v -> Navigation.findNavController(v).navigate(R.id.notificationFragment));
 
         binding.ivUserAvatar.setOnClickListener(v -> {
-            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = requireActivity()
+            BottomNavigationView bottomNav = requireActivity()
                     .findViewById(R.id.bottomNav);
             if (bottomNav != null && bottomNav.getVisibility() == View.VISIBLE) {
                 bottomNav.setSelectedItemId(R.id.profileFragment);
@@ -237,8 +276,8 @@ public class HomeFragment extends Fragment {
             // Ẩn bàn phím ảo
             View view1 = requireActivity().getCurrentFocus();
             if (view1 != null) {
-                android.view.inputmethod.InputMethodManager imm = (android.view.inputmethod.InputMethodManager) requireContext()
-                        .getSystemService(android.content.Context.INPUT_METHOD_SERVICE);
+                InputMethodManager imm = (InputMethodManager) requireContext()
+                        .getSystemService(Context.INPUT_METHOD_SERVICE);
                 imm.hideSoftInputFromWindow(view1.getWindowToken(), 0);
             }
         });
@@ -274,7 +313,7 @@ public class HomeFragment extends Fragment {
         });
 
         viewModel.getSearchResults().observe(getViewLifecycleOwner(), resource -> {
-            if (resource == null || resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) {
+            if (resource == null || resource.status == Resource.Status.LOADING) {
                 return;
             }
             if (resource.isSuccess() && resource.data != null && !resource.data.getContent().isEmpty()) {
@@ -474,4 +513,3 @@ public class HomeFragment extends Fragment {
         dialog.show();
     }
 }
-

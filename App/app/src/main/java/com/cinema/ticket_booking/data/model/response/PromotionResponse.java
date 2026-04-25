@@ -20,6 +20,12 @@ public class PromotionResponse implements Serializable {
     @SerializedName("targetUrl")
     private String targetUrl;
 
+    @SerializedName("startDate")
+    private String startDate;
+
+    @SerializedName("endDate")
+    private String endDate;
+
     public String getId() {
         return id;
     }
@@ -38,5 +44,13 @@ public class PromotionResponse implements Serializable {
 
     public String getTargetUrl() {
         return targetUrl;
+    }
+
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public String getEndDate() {
+        return endDate;
     }
 }

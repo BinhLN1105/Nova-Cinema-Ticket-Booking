@@ -38,7 +38,8 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> cameraPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (isGranted) {
-                    if (navController != null) navController.navigate(R.id.scannerFragment);
+                    if (navController != null)
+                        navController.navigate(R.id.scannerFragment);
                 } else {
                     SnackbarHelper.showError(binding.getRoot(), "Quyền máy ảnh bị từ chối. Không thể quét QR!");
                 }
@@ -47,7 +48,8 @@ public class MainActivity extends AppCompatActivity {
     private final ActivityResultLauncher<String> notificationPermissionLauncher = registerForActivityResult(
             new ActivityResultContracts.RequestPermission(), isGranted -> {
                 if (!isGranted) {
-                    SnackbarHelper.showInfo(binding.getRoot(), "Bạn đã từ chối nhận thông báo. Hãy bật lại trong cài đặt để nhận mã vé nhé!");
+                    SnackbarHelper.showInfo(binding.getRoot(),
+                            "Bạn đã từ chối nhận thông báo. Hãy bật lại trong cài đặt để nhận mã vé nhé!");
                 }
             });
 
@@ -67,40 +69,45 @@ public class MainActivity extends AppCompatActivity {
             R.id.scannerFragment,
             R.id.chatbotBottomSheet,
             R.id.walletFragment,
-            R.id.voucherFragment
-    );
+            R.id.voucherFragment,
+            R.id.promotionListFragment);
 
-    // Danh sách các màn hình cần ẨN nút AI Assistant (Thường là các màn quan trọng hoặc cần tập trung cao)
+    // Danh sách các màn hình cần ẨN nút AI Assistant (Thường là các màn quan trọng
+    // hoặc cần tập trung cao)
     private static final Set<Integer> HIDE_AI_FAB = Set.of(
             R.id.splashFragment,
             R.id.loginFragment,
             R.id.registerFragment,
             R.id.paymentFragment,
             R.id.selectSeatFragment,
-            R.id.selectComboFragment
-    );
+            R.id.selectComboFragment);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        ThemeManager.applyTheme(this);   // ← phải gọi TRƯỚC setContentView để tránh flicker
+        ThemeManager.applyTheme(this); // ← phải gọi TRƯỚC setContentView để tránh flicker
         super.onCreate(savedInstanceState);
         binding = ActivityMainBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
         NavHostFragment navHost = (NavHostFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.nav_host_fragment);
-        if (navHost == null) return;
+        if (navHost == null)
+            return;
 
         this.navController = navHost.getNavController();
 
-        // Tự động thiết lập cấu trúc điều hướng phù hợp với Vai trò (Khách hàng / Nhân viên)
+        // Tự động thiết lập cấu trúc điều hướng phù hợp với Vai trò (Khách hàng / Nhân
+        // viên)
         setupNavigationByRole(navController);
 
         // Xử lý sự kiện khi bấm vào nút Quét mã ở giữa thanh Bottom Navigation
         binding.fabScanner.setOnClickListener(v -> {
             // Nova Optimization: Kiểm tra quyền Camera trước khi mở Scanner để tránh Crash
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                Integer current = navController.getCurrentDestination() != null ? navController.getCurrentDestination().getId() : null;
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                Integer current = navController.getCurrentDestination() != null
+                        ? navController.getCurrentDestination().getId()
+                        : null;
                 if (current == null || current != R.id.scannerFragment) {
                     navController.navigate(R.id.scannerFragment);
                 }
@@ -168,20 +175,22 @@ public class MainActivity extends AppCompatActivity {
 
     private void requestNotificationPermission() {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            if (ContextCompat.checkSelfPermission(this,
+                    Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
             }
         }
     }
 
     /**
-     * Thiết lập biểu đồ điều hướng (NavGraph) và Menu dựa trên vai trò của người dùng.
+     * Thiết lập biểu đồ điều hướng (NavGraph) và Menu dựa trên vai trò của người
+     * dùng.
      * STAFF: Sử dụng biểu đồ nhân viên (Soát vé, Dashboard).
      * CUSTOMER/GUEST: Sử dụng biểu đồ khách hàng (Đặt vé, Khám phá).
      */
     private void setupNavigationByRole(NavController navController) {
         boolean isStaff = "STAFF".equals(tokenManager.getUserRole());
-        
+
         if (isStaff) {
             // Nạp biểu đồ điều hướng dành riêng cho nhân viên
             navController.setGraph(R.navigation.nav_graph_staff);
@@ -193,9 +202,10 @@ public class MainActivity extends AppCompatActivity {
             navController.setGraph(R.navigation.nav_graph_customer);
         }
 
-        // Kết nối NavController với BottomNavigationView để tự động xử lý chuyển màn hình
+        // Kết nối NavController với BottomNavigationView để tự động xử lý chuyển màn
+        // hình
         NavigationUI.setupWithNavController(binding.bottomNav, navController);
-        
+
         // Vô hiệu hóa Item ở giữa (Dummy) để tạo khoảng trống cho nút FAB Quét mã
         if (binding.bottomNav.getMenu().size() > 2) {
             binding.bottomNav.getMenu().getItem(2).setEnabled(false);
@@ -213,7 +223,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void handleDeepLink(Intent intent, NavController navController) {
-        if (intent == null) return;
+        if (intent == null)
+            return;
 
         // 1. Handle URI deep links: novaticket://movies/{movieId}
         Uri uri = intent.getData();
@@ -255,4 +266,3 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 }
-

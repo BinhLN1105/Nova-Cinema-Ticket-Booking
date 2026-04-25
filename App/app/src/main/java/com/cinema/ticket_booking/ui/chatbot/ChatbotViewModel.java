@@ -59,8 +59,9 @@ public class ChatbotViewModel extends ViewModel {
                     }
                     break;
                 case ERROR:
-                    // Better user feedback for server issues
-                    updateList.add(new ChatMessage("⚠️ Không thể kết nối với CineAI. Vui lòng kiểm tra mạng!", false));
+                    // Use specific error message from Repository if available
+                    String errorMsg = resource.message != null ? resource.message : "Không thể kết nối với CineAI. Vui lòng kiểm tra mạng!";
+                    updateList.add(new ChatMessage("⚠️ " + errorMsg.replace("⚠️ ", ""), false));
                     break;
                 case LOADING:
                     return; // Yield to next state
