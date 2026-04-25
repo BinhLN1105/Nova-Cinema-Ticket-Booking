@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="10dp"
+    app:cardCornerRadius="18dp"
+    app:cardElevation="8dp"
+    app:cardBackgroundColor="#111827"
+    app:strokeWidth="1dp"
+    app:strokeColor="#1E2D3D">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="0dp">
+
+        <!-- Movie Poster — bên trái full height -->
+        <FrameLayout
+            android:layout_width="90dp"
+            android:layout_height="match_parent">
+
+            <com.google.android.material.imageview.ShapeableImageView
+                android:id="@+id/ivMoviePoster"
+                android:layout_width="90dp"
+                android:layout_height="match_parent"
+                android:minHeight="110dp"
+                android:scaleType="centerCrop"
+                android:background="#1E2D3D"
+                app:shapeAppearanceOverlay="@style/ShapeAppearance.App.LeftRoundedCorner18" />
+
+            <!-- Gradient overlay phía phải của poster -->
+            <View
+                android:layout_width="32dp"
+                android:layout_height="match_parent"
+                android:layout_gravity="end"
+                android:background="@drawable/gradient_poster_fade" />
+        </FrameLayout>
+
+        <!-- Content -->
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:paddingTop="14dp"
+            android:paddingEnd="14dp"
+            android:paddingBottom="14dp"
+            android:paddingStart="10dp">
+
+            <!-- Dòng 1: Tên phim + Badge kết quả -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <TextView
+                    android:id="@+id/tvMovieTitle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Tên phim"
+                    android:textSize="14sp"
+                    android:textStyle="bold"
+                    android:textColor="#FFFFFF"
+                    android:maxLines="2"
+                    android:ellipsize="end" />
+
+                <!-- Badge success/fail -->
+                <TextView
+                    android:id="@+id/tvStatusBadge"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="8dp"
+                    android:paddingVertical="3dp"
+                    android:text="✓ OK"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:background="@drawable/bg_badge_success"
+                    android:layout_marginStart="6dp" />
+            </LinearLayout>
+            
+            <!-- Cinema Name -->
+            <TextView
+                android:id="@+id/tvCinemaName"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Nova Cinema Thủ Đức"
+                android:textSize="11sp"
+                android:textColor="#F5C518"
+                android:layout_marginTop="2dp"
+                android:textStyle="bold" />
+
+            <!-- Dòng 2: Phòng + Ghế -->
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginTop="6dp">
+
+                <TextView
+                    android:id="@+id/tvScreenAndSeats"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Phòng 3 • A3, A4"
+                    android:textSize="12sp"
+                    android:textColor="#6B7E94" />
+
+                <TextView
+                    android:id="@+id/tvBookingCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="#BK12345"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    android:textColor="#3B82F6" />
+            </LinearLayout>
+
+            <!-- Divider -->
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#1E2D3D"
+                android:layout_marginVertical="8dp" />
+
+            <!-- Dòng 3: Khách hàng + Giờ soát -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+
+                <ImageView
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:src="@drawable/ic_profile"
+                    app:tint="#4A5568"
+                    android:layout_marginEnd="4dp" />
+
+                <TextView
+                    android:id="@+id/tvCustomerName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="Nguyễn Văn A"
+                    android:textSize="12sp"
+                    android:textColor="#7A8BA0"
+                    android:maxLines="1"
+                    android:ellipsize="end" />
+
+                <TextView
+                    android:id="@+id/tvScannedAt"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="20:30"
+                    android:textSize="11sp"
+                    android:textColor="#4A5568" />
+            </LinearLayout>
+
+            <!-- Fail reason nếu có -->
+            <TextView
+                android:id="@+id/tvFailReason"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Lý do thất bại"
+                android:textSize="11sp"
+                android:textColor="#EF4444"
+                android:layout_marginTop="4dp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

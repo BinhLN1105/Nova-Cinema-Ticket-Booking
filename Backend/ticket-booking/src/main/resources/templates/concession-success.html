@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đơn hàng Bắp nước - Nova Ticket</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; background-color: #f4f4f4; }
+        .container { max-width: 600px; margin: 20px auto; background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); border-top: 5px solid #e50914; }
+        .header { text-align: center; padding-bottom: 20px; border-bottom: 1px solid #eee; }
+        .logo { font-size: 24px; font-weight: bold; color: #e50914; text-decoration: none; }
+        .content { padding: 20px 0; }
+        .order-info { background: #f9f9f9; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        .order-code { font-size: 20px; font-weight: bold; color: #e50914; letter-spacing: 1px; }
+        .section-title { font-weight: bold; margin-bottom: 10px; display: block; color: #555; text-transform: uppercase; font-size: 13px; }
+        .item-list { list-style: none; padding: 0; margin: 0; }
+        .item-list li { padding: 10px 0; border-bottom: 1px dashed #ddd; display: flex; justify-content: space-between; }
+        .item-list li:last-child { border-bottom: none; }
+        .total { font-size: 18px; font-weight: bold; text-align: right; margin-top: 20px; color: #000; }
+        .instruction-box { background: #fff8e1; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+        .footer { text-align: center; font-size: 12px; color: #888; margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .highlight { color: #e50914; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="#" class="logo">NOVA TICKET</a>
+            <h3>Cảm ơn bạn đã đặt Bắp nước!</h3>
+        </div>
+
+        <div class="content">
+            <p>Chào <strong><span th:text="${userName}">Khách hàng</span></strong>,</p>
+            <p>Đơn hàng bắp nước của bạn đã được thanh toán thành công. Dưới đây là thông tin chi tiết:</p>
+
+            <div class="order-info">
+                <span class="section-title">Mã đơn hàng (Cung cấp tại quầy)</span>
+                <div class="order-code" th:text="${bookingCode}">#NOVA123456</div>
+                <p style="margin-top: 10px; font-size: 14px;">Rạp: <strong th:text="${cinemaName}">Nova Cinema</strong></p>
+                <p style="font-size: 14px;">Ngày đặt: <span th:text="${#temporals.format(orderDate, 'dd/MM/yyyy HH:mm')}">01/01/2026</span></p>
+            </div>
+
+            <div class="instruction-box">
+                <strong>⚡ Hướng dẫn nhận đồ (Fast-track):</strong>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">
+                    Bạn vui lòng di chuyển trực tiếp đến <span class="highlight">Quầy Ưu Tiên</span> (Hoặc quầy Online Booking) và đưa mã đơn hàng trên cho nhân viên để được nhận đồ nhanh chóng mà không cần xếp hàng chung.
+                </p>
+            </div>
+
+            <span class="section-title">Chi tiết sản phẩm</span>
+            <ul class="item-list">
+                <li th:each="item : ${combos}">
+                    <div>
+                        <strong th:text="${item.name}">Combo Name</strong><br/>
+                        <small th:text="${'Số lượng: ' + item.quantity}">x1</small>
+                    </div>
+                    <span th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT') + 'đ'}">50,000đ</span>
+                </li>
+            </ul>
+
+            <div class="total">
+                Tổng cộng: <span th:text="${#numbers.formatDecimal(totalAmount, 0, 'COMMA', 0, 'POINT') + 'đ'}">100,000đ</span>
+            </div>
+            
+            <p th:if="${discountAmount > 0}" style="text-align: right; color: #444; font-size: 14px; margin-top: 5px;">
+                Đã giảm giá: <span th:text="${'-' + #numbers.formatDecimal(discountAmount, 0, 'COMMA', 0, 'POINT') + 'đ'}">20,000đ</span>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Đây là email tự động, vui lòng không phản hồi email này.</p>
+            <p>&copy; 2026 Nova Ticket Booking System. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>

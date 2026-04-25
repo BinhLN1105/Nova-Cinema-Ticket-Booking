@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="288dp"
+    android:height="288dp"
+    android:viewportWidth="288"
+    android:viewportHeight="288">
+
+    <!-- Circle background to define the logo area -->
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M144,144m-96,0a96,96 0,1 1,192 0a96,96 0,1 1,-192 0" />
+
+    <!-- Simplified Ticket/Cinema Icon in white -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M168,104H120c-4.4,0-8,3.6-8,8v64c0,4.4 3.6,8 8,8h48c4.4,0 8,-3.6 8,-8v-64C176,107.6 172.4,104 168,104z M164,168h-40V120h40V168z" />
+        
+    <!-- Ticket perforations -->
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M112,132c2.2,0 4,1.8 4,4s-1.8,4-4,4 -4,-1.8-4,-4 1.8,-4 4,-4z" />
+    <path
+        android:fillColor="@color/primary"
+        android:pathData="M176,132c2.2,0 4,1.8 4,4s-1.8,4-4,4 -4,-1.8-4,-4 1.8,-4 4,-4z" />
+
+</vector>

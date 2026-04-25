@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:background="@color/surface">
+
+    <androidx.core.widget.NestedScrollView 
+        android:layout_width="match_parent" 
+        android:layout_height="match_parent"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false">
+        
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical">
+            
+            <!-- Hero Section -->
+            <FrameLayout android:layout_width="match_parent" android:layout_height="400dp">
+                <ImageView android:id="@+id/ivPoster" android:layout_width="match_parent"
+                    android:layout_height="match_parent" android:scaleType="centerCrop"/>
+                
+                <!-- Bottom fade -->
+                <View android:layout_width="match_parent" android:layout_height="200dp"
+                    android:layout_gravity="bottom"
+                    android:background="@drawable/bg_gradient_bottom" />
+                    
+                <!-- Top transparent bar -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:padding="16dp" android:gravity="center_vertical"
+                    android:layout_marginTop="24dp">
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="40dp" android:layout_height="40dp"
+                        app:cardCornerRadius="20dp" app:cardBackgroundColor="#66000000" app:strokeWidth="0dp">
+                        <ImageButton android:id="@+id/btnBack" android:layout_width="match_parent"
+                            android:layout_height="match_parent" android:src="@drawable/ic_back" 
+                            android:background="?selectableItemBackgroundBorderless" android:padding="8dp"
+                            app:tint="@color/on_surface"/>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton android:id="@+id/btnTrailer"
+                    android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:layout_gravity="center" android:text="XEM TRAILER"
+                    android:textColor="@color/white" android:textSize="12sp"
+                    app:backgroundTint="@color/highlight_subtle" app:strokeColor="@color/outline" app:strokeWidth="1dp" app:cornerRadius="24dp"
+                    android:visibility="gone"/>
+            </FrameLayout>
+
+            <!-- Metadata section -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:paddingHorizontal="24dp" android:layout_marginTop="-24dp">
+                
+                <TextView android:id="@+id/tvTitle" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/on_surface"
+                    android:textSize="28sp" android:textStyle="bold" android:textAllCaps="true"
+                    android:shadowColor="@color/black" android:shadowRadius="8" android:shadowDx="0" android:shadowDy="2"/>
+                
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="12dp" android:gravity="center_vertical">
+                    
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        app:cardBackgroundColor="@android:color/transparent" app:strokeColor="@color/outline" app:strokeWidth="1dp" app:cardCornerRadius="4dp">
+                        <TextView android:id="@+id/tvRated" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                            android:textSize="10sp" android:textStyle="bold" android:paddingHorizontal="6dp" android:paddingVertical="2dp" android:textAllCaps="true"/>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        app:cardBackgroundColor="@android:color/transparent" app:strokeColor="@color/outline" app:strokeWidth="1dp" app:cardCornerRadius="4dp">
+                        <TextView android:id="@+id/tvDuration" android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                            android:textSize="10sp" android:textStyle="bold" android:paddingHorizontal="6dp" android:paddingVertical="2dp" android:textAllCaps="true"/>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:layout_marginTop="16dp" android:gravity="center_vertical">
+                    
+                    <TextView android:id="@+id/tvGenres" android:layout_width="0dp"
+                        android:layout_height="wrap_content" android:layout_weight="1"
+                        android:textColor="@color/primary" android:textSize="12sp" android:textStyle="bold" android:textAllCaps="true"/>
+                        
+                    <ImageView android:layout_width="16dp" android:layout_height="16dp" android:src="@drawable/ic_star" app:tint="@color/tertiary"/>
+                    <TextView android:id="@+id/tvRating" android:layout_width="wrap_content"
+                        android:layout_height="wrap_content" android:layout_marginStart="6dp"
+                        android:textColor="@color/on_surface" android:textSize="18sp" android:textStyle="bold"/>
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Content Area -->
+            <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:orientation="vertical" android:paddingHorizontal="24dp" android:layout_marginTop="32dp">
+                
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Nội dung phim" android:textColor="@color/on_surface"
+                    android:textStyle="bold" android:textSize="18sp"/>
+                    
+                <TextView android:id="@+id/tvReleaseDate" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:textColor="@color/primary"
+                    android:layout_marginTop="4dp" android:textSize="12sp" android:textStyle="bold"/>
+                    
+                <TextView android:id="@+id/tvDescription" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="8dp" android:lineSpacingMultiplier="1.5" android:textSize="14sp"/>
+                    
+                <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:text="Ê-kíp" android:textColor="@color/on_surface"
+                    android:layout_marginTop="24dp" android:textSize="18sp" android:textStyle="bold"/>
+                <TextView android:id="@+id/tvDirector" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="4dp" android:textSize="14sp"/>
+                <TextView android:id="@+id/tvCast" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="4dp" android:textSize="14sp"/>
+
+                <!-- Reviews section identical logic -->
+                <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="32dp">
+                    <TextView android:layout_width="0dp" android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="Đánh giá từ người xem" android:textColor="@color/on_surface"
+                        android:textStyle="bold" android:textSize="18sp"/>
+                    
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnFilterReview"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Lọc sao ▾"
+                        app:icon="@drawable/ic_star"
+                        android:textColor="@color/tertiary"/>
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnWriteReview"
+                        style="@style/Widget.MaterialComponents.Button.TextButton"
+                        android:layout_width="wrap_content" android:layout_height="wrap_content"
+                        android:text="Viết đánh giá" android:textColor="@color/primary"/>
+                </LinearLayout>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvReviews"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:nestedScrollingEnabled="false"
+                    android:layout_marginTop="8dp"/>
+
+                <TextView
+                    android:id="@+id/tvNoReviews"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Chưa có đánh giá nào."
+                    android:textColor="@color/on_surface_variant"
+                    android:gravity="center"
+                    android:padding="16dp"
+                    android:visibility="gone"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnViewAllReviews"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center_horizontal"
+                    android:text="Xem tất cả đánh giá"
+                    android:textColor="@color/on_surface_variant"
+                    android:visibility="gone"/>
+
+            </LinearLayout>
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+
+    <ProgressBar android:id="@+id/progressBar" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:layout_gravity="center" android:visibility="gone" android:indeterminateTint="@color/primary"/>
+        
+    <!-- Sticky Bottom CTA -->
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_gravity="bottom" android:background="@color/surface_glass_heavy" android:paddingHorizontal="24dp" android:paddingTop="12dp" android:paddingBottom="24dp"
+        android:orientation="horizontal">
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnBookTicket"
+            android:layout_width="match_parent" android:layout_height="56dp"
+            android:text="ĐẶT VÉ NGAY" android:textSize="14sp" android:textStyle="bold"
+            app:backgroundTint="@color/primary" app:cornerRadius="16dp"/>
+    </LinearLayout>
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

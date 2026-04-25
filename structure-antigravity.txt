@@ -1,0 +1,25 @@
+project-root/
+│
+├── GEMINI.md              # Antigravity-specific overrides (priority cao hơn AGENTS.md)
+│                          # Design style, turbo permissions, Artifact preferences
+│
+├── .agents/               # ← Dùng ".agents" (có chữ s) — chuẩn native mới nhất
+│   │
+│   ├── skills/            # On-demand Skills — chỉ load vào context KHI CẦN
+│   │   ├── api-design/
+│   │   │   └── SKILL.md   # Load khi agent thấy intent viết API mới
+│   │   ├── db-migration/
+│   │   │   └── SKILL.md   # Load khi có task liên quan schema/migration
+│   │   └── security/
+│   │       └── SKILL.md   # Load khi review security hoặc auth flow
+│   │
+│   └── workflows/         # User-triggered — gọi bằng slash command /
+│       ├── write_api.md   # /write_api
+│       ├── write_tests.md # /write_tests
+│       ├── debug.md       # /debug
+│       └── create_pr.md   # /create_pr
+│
+└── docs/                  # Dành cho người đọc, không phải cho agent
+    ├── architecture.md
+    └── adr/
+        └── 001-orm-only.md

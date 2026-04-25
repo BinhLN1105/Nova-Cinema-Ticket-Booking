@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Nova Ticket Booking</string>
+
+    <!-- Auth -->
+    <string name="login">Đăng nhập</string>
+    <string name="register">Đăng ký</string>
+    <string name="logout">Đăng xuất</string>
+    <string name="email">Email</string>
+    <string name="password">Mật khẩu</string>
+    <string name="full_name">Họ và tên</string>
+    <string name="phone">Số điện thoại</string>
+    <string name="forgot_password">Quên mật khẩu?</string>
+    <string name="no_account">Chưa có tài khoản? Đăng ký</string>
+    <string name="have_account">Đã có tài khoản? Đăng nhập</string>
+    <string name="login_with_google">Tiếp tục với Google</string>
+    <string name="login_with_facebook">Tiếp tục với Facebook</string>
+    <string name="or_divider">hoặc</string>
+
+    <!-- Home -->
+    <string name="now_showing">Đang chiếu</string>
+    <string name="coming_soon">Sắp chiếu</string>
+    <string name="see_all">Xem tất cả</string>
+    <string name="search_hint">Tìm kiếm phim...</string>
+
+    <!-- Movie detail -->
+    <string name="book_ticket">Đặt vé ngay</string>
+    <string name="watch_trailer">▶ Xem Trailer</string>
+    <string name="director">Đạo diễn</string>
+    <string name="cast">Diễn viên</string>
+    <string name="duration_format">%d phút</string>
+    <string name="rating_format">★ %.1f</string>
+    <string name="release_date">Khởi chiếu</string>
+    <string name="synopsis">Nội dung phim</string>
+
+    <!-- Booking -->
+    <string name="select_showtime">Chọn suất chiếu</string>
+    <string name="select_seat">Chọn ghế</string>
+    <string name="confirm_booking">Xác nhận đặt vé</string>
+    <string name="select_cinema">Chọn rạp</string>
+    <string name="no_showtime">Không có suất chiếu cho ngày này</string>
+    <string name="seats_available">%d ghế trống</string>
+    <string name="seat_legend_available">Trống</string>
+    <string name="seat_legend_selected">Đang chọn</string>
+    <string name="seat_legend_booked">Đã đặt</string>
+    <string name="seat_legend_vip">VIP</string>
+    <string name="screen_indicator">——— MÀN HÌNH ———</string>
+    <string name="selected_seats">%d ghế đã chọn</string>
+    <string name="continue_btn">Tiếp tục</string>
+    <string name="select_seat_warning">Vui lòng chọn ít nhất 1 ghế</string>
+
+    <!-- Combo & Voucher -->
+    <string name="add_combo">🍿 Thêm bắp nước</string>
+    <string name="voucher_label">🎟 Mã giảm giá</string>
+    <string name="voucher_hint">Nhập mã voucher</string>
+    <string name="apply_voucher">Áp dụng</string>
+    <string name="remove_voucher">Xóa</string>
+    <string name="subtotal">Tạm tính</string>
+    <string name="discount">Giảm giá</string>
+    <string name="total">Tổng cộng</string>
+    <string name="confirm_booking_btn">XÁC NHẬN ĐẶT VÉ</string>
+
+    <!-- Payment -->
+    <string name="payment_title">Thanh toán VNPay</string>
+    <string name="payment_processing">Đang tải trang thanh toán...</string>
+
+    <!-- Booking history -->
+    <string name="my_tickets">Vé của tôi</string>
+    <string name="no_tickets">Bạn chưa có vé nào</string>
+    <string name="booking_detail">Chi tiết vé</string>
+    <string name="qr_code_label">Mã QR quét tại rạp</string>
+
+    <!-- Profile -->
+    <string name="profile">Tài khoản</string>
+    <string name="settings">Cài đặt</string>
+    <string name="dark_mode">Giao diện tối</string>
+    <string name="notifications_setting">Thông báo</string>
+    <string name="app_version">Phiên bản ứng dụng</string>
+
+    <!-- Notification -->
+    <string name="notifications">Thông báo</string>
+    <string name="mark_all_read">Đọc tất cả</string>
+    <string name="no_notifications">Không có thông báo mới</string>
+
+    <!-- Status -->
+    <string name="status_paid">Đã thanh toán</string>
+    <string name="status_pending">Chờ thanh toán</string>
+    <string name="status_cancelled">Đã hủy</string>
+    <string name="status_expired">Hết hạn</string>
+
+    <!-- Bottom nav -->
+    <string name="nav_home">Trang chủ</string>
+    <string name="nav_search">Tìm kiếm</string>
+    <string name="nav_tickets">Vé</string>
+    <string name="nav_profile">Tài khoản</string>
+
+    <!-- Errors -->
+    <string name="error_network">Lỗi kết nối mạng</string>
+    <string name="error_unknown">Đã xảy ra lỗi, vui lòng thử lại</string>
+    <string name="error_session_expired">Phiên đăng nhập hết hạn</string>
+    <string name="retry">Thử lại</string>
+    <string name="loading">Đang tải...</string>
+
+    <!-- Splash Screen -->
+    <string name="slogan_main">HƠN CẢ MỘT TẤM VÉ...</string>
+    <string name="slogan_sub">NOVA TICKET - CHẠM VÀO THẾ GIỚI CẢM XÚC</string>
+
+    <!-- Social login -->
+    <!-- Lấy từ Google Cloud Console → OAuth → Web application Client ID -->
+    <string name="google_web_client_id">1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com</string>
+    <!-- Lấy từ Facebook Developers → App Settings → Basic -->
+    <string name="facebook_app_id">1425414802373273</string>
+    <string name="facebook_client_token">df642732746d142bf40fac51788de044</string>
+    <!-- fb_login_protocol_scheme = "fb" + facebook_app_id -->
+    <string name="fb_login_protocol_scheme">fb1425414802373273</string>
+</resources>

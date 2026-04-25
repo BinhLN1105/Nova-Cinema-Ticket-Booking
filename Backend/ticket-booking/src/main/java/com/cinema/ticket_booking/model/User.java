@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.model;
 
 import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.UserRole;
+import com.cinema.ticket_booking.enums.MembershipTier;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -59,9 +60,33 @@ public class User {
     @Builder.Default
     private Boolean isActive = true;
 
+    // Loyalty points earned from ticket cancellations or purchases
+    @Column(name = "reward_points", nullable = false, columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long rewardPoints = 0L;
+
+    // Actual experience points for tier upgrading
+    @Column(name = "available_exp", nullable = false, columnDefinition = "bigint not null default 0")
+    @Builder.Default
+    private Long availableExp = 0L;
+
+    // Membership tier mapping from available_exp
+    @Enumerated(EnumType.STRING)
+    @Column(name = "membership_tier", nullable = false, length = 20, columnDefinition = "varchar(20) not null default 'BRONZE'")
+    @Builder.Default
+    private MembershipTier membershipTier = MembershipTier.BRONZE;
+
     // Firebase Cloud Messaging token cho Push Notification
     @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken;
+
+    @Column(name = "allow_marketing_notification", nullable = false, columnDefinition = "boolean not null default true")
+    @Builder.Default
+    private Boolean allowMarketingNotification = true;
+
+    @Column(name = "allow_transaction_notification", nullable = false, columnDefinition = "boolean not null default true")
+    @Builder.Default
+    private Boolean allowTransactionNotification = true;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -70,4 +95,9 @@ public class User {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    @Builder.Default
+    private Long version = 0L;
 }

@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:fitsSystemWindows="true">
+
+    <!-- Vùng chứa các Fragment (Màn hình chính) -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/nav_host_fragment"
+        android:name="androidx.navigation.fragment.NavHostFragment"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:paddingBottom="80dp"
+        android:clipToPadding="false"
+        app:defaultNavHost="true" />
+
+    <!-- Thanh công cụ phía dưới (Chỉ dùng để tạo hiệu ứng bo cong cho nút Quét mã) -->
+    <com.google.android.material.bottomappbar.BottomAppBar
+        android:id="@+id/bottomAppBar"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        app:backgroundTint="@color/surface_container_highest"
+        app:fabAlignmentMode="center"
+        app:fabCradleMargin="8dp"
+        app:fabCradleRoundedCornerRadius="24dp"
+        app:fabCradleVerticalOffset="8dp"
+        app:elevation="24dp"
+        app:hideOnScroll="false" />
+
+    <!-- Thanh điều hướng chính (Chứa các nút Trang chủ, Lịch chiếu, Tài khoản, v.v.) -->
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottomNav"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_anchor="@id/bottomAppBar"
+        app:layout_anchorGravity="center"
+        android:background="@android:color/transparent"
+        app:elevation="0dp"
+        app:itemIconTint="@color/bottom_nav_item_selector"
+        app:itemTextColor="@color/bottom_nav_item_selector"
+        app:labelVisibilityMode="labeled"
+        app:itemIconSize="24dp"
+        android:translationY="18dp" 
+        app:menu="@menu/bottom_nav_menu" />
+
+    <!-- Nút Quét mã QR đa năng (Nằm ở chính giữa thanh điều hướng) -->
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/fabScanner"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:contentDescription="QR Scanner"
+        app:backgroundTint="@color/primary"
+        app:tint="@color/on_primary"
+        app:layout_anchor="@id/bottomAppBar"
+        app:maxImageSize="32dp"
+        android:src="@drawable/ic_qr_code_scanner" />
+
+    <!-- Trợ lý ảo CineAI (Nút nổi có thể kéo thả, nằm ở lớp trên cùng) -->
+    <com.cinema.ticket_booking.util.DraggableFAB
+        android:id="@+id/aiFab"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="112dp"
+        android:src="@drawable/ic_ai_chat"
+        android:scaleType="centerCrop"
+        app:backgroundTint="@color/transparent"
+        app:tint="@null"
+        app:elevation="0dp"
+        app:borderWidth="0dp"
+        app:fabSize="normal"
+        app:maxImageSize="56dp" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

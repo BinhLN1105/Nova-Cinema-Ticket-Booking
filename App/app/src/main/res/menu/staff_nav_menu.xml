@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@+id/staffHomeFragment"
+        android:icon="@drawable/ic_home"
+        android:title="Dashboard" />
+    <item android:id="@+id/searchFragment"
+        android:icon="@drawable/ic_search"
+        android:title="Lịch chiếu" />
+
+    <item android:id="@+id/dummyItem"
+        android:title=""
+        android:enabled="false" />
+
+    <item android:id="@+id/checkInHistoryFragment"
+        android:icon="@drawable/ic_history"
+        android:title="Lịch sử" />
+    <item android:id="@+id/profileFragment"
+        android:icon="@drawable/ic_profile"
+        android:title="Cá nhân" />
+</menu>

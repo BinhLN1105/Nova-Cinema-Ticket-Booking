@@ -1,0 +1,55 @@
+{
+  "project_info": {
+    "project_number": "1028959237971",
+    "project_id": "novaticket-804bb",
+    "storage_bucket": "novaticket-804bb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1028959237971:android:66f861f729586dda8d93a6",
+        "android_client_info": {
+          "package_name": "com.cinema.ticket_booking"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1028959237971-3nhq8nemn9id4iohes5bhjmgspn4qsie.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cinema.ticket_booking",
+            "certificate_hash": "e8ba44597dbd87b032a16b61b84c775829a9fb3b"
+          }
+        },
+        {
+          "client_id": "1028959237971-mgsb7p66fcq0ik1mbmauoq2rqklmtsf7.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.cinema.ticket_booking",
+            "certificate_hash": "6bf5b5adfb3310957cc64368a1a54cbc0b8499d1"
+          }
+        },
+        {
+          "client_id": "1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCxgHuEOUU4fot04ISwQkBrxBmj5w9pA2A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,56 @@
+package com.cinema.ticket_booking.data.model.response;
+
+import com.google.gson.annotations.SerializedName;
+
+import java.io.Serializable;
+
+public class PromotionResponse implements Serializable {
+    @SerializedName("id")
+    private String id;
+
+    @SerializedName("title")
+    private String title;
+
+    @SerializedName("description")
+    private String description;
+
+    @SerializedName("imageUrl")
+    private String imageUrl;
+
+    @SerializedName("targetUrl")
+    private String targetUrl;
+
+    @SerializedName("startDate")
+    private String startDate;
+
+    @SerializedName("endDate")
+    private String endDate;
+
+    public String getId() {
+        return id;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public String getTargetUrl() {
+        return targetUrl;
+    }
+
+    public String getStartDate() {
+        return startDate;
+    }
+
+    public String getEndDate() {
+        return endDate;
+    }
+}
