@@ -51,5 +51,16 @@ public class NotificationRepository {
             }
         });
     }
-}
 
+    public void deleteNotification(String id) {
+        api.deleteNotification(id).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> c, Response<ApiResponse<Void>> r) {
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> c, Throwable t) {
+            }
+        });
+    }
+}

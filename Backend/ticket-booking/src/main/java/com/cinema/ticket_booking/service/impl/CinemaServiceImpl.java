@@ -48,7 +48,7 @@ public class CinemaServiceImpl implements CinemaService {
     @Transactional(readOnly = true)
     public List<CinemaResponse> getAll(String city) {
         List<Cinema> cinemas = (city != null && !city.isBlank())
-                ? cinemaRepository.findByCityAndIsActiveTrue(city)
+                ? cinemaRepository.searchCinemas(city)
                 : cinemaRepository.findByIsActiveTrue();
         return cinemas.stream().map(cinemaMapper::toResponse).toList();
     }

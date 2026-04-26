@@ -492,23 +492,6 @@ export default function ProfilePage() {
                     </button>
                   </div>
 
-                  {isPushEnabled && (
-                    <div className="flex justify-end">
-                      <button 
-                        onClick={async () => {
-                          try {
-                            await api.post('/notifications/test')
-                            toast.success('Yêu cầu gửi thông báo test thành công!')
-                          } catch (err) {
-                            toast.error('Không thể gửi thông báo test')
-                          }
-                        }}
-                        className="text-xs bg-white/5 border border-brand-500/30 text-brand-400 px-3 py-1.5 rounded-lg hover:bg-brand-500/10 transition-all font-medium"
-                      >
-                        Gửi thử thông báo
-                      </button>
-                    </div>
-                  )}
 
                   {!notifData?.content?.length ? (
                     <div className="card-cinema p-10 text-center">

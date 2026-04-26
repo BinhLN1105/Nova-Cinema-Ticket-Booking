@@ -19,8 +19,10 @@ public class MainViewModel extends ViewModel {
     private final UserRepository userRepository;
     private final AuthRepository authRepository;
     private final MutableLiveData<Resource<UserResponse>> userProfile = new MutableLiveData<>();
-    /** Tab cần mở khi CheckInHistoryFragment được hiển thị từ Dashboard */
+    /** Tab cần mở khi CheckInHistoryFragment được hiển thị từ Dashboard (Staff) */
     private final MutableLiveData<String> pendingHistoryFilter = new MutableLiveData<>();
+    /** Tab cần mở khi BookingHistoryFragment được hiển thị từ Profile (Customer) */
+    private final MutableLiveData<String> pendingBookingTab = new MutableLiveData<>();
 
     @Inject
     public MainViewModel(UserRepository userRepository, AuthRepository authRepository) {
@@ -70,6 +72,19 @@ public class MainViewModel extends ViewModel {
 
     public LiveData<String> getPendingHistoryFilter() {
         return pendingHistoryFilter;
+    }
+
+    /** Điều hướng từ Profile sang tab con của BookingHistory */
+    public void requestBookingTab(String tab) {
+        pendingBookingTab.setValue(tab);
+    }
+
+    public void consumeBookingTab() {
+        pendingBookingTab.setValue(null);
+    }
+
+    public LiveData<String> getPendingBookingTab() {
+        return pendingBookingTab;
     }
 }
 

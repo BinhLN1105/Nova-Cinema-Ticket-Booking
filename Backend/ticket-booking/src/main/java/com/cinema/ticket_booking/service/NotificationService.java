@@ -19,11 +19,12 @@ public interface NotificationService {
 
     void markAllAsRead(UUID userId);
 
+    void delete(UUID id, UUID userId);
+
     void sendBookingConfirm(Booking booking);
 
     void sendPromotion(User user, String title, String body, UUID refId);
 
-    void sendTestNotification(User user);
 
     /**
      * Gửi thông báo cho toàn bộ người dùng qua FCM Topic và lưu vào

@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.cinema.ticket_booking.R;
+import androidx.core.content.ContextCompat;
 import com.cinema.ticket_booking.databinding.FragmentCheckInHistoryBinding;
 import com.cinema.ticket_booking.ui.MainViewModel;
 
@@ -139,14 +140,14 @@ public class CheckInHistoryFragment extends Fragment {
 
     private void setTabSelected(boolean todaySelected) {
         if (todaySelected) {
-            binding.tabToday.setTextColor(0xFFF5C518);
+            binding.tabToday.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_gold));
             binding.tabToday.setBackgroundResource(R.drawable.bg_tab_selected);
-            binding.tabThisMonth.setTextColor(0xFF6B7E94);
+            binding.tabThisMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_gray));
             binding.tabThisMonth.setBackgroundResource(R.drawable.bg_tab_unselected);
         } else {
-            binding.tabThisMonth.setTextColor(0xFFF5C518);
+            binding.tabThisMonth.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_gold));
             binding.tabThisMonth.setBackgroundResource(R.drawable.bg_tab_selected);
-            binding.tabToday.setTextColor(0xFF6B7E94);
+            binding.tabToday.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_gray));
             binding.tabToday.setBackgroundResource(R.drawable.bg_tab_unselected);
         }
     }

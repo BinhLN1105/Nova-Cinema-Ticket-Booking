@@ -26,6 +26,14 @@ public class NotificationViewModel extends ViewModel {
         repo.markAllAsRead();
     }
 
+    public void deleteNotification(String id) {
+        repo.deleteNotification(id);
+    }
+
+    public void refresh() {
+        load();
+    }
+
     private void load() {
         repo.getNotifications(0).observeForever(notifications::setValue);
     }

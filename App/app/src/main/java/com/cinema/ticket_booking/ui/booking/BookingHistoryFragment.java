@@ -12,6 +12,7 @@ import androidx.recyclerview.widget.*;
 import android.content.res.ColorStateList;
 import androidx.annotation.NonNull;
 import com.cinema.ticket_booking.R;
+import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.databinding.FragmentBookingHistoryBinding;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.data.model.response.BookingSummary;
@@ -39,7 +40,7 @@ public class BookingHistoryFragment extends Fragment {
 
     @Inject
     TokenManager tokenManager;
-    
+
     @Inject
     ApiService apiService;
 
@@ -67,8 +68,21 @@ public class BookingHistoryFragment extends Fragment {
         // Only create ViewModel (which auto-loads data) AFTER login check
         viewModel = new ViewModelProvider(this).get(BookingHistoryViewModel.class);
 
-        // Handle redirection from Profile
+        // Handle redirection from Profile via ViewModel (Nova Solution for Navbar Sync)
+        MainViewModel mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
+        mainViewModel.getPendingBookingTab().observe(getViewLifecycleOwner(), tab -> {
+            if ("HISTORY".equals(tab)) {
+                isUpcomingTab = false;
+                viewModel.setUpcomingTab(false);
+                updateTabStyles();
+                updateList();
+                mainViewModel.consumeBookingTab(); // Clear intent
+            }
+        });
+
+        // Handle redirection from Profile via Arguments (Keep for legacy support)
         if (getArguments() != null && "HISTORY".equals(getArguments().getString("MapsToTab"))) {
+            isUpcomingTab = false;
             viewModel.setUpcomingTab(false);
         }
 
@@ -96,11 +110,13 @@ public class BookingHistoryFragment extends Fragment {
             updateList();
         });
 
-        binding.nestedScrollView.setOnScrollChangeListener((androidx.core.widget.NestedScrollView.OnScrollChangeListener) (v, scrollX, scrollY, oldScrollX, oldScrollY) -> {
-            if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
-                viewModel.loadMore();
-            }
-        });
+        binding.nestedScrollView
+                .setOnScrollChangeListener((androidx.core.widget.NestedScrollView.OnScrollChangeListener) (v, scrollX,
+                        scrollY, oldScrollX, oldScrollY) -> {
+                    if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
+                        viewModel.loadMore();
+                    }
+                });
 
         viewModel.getBookings().observe(getViewLifecycleOwner(), resource -> {
             switch (resource.status) {
@@ -187,7 +203,8 @@ public class BookingHistoryFragment extends Fragment {
                     if (expDate != null && expDate.getTime() <= now) {
                         isPendingExpired = true;
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
 
             // Vé PENDING còn hạn → tab Sắp chiếu (để user thanh toán)
@@ -197,9 +214,9 @@ public class BookingHistoryFragment extends Fragment {
             if ("PENDING".equalsIgnoreCase(b.getStatus())) {
                 isUpcoming = !isPendingExpired;
             } else {
-                isUpcoming = ("PAID".equalsIgnoreCase(b.getStatus()) || 
-                              "CHECKED_IN".equalsIgnoreCase(b.getStatus()) ||
-                              "CANCELLED".equalsIgnoreCase(b.getStatus())) && isFuture;
+                isUpcoming = ("PAID".equalsIgnoreCase(b.getStatus()) ||
+                        "CHECKED_IN".equalsIgnoreCase(b.getStatus()) ||
+                        "CANCELLED".equalsIgnoreCase(b.getStatus())) && isFuture;
             }
 
             if (isUpcomingTab == isUpcoming) {
@@ -368,4 +385,3 @@ public class BookingHistoryFragment extends Fragment {
         binding = null;
     }
 }
-

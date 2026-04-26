@@ -3,20 +3,20 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#0A0E1A">
+    android:background="@color/background">
 
     <!-- App Bar -->
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:background="#0A0E1A"
+        android:background="@color/background"
         app:elevation="0dp">
         <androidx.appcompat.widget.Toolbar
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
             app:title="NOVA STAFF"
-            app:titleTextColor="#F5C518"
+            app:titleTextColor="@color/accent_gold"
             app:titleTextAppearance="@style/TextAppearance.AppCompat.Title" />
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -48,7 +48,7 @@
                     android:text="Xin chào, Nhân viên! 👋"
                     android:textSize="20sp"
                     android:textStyle="bold"
-                    android:textColor="#FFFFFF" />
+                    android:textColor="@color/text_primary" />
 
                 <TextView
                     android:id="@+id/tvDate"
@@ -57,7 +57,7 @@
                     android:layout_marginTop="2dp"
                     android:text="Hôm nay"
                     android:textSize="13sp"
-                    android:textColor="#7A8BA0" />
+                    android:textColor="@color/text_gray" />
 
                 <!-- Cinema Location -->
                 <LinearLayout
@@ -103,7 +103,7 @@
                 <View
                     android:layout_width="3dp"
                     android:layout_height="16dp"
-                    android:background="#F5C518"
+                    android:background="@color/accent_gold"
                     android:layout_marginEnd="8dp" />
 
                 <TextView
@@ -114,7 +114,7 @@
                     android:textSize="11sp"
                     android:textStyle="bold"
                     android:letterSpacing="0.12"
-                    android:textColor="#F5C518" />
+                    android:textColor="@color/accent_gold" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnRefresh"
@@ -143,9 +143,9 @@
                 app:rippleColor="#F5C518"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="12dp"
-                app:cardBackgroundColor="#111827"
+                app:cardBackgroundColor="@color/surface"
                 app:strokeWidth="1dp"
-                app:strokeColor="#1E3A5F">
+                app:strokeColor="@color/divider">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -172,7 +172,7 @@
                             android:layout_width="52dp"
                             android:layout_height="52dp"
                             android:background="@drawable/bg_stat_icon_circle"
-                            android:backgroundTint="#1F2937">
+                            android:backgroundTint="@color/surface_variant">
 
                             <ImageView
                                 android:layout_width="28dp"
@@ -207,7 +207,7 @@
                             android:layout_height="wrap_content"
                             android:text="Suất chiếu hôm nay"
                             android:textSize="12sp"
-                            android:textColor="#6B7E94"
+                            android:textColor="@color/text_gray"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
 
@@ -217,7 +217,7 @@
                         android:layout_width="20dp"
                         android:layout_height="20dp"
                         android:visibility="gone"
-                        android:indeterminateTint="#F5C518" />
+                        android:indeterminateTint="@color/accent_gold" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
 
@@ -233,9 +233,9 @@
                 app:rippleColor="#22C55E"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="12dp"
-                app:cardBackgroundColor="#111827"
+                app:cardBackgroundColor="@color/surface"
                 app:strokeWidth="1dp"
-                app:strokeColor="#1A3A2C">
+                app:strokeColor="@color/divider">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -261,7 +261,7 @@
                             android:layout_width="52dp"
                             android:layout_height="52dp"
                             android:background="@drawable/bg_stat_icon_circle"
-                            android:backgroundTint="#0F2318">
+                            android:backgroundTint="@color/surface_variant">
 
                             <ImageView
                                 android:layout_width="28dp"
@@ -295,7 +295,7 @@
                             android:layout_height="wrap_content"
                             android:text="Vé đã soát hôm nay"
                             android:textSize="12sp"
-                            android:textColor="#6B7E94"
+                            android:textColor="@color/text_gray"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
@@ -313,9 +313,9 @@
                 app:rippleColor="#A855F7"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="12dp"
-                app:cardBackgroundColor="#111827"
+                app:cardBackgroundColor="@color/surface"
                 app:strokeWidth="1dp"
-                app:strokeColor="#2A1A3A">
+                app:strokeColor="@color/divider">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -341,7 +341,7 @@
                             android:layout_width="52dp"
                             android:layout_height="52dp"
                             android:background="@drawable/bg_stat_icon_circle"
-                            android:backgroundTint="#1A0F2A">
+                            android:backgroundTint="@color/surface_variant">
 
                             <ImageView
                                 android:layout_width="28dp"
@@ -375,7 +375,7 @@
                             android:layout_height="wrap_content"
                             android:text="Vé đã soát trong tháng"
                             android:textSize="12sp"
-                            android:textColor="#6B7E94"
+                            android:textColor="@color/text_gray"
                             android:layout_marginTop="2dp" />
                     </LinearLayout>
                 </LinearLayout>
