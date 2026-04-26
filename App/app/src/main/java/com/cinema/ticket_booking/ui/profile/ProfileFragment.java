@@ -187,6 +187,10 @@ public class ProfileFragment extends Fragment {
             });
 
             binding.btnNavReviews.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    android.widget.Toast.makeText(requireContext(), "Staff không hỗ trợ chức năng này", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 // Chuyển sang tab Tickets, mở sẵn tab "Lịch sử" (phim đã xem → đánh giá)
                 BottomNavigationView nav = requireActivity()
                         .findViewById(com.cinema.ticket_booking.R.id.bottomNav);
@@ -196,8 +200,13 @@ public class ProfileFragment extends Fragment {
                         .navigate(com.cinema.ticket_booking.R.id.bookingHistoryFragment, args);
             });
             binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment));
-            binding.btnNavGiftCards.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
+            binding.btnNavGiftCards.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    android.widget.Toast.makeText(requireContext(), "Staff không hỗ trợ chức năng này", android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet);
+            });
             binding.btnNavPromotions.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_global_promotionList));
 
