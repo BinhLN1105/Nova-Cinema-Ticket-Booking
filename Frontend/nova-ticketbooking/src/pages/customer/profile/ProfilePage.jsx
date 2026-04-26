@@ -57,6 +57,11 @@ export default function ProfilePage() {
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false)
 
   useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && TABS.some(t => t.id === tab)) {
+      setActiveTab(tab)
+    }
+
     const topupStatus = searchParams.get('topup')
     if (!topupStatus || hasHandledTopup.current) return
 

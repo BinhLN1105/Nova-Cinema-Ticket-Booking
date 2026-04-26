@@ -360,7 +360,7 @@ export default function HomePage() {
               Đặt vé ngay hôm nay
             </h2>
             <p className="text-red-100 mb-8 text-lg">
-              Ưu đãi đặc biệt cho thành viên mới — Giảm 20% vé đầu tiên
+              Nhiều ưu đãi hấp dẫn đang chờ bạn khám phá
             </p>
             <Link to="/auth/register"
               className="inline-flex items-center gap-2 px-8 py-4 rounded-2xl
