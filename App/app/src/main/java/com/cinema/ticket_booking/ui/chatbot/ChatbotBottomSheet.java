@@ -17,6 +17,7 @@ import com.cinema.ticket_booking.databinding.DialogChatbotBinding;
 import com.google.android.material.bottomsheet.BottomSheetBehavior;
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
+import com.google.android.material.R;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -36,7 +37,8 @@ public class ChatbotBottomSheet extends BottomSheetDialogFragment {
 
     @Nullable
     @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+    public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
+            @Nullable Bundle savedInstanceState) {
         binding = DialogChatbotBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -72,24 +74,25 @@ public class ChatbotBottomSheet extends BottomSheetDialogFragment {
     @Override
     public Dialog onCreateDialog(@Nullable Bundle savedInstanceState) {
         BottomSheetDialog dialog = (BottomSheetDialog) super.onCreateDialog(savedInstanceState);
-        
+
         // Cấu hình hành vi (Behavior) khi Dialog được hiển thị
         dialog.setOnShowListener(dialogInterface -> {
             BottomSheetDialog d = (BottomSheetDialog) dialogInterface;
-            FrameLayout bottomSheet = d.findViewById(com.google.android.material.R.id.design_bottom_sheet);
+            FrameLayout bottomSheet = d.findViewById(R.id.design_bottom_sheet);
             if (bottomSheet != null) {
                 BottomSheetBehavior<View> behavior = BottomSheetBehavior.from(bottomSheet);
                 // Ép buộc BottomSheet luôn ở trạng thái Mở rộng toàn bộ (Expanded)
                 behavior.setState(BottomSheetBehavior.STATE_EXPANDED);
                 // Bỏ qua trạng thái lấp lửng (Collapsed) để không bị kẹt khi vuốt xuống
                 behavior.setSkipCollapsed(true);
-                
+
                 // Thiết lập chiều cao cho khớp với màn hình (Match Parent)
                 bottomSheet.getLayoutParams().height = ViewGroup.LayoutParams.MATCH_PARENT;
             }
         });
 
-        // Cấu hình chế độ bàn phím: adjustResize giúp đẩy giao diện lên khi bàn phím hiện ra
+        // Cấu hình chế độ bàn phím: adjustResize giúp đẩy giao diện lên khi bàn phím
+        // hiện ra
         if (dialog.getWindow() != null) {
             dialog.getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE);
         }
@@ -103,4 +106,3 @@ public class ChatbotBottomSheet extends BottomSheetDialogFragment {
         binding = null;
     }
 }
-

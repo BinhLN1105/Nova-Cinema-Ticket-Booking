@@ -3,7 +3,6 @@ package com.cinema.ticket_booking.ui.booking;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.*;
-import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.widget.Toast;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
@@ -12,10 +11,14 @@ import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
+
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.model.response.ComboResponse;
 import com.cinema.ticket_booking.databinding.FragmentSelectComboBinding;
+import com.cinema.ticket_booking.data.model.response.BookingResponse;
 import com.cinema.ticket_booking.util.Resource;
+import com.cinema.ticket_booking.util.SnackbarHelper;
+
 import dagger.hilt.android.AndroidEntryPoint;
 import java.util.List;
 
@@ -90,21 +93,21 @@ public class SelectComboFragment extends Fragment {
                 navigateToConfirm(resource.data);
             } else if (resource.status == Resource.Status.ERROR) {
                 showLoading(false);
-                SnackbarHelper.showError(binding.getRoot(), 
-                    resource.message != null ? resource.message : "Lỗi tính toán giá cuối cùng");
+                SnackbarHelper.showError(binding.getRoot(),
+                        resource.message != null ? resource.message : "Lỗi tính toán giá cuối cùng");
             }
         });
     }
 
-    private void navigateToConfirm(com.cinema.ticket_booking.data.model.response.BookingResponse quote) {
+    private void navigateToConfirm(BookingResponse quote) {
         Bundle bundle = new Bundle();
         if (getArguments() != null) {
             bundle.putLong("expireTime", getArguments().getLong("expireTime"));
         }
-        
+
         // Pass the Parcelable quote to the next screen
         bundle.putParcelable("initialQuote", quote);
-        
+
         NavHostFragment.findNavController(this)
                 .navigate(R.id.action_selectCombo_to_confirmBooking, bundle);
     }
@@ -114,7 +117,7 @@ public class SelectComboFragment extends Fragment {
         binding.btnContinue.setEnabled(!isLoading);
         binding.btnSkip.setEnabled(!isLoading);
         binding.btnBack.setEnabled(!isLoading);
-        
+
         if (isLoading) {
             binding.btnContinue.setAlpha(0.6f);
             binding.btnContinue.setText("Đang xử lý...");
@@ -138,4 +141,3 @@ public class SelectComboFragment extends Fragment {
         binding = null;
     }
 }
-

@@ -16,6 +16,7 @@ import com.cinema.ticket_booking.util.SnackbarHelper;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Date;
 import dagger.hilt.android.AndroidEntryPoint;
 
 @AndroidEntryPoint
@@ -67,12 +68,12 @@ public class CinemaDetailFragment extends Fragment {
             tv.setPadding(32, 20, 32, 20);
             tv.setTextColor(getResources().getColor(android.R.color.white, null));
             tv.setBackgroundResource(R.drawable.bg_date_selector);
-            
+
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             lp.setMargins(12, 0, 12, 0);
             tv.setLayoutParams(lp);
-            
+
             // Observe selected date to update UI
             viewModel.getSelectedDate().observe(getViewLifecycleOwner(), selected -> {
                 boolean isSelected = date.equals(selected);
@@ -98,13 +99,13 @@ public class CinemaDetailFragment extends Fragment {
                     } else {
                         binding.tvEmpty.setVisibility(View.GONE);
                         binding.rvCinemaMovies.setVisibility(View.VISIBLE);
-                        
+
                         // Group showtimes by Movie
                         Map<String, List<ShowtimeResponse>> grouped = resource.data.stream()
                                 .collect(Collectors.groupingBy(ShowtimeResponse::getMovieId));
-                        
+
                         List<List<ShowtimeResponse>> moviesList = new ArrayList<>(grouped.values());
-                        
+
                         binding.rvCinemaMovies.setLayoutManager(new LinearLayoutManager(requireContext()));
                         binding.rvCinemaMovies.setAdapter(new CinemaMovieAdapter(moviesList, sharedPool, showtime -> {
                             // Navigation logic
@@ -113,7 +114,7 @@ public class CinemaDetailFragment extends Fragment {
                             SelectShowtimeViewModel.pendingShowtimeTime = showtime.getStartTime();
                             SelectShowtimeViewModel.pendingCinemaName = cinemaName;
                             SelectShowtimeViewModel.pendingShowDate = viewModel.getSelectedDate().getValue();
-                            
+
                             Bundle args = new Bundle();
                             args.putString("showtimeId", showtime.getId());
                             Navigation.findNavController(view).navigate(R.id.action_selectShowtime_to_selectSeat, args);
@@ -128,11 +129,11 @@ public class CinemaDetailFragment extends Fragment {
         });
     }
 
-    private java.util.Date parseDate(String s) {
+    private Date parseDate(String s) {
         try {
             return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).parse(s);
         } catch (Exception e) {
-            return new java.util.Date();
+            return new Date();
         }
     }
 
@@ -142,4 +143,3 @@ public class CinemaDetailFragment extends Fragment {
         binding = null;
     }
 }
-

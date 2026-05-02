@@ -3,7 +3,6 @@ package com.cinema.ticket_booking.ui.booking;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.Toast;
-import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -11,18 +10,22 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
 import android.content.res.ColorStateList;
 import androidx.annotation.NonNull;
+import androidx.core.widget.NestedScrollView;
+
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.ui.MainViewModel;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentBookingHistoryBinding;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.data.model.response.BookingSummary;
 import com.cinema.ticket_booking.data.model.response.ApiResponse;
 import com.cinema.ticket_booking.network.ApiService;
-import javax.inject.Inject;
-import java.text.SimpleDateFormat;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
+import javax.inject.Inject;
+import java.text.SimpleDateFormat;
 import java.util.Map;
 import java.util.Date;
 import java.util.List;
@@ -35,7 +38,7 @@ public class BookingHistoryFragment extends Fragment {
 
     private FragmentBookingHistoryBinding binding;
     private BookingHistoryViewModel viewModel;
-    private java.util.List<BookingSummary> allBookings = new java.util.ArrayList<>();
+    private List<BookingSummary> allBookings = new ArrayList<>();
     private boolean isUpcomingTab = true;
 
     @Inject
@@ -111,7 +114,7 @@ public class BookingHistoryFragment extends Fragment {
         });
 
         binding.nestedScrollView
-                .setOnScrollChangeListener((androidx.core.widget.NestedScrollView.OnScrollChangeListener) (v, scrollX,
+                .setOnScrollChangeListener((NestedScrollView.OnScrollChangeListener) (v, scrollX,
                         scrollY, oldScrollX, oldScrollY) -> {
                     if (scrollY == (v.getChildAt(0).getMeasuredHeight() - v.getMeasuredHeight())) {
                         viewModel.loadMore();
@@ -300,7 +303,7 @@ public class BookingHistoryFragment extends Fragment {
                         // Hiển thị dialog
                         String totalFormatted = String.format("%,.0f", s.getTotalAmount());
 
-                        new com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                        new MaterialAlertDialogBuilder(requireContext())
                                 .setTitle("Hủy vé xem phim")
                                 .setMessage("Bạn chắc chắn muốn hủy vé \"" + s.getMovieTitle() + "\"?\n\n" +
                                         "Hệ thống sẽ hoàn lại " + refundPercent + "% giá trị vé (" + totalFormatted

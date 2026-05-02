@@ -22,6 +22,7 @@ import com.cinema.ticket_booking.databinding.FragmentMovieDetailBinding;
 import com.cinema.ticket_booking.ui.booking.SelectShowtimeViewModel;
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
+import java.util.List;
 
 @AndroidEntryPoint
 public class MovieDetailFragment extends Fragment {
@@ -63,7 +64,8 @@ public class MovieDetailFragment extends Fragment {
                 return;
             }
             viewModel.checkReviewEligibility(movieId).observe(getViewLifecycleOwner(), resource -> {
-                if (resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING) return;
+                if (resource.status == com.cinema.ticket_booking.util.Resource.Status.LOADING)
+                    return;
                 binding.progressBar.setVisibility(View.GONE);
                 if (resource.isSuccess() && resource.data != null) {
                     var data = resource.data;
@@ -73,7 +75,8 @@ public class MovieDetailFragment extends Fragment {
                     args.putString("bookingId", data.getBookingId());
                     Navigation.findNavController(requireView()).navigate(R.id.action_movieDetail_to_writeReview, args);
                 } else if (resource.isError()) {
-                    SnackbarHelper.showError(binding.getRoot(), resource.message != null ? resource.message : "Bạn cần mua vé và xem phim trước khi đánh giá!");
+                    SnackbarHelper.showError(binding.getRoot(), resource.message != null ? resource.message
+                            : "Bạn cần mua vé và xem phim trước khi đánh giá!");
                 }
             });
         });
@@ -143,7 +146,7 @@ public class MovieDetailFragment extends Fragment {
         binding.rvReviews.setLayoutManager(new LinearLayoutManager(requireContext()));
         viewModel.getReviews().observe(getViewLifecycleOwner(), resource -> {
             if (resource.isSuccess() && resource.data != null) {
-                java.util.List<ReviewResponse> list = resource.data.getContent();
+                List<ReviewResponse> list = resource.data.getContent();
                 if (list == null || list.isEmpty()) {
                     binding.tvNoReviews.setVisibility(View.VISIBLE);
                     binding.rvReviews.setVisibility(View.GONE);
@@ -152,7 +155,8 @@ public class MovieDetailFragment extends Fragment {
                     binding.tvNoReviews.setVisibility(View.GONE);
                     binding.rvReviews.setVisibility(View.VISIBLE);
                     binding.rvReviews.setAdapter(new ReviewAdapter(list));
-                    binding.btnViewAllReviews.setVisibility(resource.data.getTotalElements() > 3 ? View.VISIBLE : View.GONE);
+                    binding.btnViewAllReviews
+                            .setVisibility(resource.data.getTotalElements() > 3 ? View.VISIBLE : View.GONE);
                 }
             }
         });
@@ -167,12 +171,9 @@ public class MovieDetailFragment extends Fragment {
         });
     }
 
-
-
     @Override
     public void onDestroyView() {
         super.onDestroyView();
         binding = null;
     }
 }
-

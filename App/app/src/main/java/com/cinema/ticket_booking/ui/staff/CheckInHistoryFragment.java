@@ -5,18 +5,23 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import androidx.navigation.Navigation;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.core.content.ContextCompat;
 
 import com.cinema.ticket_booking.R;
-import androidx.core.content.ContextCompat;
+import com.cinema.ticket_booking.data.model.response.CheckInHistoryItemResponse;
 import com.cinema.ticket_booking.databinding.FragmentCheckInHistoryBinding;
 import com.cinema.ticket_booking.ui.MainViewModel;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 
 import dagger.hilt.android.AndroidEntryPoint;
+
+import java.util.List;
 
 @AndroidEntryPoint
 public class CheckInHistoryFragment extends Fragment {
@@ -30,7 +35,7 @@ public class CheckInHistoryFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         binding = FragmentCheckInHistoryBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -42,12 +47,14 @@ public class CheckInHistoryFragment extends Fragment {
         viewModel = new ViewModelProvider(this).get(CheckInHistoryViewModel.class);
         mainViewModel = new ViewModelProvider(requireActivity()).get(MainViewModel.class);
 
-        setupRecyclerView();
-        setupTabs();
-        setupToolbar();
-        observeViewModel();
+        setupRecyclerView(); // dùng để thiết lập RecyclerView và Adapter (cho việc hiển thị danh sách lịch
+                             // sử check-in)
+        setupTabs(); // dùng để xử lý tab "Hôm nay" và "Tháng này"
+        setupToolbar(); // dùng để xử lý nút quay lại
+        observeViewModel(); // dùng để quan sát dữ liệu được tải về
 
-        // Đọc filter từ: 1. Arguments (điều hướng cũ), 2. SharedViewModel (từ Dashboard card)
+        // Đọc filter từ: 1. Arguments (điều hướng cũ), 2. SharedViewModel (từ Dashboard
+        // card)
         handleFilterRequest();
     }
 
@@ -56,14 +63,11 @@ public class CheckInHistoryFragment extends Fragment {
         binding.toolbar.setNavigationOnClickListener(v -> {
             // Pop backstack để quay lại màn hình trước (nếu được push qua action)
             // Nếu không có backstack, không làm gì (màn hình gốc từ BottomNav)
-            if (!androidx.navigation.Navigation
-                    .findNavController(requireActivity(), R.id.nav_host_fragment)
-                    .popBackStack()) {
+            if (!Navigation.findNavController(requireActivity(), R.id.nav_host_fragment).popBackStack()) {
                 // Không có gì để pop → quay về Dashboard qua BottomNav
                 View bnvView = requireActivity().findViewById(R.id.bottomNav);
-                if (bnvView instanceof com.google.android.material.bottomnavigation.BottomNavigationView) {
-                    ((com.google.android.material.bottomnavigation.BottomNavigationView) bnvView)
-                            .setSelectedItemId(R.id.staffHomeFragment);
+                if (bnvView instanceof BottomNavigationView) {
+                    ((BottomNavigationView) bnvView).setSelectedItemId(R.id.staffHomeFragment);
                 }
             }
         });
@@ -162,17 +166,20 @@ public class CheckInHistoryFragment extends Fragment {
                 binding.tvError.setVisibility(View.VISIBLE);
                 binding.tvError.setText(error);
                 binding.tvError.postDelayed(() -> {
-                    if (binding != null) binding.tvError.setVisibility(View.GONE);
+                    if (binding != null)
+                        binding.tvError.setVisibility(View.GONE);
                 }, 3000);
             }
         });
 
         viewModel.todayItems.observe(getViewLifecycleOwner(), items -> {
-            if (isShowingToday) showList(items);
+            if (isShowingToday)
+                showList(items);
         });
 
         viewModel.monthItems.observe(getViewLifecycleOwner(), items -> {
-            if (!isShowingToday) showList(items);
+            if (!isShowingToday)
+                showList(items);
         });
     }
 
@@ -184,7 +191,7 @@ public class CheckInHistoryFragment extends Fragment {
         }
     }
 
-    private void showList(java.util.List<com.cinema.ticket_booking.data.model.response.CheckInHistoryItemResponse> items) {
+    private void showList(List<CheckInHistoryItemResponse> items) {
         if (items == null || items.isEmpty()) {
             binding.tvEmpty.setVisibility(View.VISIBLE);
             binding.rvHistory.setVisibility(View.GONE);

@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.*;
+import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.data.model.response.*;
@@ -16,6 +17,7 @@ import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.databinding.FragmentConfirmBookingBinding;
 import java.util.*;
 import java.util.Locale;
+import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.text.ParseException;
 import dagger.hilt.android.AndroidEntryPoint;
@@ -56,17 +58,17 @@ public class ConfirmBookingFragment extends Fragment {
         String dateStr = SelectShowtimeViewModel.pendingShowDate;
         if (dateStr != null) {
             try {
-                java.util.Date date = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault())
+                Date date = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
                         .parse(dateStr);
                 binding.tvShowDate.setText(
-                        new java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.getDefault()).format(date));
+                        new SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(date));
             } catch (Exception e) {
                 binding.tvShowDate.setText(dateStr);
             }
         }
 
         if (SelectShowtimeViewModel.pendingMoviePoster != null) {
-            com.bumptech.glide.Glide.with(this)
+            Glide.with(this)
                     .load(SelectShowtimeViewModel.pendingMoviePoster)
                     .placeholder(R.drawable.ic_movie_placeholder)
                     .into(binding.ivPoster);
@@ -281,11 +283,11 @@ public class ConfirmBookingFragment extends Fragment {
     private void updatePriceDetails(BookingResponse quote) {
         Locale locale = Locale.getDefault();
 
-        // 1. Tiền vé + Combo (Gốc)
+        // Tiền vé + Combo (Gốc)
         binding.tvSubtotal.setText(String.format(locale, "%,.0f ₫",
                 quote.getTotalOriginalAmount() != null ? quote.getTotalOriginalAmount() : 0.0));
 
-        // 2. Khuyến mãi hệ thống
+        // Khuyến mãi hệ thống
         double promo = quote.getPromotionDiscountAmount() != null ? quote.getPromotionDiscountAmount() : 0.0;
         double voucherDiscount = quote.getDiscountAmount() != null ? quote.getDiscountAmount() : 0.0;
 
@@ -328,11 +330,11 @@ public class ConfirmBookingFragment extends Fragment {
             binding.tvVoucherInfo.setVisibility(View.GONE);
         }
 
-        // 3. Tổng cộng
+        // Tổng cộng
         binding.tvTotal.setText(String.format(locale, "%,.0f ₫",
                 quote.getTotalAmount() != null ? quote.getTotalAmount() : 0.0));
 
-        // 4. CinePoint (Hybrid Flow Status)
+        // CinePoint (Hybrid Flow Status)
         if (quote.getPointDiscount() != null && quote.getPointDiscount() > 0) {
             binding.tvWalletBalance.setText(String.format(locale, "Sử dụng %,d CP: -%,.0f ₫ (Còn lại: %,.0f ₫)",
                     quote.getPointsUsed(), quote.getPointDiscount(), quote.getRemainingAmount()));
@@ -340,14 +342,14 @@ public class ConfirmBookingFragment extends Fragment {
     }
 
     private void startCountdown(long duration) {
-        countDownTimer = new android.os.CountDownTimer(duration, 1000) {
+        countDownTimer = new CountDownTimer(duration, 1000) {
             @Override
             public void onTick(long millisUntilFinished) {
                 if (binding == null)
                     return;
                 long minutes = millisUntilFinished / 1000 / 60;
                 long seconds = (millisUntilFinished / 1000) % 60;
-                binding.tvTimer.setText(String.format(java.util.Locale.getDefault(), "%02d:%02d", minutes, seconds));
+                binding.tvTimer.setText(String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds));
             }
 
             @Override

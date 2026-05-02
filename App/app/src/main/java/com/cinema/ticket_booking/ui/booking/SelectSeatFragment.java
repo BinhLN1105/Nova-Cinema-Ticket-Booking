@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.ui.booking;
 import android.os.Bundle;
 import android.view.*;
 import android.widget.*;
+import android.graphics.drawable.GradientDrawable;
 import androidx.annotation.*;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
@@ -111,12 +112,14 @@ public class SelectSeatFragment extends Fragment {
 
         // Silent refresh observer — only updates changed seat colors
         viewModel.getSeatRefresh().observe(getViewLifecycleOwner(), freshMap -> {
-            if (freshMap == null || freshMap.getSeats() == null) return;
+            if (freshMap == null || freshMap.getSeats() == null)
+                return;
             currentSeatMap = freshMap;
             boolean anyDeselected = false;
             for (SeatMapResponse.SeatItem seat : freshMap.getSeats()) {
                 TextView btn = seatButtonMap.get(seat.getShowtimeSeatId());
-                if (btn == null) continue;
+                if (btn == null)
+                    continue;
                 boolean isSelectedByMe = viewModel.getSelectedSeatIds().contains(seat.getShowtimeSeatId());
                 // If seat became taken but user had selected it, deselect
                 if (isSelectedByMe && ("BOOKED".equals(seat.getStatus()) || "LOCKED".equals(seat.getStatus()))) {
@@ -134,7 +137,8 @@ public class SelectSeatFragment extends Fragment {
     }
 
     private void startPolling() {
-        if (pollRunnable != null) pollHandler.removeCallbacks(pollRunnable);
+        if (pollRunnable != null)
+            pollHandler.removeCallbacks(pollRunnable);
         pollRunnable = new Runnable() {
             @Override
             public void run() {
@@ -262,7 +266,7 @@ public class SelectSeatFragment extends Fragment {
 
         int color = getResources().getColor(colorRes, null);
 
-        android.graphics.drawable.GradientDrawable gd = new android.graphics.drawable.GradientDrawable();
+        GradientDrawable gd = new GradientDrawable();
         gd.setColor(color);
         float radius = getResources().getDisplayMetrics().density * 6;
         gd.setCornerRadius(radius);
@@ -292,4 +296,3 @@ public class SelectSeatFragment extends Fragment {
         binding = null;
     }
 }
-

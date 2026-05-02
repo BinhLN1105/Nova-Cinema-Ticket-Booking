@@ -26,25 +26,17 @@ public class SplashActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        // Handle the system splash screen transition
+        // Xử lý quá trình chuyển đổi màn hình khởi động hệ thống
         SplashScreen.installSplashScreen(this);
         super.onCreate(savedInstanceState);
-        
         setContentView(R.layout.activity_splash);
-
-        // Giữ màn hình Splash trong khoảng 2 giây để người dùng đọc Slogan
         new Handler(Looper.getMainLooper()).postDelayed(this::startNextActivity, 2000);
     }
 
     private void startNextActivity() {
         Intent intent = new Intent(this, MainActivity.class);
-        
-        // Truyền role vào bundle nếu cần (MainActivity sẽ tự check lại từ TokenManager nên ở đây chỉ cần start)
         startActivity(intent);
         finish();
-        
-        // Hiệu ứng chuyển động mượt mà khi vào trang chủ
         overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out);
     }
 }
-

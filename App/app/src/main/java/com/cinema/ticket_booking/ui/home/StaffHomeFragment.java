@@ -5,6 +5,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -14,8 +15,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentStaffHomeBinding;
+import com.cinema.ticket_booking.data.model.response.UserResponse;
 import com.cinema.ticket_booking.ui.MainViewModel;
 import com.cinema.ticket_booking.ui.staff.UpcomingShowtimeAdapter;
+import com.cinema.ticket_booking.util.Resource;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -33,7 +36,7 @@ public class StaffHomeFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         binding = FragmentStaffHomeBinding.inflate(inflater, container, false);
         return binding.getRoot();
     }
@@ -69,16 +72,19 @@ public class StaffHomeFragment extends Fragment {
                 mainViewModel.loadUserProfile();
                 mainViewModel.getUserProfile().observe(getViewLifecycleOwner(), new androidx.lifecycle.Observer<>() {
                     @Override
-                    public void onChanged(com.cinema.ticket_booking.util.Resource<com.cinema.ticket_booking.data.model.response.UserResponse> resource) {
-                        if (resource == null) return;
+                    public void onChanged(Resource<UserResponse> resource) {
+                        if (resource == null)
+                            return;
                         if (resource.isSuccess() && resource.data != null) {
                             mainViewModel.getUserProfile().removeObserver(this);
                             navigateToCinemaDetail(resource.data.getCinemaId(), resource.data.getCinemaName());
-                            if (binding != null) binding.cardShowtimes.setEnabled(true);
+                            if (binding != null)
+                                binding.cardShowtimes.setEnabled(true);
                         } else if (resource.isError()) {
                             mainViewModel.getUserProfile().removeObserver(this);
                             Toast.makeText(requireContext(), "Không thể tải thông tin rạp", Toast.LENGTH_SHORT).show();
-                            if (binding != null) binding.cardShowtimes.setEnabled(true);
+                            if (binding != null)
+                                binding.cardShowtimes.setEnabled(true);
                         }
                     }
                 });
@@ -109,7 +115,8 @@ public class StaffHomeFragment extends Fragment {
     }
 
     private void navigateToCinemaDetail(String cinemaId, String cinemaName) {
-        if (!isAdded() || binding == null) return;
+        if (!isAdded() || binding == null)
+            return;
         if (cinemaId == null || cinemaId.isEmpty()) {
             Toast.makeText(requireContext(), "Nhân viên chưa được phân công rạp!", Toast.LENGTH_SHORT).show();
             return;
@@ -186,7 +193,7 @@ public class StaffHomeFragment extends Fragment {
         });
     }
 
-    private void animateNumber(android.widget.TextView tv, long newValue) {
+    private void animateNumber(TextView tv, long newValue) {
         long currentValue;
         try {
             String current = tv.getText().toString().trim();

@@ -13,10 +13,15 @@ import com.bumptech.glide.Glide;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentBookingDetailBinding;
 import com.cinema.ticket_booking.util.TicketCacheManager;
+import com.cinema.ticket_booking.data.model.response.BookingResponse;
 import com.google.zxing.BarcodeFormat;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.journeyapps.barcodescanner.BarcodeEncoder;
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
+import java.util.Locale;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 
 @AndroidEntryPoint
 public class BookingDetailFragment extends Fragment {
@@ -60,14 +65,15 @@ public class BookingDetailFragment extends Fragment {
         });
 
         binding.btnShare.setOnClickListener(v -> {
-            if (rawBookingCode.isEmpty()) return;
+            if (rawBookingCode.isEmpty())
+                return;
             android.content.Intent shareIntent = new android.content.Intent(android.content.Intent.ACTION_SEND);
             shareIntent.setType("text/plain");
             shareIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "Thông tin vé xem phim");
             String shareMessage = "Mình đã đặt vé xem phim *" + binding.tvMovieTitle.getText().toString() + "*\n" +
-                                  "Tại: " + binding.tvCinema.getText().toString() + "\n" +
-                                  "Lúc: " + binding.tvShowtime.getText().toString() + "\n" +
-                                  "Mã đặt vé: " + rawBookingCode;
+                    "Tại: " + binding.tvCinema.getText().toString() + "\n" +
+                    "Lúc: " + binding.tvShowtime.getText().toString() + "\n" +
+                    "Mã đặt vé: " + rawBookingCode;
             shareIntent.putExtra(android.content.Intent.EXTRA_TEXT, shareMessage);
             startActivity(android.content.Intent.createChooser(shareIntent, "Chia sẻ vé"));
         });
@@ -96,26 +102,26 @@ public class BookingDetailFragment extends Fragment {
         });
     }
 
-    private void renderBooking(com.cinema.ticket_booking.data.model.response.BookingResponse b, boolean isOffline) {
+    private void renderBooking(BookingResponse b, boolean isOffline) {
         rawBookingCode = b.getBookingCode();
         updateBookingCodeDisplay();
         binding.tvMovieTitle.setText(b.getMovieTitle());
         binding.tvCinema.setText("CineNoir " + b.getCinemaName());
         binding.tvScreen.setText(b.getScreenName());
         binding.tvFormat.setText(formatScreenType(b.getScreenType()));
-        
+
         // Format showtime
         String rawTime = b.getStartTime();
         if (rawTime != null) {
             try {
-                java.text.SimpleDateFormat sdfIn;
+                SimpleDateFormat sdfIn;
                 if (rawTime.contains("T")) {
-                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", java.util.Locale.getDefault());
+                    sdfIn = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.getDefault());
                 } else {
-                    sdfIn = new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault());
+                    sdfIn = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
                 }
-                java.util.Date d = sdfIn.parse(rawTime);
-                java.text.SimpleDateFormat sdfOut = new java.text.SimpleDateFormat("h:mm a - dd/MM/yyyy", java.util.Locale.getDefault());
+                Date d = sdfIn.parse(rawTime);
+                SimpleDateFormat sdfOut = new SimpleDateFormat("h:mm a - dd/MM/yyyy", Locale.getDefault());
                 binding.tvShowtime.setText(sdfOut.format(d));
             } catch (Exception e) {
                 binding.tvShowtime.setText(rawTime);
@@ -123,7 +129,7 @@ public class BookingDetailFragment extends Fragment {
         } else {
             binding.tvShowtime.setText("");
         }
-        
+
         // Format status
         String statusText = switch (b.getStatus() != null ? b.getStatus() : "") {
             case "PAID" -> "ĐÃ THANH TOÁN";
@@ -134,7 +140,7 @@ public class BookingDetailFragment extends Fragment {
         };
 
         binding.tvStatus.setText(statusText);
-        
+
         binding.tvTotal.setText(String.format("Tổng thanh toán: %,.0fđ", b.getTotalAmount()));
 
         // Danh sách ghế
@@ -205,7 +211,8 @@ public class BookingDetailFragment extends Fragment {
     }
 
     private void updateBookingCodeDisplay() {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         if (isCodeVisible) {
             binding.tvBookingCode.setText(rawBookingCode);
             binding.ivToggleCode.setImageResource(R.drawable.ic_eye);
@@ -229,20 +236,25 @@ public class BookingDetailFragment extends Fragment {
     }
 
     private String formatScreenType(String rawType) {
-        if (rawType == null) return "2D";
+        if (rawType == null)
+            return "2D";
         switch (rawType.toUpperCase()) {
-            case "STANDARD": return "2D";
-            case "THREE_D": return "3D";
-            case "IMAX": return "IMAX";
-            case "FOUR_DX": return "4DX";
-            default: return rawType;
+            case "STANDARD":
+                return "2D";
+            case "THREE_D":
+                return "3D";
+            case "IMAX":
+                return "IMAX";
+            case "FOUR_DX":
+                return "4DX";
+            default:
+                return rawType;
         }
     }
 
     private void navigateToTicketsTab() {
         try {
-            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav =
-                    requireActivity().findViewById(R.id.bottomNav);
+            BottomNavigationView bottomNav = requireActivity().findViewById(R.id.bottomNav);
             if (bottomNav != null) {
                 // Pop toàn bộ back stack về root trước
                 Navigation.findNavController(requireView()).popBackStack(R.id.homeFragment, false);
@@ -261,4 +273,3 @@ public class BookingDetailFragment extends Fragment {
         binding = null;
     }
 }
-
