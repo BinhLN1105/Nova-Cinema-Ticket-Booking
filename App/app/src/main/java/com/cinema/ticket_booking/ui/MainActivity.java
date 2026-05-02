@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Build;
 import android.view.View;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -20,6 +21,7 @@ import com.cinema.ticket_booking.databinding.ActivityMainBinding;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import com.cinema.ticket_booking.util.ThemeManager;
 import com.cinema.ticket_booking.data.local.TokenManager;
+import com.cinema.ticket_booking.data.model.response.UserResponse;
 import com.google.firebase.messaging.FirebaseMessaging;
 import dagger.hilt.android.AndroidEntryPoint;
 import javax.inject.Inject;
@@ -150,14 +152,14 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Nova Optimization: Pre-fetch user profile to avoid lag in ProfileFragment
+        // Tải hồ sơ người dùng
         MainViewModel mainViewModel = new ViewModelProvider(this).get(MainViewModel.class);
         if (tokenManager.isLoggedIn()) {
             mainViewModel.loadUserProfile();
             requestNotificationPermission();
         }
 
-        // ── Nova Enterprise: Cross-Platform Notification Sync ──
+        // đồng bộ chủ đề FCM đa nền tảng
         mainViewModel.getUserProfile().observe(this, resource -> {
             if (resource != null && resource.isSuccess() && resource.data != null) {
                 syncFcmTopics(resource.data);
@@ -165,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void syncFcmTopics(com.cinema.ticket_booking.data.model.response.UserResponse user) {
+    private void syncFcmTopics(UserResponse user) {
         if (user.getAllowMarketingNotification()) {
             FirebaseMessaging.getInstance().subscribeToTopic("nova_all_users");
         } else {
@@ -174,7 +176,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void requestNotificationPermission() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(this,
                     Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
                 notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS);
@@ -226,7 +228,7 @@ public class MainActivity extends AppCompatActivity {
         if (intent == null)
             return;
 
-        // 1. Handle URI deep links: novaticket://movies/{movieId}
+        // Xử lý liên kết sâu URI: novaticket://movies/{movieId}
         Uri uri = intent.getData();
         if (uri != null && "novaticket".equals(uri.getScheme()) && "movies".equals(uri.getHost())) {
             String movieId = uri.getLastPathSegment();
@@ -238,7 +240,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // Handle URI deep links: cinema://cancel-confirm?token={token}&bookingId={id}
+        // Xử lý liên kết sâu URI: cinema://cancel-confirm?token={token}&bookingId={id}
         if (uri != null && "cinema".equals(uri.getScheme()) && "cancel-confirm".equals(uri.getHost())) {
             String token = uri.getQueryParameter("token");
             String bookingId = uri.getQueryParameter("bookingId");
@@ -251,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        // 2. Handle FCM notification taps: type + targetId from data payload
+        // Xử lý FCM notification taps: type + targetId from data payload
         String type = intent.getStringExtra("type");
         String targetId = intent.getStringExtra("targetId");
         if (type != null && targetId != null && !targetId.isEmpty()) {
@@ -260,7 +262,7 @@ public class MainActivity extends AppCompatActivity {
                 args.putString("bookingId", targetId);
                 navController.navigate(R.id.bookingDetailFragment, args);
             }
-            // Clear extras so it doesn't re-trigger
+            // Xóa Extras để không kích hoạt lại
             intent.removeExtra("type");
             intent.removeExtra("targetId");
         }

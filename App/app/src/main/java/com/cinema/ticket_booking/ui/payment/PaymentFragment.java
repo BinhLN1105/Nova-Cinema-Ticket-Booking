@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.os.Bundle;
 import android.view.*;
 import android.webkit.*;
+import android.content.Intent;
 import com.cinema.ticket_booking.util.SnackbarHelper;
 import android.widget.Toast;
 import androidx.annotation.*;
@@ -39,13 +40,14 @@ public class PaymentFragment extends Fragment {
         if (getArguments() != null)
             bookingId = getArguments().getString("bookingId");
 
-        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), new OnBackPressedCallback(true) {
-            @Override
-            public void handleOnBackPressed() {
-                // Thoát cực gắt: Xóa toàn bộ stack và nhảy thẳng về Home
-                Navigation.findNavController(view).popBackStack(R.id.homeFragment, false);
-            }
-        });
+        requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(),
+                new OnBackPressedCallback(true) {
+                    @Override
+                    public void handleOnBackPressed() {
+                        // Thoát cực gắt: Xóa toàn bộ stack và nhảy thẳng về Home
+                        Navigation.findNavController(view).popBackStack(R.id.homeFragment, false);
+                    }
+                });
 
         binding.btnBack.setOnClickListener(v -> {
             Navigation.findNavController(view).popBackStack(R.id.homeFragment, false);
@@ -106,7 +108,7 @@ public class PaymentFragment extends Fragment {
             public boolean shouldOverrideUrlLoading(WebView wv, WebResourceRequest req) {
                 String loadUrl = req.getUrl().toString();
                 android.util.Log.d("PaymentFragment", "Navigating: " + loadUrl);
-                
+
                 // Catch deep link scheme to finalize payment flow ONLY AFTER backend redirects
                 if (loadUrl.startsWith("cinema://payment")) {
                     String status = req.getUrl().getQueryParameter("vnp_ResponseCode");
@@ -140,7 +142,7 @@ public class PaymentFragment extends Fragment {
                 }
 
                 try {
-                    android.content.Intent intent = android.content.Intent.parseUri(loadUrl, android.content.Intent.URI_INTENT_SCHEME);
+                    Intent intent = Intent.parseUri(loadUrl, Intent.URI_INTENT_SCHEME);
                     if (intent != null) {
                         view.getContext().startActivity(intent);
                     }
@@ -154,20 +156,21 @@ public class PaymentFragment extends Fragment {
             public void onPageFinished(WebView wv, String url) {
                 android.util.Log.d("PaymentFragment", "Page finished: " + url);
                 binding.progressBar.setVisibility(View.GONE);
-                
+
                 // Tiêm JS để cố gắng ẩn thanh Header/Nút back của VNPay Web (nếu có)
                 wv.evaluateJavascript(
-                    "try {" +
-                    // Cố gắng ẩn các element chứa nút "back" ở vnpay
-                    "   var headers = document.querySelectorAll('header, .header, .nav, .navbar');" +
-                    "   for (var i = 0; i < headers.length; i++) {" +
-                    "       headers[i].style.display = 'none';" +
-                    "   }" +
-                    "   var backs = document.querySelectorAll('[class*=\"back\" i], [id*=\"back\" i]');" +
-                    "   for (var i = 0; i < backs.length; i++) {" +
-                    "       backs[i].style.display = 'none';" +
-                    "   }" +
-                    "} catch(e) {}", null);
+                        "try {" +
+                // Cố gắng ẩn các element chứa nút "back" ở vnpay
+                                "   var headers = document.querySelectorAll('header, .header, .nav, .navbar');" +
+                                "   for (var i = 0; i < headers.length; i++) {" +
+                                "       headers[i].style.display = 'none';" +
+                                "   }" +
+                                "   var backs = document.querySelectorAll('[class*=\"back\" i], [id*=\"back\" i]');" +
+                                "   for (var i = 0; i < backs.length; i++) {" +
+                                "       backs[i].style.display = 'none';" +
+                                "   }" +
+                                "} catch(e) {}",
+                        null);
             }
 
             @Override
@@ -181,7 +184,8 @@ public class PaymentFragment extends Fragment {
             }
 
             @Override
-            public void onReceivedSslError(WebView wv, android.webkit.SslErrorHandler handler, android.net.http.SslError error) {
+            public void onReceivedSslError(WebView wv, android.webkit.SslErrorHandler handler,
+                    android.net.http.SslError error) {
                 android.util.Log.w("PaymentFragment", "SSL error: " + error.toString());
                 handler.proceed(); // VNPay sandbox may have SSL issues
             }
@@ -196,4 +200,3 @@ public class PaymentFragment extends Fragment {
         binding = null;
     }
 }
-

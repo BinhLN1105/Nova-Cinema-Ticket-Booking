@@ -184,6 +184,9 @@ public interface ApiService {
         @PATCH("notifications/read-all")
         Call<ApiResponse<Void>> markAllAsRead();
 
+        @DELETE("notifications/{id}")
+        Call<ApiResponse<Void>> deleteNotification(@Path("id") String id);
+
         // ── Promotion ─────────────────────────────────────────────────────────
         @GET("promotions/active")
         Call<ApiResponse<List<PromotionResponse>>> getActivePromotions();

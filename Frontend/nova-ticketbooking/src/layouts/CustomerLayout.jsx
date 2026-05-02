@@ -113,6 +113,7 @@ export function CustomerLayout() {
               <>
                 {/* Notifications */}
                 <button
+                  onClick={() => navigate('/profile?tab=notifications')}
                   className="relative p-2.5 rounded-xl text-cinema-200
                   hover:text-white hover:bg-white/8 transition-all"
                 >

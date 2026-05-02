@@ -17,7 +17,9 @@ import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.databinding.FragmentPromotionListBinding;
 import com.cinema.ticket_booking.ui.home.HomeViewModel;
 import com.cinema.ticket_booking.util.SnackbarHelper;
+import com.cinema.ticket_booking.data.local.TokenManager;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import javax.inject.Inject;
 
 import dagger.hilt.android.AndroidEntryPoint;
 
@@ -26,6 +28,9 @@ public class PromotionListFragment extends Fragment {
 
     private FragmentPromotionListBinding binding;
     private HomeViewModel sharedViewModel;
+
+    @Inject
+    TokenManager tokenManager;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -46,8 +51,9 @@ public class PromotionListFragment extends Fragment {
 
         // Observe the active promotions already fetched by HomeFragment
         sharedViewModel.getActivePromotions().observe(getViewLifecycleOwner(), resource -> {
-            if (resource == null) return;
-            
+            if (resource == null)
+                return;
+
             if (resource.isSuccess() && resource.data != null) {
                 if (resource.data.isEmpty()) {
                     binding.rvPromotions.setVisibility(View.GONE);
@@ -55,9 +61,13 @@ public class PromotionListFragment extends Fragment {
                 } else {
                     binding.rvPromotions.setVisibility(View.VISIBLE);
                     binding.layoutEmpty.setVisibility(View.GONE);
-                    
+
                     PromotionListAdapter adapter = new PromotionListAdapter(resource.data, promotion -> {
                         String url = promotion.getTargetUrl();
+                        if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                            SnackbarHelper.showInfo(binding.getRoot(), "Staff không hỗ trợ chức năng này");
+                            return;
+                        }
                         if (url != null && !url.trim().isEmpty()) {
                             try {
                                 if (url.startsWith("/")) {
@@ -69,7 +79,8 @@ public class PromotionListFragment extends Fragment {
                                             bottomNav.setSelectedItemId(R.id.searchFragment);
                                         }
                                     } else {
-                                        SnackbarHelper.showInfo(binding.getRoot(), "Khuyến mãi được tự động áp dụng khi thanh toán!");
+                                        SnackbarHelper.showInfo(binding.getRoot(),
+                                                "Khuyến mãi được tự động áp dụng khi thanh toán!");
                                     }
                                 } else {
                                     Intent intent = new Intent(Intent.ACTION_VIEW, android.net.Uri.parse(url));

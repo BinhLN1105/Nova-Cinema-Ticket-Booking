@@ -11,10 +11,12 @@ import com.cinema.ticket_booking.enums.MembershipTier;
 import com.cinema.ticket_booking.enums.NotificationType;
 import com.cinema.ticket_booking.enums.CampaignStatus;
 import com.cinema.ticket_booking.mapper.NotificationMapper;
+import com.cinema.ticket_booking.model.UserHiddenNotification;
 import com.cinema.ticket_booking.repository.NotificationRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.repository.GlobalNotificationRepository;
 import com.cinema.ticket_booking.repository.NotificationCampaignRepository;
+import com.cinema.ticket_booking.repository.UserHiddenNotificationRepository;
 import com.cinema.ticket_booking.service.NotificationService;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
@@ -43,20 +45,17 @@ public class NotificationServiceImpl implements NotificationService {
     private final UserRepository userRepository;
     private final GlobalNotificationRepository globalNotificationRepository;
     private final NotificationCampaignRepository notificationCampaignRepository;
+    private final UserHiddenNotificationRepository userHiddenNotificationRepository;
 
     @Override
     @Transactional(readOnly = true)
     public PageResponse<NotificationResponse> getMyNotifications(UUID userId, Pageable pageable) {
-        // 1. Lấy thông báo cá nhân (paged)
+        // Lấy thông báo cá nhân (paged)
         var personalPage = notificationRepository.findByUserIdOrderBySentAtDesc(userId, pageable);
         List<NotificationResponse> result = new ArrayList<>(personalPage.getContent().stream()
                 .map(notificationMapper::toResponse)
                 .collect(Collectors.toList()));
 
-        // 2. Chỉ ở trang đầu tiên: Lấy thêm các thông báo Global còn hạn
-        // Chú ý: Thực tế nên làm Topic subscription ở App để biết user thuộc Topic nào.
-        // Ở đây ta mặc định user nhận topic "nova_all_users" và kiểm tra tier nếu là
-        // VIP.
         if (pageable.getPageNumber() == 0) {
             User user = userRepository.findById(userId).orElse(null);
             if (user != null) {
@@ -67,9 +66,14 @@ public class NotificationServiceImpl implements NotificationService {
                     topics.add("nova_vip_users");
                 }
 
+                // Lấy danh sách ID thông báo Global đã ẩn
+                List<UUID> hiddenIds = userHiddenNotificationRepository.findHiddenGlobalNotificationIdsByUserId(userId);
+
                 List<GlobalNotification> globalList = globalNotificationRepository.findActiveByTopics(topics,
                         LocalDateTime.now());
+
                 result.addAll(globalList.stream()
+                        .filter(gn -> !hiddenIds.contains(gn.getId())) // Lọc bỏ cái đã ẩn
                         .map(notificationMapper::toResponse)
                         .collect(Collectors.toList()));
 
@@ -92,6 +96,35 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.markAllAsRead(userId);
     }
 
+    @Override
+    public void delete(UUID id, UUID userId) {
+
+        // 1. Thử xóa ở bảng cá nhân
+        if (notificationRepository.existsById(id)) {
+            notificationRepository.deleteById(id);
+            return;
+        }
+
+        // 2. Nếu không có, thử kiểm tra ở bảng Global
+        if (globalNotificationRepository.existsById(id)) {
+            // Kiểm tra xem đã ẩn chưa để tránh tạo duplicate
+            if (!userHiddenNotificationRepository.existsByUserIdAndGlobalNotificationId(userId, id)) {
+                User user = userRepository.getReferenceById(userId);
+                GlobalNotification gn = globalNotificationRepository.getReferenceById(id);
+
+                userHiddenNotificationRepository.save(UserHiddenNotification.builder()
+                        .user(user)
+                        .globalNotification(gn)
+                        .build());
+
+            } else {
+                log.warn("[Notification] Global notification: {} already hidden for user: {}", id, userId);
+            }
+        } else {
+            log.warn("[Notification] ✗ Notification not found in any table: {}", id);
+        }
+    }
+
     // ── Gửi thông báo nội bộ (gọi từ các Service khác) ───────────────────
 
     @Override
@@ -112,11 +145,6 @@ public class NotificationServiceImpl implements NotificationService {
     public void sendPromotion(User user, String title, String body, UUID refId) {
         send(user, title, body, NotificationType.PROMOTION, refId);
         pushFcm(user, title, body, refId != null ? refId.toString() : "");
-    }
-
-    @Override
-    public void sendTestNotification(User user) {
-        pushFcm(user, "Thông báo kiểm tra! 🎬", "FCM đã được cấu hình thành công trên thiết bị của bạn.", null);
     }
 
     // ── Broadcast & Campaigns ───────────────────────────────────────────

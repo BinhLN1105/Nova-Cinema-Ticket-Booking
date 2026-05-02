@@ -23,7 +23,7 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
     private String movieId;
     private String movieTitle;
     private String bookingId;
-    // Fix 3: Cờ chặn submit nhiều lần liên tiếp
+    // Cờ chặn submit nhiều lần liên tiếp
     private boolean isSubmitting = false;
 
     @Override
@@ -50,13 +50,13 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
 
         binding.tvMovieName.setText(movieTitle);
 
-        // Fix 4: Bấm vùng ngoài EditText → ẩn bàn phím
+        // Bấm vùng ngoài EditText → ẩn bàn phím
         binding.getRoot().setOnTouchListener((v, event) -> {
             hideKeyboard();
             return false;
         });
 
-        // Fix 4: Nút Done trên bàn phím → ẩn bàn phím
+        // Nút Done trên bàn phím → ẩn bàn phím
         binding.etComment.setOnEditorActionListener((v, actionId, event) -> {
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 hideKeyboard();
@@ -88,9 +88,10 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
             }
         });
 
-        // Fix 3: Observer đặt bên ngoài onClick để không bị nhân lên mỗi lần bấm
+        // Observer đặt bên ngoài onClick để không bị nhân lên mỗi lần bấm
         viewModel.getReviewResult().observe(getViewLifecycleOwner(), resReview -> {
-            if (resReview == null) return;
+            if (resReview == null)
+                return;
             if (resReview.isSuccess()) {
                 isSubmitting = false;
                 Toast.makeText(requireContext(), "Đánh giá thành công!", Toast.LENGTH_SHORT).show();
@@ -103,12 +104,14 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
         });
 
         binding.btnSubmit.setOnClickListener(v -> {
-            if (isSubmitting) return; // Chặn double-tap
+            if (isSubmitting)
+                return; // Chặn double-tap
             if (bookingId == null || bookingId.isEmpty()) {
-                Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim này trước khi đánh giá!", Toast.LENGTH_LONG).show();
+                Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim này trước khi đánh giá!",
+                        Toast.LENGTH_LONG).show();
                 return;
             }
-            
+
             String comment = binding.etComment.getText().toString().trim();
             int rating = (int) binding.ratingBar.getRating();
             if (comment.isEmpty()) {
@@ -123,18 +126,21 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
     }
 
     private void hideKeyboard() {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         View focused = binding.getRoot().findFocus();
         if (focused != null) {
-            InputMethodManager imm = (InputMethodManager)
-                    requireContext().getSystemService(Context.INPUT_METHOD_SERVICE);
-            if (imm != null) imm.hideSoftInputFromWindow(focused.getWindowToken(), 0);
+            InputMethodManager imm = (InputMethodManager) requireContext()
+                    .getSystemService(Context.INPUT_METHOD_SERVICE);
+            if (imm != null)
+                imm.hideSoftInputFromWindow(focused.getWindowToken(), 0);
             focused.clearFocus();
         }
     }
 
     private void setLoading(boolean isLoading) {
-        if (binding == null) return;
+        if (binding == null)
+            return;
         binding.btnSubmit.setEnabled(!isLoading);
         String currentText = binding.btnSubmit.getText().toString();
         if (!isLoading && currentText.isEmpty()) {

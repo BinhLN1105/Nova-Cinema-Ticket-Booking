@@ -156,7 +156,7 @@ public class ProfileFragment extends Fragment {
 
     private void switchToTab(int menuItemId) {
         try {
-            com.google.android.material.bottomnavigation.BottomNavigationView bottomNav = requireActivity()
+            BottomNavigationView bottomNav = requireActivity()
                     .findViewById(R.id.bottomNav);
             if (bottomNav != null) {
                 bottomNav.setSelectedItemId(menuItemId);
@@ -187,24 +187,54 @@ public class ProfileFragment extends Fragment {
             });
 
             binding.btnNavReviews.setOnClickListener(v -> {
-                // Chuyển sang tab Tickets, mở sẵn tab "Lịch sử" (phim đã xem → đánh giá)
-                BottomNavigationView nav = requireActivity()
-                        .findViewById(com.cinema.ticket_booking.R.id.bottomNav);
-                Bundle args = new android.os.Bundle();
-                args.putString("MapsToTab", "HISTORY");
-                androidx.navigation.Navigation.findNavController(requireView())
-                        .navigate(com.cinema.ticket_booking.R.id.bookingHistoryFragment, args);
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    SnackbarHelper.showInfo(binding.getRoot(), "Staff không hỗ trợ chức năng này");
+                    return;
+                }
+                // Nova: Set pending tab in ViewModel first
+                viewModel.requestBookingTab("HISTORY");
+
+                // Then trigger BottomNav selection (this performs the tab switch cleanly)
+                BottomNavigationView nav = requireActivity().findViewById(R.id.bottomNav);
+                if (nav != null) {
+                    nav.setSelectedItemId(R.id.bookingHistoryFragment);
+                } else {
+                    // Fallback to manual navigation if nav is missing
+                    Navigation.findNavController(requireView()).navigate(R.id.bookingHistoryFragment);
+                }
             });
-            binding.btnNavWatchlist.setOnClickListener(v -> switchToTab(R.id.searchFragment));
-            binding.btnNavGiftCards.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
+            binding.btnNavVouchers.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    SnackbarHelper.showInfo(binding.getRoot(), "Staff không hỗ trợ chức năng này");
+                    return;
+                }
+                Navigation.findNavController(requireView()).navigate(R.id.voucherFragment);
+            });
+            binding.btnNavGiftCards.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    SnackbarHelper.showInfo(binding.getRoot(), "Staff không hỗ trợ chức năng này");
+                    return;
+                }
+                Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet);
+            });
             binding.btnNavPromotions.setOnClickListener(
                     v -> Navigation.findNavController(requireView()).navigate(R.id.action_global_promotionList));
 
-            binding.btnRedeem.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet));
-            binding.btnEditProfile.setOnClickListener(
-                    v -> Navigation.findNavController(requireView()).navigate(R.id.editProfileFragment));
+            binding.btnRedeem.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    SnackbarHelper.showInfo(binding.getRoot(), "Staff không hỗ trợ chức năng này");
+                } else {
+                    Navigation.findNavController(requireView()).navigate(R.id.action_profile_to_wallet);
+                }
+            });
+            binding.btnEditProfile.setOnClickListener(v -> {
+                if (tokenManager != null && tokenManager.isStaffOrAdmin()) {
+                    SnackbarHelper.showInfo(binding.getRoot(),
+                            "Hãy liên hệ Admin / Cinema Manager để cập nhật thông tin");
+                } else {
+                    Navigation.findNavController(requireView()).navigate(R.id.editProfileFragment);
+                }
+            });
 
         } else {
             binding.tvName.setText("Chưa đăng nhập");
@@ -224,7 +254,7 @@ public class ProfileFragment extends Fragment {
                     .navigate(R.id.action_profile_to_login);
             binding.btnNavGiftCards.setOnClickListener(loginListener);
             binding.btnRedeem.setOnClickListener(loginListener);
-            binding.btnNavWatchlist.setOnClickListener(loginListener);
+            binding.btnNavVouchers.setOnClickListener(loginListener);
             binding.btnNavReviews.setOnClickListener(loginListener);
             binding.btnNavPromotions.setOnClickListener(loginListener);
             binding.rowChangePassword.setOnClickListener(loginListener);

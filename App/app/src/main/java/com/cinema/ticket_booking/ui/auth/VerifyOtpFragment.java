@@ -45,7 +45,6 @@ public class VerifyOtpFragment extends Fragment {
 
         binding.btnBack.setOnClickListener(v -> Navigation.findNavController(view).popBackStack());
 
-        // Pro-Tip 3 & 4: Keyboard UX
         binding.etOtp.requestFocus();
         binding.etOtp.postDelayed(() -> {
             if (isAdded()) {
@@ -107,4 +106,3 @@ public class VerifyOtpFragment extends Fragment {
         binding = null;
     }
 }
-

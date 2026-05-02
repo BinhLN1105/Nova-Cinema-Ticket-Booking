@@ -10,6 +10,8 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.Map;
+import java.util.HashMap;
 
 @Singleton
 public class UserRepository {
@@ -61,6 +63,28 @@ public class UserRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<UserResponse>> c, Throwable t) {
+                r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return r;
+    }
+
+    public LiveData<Resource<GiftCardResponse>> redeemGiftCard(String code) {
+        MutableLiveData<Resource<GiftCardResponse>> r = new MutableLiveData<>();
+        r.setValue(Resource.loading());
+        Map<String, String> body = new HashMap<>();
+        body.put("code", code);
+        api.redeemGiftCard(body).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<GiftCardResponse>> c, Response<ApiResponse<GiftCardResponse>> res) {
+                if (res.isSuccessful() && res.body() != null && res.body().isSuccess())
+                    r.setValue(Resource.success(res.body().getData()));
+                else
+                    r.setValue(Resource.error(res.body() != null ? res.body().getMessage() : "Mã thẻ không hợp lệ"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<GiftCardResponse>> c, Throwable t) {
                 r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
             }
         });

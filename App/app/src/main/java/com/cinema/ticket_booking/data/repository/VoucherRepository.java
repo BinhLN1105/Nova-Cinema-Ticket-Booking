@@ -1,9 +1,12 @@
 package com.cinema.ticket_booking.data.repository;
 
 import androidx.lifecycle.*;
+import com.cinema.ticket_booking.data.model.request.ClaimVoucherRequest;
 import com.cinema.ticket_booking.data.model.response.*;
 import com.cinema.ticket_booking.network.ApiService;
 import com.cinema.ticket_booking.util.Resource;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -79,6 +82,37 @@ public class VoucherRepository {
 
             @Override
             public void onFailure(Call<ApiResponse<List<VoucherSummary>>> c, Throwable t) {
+                r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return r;
+    }
+
+    public LiveData<Resource<Void>> claimVoucher(String code) {
+        MutableLiveData<Resource<Void>> r = new MutableLiveData<>();
+        r.setValue(Resource.loading());
+        api.claimVoucher(new ClaimVoucherRequest(code)).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<Void>> c, Response<ApiResponse<Void>> res) {
+                if (res.isSuccessful()) {
+                    r.setValue(Resource.success(null));
+                } else {
+                    String errorMsg = "Mã không hợp lệ";
+                    try {
+                        if (res.errorBody() != null) {
+                            String body = res.errorBody().string();
+                            JsonObject obj = JsonParser.parseString(body).getAsJsonObject();
+                            if (obj.has("message"))
+                                errorMsg = obj.get("message").getAsString();
+                        }
+                    } catch (Exception ignored) {
+                    }
+                    r.setValue(Resource.error(errorMsg));
+                }
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<Void>> c, Throwable t) {
                 r.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
             }
         });

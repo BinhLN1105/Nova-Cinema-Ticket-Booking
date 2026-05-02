@@ -47,8 +47,14 @@ Dự án tích hợp sâu các tiện ích thanh toán trực tuyến (`VNPay`),
 ## 📸 Giao Diện Nổi Bật
 
 <div align="center">
-  <img src="https://via.placeholder.com/250x500.png?text=Mobile+App" width="220" alt="Mobile App Showcase" style="border-radius: 12px; margin-right: 15px;" />
-  <img src="https://via.placeholder.com/500x500.png?text=Web+POS+Dashboard" width="450" alt="Web POS Dashboard" style="border-radius: 12px;" />
+  <br>
+  <h3>HomePage App</h3>
+  <br>
+  <img src="Result\App\HomePage_App.png" width="220" alt="Mobile App Showcase" style="border-radius: 12px; margin-right: 15px;" />
+  <br>
+  <h3>HomePage Web</h3>
+  <br>
+  <img src="Result\Web\HomePage_Web.png" width="450" alt="Web POS Dashboard" style="border-radius: 12px;" />
 </div>
 
 ---

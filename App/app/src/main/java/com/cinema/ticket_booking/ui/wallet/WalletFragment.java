@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
-import com.cinema.ticket_booking.util.SnackbarHelper;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -17,6 +16,8 @@ import androidx.navigation.Navigation;
 import com.cinema.ticket_booking.R;
 import com.cinema.ticket_booking.data.local.TokenManager;
 import com.cinema.ticket_booking.databinding.FragmentWalletBinding;
+import com.cinema.ticket_booking.util.Resource.Status;
+import com.cinema.ticket_booking.util.SnackbarHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -70,12 +71,12 @@ public class WalletFragment extends Fragment {
         viewModel.getRedeemResult().observe(getViewLifecycleOwner(), resource -> {
             binding.progressBar.setVisibility(View.GONE);
             binding.tvRedeemMessage.setVisibility(View.VISIBLE);
-            if (resource.status == com.cinema.ticket_booking.util.Resource.Status.SUCCESS) {
+            if (resource.status == Status.SUCCESS) {
                 binding.etGiftCode.setText("");
                 binding.tvRedeemMessage.setText("✅ Đổi thẻ thành công! Điểm đã được cộng vào tài khoản.");
                 binding.tvRedeemMessage.setTextColor(getResources().getColor(R.color.success, null));
                 viewModel.loadProfile(); // refresh balance
-            } else if (resource.status == com.cinema.ticket_booking.util.Resource.Status.ERROR) {
+            } else if (resource.status == Status.ERROR) {
                 binding.tvRedeemMessage.setText("❌ " + resource.message);
                 binding.tvRedeemMessage.setTextColor(getResources().getColor(R.color.error, null));
             }
@@ -88,4 +89,3 @@ public class WalletFragment extends Fragment {
         binding = null;
     }
 }
-
