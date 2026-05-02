@@ -8,6 +8,7 @@ Mỗi session_id có conversation history riêng (lưu trong RAM).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
+import datetime
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
@@ -95,8 +96,22 @@ def _build_llm():
 def _build_agent_executor(memory: ConversationBufferWindowMemory) -> AgentExecutor:
     llm = _build_llm()
 
+    now = datetime.datetime.now()
+    today_str = now.strftime('%d/%m/%Y')
+    tomorrow_str = (now + datetime.timedelta(days=1)).strftime('%d/%m/%Y')
+    time_str = now.strftime('%H:%M:%S')
+
+    dynamic_system_prompt = SYSTEM_PROMPT + f"""
+
+## Ngữ cảnh thời gian thực
+- Hôm nay là ngày: {today_str}
+- Ngày mai là ngày: {tomorrow_str}
+- Giờ hiện tại: {time_str}
+- Khi khách hỏi "hôm nay", "ngày mai" hoặc các ngày trong tuần, HÃY SỬ DỤNG thông tin trên để truyền đúng định dạng DD/MM/YYYY vào công cụ (tool) nhé.
+"""
+
     prompt = ChatPromptTemplate.from_messages([
-        ("system", SYSTEM_PROMPT),
+        ("system", dynamic_system_prompt),
         MessagesPlaceholder(variable_name="chat_history"),
         ("human", "{input}"),
         MessagesPlaceholder(variable_name="agent_scratchpad"),

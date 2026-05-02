@@ -122,7 +122,7 @@ def get_showtimes(movie_title: str, cinema_name: str = "", date: str = "") -> st
     Tham số:
       - movie_title: tên phim (bắt buộc)
       - cinema_name: tên rạp (để trống = tất cả rạp)
-      - date: ngày chiếu dạng YYYY-MM-DD (để trống = hôm nay)
+      - date: ngày chiếu dạng DD/MM/YYYY (để trống = hôm nay)
     """
     try:
         params = {"movieTitle": movie_title}
