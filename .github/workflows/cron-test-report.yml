@@ -1,0 +1,99 @@
+name: 📅 Weekly API Test Excel Report to Google Drive
+
+on:
+  schedule:
+    # Chạy tự động vào lúc 01:00 sáng thứ 3 hàng tuần (Giờ UTC là 18:00 Thứ 2)
+    - cron: '0 18 * * 1'
+  workflow_dispatch: # Cho phép nhấn chạy thủ công ngay trên giao diện web GitHub bất kỳ lúc nào
+
+jobs:
+  build-and-report:
+    runs-on: ubuntu-latest
+
+    services:
+      # ── KHỞI CHẠY POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: nova_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # ── KHỞI CHẠY REDIS ĐỂ CACHING ────────────────────────────────────────
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout mã nguồn
+        uses: actions/checkout@v4
+
+      - name: ☕ Setup Java 21 LTS
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: ⚙️ Cấu hình Node.js & Cài đặt Newman
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install -g newman
+
+      - name: 🐍 Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+          cache: 'pip'
+
+      - name: 📦 Cài đặt thư viện Python cho Excel & Google API
+        run: |
+          pip install openpyxl google-api-python-client google-auth httplib2 google-auth-httplib2 google-auth-oauthlib python-dotenv
+
+      - name: 🔨 Biên dịch dự án Backend Spring Boot
+        run: mvn compile -pl backend
+
+      - name: 🚀 Chạy ngầm server Spring Boot Backend
+        run: |
+          mvn spring-boot:run -pl backend &
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: admin
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+
+      - name: 🔍 Thăm dò trạng thái Server (Chờ khởi động hoàn tất)
+        run: |
+          echo "Đang chờ server Spring Boot khởi động..."
+          for i in {1..20}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/auth/me || echo "000")
+            if [ "$HTTP_STATUS" -eq 401 ] || [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "✅ Server đã sẵn sàng phản hồi!"
+              break
+            fi
+            echo "Server chưa sẵn sàng (Status: $HTTP_STATUS). Chờ thêm 5 giây... ($i/20)"
+            sleep 5
+          done
+
+      - name: 🧪 Chạy bộ kiểm thử Newman API Test
+        run: |
+          newman run qa-tests/postman/NOVATicket.postman_collection.json \
+            -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
+            --reporters cli,json \
+            --reporter-json-export postman-report.json || echo "⚠️ Có testcase bị lỗi nhưng vẫn tiếp tục để làm báo cáo!"
+
+      - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
+        run: python scripts/generate_test_report.py
+        env:
+          GDRIVE_SERVICE_ACCOUNT_KEY_RAW: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
