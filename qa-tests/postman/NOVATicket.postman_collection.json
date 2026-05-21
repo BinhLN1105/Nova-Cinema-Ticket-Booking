@@ -1,0 +1,184 @@
+{
+  "info": {
+    "_postman_id": "0ae264e0-6a06-4bfa-9e2c-2de0c5934e2b",
+    "name": "NOVA Ticket Booking",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "45637706"
+  },
+  "item": [
+    {
+      "name": "Auth & Security",
+      "item": [
+        {
+          "name": "[201] Đăng ký thành công (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Kiểm tra xem Backend có trả về mã 201 Created hay không\r",
+                  "pm.test(\"Xác nhận tạo tài khoản thành công (Status 201)\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"testmember999@gmail.com\",\r\n  \"password\": \"Password123!\",\r\n  \"name\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654321\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Đăng nhập thành công (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 1. Kiểm tra mã trạng thái trả về phải là 200 OK\r",
+                  "pm.test(\"Đăng nhập thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "// 2. Tự động trích xuất Token và lưu vào Environment\r",
+                  "var responseData = pm.response.json();\r",
+                  "if (responseData.success && responseData.data) {\r",
+                  "    // Lưu AccessToken và RefreshToken vào biến môi trường\r",
+                  "    pm.environment.set(\"AccessToken\", responseData.data.accessToken);\r",
+                  "    pm.environment.set(\"RefreshToken\", responseData.data.refreshToken);\r",
+                  "    console.log(\"Token đã được lưu tự động thành công!\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"testmember999@gmail.com\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy thông tin cá nhân (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lấy thông tin profile thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Xác nhận thông tin khớp với tài khoản đã đăng ký\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.data.email).to.eql(\"Password123!\");\r",
+                  "});\r",
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{AccessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/me",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Movies & Showtimes",
+      "item": []
+    },
+    {
+      "name": "Cinemas, Screens & Seat Layout",
+      "item": []
+    },
+    {
+      "name": "Booking & Check-In Flow",
+      "item": []
+    },
+    {
+      "name": "Payments & Wallet Flow",
+      "item": []
+    },
+    {
+      "name": "Utilities",
+      "item": []
+    }
+  ]
+}

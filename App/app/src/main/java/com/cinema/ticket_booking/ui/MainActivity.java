@@ -82,7 +82,8 @@ public class MainActivity extends AppCompatActivity {
             R.id.registerFragment,
             R.id.paymentFragment,
             R.id.selectSeatFragment,
-            R.id.selectComboFragment);
+            R.id.selectComboFragment,
+            R.id.confirmBookingFragment);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
