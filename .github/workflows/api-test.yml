@@ -12,7 +12,7 @@ jobs:
     # Khởi chạy Database và Caching ảo trực tiếp trên Runner CI/CD
     services:
       postgres:
-        image: postgres:15-alpine
+        image: pgvector/pgvector:pg15
         env:
           POSTGRES_DB: nova_db
           POSTGRES_USER: postgres
