@@ -39,7 +39,7 @@ def get_module_key(url_path):
 
 def generate_report():
     collection_path = "qa-tests/postman/NOVATicket.postman_collection.json"
-    results_path = "postman-report.json"
+    results_path = "baocaoLocal/postman-report.json"
     
     # Sinh tên file Excel có kèm dấu vết ngày tháng năm giờ phút chạy test
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
@@ -121,7 +121,7 @@ def generate_report():
                         expected += "Ràng buộc kiểm thử:\n" + "\n".join([f"• {a.strip()}" for a in assertions])
 
             # Trạng thái thực tế
-            status = actual_statuses.get(req_name, "Passed") # Mặc định Passed hoặc lấy từ file report
+            status = actual_statuses.get(req_name, "Untested") # Mặc định Untested nếu chưa chạy test/chưa bật server
 
             testcases.append({
                 "id": tc_id,
@@ -149,10 +149,12 @@ def generate_report():
     font_body = Font(name="Inter", size=10)
     font_passed = Font(name="Inter", size=10, bold=True, color="2E7D32")
     font_failed = Font(name="Inter", size=10, bold=True, color="C62828")
+    font_untested = Font(name="Inter", size=10, bold=True, color="757575")
 
     fill_header = PatternFill(start_color="0D1B2A", end_color="0D1B2A", fill_type="solid")
     fill_passed = PatternFill(start_color="E8F5E9", end_color="E8F5E9", fill_type="solid")
     fill_failed = PatternFill(start_color="FFEBEE", end_color="FFEBEE", fill_type="solid")
+    fill_untested = PatternFill(start_color="F5F5F5", end_color="F5F5F5", fill_type="solid")
 
     thin_border = Border(
         left=Side(style='thin', color='CCCCCC'),
@@ -212,9 +214,12 @@ def generate_report():
         if tc["status"] == "Passed":
             c_status.fill = fill_passed
             c_status.font = font_passed
-        else:
+        elif tc["status"] == "Failed":
             c_status.fill = fill_failed
             c_status.font = font_failed
+        else: # Untested
+            c_status.fill = fill_untested
+            c_status.font = font_untested
 
         row_num += 1
 

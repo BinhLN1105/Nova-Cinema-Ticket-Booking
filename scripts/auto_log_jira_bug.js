@@ -30,7 +30,7 @@ const WORK_ALLOCATION = {
 };
 
 async function processNewmanFailures() {
-  const reportPath = 'postman-report.json';
+  const reportPath = 'baocaoLocal/postman-report.json';
   
   if (!fs.existsSync(reportPath)) {
     console.log("❌ Không tìm thấy file báo cáo postman-report.json");
@@ -56,6 +56,21 @@ async function processNewmanFailures() {
     const rawUrl = fail.source.request.url.path.join('/'); // Path URL (vd: api/v1/auth/login)
     const errorMessage = fail.error.message; // Mô tả lỗi kiểm thử từ Postman
     const testScriptCode = fail.error.test; // Đoạn script test bị lỗi
+
+    // CHỐNG LOG BUG JIRA KHI SERVER CHƯA BẬT (BỎ QUA CÁC LỖI KẾT NỐI HỆ THỐNG / LỖI VẬN HÀNH CỦA TESTER)
+    const isConnectionError = 
+      errorMessage.includes('ECONNREFUSED') || 
+      errorMessage.includes('ENOTFOUND') || 
+      errorMessage.includes('ECONNRESET') || 
+      errorMessage.includes('ETIMEDOUT') ||
+      errorMessage.includes('Invalid URI') ||
+      errorMessage.includes('connection refused') ||
+      errorMessage.includes('Invalid URL');
+
+    if (isConnectionError) {
+      console.log(`⚠️ [Jira Bypass] Bỏ qua log bug API /${rawUrl} vì đây là lỗi kết nối hệ thống (Chưa bật server hoặc lỗi mạng), không phải lỗi logic Backend!`);
+      continue;
+    }
 
     // Tránh log trùng một API lỗi nhiều lần trong cùng một đợt chạy
     const bugKey = `${method}_${rawUrl}`;

@@ -87,10 +87,11 @@ jobs:
 
       - name: 🧪 Chạy bộ kiểm thử Newman API Test
         run: |
+          mkdir -p baocaoLocal
           newman run qa-tests/postman/NOVATicket.postman_collection.json \
             -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
             --reporters cli,json \
-            --reporter-json-export postman-report.json || echo "⚠️ Có testcase bị lỗi nhưng vẫn tiếp tục để làm báo cáo!"
+            --reporter-json-export baocaoLocal/postman-report.json || echo "⚠️ Có testcase bị lỗi nhưng vẫn tiếp tục để làm báo cáo!"
 
       - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
         run: python scripts/generate_test_report.py
