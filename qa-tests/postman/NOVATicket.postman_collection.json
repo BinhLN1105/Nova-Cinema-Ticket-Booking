@@ -32,7 +32,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"email\": \"testmember999@gmail.com\",\r\n  \"password\": \"Password123!\",\r\n  \"name\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654321\"\r\n}",
+              "raw": "{\r\n  \"email\": \"testmember999@gmail.com\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654321\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -120,7 +120,7 @@
                   "\r",
                   "pm.test(\"Xác nhận thông tin khớp với tài khoản đã đăng ký\", function () {\r",
                   "    var responseData = pm.response.json();\r",
-                  "    pm.expect(responseData.data.email).to.eql(\"Password123!\");\r",
+                  "    pm.expect(responseData.data.email).to.eql(\"testmember999@gmail.com\");\r",
                   "});\r",
                   ""
                 ],

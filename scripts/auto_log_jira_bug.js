@@ -152,7 +152,7 @@ async function processNewmanFailures() {
       const jql = `project = "${projectKey}" AND summary ~ "\\"${rawUrl}\\"" AND statusCategory != Done`;
       
       const searchResponse = await axios.get(
-        `https://${domain}/rest/api/3/search`,
+        `https://${domain}/rest/api/3/search/jql`,
         {
           params: { jql: jql },
           headers: {
