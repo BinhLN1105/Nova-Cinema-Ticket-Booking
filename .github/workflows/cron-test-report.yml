@@ -64,7 +64,7 @@ jobs:
 
       - name: 🚀 Chạy ngầm server Spring Boot Backend
         run: |
-          mvn spring-boot:run -pl backend &
+          mvn spring-boot:run -pl backend -Dspring-boot.run.profiles=test &
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
           SPRING_DATASOURCE_USERNAME: postgres
