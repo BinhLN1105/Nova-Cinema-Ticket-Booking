@@ -331,6 +331,7 @@ public class AuthServiceImpl implements AuthService {
                 .rewardPoints(user.getRewardPoints())
                 .availableExp(user.getAvailableExp())
                 .membershipTier(user.getMembershipTier())
+                .rankUsageThisMonth(user.getRankUsageThisMonth())
                 .cinemaId(cinemaId)
                 .build();
     }

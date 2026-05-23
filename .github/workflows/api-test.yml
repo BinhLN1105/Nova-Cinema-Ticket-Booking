@@ -76,8 +76,8 @@ jobs:
           CLOUDINARY_API_SECRECT: placeholder_cloudinary_secret
         run: |
           cd Backend/ticket-booking
-          # Chạy ngầm server và đẩy output log ra file spring.log
-          nohup mvn spring-boot:run > spring.log 2>&1 &
+          # Chạy ngầm server với active profile là 'test' để tự sinh dữ liệu test ảo
+          nohup mvn spring-boot:run -Dspring-boot.run.profiles=test > spring.log 2>&1 &
           echo "Server Spring Boot đang được khởi chạy ngầm..."
 
       # KIỂM TRA CHO TỚI KHI SERVER KHỞI ĐỘNG HOÀN TẤT (HEALTH CHECK LOOP)

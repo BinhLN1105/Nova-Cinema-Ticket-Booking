@@ -10,7 +10,7 @@
       "name": "Auth & Security",
       "item": [
         {
-          "name": "[201] Đăng ký thành công (Happy Path)",
+          "name": "[201] Customer đăng ký thành công (Happy Path)",
           "event": [
             {
               "listen": "test",
@@ -55,22 +55,22 @@
           "response": []
         },
         {
-          "name": "[200] Đăng nhập thành công (Happy Path)",
+          "name": "[200] Customer đăng nhập thành công (Happy Path)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
                   "// 1. Kiểm tra mã trạng thái trả về phải là 200 OK\r",
-                  "pm.test(\"Đăng nhập thành công (Status 200)\", function () {\r",
+                  "pm.test(\"[CUSTOMER] Đăng nhập thành công (Status 200)\", function () {\r",
                   "    pm.response.to.have.status(200);\r",
                   "});\r",
                   "// 2. Tự động trích xuất Token và lưu vào Environment\r",
                   "var responseData = pm.response.json();\r",
                   "if (responseData.success && responseData.data) {\r",
                   "    // Lưu AccessToken và RefreshToken vào biến môi trường\r",
-                  "    pm.environment.set(\"AccessToken\", responseData.data.accessToken);\r",
-                  "    pm.environment.set(\"RefreshToken\", responseData.data.refreshToken);\r",
+                  "    pm.environment.set(\"customer_accessToken\", responseData.data.accessToken);\r",
+                  "    pm.environment.set(\"customer_refreshToken\", responseData.data.refreshToken);\r",
                   "    console.log(\"Token đã được lưu tự động thành công!\");\r",
                   "}"
                 ],
@@ -153,6 +153,113 @@
                 "v1",
                 "auth",
                 "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Admin đăng nhập thành công",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 1. Kiểm tra mã trạng thái trả về phải là 200 OK\r",
+                  "pm.test(\"[ADMIN] Đăng nhập thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "// 2. Tự động trích xuất Token và lưu vào Environment\r",
+                  "var responseData = pm.response.json();\r",
+                  "if (responseData.success && responseData.data) {\r",
+                  "    // Lưu AccessToken và RefreshToken vào biến môi trường\r",
+                  "    pm.environment.set(\"admin_accessToken\", responseData.data.accessToken);\r",
+                  "    pm.environment.set(\"admin_refreshToken\", responseData.data.refreshToken);\r",
+                  "    console.log(\"Token đã được lưu tự động thành công!\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"admin_test@novaticket.com\",\r\n  \"password\": \"AdminPassword123!\"\r\n}\r\n"
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Staff đăng nhập thành công",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// 1. Kiểm tra mã trạng thái trả về phải là 200 OK\r",
+                  "pm.test(\"[STAFF] Đăng nhập thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});\r",
+                  "// 2. Tự động trích xuất Token và lưu vào Environment\r",
+                  "var responseData = pm.response.json();\r",
+                  "if (responseData.success && responseData.data) {\r",
+                  "    // Lưu AccessToken và RefreshToken vào biến môi trường\r",
+                  "    pm.environment.set(\"staff_accessToken\", responseData.data.accessToken);\r",
+                  "    pm.environment.set(\"staff_refreshToken\", responseData.data.refreshToken);\r",
+                  "    console.log(\"Token đã được lưu tự động thành công!\");\r",
+                  "}"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"staff_test@novaticket.com\",\r\n  \"password\": \"StaffPassword123!\"\r\n}\r\n",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
               ]
             }
           },

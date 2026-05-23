@@ -27,6 +27,7 @@ public class AuthResponse {
         private Long rewardPoints;
         private Long availableExp;
         private MembershipTier membershipTier;
+        private Integer rankUsageThisMonth;
         private String cinemaId;
     }
 }
