@@ -183,6 +183,11 @@ public class PaymentServiceImpl implements PaymentService {
             throw new BadRequestException("Đơn đặt vé đã hết hạn, vui lòng đặt lại");
         }
 
+        Payment existingPayment = paymentRepository.findByBookingId(booking.getId()).orElse(null);
+        if (existingPayment != null && existingPayment.getStatus() == PaymentStatus.SUCCESS) {
+            throw new PaymentException("Đơn hàng này đã được thanh toán");
+        }
+
         BigDecimal totalAmount = booking.getTotalAmount();
         User user = booking.getUser();
         long userBalance = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
@@ -238,6 +243,8 @@ public class PaymentServiceImpl implements PaymentService {
             }
         }
 
+        Payment payment = existingPayment;
+
         // Nếu full CP (remaining = 0) → hoàn tất toàn bộ bằng CP
         if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
             // Trừ CP, đánh dấu booking PAID ngay
@@ -254,13 +261,20 @@ public class PaymentServiceImpl implements PaymentService {
                     .build();
             transactionRepository.save(transaction);
 
-            Payment payment = Payment.builder()
-                    .booking(booking)
-                    .amount(pointDiscount)
-                    .method(PaymentMethod.WALLET)
-                    .status(PaymentStatus.SUCCESS)
-                    .paidAt(LocalDateTime.now())
-                    .build();
+            if (payment == null) {
+                payment = Payment.builder()
+                        .booking(booking)
+                        .amount(pointDiscount)
+                        .method(PaymentMethod.WALLET)
+                        .status(PaymentStatus.SUCCESS)
+                        .paidAt(LocalDateTime.now())
+                        .build();
+            } else {
+                payment.setAmount(pointDiscount);
+                payment.setMethod(PaymentMethod.WALLET);
+                payment.setStatus(PaymentStatus.SUCCESS);
+                payment.setPaidAt(LocalDateTime.now());
+            }
             paymentRepository.save(payment);
 
             bookingService.confirmPaid(booking.getId());
@@ -295,12 +309,18 @@ public class PaymentServiceImpl implements PaymentService {
                     : BigDecimal.ZERO;
             booking.setDiscountAmount(existingDiscount.add(pointDiscount));
 
-            Payment payment = Payment.builder()
-                    .booking(booking)
-                    .amount(remaining)
-                    .method(PaymentMethod.WALLET)
-                    .status(PaymentStatus.PENDING)
-                    .build();
+            if (payment == null) {
+                payment = Payment.builder()
+                        .booking(booking)
+                        .amount(remaining)
+                        .method(PaymentMethod.WALLET)
+                        .status(PaymentStatus.PENDING)
+                        .build();
+            } else {
+                payment.setAmount(remaining);
+                payment.setMethod(PaymentMethod.WALLET);
+                payment.setStatus(PaymentStatus.PENDING);
+            }
             paymentRepository.save(payment);
 
             PaymentResponse response = paymentMapper.toResponse(payment);

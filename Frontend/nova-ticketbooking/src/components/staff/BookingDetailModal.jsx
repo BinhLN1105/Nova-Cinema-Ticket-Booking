@@ -176,6 +176,12 @@ export default function BookingDetailModal({ bookingId, onClose }) {
                             <span>-{formatCurrency(booking.promotionDiscountAmount)}</span>
                          </div>
                        )}
+                       {booking.rankDiscountAmount > 0 && (
+                         <div className="flex justify-between text-yellow-400">
+                            <span>Ưu đãi Hạng thành viên</span>
+                            <span>-{formatCurrency(booking.rankDiscountAmount)}</span>
+                         </div>
+                       )}
                     </div>
                     <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-end">
                        <span className="text-sm font-bold">Tổng thanh toán</span>
@@ -270,6 +276,9 @@ export default function BookingDetailModal({ bookingId, onClose }) {
             <div className="flex-between"><span>Tạm tính:</span> <span>{formatCurrency(booking?.subtotal || booking?.totalAmount)}</span></div>
             {booking?.discountAmount > 0 && (
                 <div className="flex-between text-xs"><span>Voucher:</span> <span>-{formatCurrency(booking?.discountAmount)}</span></div>
+            )}
+            {booking?.rankDiscountAmount > 0 && (
+                <div className="flex-between text-xs"><span>Ưu đãi Hạng:</span> <span>-{formatCurrency(booking?.rankDiscountAmount)}</span></div>
             )}
             <div className="flex-between" style={{fontSize: '12pt', fontWeight: 'bold', marginTop: '4px'}}>
                 <span>TỔNG CỘNG:</span> <span>{formatCurrency(booking?.totalAmount)}</span>

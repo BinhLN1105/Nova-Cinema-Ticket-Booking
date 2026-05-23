@@ -274,6 +274,18 @@ export default function TicketDetail() {
           </button>
         )}
 
+        {/* Thanh toán lại nếu PENDING */}
+        {booking.status === 'PENDING' && (
+          <button 
+            onClick={() => navigate(`/booking/payment/${booking.id}`)}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3
+              rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
+              hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25"
+          >
+            <span>Thanh toán ngay ({formatCurrency(booking.totalAmount)})</span>
+          </button>
+        )}
+
         {/* Cancel */}
         {booking.status === 'PAID' && (
           <button onClick={() => cancelMutation.mutate()}

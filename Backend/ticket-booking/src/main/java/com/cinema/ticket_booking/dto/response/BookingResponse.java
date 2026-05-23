@@ -45,6 +45,7 @@ public class BookingResponse implements Serializable {
     private BigDecimal subtotal; // Tổng vé + combo (sau khuyến mãi hệ thống, trước voucher)
     private BigDecimal totalOriginalAmount; // Tổng giá niêm yết ban đầu
     private BigDecimal promotionDiscountAmount; // Số tiền được giảm từ hệ thống
+    private BigDecimal rankDiscountAmount; // Số tiền được giảm từ đặc quyền hạng
     private String appliedPromotionName; // Tên chương trình khuyến mãi hệ thống đã áp dụng
     private String voucherCode;
     private BigDecimal discountAmount; // Số tiền giảm từ voucher
