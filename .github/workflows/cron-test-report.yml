@@ -7,20 +7,42 @@ on:
   workflow_dispatch: # Cho phép nhấn chạy thủ công ngay trên giao diện web GitHub bất kỳ lúc nào
 
 jobs:
-  # 1. Gọi luồng kiểm thử API xương sống
+  # --- BƯỚC 1: XÁC ĐỊNH NHÁNH CẦN CHECKOUT (BỌC THÉP LOGIC CỦA BẠN) ---
+  determine-branch:
+    runs-on: ubuntu-latest
+    outputs:
+      target_branch: ${{ steps.branch_selector.outputs.target_branch }}
+    steps:
+      - name: Tính toán nhánh cần chạy
+        id: branch_selector
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "target_branch=dev" >> $GITHUB_OUTPUT
+            echo "🤖 Chạy tự động theo lịch Cron -> Ép buộc chọn nhánh [dev]"
+          else
+            echo "target_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "🎯 Chạy thủ công bằng tay -> Lấy nhánh người dùng chọn: [${{ github.ref_name }}]"
+          fi
+
+  # --- BƯỚC 2: GỌI LUỒNG KIỂM THỬ XƯƠNG SỐNG VỚI NHÁNH ĐÃ CHỌN ---
   call-core-api-test:
+    needs: determine-branch
     uses: ./.github/workflows/core-api-test.yml
+    with:
+      ref_branch: ${{ needs.determine-branch.outputs.target_branch }}
     secrets: inherit # Thừa kế toàn bộ secrets từ repository để chạy test
 
-  # 2. Tạo báo cáo Excel và đẩy lên Google Drive (chạy bất kể test PASS hay FAIL)
+  # --- BƯỚC 3: TẠO BÁO CÁO EXCEL VÀ ĐẨY LÊN GOOGLE DRIVE ---
   upload-excel-report-to-gdrive:
-    needs: call-core-api-test
+    needs: [determine-branch, call-core-api-test]
     if: always() # Luôn luôn chạy để xuất báo cáo chất lượng cho PM/QA, bất kể test PASS hay FAIL
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.determine-branch.outputs.target_branch }}
 
       - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@v5
@@ -35,7 +57,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: postman-report
-          path: baocaoLocal # Tải về thư mục baocaoLocal để khớp cấu trúc cho script Python đọc (baocaoLocal/postman-report.json)
+          path: baocaoLocal
 
       - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
         run: python scripts/generate_test_report.py
