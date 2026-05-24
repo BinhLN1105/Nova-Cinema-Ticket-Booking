@@ -60,7 +60,7 @@ jobs:
       # ── CHẠY NGẦM BACKEND SPRING BOOT VỚI CÁC THÔNG SỐ ĐỒNG BỘ ─────────────
       - name: 🚀 Chạy ngầm server Spring Boot Backend
         run: |
-          nohup mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test > spring.log 2>&1 &
+          nohup mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test -Dspring-boot.run.jvmArguments="-Duser.timezone=Asia/Ho_Chi_Minh" > spring.log 2>&1 &
           echo "Server Spring Boot đang khởi chạy ngầm..."
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
