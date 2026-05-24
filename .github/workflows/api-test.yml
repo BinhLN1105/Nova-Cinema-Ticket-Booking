@@ -104,6 +104,8 @@ jobs:
         run: |
           newman run qa-tests/postman/NOVATicket.postman_collection.json \
             -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --env-var "vnpay_hash_secret=${{ secrets.VNPAY_HASH_SECRET }}" \
             --reporters cli,json \
             --reporter-json-export postman-report.json
         continue-on-error: true # Cho phép chạy step tiếp theo nếu testcase fail để tự động log bug
