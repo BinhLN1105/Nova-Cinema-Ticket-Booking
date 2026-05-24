@@ -7,47 +7,20 @@ on:
   workflow_dispatch: # Cho phép nhấn chạy thủ công ngay trên giao diện web GitHub bất kỳ lúc nào
 
 jobs:
-  build-and-report:
+  # 1. Gọi luồng kiểm thử API xương sống
+  call-core-api-test:
+    uses: ./.github/workflows/core-api-test.yml
+    secrets: inherit # Thừa kế toàn bộ secrets từ repository để chạy test
+
+  # 2. Tạo báo cáo Excel và đẩy lên Google Drive (chạy bất kể test PASS hay FAIL)
+  upload-excel-report-to-gdrive:
+    needs: call-core-api-test
+    if: always() # Luôn luôn chạy để xuất báo cáo chất lượng cho PM/QA, bất kể test PASS hay FAIL
     runs-on: ubuntu-latest
 
-    services:
-      # ── KHỞI CHẠY POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
-      postgres:
-        image: pgvector/pgvector:pg15
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: admin
-          POSTGRES_DB: nova_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      # ── KHỞI CHẠY REDIS ĐỂ CACHING ────────────────────────────────────────
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-
     steps:
-      - name: 📥 Checkout mã nguồn
+      - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: ☕ Setup Java 21 LTS
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: ⚙️ Cấu hình Node.js & Cài đặt Newman
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      - run: npm install -g newman
 
       - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@v5
@@ -59,44 +32,16 @@ jobs:
         run: |
           pip install openpyxl google-api-python-client google-auth httplib2 google-auth-httplib2 google-auth-oauthlib python-dotenv
 
-      - name: 🔨 Biên dịch dự án Backend Spring Boot
-        run: mvn compile -f Backend/ticket-booking/pom.xml
-
-      - name: 🚀 Chạy ngầm server Spring Boot Backend
-        run: |
-          mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test &
-        env:
-          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
-          SPRING_DATASOURCE_USERNAME: postgres
-          SPRING_DATASOURCE_PASSWORD: admin
-          SPRING_DATA_REDIS_HOST: localhost
-          SPRING_DATA_REDIS_PORT: 6379
-
-      - name: 🔍 Thăm dò trạng thái Server (Chờ khởi động hoàn tất)
-        run: |
-          echo "Đang chờ server Spring Boot khởi động..."
-          for i in {1..20}; do
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/auth/me || echo "000")
-            if [ "$HTTP_STATUS" -eq 401 ] || [ "$HTTP_STATUS" -eq 200 ]; then
-              echo "✅ Server đã sẵn sàng phản hồi!"
-              break
-            fi
-            echo "Server chưa sẵn sàng (Status: $HTTP_STATUS). Chờ thêm 5 giây... ($i/20)"
-            sleep 5
-          done
-
-      - name: 🧪 Chạy bộ kiểm thử Newman API Test
-        run: |
-          mkdir -p baocaoLocal
-          newman run qa-tests/postman/NOVATicket.postman_collection.json \
-            -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
-            --env-var "BaseUrl=http://localhost:8080" \
-            --env-var "vnpay_hash_secret=${{ secrets.VNPAY_HASH_SECRET }}" \
-            --reporters cli,json \
-            --reporter-json-export baocaoLocal/postman-report.json || echo "⚠️ Có testcase bị lỗi nhưng vẫn tiếp tục để làm báo cáo!"
+      - name: 📥 Tải kết quả test từ Artifact bộ nhớ tạm
+        uses: actions/download-artifact@v4
+        with:
+          name: postman-report
+          path: baocaoLocal # Tải về thư mục baocaoLocal để khớp cấu trúc cho script Python đọc (baocaoLocal/postman-report.json)
 
       - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
         run: python scripts/generate_test_report.py
         env:
-          GDRIVE_SERVICE_ACCOUNT_KEY_RAW: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY }}
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
