@@ -68,11 +68,11 @@ jobs:
           pip install openpyxl google-api-python-client google-auth httplib2 google-auth-httplib2 google-auth-oauthlib python-dotenv
 
       - name: 🔨 Biên dịch dự án Backend Spring Boot
-        run: mvn compile -pl backend
+        run: mvn compile -f Backend/ticket-booking/pom.xml
 
       - name: 🚀 Chạy ngầm server Spring Boot Backend
         run: |
-          mvn spring-boot:run -pl backend -Dspring-boot.run.profiles=test &
+          mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test &
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
           SPRING_DATASOURCE_USERNAME: postgres
