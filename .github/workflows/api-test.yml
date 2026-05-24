@@ -1,122 +1,50 @@
-name: Automated API Testing & Bug Reporting
+name: 🛡️ Automated API Testing & Bug Reporting
 
 on:
   push:
-    branches: [ "main", "dev" ] # Tự động chạy mỗi khi push code lên main hoặc dev
-  workflow_dispatch: # Cho phép nhấn nút chạy thủ công trên GitHub UI
+    branches:
+      - dev
+      - main
+  pull_request:
+    branches:
+      - dev
+      - main
 
 jobs:
-  test-and-report:
+  # 1. Gọi luồng kiểm thử API xương sống
+  call-core-api-test:
+    uses: ./.github/workflows/core-api-test.yml
+    secrets: inherit # Thừa kế toàn bộ secrets từ repository để chạy test
+
+  # 2. Tự động phân tích và tạo Ticket Bug trên Jira nếu test bị lỗi
+  log-jira-bug-on-failure:
+    needs: call-core-api-test
+    if: failure() # Chỉ chạy khi job call-core-api-test trả về kết quả Failure (có testcase bị lỗi)
     runs-on: ubuntu-latest
 
-    # Khởi chạy Database và Caching ảo trực tiếp trên Runner CI/CD
-    services:
-      postgres:
-        image: pgvector/pgvector:pg15
-        env:
-          POSTGRES_DB: nova_db
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
-      redis:
-        image: redis:alpine
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
-      - name: Lấy mã nguồn dự án (Checkout)
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Cài đặt JDK 21 (Temurin)
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      - name: Cài đặt Node.js & Newman
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Cài đặt dependencies kiểm thử
-        run: |
-          npm install -g newman newman-reporter-json
-          npm install axios fs # Cài đặt axios cho script NodeJS gọi Jira API
+      - name: 📦 Cài đặt thư viện Node.js
+        run: npm install axios dotenv
 
-      # KHỞI ĐỘNG SPRING BOOT SERVER Ở CHẾ ĐỘ NỀN (BACKGROUND)
-      - name: Khởi động Spring Boot Server
-        env:
-          DATABASE_URL: jdbc:postgresql://localhost:5432/nova_db
-          DATABASE_USERNAME: postgres
-          DATABASE_PASSWORD: postgres
-          REDIS_HOST: localhost
-          REDIS_PORT: 6379
-          REDIS_PASSWORD: "" # Đặt mật khẩu trống để kết nối với Redis ảo trên GitHub Actions
-          JWT_SECRET: mySuperSecretKeyForJWTAuthToken2026PlaceholderSecretKeyJWT
-          QR_SECRET: myQrSecretKey2026PlaceholderSecretKeyQR
-          INTERNAL_API_KEY: internal_test_secret_key_2026
-          VNPAY_TMN_CODE: placeholder_vnpay_code
-          VNPAY_HASH_SECRET: placeholder_vnpay_secret
-          VNPAY_RETURN_URL: http://localhost:8080/api/v1/payments/vnpay/callback
-          CLOUDINARY_NAME: placeholder_cloudinary
-          CLOUDINARY_API_KEY: placeholder_cloudinary_key
-          CLOUDINARY_API_SECRECT: placeholder_cloudinary_secret
-        run: |
-          cd Backend/ticket-booking
-          # Chạy ngầm server với active profile là 'test' để tự sinh dữ liệu test ảo
-          nohup mvn spring-boot:run -Dspring-boot.run.profiles=test > spring.log 2>&1 &
-          echo "Server Spring Boot đang được khởi chạy ngầm..."
+      - name: 📥 Tải kết quả test từ Artifact bộ nhớ tạm
+        uses: actions/download-artifact@v4
+        with:
+          name: postman-report
+          path: . # Tải về thư mục hiện tại để script Node.js đọc được (postman-report.json)
 
-      # KIỂM TRA CHO TỚI KHI SERVER KHỞI ĐỘNG HOÀN TẤT (HEALTH CHECK LOOP)
-      - name: Chờ server sẵn sàng (Health Check)
-        run: |
-          echo "Bắt đầu thăm dò trạng thái server (tối đa 90 giây)..."
-          for i in {1..18}; do
-            # Thử gọi API public (ví dụ lấy danh sách thể loại)
-            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/movies/genres || true)
-            if [ "$HTTP_STATUS" -eq 200 ]; then
-              echo "Server đã KHỞI ĐỘNG THÀNH CÔNG và phản hồi OK (200)!"
-              exit 0
-            fi
-            echo "Server chưa sẵn sàng (HTTP Status: $HTTP_STATUS). Đang chờ thêm 5 giây... ($i/18)"
-            sleep 5
-          done
-          echo "❌ Lỗi: Server không khởi động kịp sau 90 giây. Xem log chi tiết bên dưới:"
-          cat Backend/ticket-booking/spring.log
-          exit 1
-
-      # CHẠY NEWMAN VÀ XUẤT FILE BÁO CÁO JSON
-      - name: Chạy API Test (Newman)
-        id: newman-run
-        run: |
-          newman run qa-tests/postman/NOVATicket.postman_collection.json \
-            -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
-            --env-var "BaseUrl=http://localhost:8080" \
-            --env-var "vnpay_hash_secret=${{ secrets.VNPAY_HASH_SECRET }}" \
-            --reporters cli,json \
-            --reporter-json-export postman-report.json
-        continue-on-error: true # Cho phép chạy step tiếp theo nếu testcase fail để tự động log bug
-
-      # CHỈ CHẠY LOG BUG KHI NEWMAN CÓ TESTCASE BỊ FAIL
-      - name: Phân tích lỗi & Tự động tạo Bug trên Jira
-        if: steps.newman-run.outcome == 'failure'
+      - name: 🐞 Phân tích lỗi & Tự động tạo Bug trên Jira
         env:
           JIRA_DOMAIN: ${{ secrets.JIRA_DOMAIN }}
           JIRA_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
-          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_NAME}}
-        run: |
-          node scripts/auto_log_jira_bug.js
+          JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_NAME }}
+        run: node scripts/auto_log_jira_bug.js

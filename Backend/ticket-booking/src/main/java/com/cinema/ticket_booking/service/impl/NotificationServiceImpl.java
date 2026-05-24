@@ -18,6 +18,7 @@ import com.cinema.ticket_booking.repository.GlobalNotificationRepository;
 import com.cinema.ticket_booking.repository.NotificationCampaignRepository;
 import com.cinema.ticket_booking.repository.UserHiddenNotificationRepository;
 import com.cinema.ticket_booking.service.NotificationService;
+import com.google.firebase.FirebaseApp;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.google.firebase.messaging.FirebaseMessagingException;
 import com.google.firebase.messaging.Message;
@@ -190,6 +191,10 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Async
     public void pushToTopic(String topic, String title, String body, NotificationType type, String targetId) {
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("[FCM Topic] FirebaseApp chưa được khởi tạo. Bỏ qua gửi thông báo topic: {}", topic);
+            return;
+        }
         // Data Message only for total control
         Message message = Message.builder()
                 .setTopic(topic)
@@ -227,6 +232,10 @@ public class NotificationServiceImpl implements NotificationService {
      */
     @Async
     public void pushFcm(User user, String title, String body, String bookingId) {
+        if (FirebaseApp.getApps().isEmpty()) {
+            log.warn("[FCM] FirebaseApp chưa được khởi tạo. Bỏ qua gửi push notification cho user: {}", user.getEmail());
+            return;
+        }
         if (!user.getAllowTransactionNotification()) {
             log.info("[FCM] Skipped for {} due to user preference (Transactions OFF)", user.getEmail());
             return;
