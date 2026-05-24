@@ -61,9 +61,13 @@ public class NotificationServiceImpl implements NotificationService {
             if (user != null) {
                 List<String> topics = new ArrayList<>();
                 topics.add("nova_all_users");
+                topics.add("ALL");
+                topics.add("all");
                 if (user.getMembershipTier() == MembershipTier.GOLD ||
                         user.getMembershipTier() == MembershipTier.DIAMOND) {
                     topics.add("nova_vip_users");
+                    topics.add("VIP");
+                    topics.add("vip");
                 }
 
                 // Lấy danh sách ID thông báo Global đã ẩn

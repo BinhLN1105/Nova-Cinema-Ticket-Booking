@@ -71,5 +71,28 @@ public class ReviewRepository {
         });
         return result;
     }
+
+    public LiveData<Resource<ReviewResponse>> updateReview(String id, ReviewRequest request) {
+        MutableLiveData<Resource<ReviewResponse>> result = new MutableLiveData<>();
+        result.setValue(Resource.loading());
+        apiService.updateReview(id, request).enqueue(new Callback<>() {
+            @Override
+            public void onResponse(Call<ApiResponse<ReviewResponse>> call,
+                    Response<ApiResponse<ReviewResponse>> response) {
+                if (response.isSuccessful() && response.body() != null && response.body().isSuccess())
+                    result.setValue(Resource.success(response.body().getData()));
+                else
+                    result.setValue(Resource.error(response.body() != null
+                            ? response.body().getMessage()
+                            : "Cập nhật đánh giá thất bại"));
+            }
+
+            @Override
+            public void onFailure(Call<ApiResponse<ReviewResponse>> call, Throwable t) {
+                result.setValue(Resource.error("Lỗi kết nối: " + t.getMessage()));
+            }
+        });
+        return result;
+    }
 }
 

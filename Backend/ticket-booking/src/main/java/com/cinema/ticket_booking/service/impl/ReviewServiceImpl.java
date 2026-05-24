@@ -112,35 +112,51 @@ public class ReviewServiceImpl implements ReviewService {
         // Account)
         var existingReviewOpt = reviewRepository.findByUserIdAndMovieId(userId, movie.getId());
 
-        Review review;
         if (existingReviewOpt.isPresent()) {
-            // Cập nhật review cũ
-            review = existingReviewOpt.get();
-            review.setRating(request.getRating());
-            review.setComment(request.getComment());
-            review.setIsVisible(true); // Đảm bảo hiện lại nếu trước đó bị ẩn
-            review.setBooking(booking); // Cập nhật sang booking mới nhất (nếu muốn)
-        } else {
-            // Tạo review mới - Phải có vé đã xem
-            if (bookingService.getEligibleBookingForReview(userId, movie.getId()) == null) {
-                throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
-            }
-
-            review = Review.builder()
-                    .user(user)
-                    .movie(movie)
-                    .booking(booking)
-                    .rating(request.getRating())
-                    .comment(request.getComment())
-                    .isVisible(true)
-                    .build();
+            throw new BadRequestException("Bạn đã đánh giá bộ phim này rồi, không thể đánh giá thêm.");
         }
+
+        // Tạo review mới - Phải có vé đã xem
+        if (bookingService.getEligibleBookingForReview(userId, movie.getId()) == null) {
+            throw new BadRequestException("Bạn cần mua vé và xem phim trước khi đánh giá!");
+        }
+
+        Review review = Review.builder()
+                .user(user)
+                .movie(movie)
+                .booking(booking)
+                .rating(request.getRating())
+                .comment(request.getComment())
+                .isVisible(true)
+                .build();
 
         reviewRepository.save(review);
 
         // Cập nhật điểm trung bình phim
         Double newAvg = reviewRepository.calculateAvgRating(movie.getId());
         movieService.updateAvgRating(movie.getId(), newAvg);
+
+        return reviewMapper.toResponse(review);
+    }
+
+    @Override
+    public ReviewResponse update(UUID userId, UUID reviewId, ReviewRequest request) {
+        Review review = reviewRepository.findById(reviewId)
+                .orElseThrow(() -> new ResourceNotFoundException("Review không tồn tại"));
+
+        if (!review.getUser().getId().equals(userId)) {
+            throw new BadRequestException("Bạn không có quyền chỉnh sửa review này");
+        }
+
+        review.setRating(request.getRating());
+        review.setComment(request.getComment());
+        review.setIsVisible(true);
+
+        reviewRepository.save(review);
+
+        // Cập nhật điểm trung bình phim
+        Double newAvg = reviewRepository.calculateAvgRating(review.getMovie().getId());
+        movieService.updateAvgRating(review.getMovie().getId(), newAvg);
 
         return reviewMapper.toResponse(review);
     }

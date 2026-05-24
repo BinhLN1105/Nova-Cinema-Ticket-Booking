@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star, Clock, Play, Ticket, Calendar, Globe, Users, ChevronLeft, MessageSquare } from 'lucide-react'
 import { movieApi, reviewApi, bookingApi } from '@/api/endpoints'
 import { formatDate, getRatedColor, getImageUrl, cn } from '@/utils'
@@ -36,14 +36,18 @@ export default function MovieDetailPage() {
   })
 
   const { user } = useAuthStore()
+  const queryClient = useQueryClient()
 
   const { data: canReviewObj } = useQuery({
     queryKey: ['canReview', id],
     queryFn: () => movieApi.canReview(id).then(res => res.data),
     enabled: !!user && !!id,
   })
-  const canReviewBookingId = canReviewObj?.data || null
-  const canReview = !!canReviewBookingId
+  const canReviewData = canReviewObj?.data || null
+  const canReview = canReviewData?.canReview || false
+  const alreadyReviewed = canReviewData?.alreadyReviewed || false
+  const canReviewBookingId = canReviewData?.bookingId || null
+  const existingReview = canReviewData?.existingReview || null
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
   const [rating, setRating] = useState(5)
@@ -56,23 +60,30 @@ export default function MovieDetailPage() {
       return toast.error('Vui lòng nhập nhận xét')
     }
 
-    if (!canReviewBookingId) {
-      return toast.error('Không tìm thấy giao dịch hợp lệ để đánh giá.')
-    }
-
     setIsSubmittingReview(true)
     try {
-      await reviewApi.create({
-        movieId: id,
-        bookingId: canReviewBookingId,
-        rating,
-        comment
-      })
-      toast.success('Gửi đánh giá thành công')
+      if (alreadyReviewed && existingReview) {
+        await reviewApi.update(existingReview.id, {
+          movieId: id,
+          rating,
+          comment
+        })
+        toast.success('Cập nhật đánh giá thành công')
+      } else {
+        if (!canReviewBookingId) {
+          return toast.error('Không tìm thấy giao dịch hợp lệ để đánh giá.')
+        }
+        await reviewApi.create({
+          movieId: id,
+          bookingId: canReviewBookingId,
+          rating,
+          comment
+        })
+        toast.success('Gửi đánh giá thành công')
+      }
       refetchReviews()
       setIsReviewModalOpen(false)
-      setComment('')
-      setRating(5)
+      queryClient.invalidateQueries({ queryKey: ['canReview', id] })
     } catch (err) {
       toast.error(err.response?.data?.message || 'Có lỗi xảy ra')
     } finally {
@@ -195,13 +206,22 @@ export default function MovieDetailPage() {
                   <h2 className="font-display text-xl font-bold text-white">
                     Đánh giá ({reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : reviews.totalElements})
                   </h2>
-                  {user && canReview && (
-                    <button onClick={() => setIsReviewModalOpen(true)}
+                  {user && (canReview || alreadyReviewed) && (
+                    <button onClick={() => {
+                      if (alreadyReviewed && existingReview) {
+                        setRating(existingReview.rating);
+                        setComment(existingReview.comment || '');
+                      } else {
+                        setRating(5);
+                        setComment('');
+                      }
+                      setIsReviewModalOpen(true);
+                    }}
                       className="btn-ghost py-1.5 px-3 text-sm text-brand-400 border-brand-500/30">
-                      <MessageSquare className="w-4 h-4" /> Viết đánh giá
+                      <MessageSquare className="w-4 h-4" /> {alreadyReviewed ? 'Sửa đánh giá' : 'Viết đánh giá'}
                     </button>
                   )}
-                  {user && !canReview && (
+                  {user && !canReview && !alreadyReviewed && (
                     <div className="text-sm text-cinema-400 italic">
                       Đã mua vé & xem phim để đánh giá
                     </div>

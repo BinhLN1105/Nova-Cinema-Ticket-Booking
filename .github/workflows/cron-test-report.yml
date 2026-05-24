@@ -5,6 +5,14 @@ on:
     # Chạy tự động vào lúc 01:00 sáng thứ 3 hàng tuần (Giờ UTC là 18:00 Thứ 2)
     - cron: '0 18 * * 1'
   workflow_dispatch: # Cho phép nhấn chạy thủ công ngay trên giao diện web GitHub bất kỳ lúc nào
+  push:
+    branches:
+      - main
+      - dev
+  pull_request:
+    branches:
+      - main
+      - dev
 
 jobs:
   build-and-report:
@@ -90,6 +98,8 @@ jobs:
           mkdir -p baocaoLocal
           newman run qa-tests/postman/NOVATicket.postman_collection.json \
             -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --env-var "vnpay_hash_secret=${{ secrets.VNPAY_HASH_SECRET }}" \
             --reporters cli,json \
             --reporter-json-export baocaoLocal/postman-report.json || echo "⚠️ Có testcase bị lỗi nhưng vẫn tiếp tục để làm báo cáo!"
 

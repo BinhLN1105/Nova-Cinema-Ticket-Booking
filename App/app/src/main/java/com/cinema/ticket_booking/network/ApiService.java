@@ -163,6 +163,9 @@ public interface ApiService {
         @POST("reviews")
         Call<ApiResponse<ReviewResponse>> createReview(@Body ReviewRequest request);
 
+        @PUT("reviews/{id}")
+        Call<ApiResponse<ReviewResponse>> updateReview(@Path("id") String id, @Body ReviewRequest request);
+
         // ── GiftCard ─────────────────────────────────────────────────────
         @POST("gift-cards/redeem")
         Call<ApiResponse<GiftCardResponse>> redeemGiftCard(@Body Map<String, String> body);

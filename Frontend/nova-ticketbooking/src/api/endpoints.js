@@ -141,6 +141,7 @@ export const reviewApi = {
     api.get(`/reviews`, { movieId, page: 0, size: 5, ...params }),
   getStats: (movieId) => api.get(`/reviews/stats`, { movieId }),
   create: (data) => api.post("/reviews", data),
+  update: (id, data) => api.put(`/reviews/${id}`, data),
   delete: (id) => api.delete(`/reviews/${id}`),
 };
 
