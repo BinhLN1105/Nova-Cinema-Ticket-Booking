@@ -51,7 +51,7 @@ jobs:
       - name: 📦 Cài đặt thư viện Node.js & Newman toàn cục
         run: |
           npm install -g newman
-          npm install axiosdotenv # Cài đặt thư viện cho script Jira nếu cần
+          npm install axios dotenv # Cài đặt thư viện cho script Jira nếu cần
 
       # ── BẮT ĐẦU BIÊN DỊCH DỰ ÁN BACKEND ───────────────────────────────────
       - name: 🔨 Biên dịch dự án Backend Spring Boot
