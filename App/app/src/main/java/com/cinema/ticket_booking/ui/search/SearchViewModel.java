@@ -11,11 +11,13 @@ import java.util.List;
 @HiltViewModel
 public class SearchViewModel extends ViewModel {
     private final CinemaRepository repo;
-    private final MutableLiveData<Resource<List<CinemaResponse>>> cinemas = new MutableLiveData<>();
+    private final MutableLiveData<String> cityTrigger = new MutableLiveData<>();
+    private final LiveData<Resource<List<CinemaResponse>>> cinemas;
 
     @Inject
     public SearchViewModel(CinemaRepository repo) {
         this.repo = repo;
+        this.cinemas = Transformations.switchMap(cityTrigger, repo::getCinemas);
     }
 
     public LiveData<Resource<List<CinemaResponse>>> getCinemas() {
@@ -23,7 +25,6 @@ public class SearchViewModel extends ViewModel {
     }
 
     public void loadCinemas(String city) {
-        repo.getCinemas(city).observeForever(cinemas::setValue);
+        cityTrigger.setValue(city);
     }
 }
-

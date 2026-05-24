@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useQuery, useMutation } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck, Star, Eye, EyeOff } from 'lucide-react'
-import { bookingApi, reviewApi } from '@/api/endpoints'
+import { bookingApi, reviewApi, movieApi } from '@/api/endpoints'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import { Modal } from '@/components/common/ui/Modal'
 import { Button } from '@/components/common/ui/FormElements'
@@ -28,23 +28,44 @@ export default function TicketDetail() {
     onError: (err) => { toast.error(err.response?.data?.message || 'Có lỗi xảy ra khi huỷ vé'); }
   })
 
+  const queryClient = useQueryClient()
+
   // Review State
   const [isReviewOpen, setIsReviewOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
 
+  const { data: canReviewObj } = useQuery({
+    queryKey: ['canReview', booking?.movieId],
+    queryFn: () => movieApi.canReview(booking.movieId).then(res => res.data),
+    enabled: !!booking?.movieId,
+  })
+  const canReviewData = canReviewObj?.data || null
+  const canReview = canReviewData?.canReview || false
+  const alreadyReviewed = canReviewData?.alreadyReviewed || false
+  const existingReview = canReviewData?.existingReview || null
+
   const reviewMutation = useMutation({
-    mutationFn: () => reviewApi.create({ 
-      movieId: booking.movieId, 
-      bookingId: id,
-      rating, 
-      comment 
-    }),
+    mutationFn: () => {
+      if (alreadyReviewed && existingReview) {
+        return reviewApi.update(existingReview.id, {
+          movieId: booking.movieId,
+          rating,
+          comment
+        })
+      } else {
+        return reviewApi.create({ 
+          movieId: booking.movieId, 
+          bookingId: id,
+          rating, 
+          comment 
+        })
+      }
+    },
     onSuccess: () => {
-      toast.success('Cảm ơn bạn đã đánh giá phim!')
+      toast.success(alreadyReviewed ? 'Cập nhật đánh giá thành công!' : 'Cảm ơn bạn đã đánh giá phim!')
       setIsReviewOpen(false)
-      // Optional: refetch to maybe hide the button if we know they reviewed, 
-      // but API doesn't return that directly in booking. Just keeping simple.
+      queryClient.invalidateQueries({ queryKey: ['canReview', booking?.movieId] })
     },
     onError: (err) => {
       toast.error(err.response?.data?.message || 'Có lỗi khi gửi đánh giá')
@@ -266,11 +287,32 @@ export default function TicketDetail() {
 
         {/* Review Button */}
         {booking.status === 'CHECKED_IN' && (
-          <button onClick={() => setIsReviewOpen(true)}
+          <button onClick={() => {
+            if (alreadyReviewed && existingReview) {
+              setRating(existingReview.rating);
+              setComment(existingReview.comment || '');
+            } else {
+              setRating(5);
+              setComment('');
+            }
+            setIsReviewOpen(true);
+          }}
             className="w-full mt-4 flex items-center justify-center gap-2 py-3
               rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
               hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25">
-             <Star className="w-5 h-5 fill-white" /> Đánh giá phim
+             <Star className="w-5 h-5 fill-white" /> {alreadyReviewed ? 'Sửa đánh giá phim' : 'Đánh giá phim'}
+          </button>
+        )}
+
+        {/* Thanh toán lại nếu PENDING */}
+        {booking.status === 'PENDING' && (
+          <button 
+            onClick={() => navigate(`/booking/payment/${booking.id}`)}
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3
+              rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
+              hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25"
+          >
+            <span>Thanh toán ngay ({formatCurrency(booking.totalAmount)})</span>
           </button>
         )}
 

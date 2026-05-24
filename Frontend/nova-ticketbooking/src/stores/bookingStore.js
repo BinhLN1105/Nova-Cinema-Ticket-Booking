@@ -11,7 +11,7 @@ const initialState = {
   appliedVoucher: null,
   subtotal: 0,
   promotionDiscount: 0,
-  appliedPromotionName: null,
+  rankDiscount: 0,
   appliedPromotionName: null,
   discount: 0,
   total: 0,
@@ -89,7 +89,7 @@ export const useBookingStore = create(
         const { selectedShowtime, selectedSeats, selectedCombos, appliedVoucher } = get();
         
         if (!selectedShowtime || selectedSeats.length === 0) {
-            set({ subtotal: 0, promotionDiscount: 0, discount: 0, total: 0 });
+            set({ subtotal: 0, promotionDiscount: 0, rankDiscount: 0, discount: 0, total: 0 });
             return;
         }
 
@@ -109,6 +109,7 @@ export const useBookingStore = create(
             set({
               subtotal: response.subtotal,
               promotionDiscount: response.promotionDiscountAmount,
+              rankDiscount: response.rankDiscountAmount || 0,
               appliedPromotionName: response.appliedPromotionName,
               discount: response.discountAmount,
               total: response.totalAmount,

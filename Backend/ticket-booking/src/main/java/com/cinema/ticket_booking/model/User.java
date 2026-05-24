@@ -76,6 +76,10 @@ public class User {
     @Builder.Default
     private MembershipTier membershipTier = MembershipTier.BRONZE;
 
+    @Column(name = "rank_usage_this_month", nullable = false, columnDefinition = "integer not null default 0")
+    @Builder.Default
+    private Integer rankUsageThisMonth = 0;
+
     // Firebase Cloud Messaging token cho Push Notification
     @Column(name = "fcm_token", columnDefinition = "TEXT")
     private String fcmToken;

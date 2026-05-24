@@ -4,6 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
+import org.springframework.security.authorization.AuthorizationDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -28,13 +30,22 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
+        StringBuilder detailMessage = new StringBuilder("Dữ liệu không hợp lệ");
+        boolean first = true;
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
             errors.put(fe.getField(), fe.getDefaultMessage());
+            if (first) {
+                detailMessage.append(": ");
+                first = false;
+            } else {
+                detailMessage.append(", ");
+            }
+            detailMessage.append(fe.getDefaultMessage());
         }
         ErrorResponse body = ErrorResponse.builder()
                 .success(false)
                 .status(HttpStatus.BAD_REQUEST.value())
-                .message("Dữ liệu không hợp lệ")
+                .message(detailMessage.toString())
                 .errors(errors)
                 .build();
         return ResponseEntity.badRequest().body(body);
@@ -49,9 +60,14 @@ public class GlobalExceptionHandler {
 
     // ── 403 Forbidden ──────────────────────────────────────────────────────
 
-    @ExceptionHandler(ForbiddenException.class)
-    public ResponseEntity<ErrorResponse> handleForbidden(ForbiddenException ex) {
-        return build(HttpStatus.FORBIDDEN, ex.getMessage());
+    @ExceptionHandler({
+            ForbiddenException.class,
+            AuthorizationDeniedException.class,
+            AccessDeniedException.class
+    })
+    public ResponseEntity<ErrorResponse> handleForbidden(Exception ex) {
+        log.warn("Access Denied: {}", ex.getMessage());
+        return build(HttpStatus.FORBIDDEN, "Bạn không có quyền thực hiện hành động này");
     }
 
     // ── 404 Not Found ──────────────────────────────────────────────────────
@@ -69,10 +85,11 @@ public class GlobalExceptionHandler {
     }
 
     // Xử lý xung đột dữ liệu (optimistic locking)
-    @ExceptionHandler({ObjectOptimisticLockingFailureException.class, StaleObjectStateException.class})
+    @ExceptionHandler({ ObjectOptimisticLockingFailureException.class, StaleObjectStateException.class })
     public ResponseEntity<ErrorResponse> handleOptimisticLocking(Exception ex) {
         log.warn("Data conflict detected: {}", ex.getMessage());
-        return build(HttpStatus.CONFLICT, "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
+        return build(HttpStatus.CONFLICT,
+                "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
     }
 
     // ── 402 Payment Required ───────────────────────────────────────────────

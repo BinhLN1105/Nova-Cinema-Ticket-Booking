@@ -58,6 +58,11 @@ public class Booking {
     @Builder.Default
     private BigDecimal promotionDiscountAmount = BigDecimal.ZERO;
 
+    // Số tiền được giảm từ đặc quyền Hạng thành viên
+    @Column(name = "rank_discount_amount", precision = 12, scale = 2, nullable = false)
+    @Builder.Default
+    private BigDecimal rankDiscountAmount = BigDecimal.ZERO;
+
     // Tên chương trình khuyến mãi đã áp dụng
     @Column(name = "applied_promotion_name", length = 100)
     private String appliedPromotionName;

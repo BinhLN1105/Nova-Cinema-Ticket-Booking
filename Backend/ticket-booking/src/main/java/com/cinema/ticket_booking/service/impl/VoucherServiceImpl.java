@@ -148,6 +148,18 @@ public class VoucherServiceImpl implements VoucherService {
     public VoucherResponse.Summary getSummaryByCode(String code) {
         Voucher v = voucherRepository.findByCodeIgnoreCase(code)
                 .orElseThrow(() -> new ResourceNotFoundException("Voucher không tồn tại"));
+
+        LocalDateTime now = LocalDateTime.now();
+        if (!Boolean.TRUE.equals(v.getIsActive())) {
+            throw new BadRequestException("Mã giảm giá này đã bị vô hiệu hóa");
+        }
+        if (v.getValidFrom() != null && v.getValidFrom().isAfter(now)) {
+            throw new BadRequestException("Mã giảm giá này chưa đến ngày hiệu lực");
+        }
+        if (v.getUsageLimit() != null && v.getUsedCount() >= v.getUsageLimit()) {
+            throw new BadRequestException("Mã giảm giá này đã hết lượt sử dụng");
+        }
+
         return voucherMapper.toSummary(v);
     }
 

@@ -488,6 +488,12 @@ export default function POSPage() {
                 <span>-{formatCurrency(quote.promotionDiscountAmount)}</span>
               </div>
             )}
+            {quote?.rankDiscountAmount > 0 && (
+              <div className="flex justify-between items-center text-sm py-1 font-bold text-amber-500">
+                <span>Ưu đãi Hạng thành viên</span>
+                <span>-{formatCurrency(quote.rankDiscountAmount)}</span>
+              </div>
+            )}
           </div>
         </div>
 

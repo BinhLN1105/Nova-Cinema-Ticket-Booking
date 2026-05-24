@@ -30,6 +30,7 @@ public class UserResponse implements Serializable {
     private Long rewardPoints;
     private Long availableExp;
     private MembershipTier membershipTier;
+    private Integer rankUsageThisMonth;
     private Long currentTierMinPoints;
     private Long nextTierMinPoints;
     private LocalDateTime createdAt;

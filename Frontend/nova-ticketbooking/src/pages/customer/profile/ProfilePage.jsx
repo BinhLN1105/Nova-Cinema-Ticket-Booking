@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation } from '@tanstack/react-query'
-import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard, Gift } from 'lucide-react'
+import { User, Ticket, Bell, Shield, Edit2, Save, Phone, Mail, LogOut, Loader2, Palette, Trophy, Star, CreditCard, Gift, Award } from 'lucide-react'
 import { bookingApi, notificationApi, userApi } from '@/api/endpoints'
 import { api } from '@/api/client'
 import ImageUploader from '@/components/admin/ImageUploader'
@@ -21,6 +21,13 @@ const TIER_THRESHOLDS = {
   SILVER: { min: 500, max: 3000, next: 'GOLD', label: 'Vàng' },
   GOLD: { min: 3000, max: 10000, next: 'DIAMOND', label: 'Kim Cương' },
   DIAMOND: { min: 10000, max: 10000, next: null, label: null }
+}
+
+const TIER_LIMITS = {
+  BRONZE: { limit: 0, discount: '0%', cap: '0đ' },
+  SILVER: { limit: 2, discount: '5%', cap: '30.000đ' },
+  GOLD: { limit: 4, discount: '10%', cap: '50.000đ' },
+  DIAMOND: { limit: 6, discount: '15%', cap: '100.000đ' }
 }
 
 const TABS = [
@@ -77,6 +84,15 @@ export default function ProfilePage() {
       setSearchParams({})
     }
   }, [searchParams, setSearchParams, setUser])
+
+  useEffect(() => {
+    // Tự động đồng bộ thông tin user mới nhất từ server khi vào trang Profile
+    api.get('/auth/me')
+      .then(res => {
+        if (res) setUser(res)
+      })
+      .catch(() => {})
+  }, [setUser])
 
   // Tickets
   const { data: ticketsData, isLoading: ticketsLoading } = useQuery({
@@ -292,6 +308,25 @@ export default function ProfilePage() {
                 )
               })()}
             </div>
+            {/* Membership Privileges Block */}
+            {user?.membershipTier && user?.membershipTier !== 'BRONZE' && (
+              <div className="mt-5 bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-transparent border border-yellow-500/20 rounded-2xl p-4 max-w-sm flex items-start gap-4">
+                <div className="p-2.5 bg-yellow-500/15 border border-yellow-500/30 rounded-xl flex-shrink-0">
+                  <Award className="w-5 h-5 text-yellow-400 animate-pulse" />
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] font-extrabold text-yellow-400 uppercase tracking-widest block">Đặc quyền Rank {user.membershipTier}</span>
+                  <p className="text-white font-medium text-sm">
+                    Đã dùng: <span className="text-yellow-400 font-bold">{user?.rankUsageThisMonth || 0}</span>
+                    <span className="text-cinema-500 mx-1.5">/</span>
+                    Tối đa: <span className="text-cinema-200">{TIER_LIMITS[user.membershipTier]?.limit} lượt/tháng</span>
+                  </p>
+                  <p className="text-xs text-cinema-400">
+                    Chiết khấu <span className="text-yellow-400 font-semibold">{TIER_LIMITS[user.membershipTier]?.discount}</span> mỗi vé (Tối đa {TIER_LIMITS[user.membershipTier]?.cap})
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

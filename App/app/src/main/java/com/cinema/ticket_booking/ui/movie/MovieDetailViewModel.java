@@ -69,6 +69,11 @@ public class MovieDetailViewModel extends ViewModel {
         reviewRepo.createReview(request).observeForever(createReviewResult::setValue);
     }
 
+    public void updateReview(String id, ReviewRequest request) {
+        createReviewResult.setValue(null);
+        reviewRepo.updateReview(id, request).observeForever(createReviewResult::setValue);
+    }
+
     public LiveData<Resource<ReviewResponse>> createReview(ReviewRequest request) {
         return reviewRepo.createReview(request);
     }

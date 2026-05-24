@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.math.RoundingMode;
 
 @Service
 @RequiredArgsConstructor
@@ -170,20 +171,36 @@ public class BookingServiceImpl implements BookingService {
         BigDecimal originalTotal = totalTicketBasePrice.add(totalComboBasePrice);
 
         BigDecimal amountAfterPromo = originalTotal.subtract(promotionDiscount);
+
+        // ── Tính toán Giảm giá Hạng thành viên (Rank Discount) sử dụng BigDecimal ──
+        BigDecimal rankDiscount = BigDecimal.ZERO;
+        MembershipTier tier = user.getMembershipTier() != null ? user.getMembershipTier() : MembershipTier.BRONZE;
+
+        int currentUsage = user.getRankUsageThisMonth() != null ? user.getRankUsageThisMonth() : 0;
+        if (currentUsage < tier.getMaxUsage() && tier.getDiscountPercent() > 0) {
+            BigDecimal discountPercentDecimal = BigDecimal.valueOf(tier.getDiscountPercent());
+            BigDecimal calculatedRankDiscount = amountAfterPromo.multiply(discountPercentDecimal)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            // Khóa trần: Không vượt quá Max Cap của hạng
+            rankDiscount = calculatedRankDiscount.min(tier.getMaxCap());
+        }
+
+        BigDecimal amountAfterRank = amountAfterPromo.subtract(rankDiscount).max(BigDecimal.ZERO);
         BigDecimal discountAmount = BigDecimal.ZERO;
         Voucher voucher = null;
         String warningMessage = null;
 
         if (request.getVoucherCode() != null && !request.getVoucherCode().isBlank()) {
             try {
-                voucher = voucherService.validateForOrder(userId, request.getVoucherCode(), amountAfterPromo);
-                discountAmount = voucher.calculateDiscount(amountAfterPromo);
+                voucher = voucherService.validateForOrder(userId, request.getVoucherCode(), amountAfterRank);
+                discountAmount = voucher.calculateDiscount(amountAfterRank);
             } catch (Exception e) {
                 warningMessage = "Mã giảm giá không hợp lệ hoặc đã hết hạn: " + e.getMessage();
             }
         }
 
-        BigDecimal totalAmount = amountAfterPromo.subtract(discountAmount).max(BigDecimal.ZERO);
+        BigDecimal totalAmount = amountAfterRank.subtract(discountAmount).max(BigDecimal.ZERO);
 
         // Tạo transient booking object cho mapper
         Booking transientBooking = Booking.builder()
@@ -192,6 +209,7 @@ public class BookingServiceImpl implements BookingService {
                 .voucher(voucher)
                 .discountAmount(discountAmount)
                 .promotionDiscountAmount(promotionDiscount)
+                .rankDiscountAmount(rankDiscount)
                 .appliedPromotionName(appliedPromoName)
                 .totalAmount(totalAmount)
                 .status(BookingStatus.PENDING)
@@ -202,7 +220,7 @@ public class BookingServiceImpl implements BookingService {
             transientBooking.setCinema(showtime.getScreen().getCinema());
         }
 
-        BookingResponse response = buildFullResponse(transientBooking, seats, comboDataList, amountAfterPromo,
+        BookingResponse response = buildFullResponse(transientBooking, seats, comboDataList, amountAfterRank,
                 originalTotal,
                 promotionDiscount, appliedPromoName);
         response.setWarningMessage(warningMessage);
@@ -221,6 +239,15 @@ public class BookingServiceImpl implements BookingService {
         }
 
         User user = userService.findById(userId);
+
+        // Atomic Check chống Race Condition trên lượt sử dụng đặc quyền Hạng
+        if (quote.getRankDiscountAmount() != null && quote.getRankDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+            MembershipTier tier = user.getMembershipTier() != null ? user.getMembershipTier() : MembershipTier.BRONZE;
+            int currentUsage = user.getRankUsageThisMonth() != null ? user.getRankUsageThisMonth() : 0;
+            if (currentUsage >= tier.getMaxUsage()) {
+                throw new BadRequestException("Lượt dùng đặc quyền hạng của bạn đã bị hết trong vài phút trước!");
+            }
+        }
 
         // ── 0. Phân quyền & Ràng buộc nghiệp vụ (Audit cho POS) ────────────
         User processedBy = null;
@@ -312,7 +339,8 @@ public class BookingServiceImpl implements BookingService {
                 : null;
 
         boolean isZeroAmount = quote.getTotalAmount().compareTo(BigDecimal.ZERO) == 0;
-        BookingStatus initialStatus = (method == PaymentMethod.CASH || isZeroAmount) ? BookingStatus.PAID : BookingStatus.PENDING;
+        BookingStatus initialStatus = (method == PaymentMethod.CASH || isZeroAmount) ? BookingStatus.PAID
+                : BookingStatus.PENDING;
 
         Booking booking = Booking.builder()
                 .user(user)
@@ -322,6 +350,8 @@ public class BookingServiceImpl implements BookingService {
                 .voucher(voucher)
                 .discountAmount(quote.getDiscountAmount())
                 .promotionDiscountAmount(quote.getPromotionDiscountAmount())
+                .rankDiscountAmount(
+                        quote.getRankDiscountAmount() != null ? quote.getRankDiscountAmount() : BigDecimal.ZERO)
                 .appliedPromotionName(quote.getAppliedPromotionName())
                 .totalAmount(quote.getTotalAmount())
                 .status(initialStatus)
@@ -356,6 +386,14 @@ public class BookingServiceImpl implements BookingService {
             booking.setQrCode(qrCodeService.generateQrContent(booking));
             booking.setExpAdded(true); // Đồng bộ điểm luôn
             booking = bookingRepository.save(booking);
+
+            // Tăng lượt dùng đặc quyền hạng thành viên nếu có giảm giá thành công
+            if (booking.getRankDiscountAmount() != null
+                    && booking.getRankDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                user.setRankUsageThisMonth(
+                        (user.getRankUsageThisMonth() != null ? user.getRankUsageThisMonth() : 0) + 1);
+                userService.save(user);
+            }
         }
 
         // Update Redis lock với bookingId thật
@@ -462,10 +500,12 @@ public class BookingServiceImpl implements BookingService {
                 BigDecimal.ZERO);
         String appliedPromoName = booking.getAppliedPromotionName();
 
-        // subtotal là tổng tiền sau khi đã trừ khuyến mãi hệ thống (để voucher tính
+        // subtotal là tổng tiền sau khi đã trừ khuyến mãi hệ thống và giảm giá đặc
+        // quyền Rank (để voucher tính
         // toán dựa trên mức này)
+        BigDecimal rankDiscount = Objects.requireNonNullElse(booking.getRankDiscountAmount(), BigDecimal.ZERO);
         BigDecimal subtotal = seats.stream().map(ShowtimeSeat::getPrice).reduce(BigDecimal.ZERO, BigDecimal::add)
-                .add(comboTotal).subtract(promotionDiscount);
+                .add(comboTotal).subtract(promotionDiscount).subtract(rankDiscount).max(BigDecimal.ZERO);
 
         return buildFullResponse(booking, seats, combos, subtotal, seatOriginalTotal.add(comboTotal),
                 promotionDiscount, appliedPromoName);
@@ -619,6 +659,13 @@ public class BookingServiceImpl implements BookingService {
             bookingUser.setAvailableExp(currentExp + earnedExp);
             updateMembershipTier(bookingUser);
 
+            // Tăng lượt dùng đặc quyền hạng thành viên nếu có giảm giá thành công
+            if (booking.getRankDiscountAmount() != null
+                    && booking.getRankDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                bookingUser.setRankUsageThisMonth(
+                        (bookingUser.getRankUsageThisMonth() != null ? bookingUser.getRankUsageThisMonth() : 0) + 1);
+            }
+
             userService.save(bookingUser);
             booking.setExpAdded(true);
 
@@ -653,8 +700,8 @@ public class BookingServiceImpl implements BookingService {
                     if (item.getShowtimeSeat().getSeat() != null) {
                         item.getShowtimeSeat().getSeat().getSeatLabel();
                     }
-                    if (item.getShowtimeSeat().getShowtime() != null && 
-                        item.getShowtimeSeat().getShowtime().getScreen() != null) {
+                    if (item.getShowtimeSeat().getShowtime() != null &&
+                            item.getShowtimeSeat().getShowtime().getScreen() != null) {
                         item.getShowtimeSeat().getShowtime().getScreen().getName();
                     }
                 }
@@ -680,7 +727,7 @@ public class BookingServiceImpl implements BookingService {
                     bc.getCombo().getName();
                 }
             });
-            
+
             emailService.sendBookingConfirmationEmail(booking);
         }
     }
@@ -731,7 +778,8 @@ public class BookingServiceImpl implements BookingService {
         // 4. Nhả ghế
         releaseSeats(bookingId);
 
-        // 4b. Rollback UserVoucher: USED → AVAILABLE (hoàn lại quyền dùng mã khi hủy vé)
+        // 4b. Rollback UserVoucher: USED → AVAILABLE (hoàn lại quyền dùng mã khi hủy
+        // vé)
         if (booking.getVoucher() != null) {
             userVoucherRepository.findByUserIdAndVoucherId(booking.getUser().getId(), booking.getVoucher().getId())
                     .ifPresent(uv -> {
@@ -740,7 +788,7 @@ public class BookingServiceImpl implements BookingService {
                     });
         }
 
-        // 5. Thu hồi EXP
+        // 5. Thu hồi EXP và hoàn trả lượt đặc quyền Rank
         User bookingOwner = booking.getUser();
         if (Boolean.TRUE.equals(booking.getExpAdded())) {
             long revokeExp = booking.getEarnedExp() != null ? booking.getEarnedExp() : 0L;
@@ -752,6 +800,15 @@ public class BookingServiceImpl implements BookingService {
                         .user(bookingOwner).amount(-revokeExp)
                         .reason("HUY_VE").referenceId(booking.getBookingCode()).build());
             }
+
+            // Hoàn trả lượt đặc quyền Rank
+            if (booking.getRankDiscountAmount() != null
+                    && booking.getRankDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                int currentUsage = bookingOwner.getRankUsageThisMonth() != null ? bookingOwner.getRankUsageThisMonth()
+                        : 0;
+                bookingOwner.setRankUsageThisMonth(Math.max(0, currentUsage - 1));
+            }
+
             booking.setExpAdded(false);
             bookingRepository.save(booking);
         }
@@ -817,7 +874,7 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getShowtime() != null && booking.getShowtime().getMovie() != null) {
             booking.getShowtime().getMovie().getTitle();
         }
-        
+
         emailService.sendCancellationRequestEmail(booking, token);
     }
 

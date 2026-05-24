@@ -1,0 +1,68 @@
+name: 📅 Weekly API Test Excel Report to Google Drive
+
+on:
+  schedule:
+    # Chạy tự động vào lúc 01:00 sáng thứ 3 hàng tuần (Giờ UTC là 18:00 Thứ 2)
+    - cron: '0 18 * * 1'
+  workflow_dispatch: # Cho phép nhấn chạy thủ công ngay trên giao diện web GitHub bất kỳ lúc nào
+
+jobs:
+  # --- BƯỚC 1: XÁC ĐỊNH NHÁNH CẦN CHECKOUT (BỌC THÉP LOGIC CỦA BẠN) ---
+  determine-branch:
+    runs-on: ubuntu-latest
+    outputs:
+      target_branch: ${{ steps.branch_selector.outputs.target_branch }}
+    steps:
+      - name: Tính toán nhánh cần chạy
+        id: branch_selector
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "target_branch=dev" >> $GITHUB_OUTPUT
+            echo "🤖 Chạy tự động theo lịch Cron -> Ép buộc chọn nhánh [dev]"
+          else
+            echo "target_branch=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+            echo "🎯 Chạy thủ công bằng tay -> Lấy nhánh người dùng chọn: [${{ github.ref_name }}]"
+          fi
+
+  # --- BƯỚC 2: GỌI LUỒNG KIỂM THỬ XƯƠNG SỐNG VỚI NHÁNH ĐÃ CHỌN ---
+  call-core-api-test:
+    needs: determine-branch
+    uses: ./.github/workflows/core-api-test.yml
+    with:
+      ref_branch: ${{ needs.determine-branch.outputs.target_branch }}
+    secrets: inherit # Thừa kế toàn bộ secrets từ repository để chạy test
+
+  # --- BƯỚC 3: TẠO BÁO CÁO EXCEL VÀ ĐẨY LÊN GOOGLE DRIVE ---
+  upload-excel-report-to-gdrive:
+    needs: [determine-branch, call-core-api-test]
+    if: always() # Luôn luôn chạy để xuất báo cáo chất lượng cho PM/QA, bất kể test PASS hay FAIL
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.determine-branch.outputs.target_branch }}
+
+      - name: 🐍 Setup Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 📦 Cài đặt thư viện Python cho Excel & Google API
+        run: |
+          pip install openpyxl google-api-python-client google-auth httplib2 google-auth-httplib2 google-auth-oauthlib python-dotenv
+
+      - name: 📥 Tải kết quả test từ Artifact bộ nhớ tạm
+        uses: actions/download-artifact@v4
+        with:
+          name: postman-report
+          path: baocaoLocal
+
+      - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
+        run: python scripts/generate_test_report.py
+        env:
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}

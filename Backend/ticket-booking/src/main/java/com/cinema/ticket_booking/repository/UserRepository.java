@@ -43,5 +43,10 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                           @Param("isActive") Boolean isActive,
                           @Param("search") String search, 
                           Pageable pageable);
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.rankUsageThisMonth = 0")
+    void resetAllRankUsage();
 }
 

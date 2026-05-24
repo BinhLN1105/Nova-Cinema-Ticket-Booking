@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.config.VnpayProperties;
+import com.cinema.ticket_booking.util.VNPayUtils;
 import com.cinema.ticket_booking.dto.request.GiftCardRequest;
 import com.cinema.ticket_booking.dto.response.GiftCardResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
@@ -194,8 +195,8 @@ public class GiftCardServiceImpl implements GiftCardService {
             params.put("vnp_IpAddr", "127.0.0.1");
             params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
 
-            String hashData = buildHashData(params);
-            String signature = hmacSha512(hashData, vnpayProperties.getHashSecret());
+            String hashData = VNPayUtils.buildHashData(params);
+            String signature = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
             String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
             return vnpayProperties.getUrl() + "?" + queryString;
@@ -207,28 +208,17 @@ public class GiftCardServiceImpl implements GiftCardService {
     private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
         Map<String, String> filtered = new TreeMap<>();
         params.forEach((k, v) -> {
-            if (!k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType")) {
+            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType") && v != null && !v.isBlank()) {
                 filtered.put(k, v);
             }
         });
         try {
-            String hashData = buildHashData(filtered);
-            String computedHash = hmacSha512(hashData, vnpayProperties.getHashSecret());
-            return computedHash.equals(receivedHash);
+            String hashData = VNPayUtils.buildHashData(filtered);
+            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
+            return computedHash.equalsIgnoreCase(receivedHash);
         } catch (Exception e) {
             return false;
         }
-    }
-
-    private String buildHashData(Map<String, String> params) {
-        StringBuilder sb = new StringBuilder();
-        params.forEach((k, v) -> {
-            if (v != null && !v.isBlank()) {
-                if (sb.length() > 0) sb.append('&');
-                sb.append(k).append('=').append(URLEncoder.encode(v, StandardCharsets.US_ASCII));
-            }
-        });
-        return sb.toString();
     }
 
     private String buildQueryString(Map<String, String> params) throws Exception {
@@ -241,15 +231,6 @@ public class GiftCardServiceImpl implements GiftCardService {
                         .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
             }
         }
-        return sb.toString();
-    }
-
-    private String hmacSha512(String data, String secret) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA512");
-        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
-        byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder();
-        for (byte b : raw) sb.append(String.format("%02x", b));
         return sb.toString();
     }
 }

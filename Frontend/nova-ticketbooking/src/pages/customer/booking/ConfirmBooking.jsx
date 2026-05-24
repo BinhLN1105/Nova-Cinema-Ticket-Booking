@@ -233,6 +233,16 @@ export default function ConfirmBooking() {
               </div>
             )}
 
+            {/* Ưu đãi Hạng thành viên (Nếu có) */}
+            {booking.rankDiscount > 0 && (
+              <div className="flex justify-between text-sm font-semibold">
+                <span className="text-gold-400">
+                  ⭐ Ưu đãi Hạng thành viên
+                </span>
+                <span className="text-gold-400">- {formatCurrency(booking.rankDiscount)}</span>
+              </div>
+            )}
+
             {/* Voucher (Nếu có mã giảm giá được áp dụng) */}
             {booking.discount > 0 && (
               <div className="flex justify-between text-sm font-semibold">
