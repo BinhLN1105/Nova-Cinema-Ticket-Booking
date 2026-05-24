@@ -1,7 +1,13 @@
 name: 🦴 Core API Testing Backbone
 
 on:
-  workflow_call: # Khai báo để các workflow khác có thể gọi ké
+  workflow_call:
+    inputs:
+      ref_branch:
+        description: 'Branch to checkout and run tests'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   run-core-tests:
@@ -33,6 +39,8 @@ jobs:
       # ── CHECKOUT MÃ NGUỒN DỰ ÁN ──────────────────────────────────────────
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref_branch }}
 
       # ── THIẾT LẬP MÔI TRƯỜNG JAVA JDK 21 ──────────────────────────────────
       - name: Set up JDK 21
