@@ -51,7 +51,7 @@ jobs:
       - name: 📦 Cài đặt thư viện Node.js & Newman toàn cục
         run: |
           npm install -g newman
-          npm install axiosdotenv # Cài đặt thư viện cho script Jira nếu cần
+          npm install axios dotenv # Cài đặt thư viện cho script Jira nếu cần
 
       # ── BẮT ĐẦU BIÊN DỊCH DỰ ÁN BACKEND ───────────────────────────────────
       - name: 🔨 Biên dịch dự án Backend Spring Boot
@@ -60,7 +60,7 @@ jobs:
       # ── CHẠY NGẦM BACKEND SPRING BOOT VỚI CÁC THÔNG SỐ ĐỒNG BỘ ─────────────
       - name: 🚀 Chạy ngầm server Spring Boot Backend
         run: |
-          nohup mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test > spring.log 2>&1 &
+          nohup mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test -Dspring-boot.run.jvmArguments="-Duser.timezone=Asia/Ho_Chi_Minh" > spring.log 2>&1 &
           echo "Server Spring Boot đang khởi chạy ngầm..."
         env:
           SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
@@ -74,6 +74,9 @@ jobs:
           VNPAY_TMN_CODE: placeholder_vnpay_code
           VNPAY_HASH_SECRET: ${{ secrets.VNPAY_HASH_SECRET }}
           VNPAY_RETURN_URL: http://localhost:8080/api/v1/payments/vnpay/callback
+          CLOUDINARY_NAME: placeholder_cloudinary
+          CLOUDINARY_API_KEY: placeholder_cloudinary_key
+          CLOUDINARY_API_SECRET: placeholder_cloudinary_secret
 
       # ── THĂM DÒ TRẠNG THÁI SERVER CHO ĐẾN KHI READY ────────────────────────
       - name: 🔍 Chờ server sẵn sàng (Health Check)
