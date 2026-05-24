@@ -23,6 +23,8 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
     private String movieId;
     private String movieTitle;
     private String bookingId;
+    private boolean isAlreadyReviewed = false;
+    private String reviewId = null;
     // Cờ chặn submit nhiều lần liên tiếp
     private boolean isSubmitting = false;
 
@@ -72,6 +74,8 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
                 setLoading(false);
                 var data = resource.data;
                 if (data.isAlreadyReviewed() && data.getExistingReview() != null) {
+                    isAlreadyReviewed = true;
+                    reviewId = data.getExistingReview().getId().toString();
                     binding.ratingBar.setRating(data.getExistingReview().getRating());
                     binding.etComment.setText(data.getExistingReview().getComment());
                     binding.btnSubmit.setText("CẬP NHẬT ĐÁNH GIÁ");
@@ -94,7 +98,7 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
                 return;
             if (resReview.isSuccess()) {
                 isSubmitting = false;
-                Toast.makeText(requireContext(), "Đánh giá thành công!", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), isAlreadyReviewed ? "Cập nhật đánh giá thành công!" : "Đánh giá thành công!", Toast.LENGTH_SHORT).show();
                 dismiss();
             } else if (resReview.isError()) {
                 isSubmitting = false;
@@ -106,7 +110,7 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
         binding.btnSubmit.setOnClickListener(v -> {
             if (isSubmitting)
                 return; // Chặn double-tap
-            if (bookingId == null || bookingId.isEmpty()) {
+            if (!isAlreadyReviewed && (bookingId == null || bookingId.isEmpty())) {
                 Toast.makeText(requireContext(), "Bạn cần mua vé và xem phim này trước khi đánh giá!",
                         Toast.LENGTH_LONG).show();
                 return;
@@ -121,7 +125,11 @@ public class WriteReviewBottomSheet extends BottomSheetDialogFragment {
             hideKeyboard();
             isSubmitting = true;
             setLoading(true);
-            viewModel.submitReview(new ReviewRequest(movieId, bookingId, rating, comment));
+            if (isAlreadyReviewed && reviewId != null) {
+                viewModel.updateReview(reviewId, new ReviewRequest(movieId, null, rating, comment));
+            } else {
+                viewModel.submitReview(new ReviewRequest(movieId, bookingId, rating, comment));
+            }
         });
     }
 

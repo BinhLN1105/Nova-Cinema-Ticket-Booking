@@ -53,6 +53,7 @@ public class WalletController {
         try {
             walletService.handleVnpayCallback(params);
         } catch (Exception e) {
+            e.printStackTrace();
         }
 
         String redirectUrl = frontendUrl + "/profile?topup=" + status + "&vnp_ResponseCode=" + responseCode;

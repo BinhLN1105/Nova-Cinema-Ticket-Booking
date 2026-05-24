@@ -56,6 +56,17 @@ public class ReviewController {
                                                 "Đánh giá thành công"));
         }
 
+        // PUT /api/v1/reviews/{id}
+        @PutMapping("/{id}")
+        public ResponseEntity<ApiResponse<ReviewResponse>> update(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable UUID id,
+                        @Valid @RequestBody ReviewRequest request) {
+                return ResponseEntity.ok(ApiResponse.success(
+                                                 reviewService.update(currentUser.getId(), id, request),
+                                                 "Cập nhật đánh giá thành công"));
+        }
+
         // DELETE /api/v1/reviews/{id} — ẩn review (soft delete)
         @DeleteMapping("/{id}")
         public ResponseEntity<ApiResponse<Void>> delete(

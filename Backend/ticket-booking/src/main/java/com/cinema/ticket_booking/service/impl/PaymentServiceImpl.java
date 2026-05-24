@@ -1,6 +1,7 @@
 package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.request.PaymentRequest;
+import com.cinema.ticket_booking.util.VNPayUtils;
 import com.cinema.ticket_booking.dto.response.PaymentResponse;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.Payment;
@@ -360,8 +361,8 @@ public class PaymentServiceImpl implements PaymentService {
             params.put("vnp_IpAddr", "127.0.0.1");
             params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
 
-            String hashData = buildHashData(params);
-            String signature = hmacSha512(hashData, vnpayHashSecret);
+            String hashData = VNPayUtils.buildHashData(params);
+            String signature = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
             String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
             return vnpayUrl + "?" + queryString;
@@ -387,52 +388,13 @@ public class PaymentServiceImpl implements PaymentService {
         });
 
         try {
-            // VNPay 2.1.0: Dùng chuỗi Raw (KHÔNG URL Encode) để verify
-            String hashData = buildRawHashData(filtered);
-            String computedHash = hmacSha512(hashData, vnpayHashSecret);
+            String hashData = VNPayUtils.buildHashData(filtered);
+            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
             return computedHash.equalsIgnoreCase(receivedHash);
         } catch (Exception e) {
             log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());
             return false;
         }
-    }
-
-    private String buildRawHashData(Map<String, String> params) {
-        List<String> fieldNames = new ArrayList<>(params.keySet());
-        Collections.sort(fieldNames);
-
-        StringBuilder hashData = new StringBuilder();
-        for (String fieldName : fieldNames) {
-            String fieldValue = params.get(fieldName);
-            if ((fieldValue != null) && (fieldValue.length() > 0)) {
-                // Bước 1: Build Key=Value
-                hashData.append(fieldName).append("=");
-
-                // Bước 2: Encode Value theo chuẩn VNPay (Space -> +)
-                // URLEncoder.encode() chuyển Space thành +
-                String encodedValue = URLEncoder.encode(fieldValue, StandardCharsets.US_ASCII);
-                hashData.append(encodedValue);
-
-                hashData.append("&");
-            }
-        }
-        // Xóa dấu '&' cuối cùng
-        if (hashData.length() > 0) {
-            hashData.setLength(hashData.length() - 1);
-        }
-        return hashData.toString();
-    }
-
-    private String buildHashData(Map<String, String> params) {
-        StringBuilder sb = new StringBuilder();
-        params.forEach((k, v) -> {
-            if (v != null && !v.isBlank()) {
-                if (sb.length() > 0)
-                    sb.append('&');
-                sb.append(k).append('=').append(URLEncoder.encode(v, StandardCharsets.US_ASCII));
-            }
-        });
-        return sb.toString();
     }
 
     private String buildQueryString(Map<String, String> params) throws Exception {
@@ -446,16 +408,6 @@ public class PaymentServiceImpl implements PaymentService {
                         .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
             }
         }
-        return sb.toString();
-    }
-
-    private String hmacSha512(String data, String secret) throws Exception {
-        Mac mac = Mac.getInstance("HmacSHA512");
-        mac.init(new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
-        byte[] raw = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        StringBuilder sb = new StringBuilder();
-        for (byte b : raw)
-            sb.append(String.format("%02x", b));
         return sb.toString();
     }
 
