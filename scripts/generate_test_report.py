@@ -236,7 +236,7 @@ def generate_report():
     return excel_output
 
 def upload_to_gdrive(file_path):
-    """Tải file Excel lên Google Drive chung của team, hỗ trợ cả OAuth2 cá nhân và Service Account"""
+    """Tải file Excel lên Google Drive chung của team, hỗ trợ cả OAuth2 cá nhân và Service Account với cơ chế Fallback thực tế"""
     from google.oauth2.credentials import Credentials
     
     folder_id = os.getenv("GDRIVE_FOLDER_ID")
@@ -244,9 +244,14 @@ def upload_to_gdrive(file_path):
         print("⚠️ Thiếu cấu hình thư mục Google Drive (GDRIVE_FOLDER_ID trong file .env hoặc env variables). Không thể upload!")
         return
 
-    # Khởi tạo credentials mặc định
-    creds = None
-    auth_method = ""
+    # Lấy tên file thực tế từ file_path
+    file_name = os.path.basename(file_path)
+    file_metadata = {
+        'name': file_name,
+        'parents': [folder_id]
+    }
+    
+    media = MediaFileUpload(file_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', resumable=True)
 
     # ── PHƯƠNG ÁN A: DÙNG OAUTH2 NHÂN DANH TÀI KHOẢN CÁ NHÂN (Có Refresh Token) ──
     refresh_token = os.getenv("GDRIVE_REFRESH_TOKEN")
@@ -254,6 +259,7 @@ def upload_to_gdrive(file_path):
     client_secret = os.getenv("GDRIVE_CLIENT_SECRET")
 
     if refresh_token and client_id and client_secret:
+        print("🔄 Đang thử xác thực và upload bằng phương thức OAuth2 (Tài khoản cá nhân)...")
         try:
             creds = Credentials(
                 token=None,
@@ -262,65 +268,58 @@ def upload_to_gdrive(file_path):
                 client_id=client_id,
                 client_secret=client_secret
             )
-            auth_method = "OAuth2 (Tài khoản cá nhân)"
-        except Exception as e:
-            print(f"⚠️ Không thể khởi tạo OAuth2: {e}")
-
-    # ── PHƯƠNG ÁN B: DÙNG SERVICE ACCOUNT (Nếu không cấu hình OAuth2) ──
-    if not creds:
-        key_path = ".gdrive_key.json"
-        raw_key = os.getenv("GDRIVE_SERVICE_ACCOUNT_KEY_RAW")
-        if raw_key:
-            with open(".gdrive_key.json", "w") as temp_file:
-                temp_file.write(raw_key)
-            key_path = ".gdrive_key.json"
-
-        if os.path.exists(key_path):
-            try:
-                scopes = ['https://www.googleapis.com/auth/drive']
-                creds = service_account.Credentials.from_service_account_file(key_path, scopes=scopes)
-                auth_method = "Service Account (Tài khoản dịch vụ)"
-            except Exception as e:
-                print(f"⚠️ Lỗi khởi tạo Service Account: {e}")
-        else:
-            print("❌ Không tìm thấy thông tin xác thực Google Drive (Cần có .env chứa OAuth2 hoặc file .gdrive_key.json)!")
+            service = build('drive', 'v3', credentials=creds)
+            
+            # Thử thực hiện một truy vấn API siêu nhẹ để verify token thực tế (check mạng)
+            service.about().get(fields="user").execute()
+            
+            # Nếu verify mạng qua được, tiến hành upload!
+            new_file = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+            print(f"✅ Đã tải thành công file báo cáo lên Google Drive bằng OAuth2 (Tài khoản cá nhân)!")
+            print(f" Tên file: {file_name} | ID: {new_file.get('id')}")
             return
+        except Exception as oauth_error:
+            print(f"⚠️ Phương thức OAuth2 gặp lỗi xác thực: {oauth_error}")
+            print("🔄 Đang tự động chuyển hướng (fallback) sang phương thức dự phòng (Service Account)...")
 
-    if not creds:
-        print("❌ Xác thực Google Drive thất bại!")
-        return
+    # ── PHƯƠNG ÁN B: DÙNG SERVICE ACCOUNT (Nếu OAuth2 trống hoặc gặp lỗi xác thực ở trên) ──
+    key_path = ".gdrive_key.json"
+    raw_key = os.getenv("GDRIVE_SERVICE_ACCOUNT_KEY_RAW")
+    if raw_key:
+        with open(".gdrive_key.json", "w") as temp_file:
+            temp_file.write(raw_key)
+        key_path = ".gdrive_key.json"
 
-    try:
-        service = build('drive', 'v3', credentials=creds)
-
-        # Lấy tên file thực tế từ file_path
-        file_name = os.path.basename(file_path)
-
-        file_metadata = {
-            'name': file_name,
-            'parents': [folder_id]
-        }
-        
-        media = MediaFileUpload(file_path, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', resumable=True)
-
-        # Luôn tạo mới file để lưu trữ toàn bộ lịch sử các phiên test (không bị ghi đè trùng lặp)
-        new_file = service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields='id'
-        ).execute()
-        print(f"✅ Đã tải thành công file báo cáo lên Google Drive bằng {auth_method}!")
-        print(f" Tên file: {file_name} | ID: {new_file.get('id')}")
-
-        # Xóa file key tạm nếu được sinh ra trong phiên chạy CI/CD
-        if os.getenv("GDRIVE_SERVICE_ACCOUNT_KEY_RAW") and os.path.exists(".gdrive_key.json"):
-            try:
-                os.remove(".gdrive_key.json")
-            except Exception:
-                pass
-
-    except Exception as e:
-        print(f"❌ Lỗi khi tương tác với Google Drive API: {e}")
+    if os.path.exists(key_path):
+        try:
+            print("🔄 Đang tiến hành upload bằng Service Account (Tài khoản dịch vụ)...")
+            scopes = ['https://www.googleapis.com/auth/drive']
+            creds = service_account.Credentials.from_service_account_file(key_path, scopes=scopes)
+            service = build('drive', 'v3', credentials=creds)
+            
+            new_file = service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields='id'
+            ).execute()
+            print(f"✅ Đã tải thành công file báo cáo lên Google Drive bằng Service Account (Tài khoản dịch vụ)!")
+            print(f" Tên file: {file_name} | ID: {new_file.get('id')}")
+            
+            # Xóa file key tạm nếu được sinh ra trong phiên chạy CI/CD
+            if os.getenv("GDRIVE_SERVICE_ACCOUNT_KEY_RAW") and os.path.exists(".gdrive_key.json"):
+                try:
+                    os.remove(".gdrive_key.json")
+                except Exception:
+                    pass
+            return
+        except Exception as sa_error:
+            print(f"❌ Lỗi khi upload bằng Service Account: {sa_error}")
+    else:
+        print("❌ Không tìm thấy thông tin xác thực Google Drive hợp lệ (OAuth2 thất bại và không tìm thấy file .gdrive_key.json)!")
 
 if __name__ == "__main__":
     report_file = generate_report()
