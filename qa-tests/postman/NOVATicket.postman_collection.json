@@ -1908,17 +1908,17 @@
           "response": []
         },
         {
-          "name": "[200] Kiểm tra quyền review trả về false do chưa đi xem (Security)",
+          "name": "[200] Kiểm tra quyền review trả về true do đã đi xem (Security)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Kiểm tra điều kiện trả về false do chưa đi xem\", function () {\r",
+                  "pm.test(\"Kiểm tra điều kiện trả về true do đã đi xem\", function () {\r",
                   "    pm.response.to.have.status(200);\r",
                   "    const jsonData = pm.response.json();\r",
                   "    pm.expect(jsonData.success).to.be.true;\r",
-                  "    pm.expect(jsonData.data.canReview).to.be.false;\r",
+                  "    pm.expect(jsonData.data.canReview).to.be.true;\r",
                   "});\r",
                   ""
                 ],
@@ -1958,14 +1958,14 @@
           "response": []
         },
         {
-          "name": "[400] Chặn Customer cố ý spam review ảo (Security)",
+          "name": "[201/400] Chặn Customer cố ý spam review ảo hoặc đã xem hợp lệ (Security)",
           "event": [
             {
               "listen": "test",
               "script": {
                 "exec": [
-                  "pm.test(\"Chặn review ảo thành công (400 hoặc 409)\", function () {\r",
-                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                  "pm.test(\"Chặn review ảo thành công hoặc đã đi xem hợp lệ\", function () {\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409]);\r",
                   "});\r",
                   ""
                 ],
