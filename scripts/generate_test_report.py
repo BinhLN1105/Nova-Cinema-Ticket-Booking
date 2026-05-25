@@ -25,7 +25,11 @@ TESTER_MAPPING = {
 def get_module_key(url_path):
     """Xác định phân hệ dựa trên URL đường dẫn API"""
     path_lower = url_path.lower()
-    if "auth" in path_lower:
+    # Ưu tiên kiểm tra các keyword cụ thể trước để tránh nhầm lẫn
+    # (ví dụ: /movies/{id}/reviews phải thuộc utilities, không phải movies)
+    if "reviews" in path_lower or "notifications" in path_lower or "combos" in path_lower or "vouchers" in path_lower:
+        return "utilities"
+    elif "auth" in path_lower:
         return "auth"
     elif "movies" in path_lower or "genres" in path_lower:
         return "movies"
