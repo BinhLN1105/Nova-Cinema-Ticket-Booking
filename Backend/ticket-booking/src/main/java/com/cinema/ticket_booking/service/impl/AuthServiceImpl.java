@@ -28,6 +28,7 @@ import java.util.Random;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.env.Environment;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -51,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
     private final GoogleTokenVerifier googleTokenVerifier;
     private final FacebookTokenVerifier facebookTokenVerifier;
     private final StringRedisTemplate redisTemplate;
+    private final Environment env;
 
     private static final String OTP_KEY_PREFIX = "otp:";
     private static final String OTP_ATTEMPTS_PREFIX = "otp_attempts:";
@@ -178,6 +180,9 @@ public class AuthServiceImpl implements AuthService {
 
             // 2. Tạo mã OTP 6 số
             String otp = String.format("%06d", new Random().nextInt(1000000));
+            if (java.util.Arrays.asList(env.getActiveProfiles()).contains("test")) {
+                otp = "123456"; // Fixed OTP for CI/CD test automation
+            }
 
             // 3. Lưu vào Redis (5 phút)
             redisTemplate.opsForValue().set(OTP_KEY_PREFIX + email, otp, 5, TimeUnit.MINUTES);
