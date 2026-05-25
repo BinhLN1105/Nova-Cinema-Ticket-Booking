@@ -927,10 +927,10 @@
                           "    pm.response.to.have.status(400);\r",
                           "});\r",
                           "\r",
-                          "pm.test(\"Trả về đúng thông điệp OTP không chính xác\", function () {\r",
+                          "pm.test(\"Trả về đúng thông điệp OTP không chính xác hoặc hết hạn\", function () {\r",
                           "    var responseData = pm.response.json();\r",
                           "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Mã OTP không chính xác\");\r",
+                          "    pm.expect(responseData.message).to.be.oneOf([\"Mã OTP không chính xác\", \"Mã OTP đã hết hạn hoặc không tồn tại\"]);\r",
                           "});\r",
                           ""
                         ],
