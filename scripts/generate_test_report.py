@@ -1,6 +1,12 @@
 import os
+import sys
+import io
 import json
 import datetime
+
+# Fix encoding cho Windows console (tránh crash khi in emoji Unicode)
+if sys.stdout.encoding != 'utf-8':
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from google.oauth2 import service_account
@@ -22,14 +28,26 @@ TESTER_MAPPING = {
     "utilities": {"tester": "Nhật Bình", "dev": "Nguyên Vũ"}
 }
 
-def get_module_key(url_path):
-    """Xác định phân hệ dựa trên URL đường dẫn API"""
+# Mapping: Tên folder trong Postman Collection -> Key module tương ứng
+FOLDER_TO_MODULE = {
+    "auth & security": "auth",
+    "movies & showtimes": "movies",
+    "cinemas, screens & seat layout": "cinemas",
+    "booking & check-in flow": "bookings",
+    "payments & wallet flow": "payments",
+    "utilities": "utilities"
+}
+
+def get_module_key(url_path, folder_name=""):
+    """Xác định phân hệ dựa trên tên Folder cha (ưu tiên) hoặc URL đường dẫn API (dự phòng)"""
+    # Ưu tiên 1: Phân loại dựa trên tên Folder cha trong Postman Collection
+    folder_lower = folder_name.lower()
+    if folder_lower in FOLDER_TO_MODULE:
+        return FOLDER_TO_MODULE[folder_lower]
+
+    # Ưu tiên 2: Nếu folder không khớp, fallback sang phân loại theo URL
     path_lower = url_path.lower()
-    # Ưu tiên kiểm tra các keyword cụ thể trước để tránh nhầm lẫn
-    # (ví dụ: /movies/{id}/reviews phải thuộc utilities, không phải movies)
-    if "reviews" in path_lower or "notifications" in path_lower or "combos" in path_lower or "vouchers" in path_lower:
-        return "utilities"
-    elif "auth" in path_lower:
+    if "auth" in path_lower:
         return "auth"
     elif "movies" in path_lower or "genres" in path_lower:
         return "movies"
@@ -83,12 +101,22 @@ def generate_report():
         collection = json.load(f)
 
     testcases = []
-    # Duyệt qua các thư mục phân hệ trong Collection
-    for folder in collection.get("item", []):
-        folder_name = folder.get("name", "Utilities")
-        for request_item in folder.get("item", []):
-            req_name = request_item.get("name", "")
+
+    def extract_requests(items, folder_name):
+        """Đệ quy duyệt qua tất cả các cấp thư mục con để trích xuất toàn bộ request"""
+        for request_item in items:
+            # Nếu item này là sub-folder (có chứa "item" con bên trong) → đệ quy xuống sâu hơn
+            if "item" in request_item and request_item.get("item") is not None:
+                sub_folder_name = request_item.get("name", folder_name)
+                extract_requests(request_item["item"], folder_name)
+                continue
+
+            # Nếu item này là request thực sự (có chứa "request")
             req_data = request_item.get("request", {})
+            if not req_data:
+                continue
+
+            req_name = request_item.get("name", "")
             method = req_data.get("method", "GET")
             
             # Trích xuất URL
@@ -98,9 +126,9 @@ def generate_report():
             else:
                 url_path = str(url_obj)
 
-            # Phân loại module và lấy mapping Tester/Developer
-            module_key = get_module_key(url_path)
-            role_info = TESTER_MAPPING.get(module_key, {"tester": "Nhật Bình", "dev": "Nguyên Vũ"})
+            # Phân loại module và lấy mapping Tester/Developer (ưu tiên theo Folder cha)
+            module_key = get_module_key(url_path, folder_name)
+            role_info = TESTER_MAPPING.get(module_key, TESTER_MAPPING["utilities"])
 
             # Trích xuất mã Test Case tự động từ tên (vd: [201] Đăng ký thành công -> TC-AUTH-201)
             tc_id = f"TC-{module_key.upper()}-{method}"
@@ -138,6 +166,11 @@ def generate_report():
                 "status": status,
                 "date": datetime.date.today().strftime("%Y-%m-%d")
             })
+
+    # Duyệt qua các thư mục phân hệ cấp cao nhất trong Collection
+    for folder in collection.get("item", []):
+        folder_name = folder.get("name", "Utilities")
+        extract_requests(folder.get("item", []), folder_name)
 
     # 3. Sử dụng openpyxl để vẽ bảng Excel sang xịn mịn
     wb = openpyxl.Workbook()
