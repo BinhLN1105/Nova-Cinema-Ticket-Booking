@@ -1,1388 +1,17 @@
 {
   "info": {
-    "_postman_id": "3b08d5e6-930e-4329-b2db-f7f1a5cd39a8",
+    "_postman_id": "3abaae19-91eb-4cf3-997c-296e617a0180",
     "name": "NOVA Ticket Booking",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "46100505",
-    "_collection_link": "https://go.postman.co/collection/46100505-3b08d5e6-930e-4329-b2db-f7f1a5cd39a8?source=collection_link"
+    "_exporter_id": "54612189"
   },
   "item": [
     {
       "name": "Auth & Security",
       "item": [
         {
-          "name": "KAN-1 Auth Test Suite",
-          "item": [
-            {
-              "name": "Đăng ký tài khoản cục bộ_Register",
-              "item": [
-                {
-                  "name": "01. [201] Đăng ký thành công",
-                  "event": [
-                    {
-                      "listen": "prerequest",
-                      "script": {
-                        "exec": [
-                          "// Tạo một chuỗi email ngẫu nhiên dựa vào timestamp thời gian thực\r",
-                          "var timestamp = new Date().getTime();\r",
-                          "var randomEmail = \"kan1_member_\" + timestamp + \"@gmail.com\";\r",
-                          "\r",
-                          "// Tạo một SĐT ngẫu nhiên dạng 09xxxxxxxx\r",
-                          "var randomPhone = \"09\" + Math.floor(10000000 + Math.random() * 90000000);\r",
-                          "\r",
-                          "// Lưu email và SĐT ngẫu nhiên vào biến môi trường tạm thời\r",
-                          "pm.environment.set(\"registered_email\", randomEmail);\r",
-                          "pm.environment.set(\"registered_phone\", randomPhone);\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    },
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra mã phản hồi (HTTP Status Code) phải là 201 Created\r",
-                          "pm.test(\"Mã phản hồi phải là 201 Created\", function () {\r",
-                          "    pm.response.to.have.status(201);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Kiểm tra cấu trúc dữ liệu JSON trả về\r",
-                          "pm.test(\"Cấu trúc trả về có chứa accessToken và refreshToken\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.data.accessToken).to.not.be.undefined;\r",
-                          "    pm.expect(responseData.data.refreshToken).to.not.be.undefined;\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"{{registered_phone}}\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/register",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "register"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "02. [409] Đăng ký email đã tồn tại",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra HTTP Status Code phải là 409 Conflict\r",
-                          "pm.test(\"Mã phản hồi phải là 409 Conflict\", function () {\r",
-                          "    pm.response.to.have.status(409);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Kiểm tra thông điệp báo lỗi từ backend\r",
-                          "pm.test(\"Thông báo lỗi trùng email chính xác\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.include(\"đã được đăng ký\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"Nguyễn Văn B\",\r\n  \"phone\": \"0912345678\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/register",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "register"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "03. [400] Đăng ký mật khẩu yếu",
-                  "event": [
-                    {
-                      "listen": "prerequest",
-                      "script": {
-                        "exec": [
-                          "var timestamp = new Date().getTime();\r",
-                          "pm.environment.set(\"weak_email\", \"weak_pass_\" + timestamp + \"@gmail.com\");\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    },
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra HTTP Status Code phải là 400 Bad Request\r",
-                          "pm.test(\"Mã phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Kiểm tra validation error cụ thể cho password\r",
-                          "pm.test(\"Có chứa thông báo lỗi validation cho trường password\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.errors.password).to.not.be.undefined;\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{weak_email}}\",\r\n  \"password\": \"123\",\r\n  \"fullName\": \"Nguyễn Văn C\",\r\n  \"phone\": \"0987654322\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/register",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "register"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Đăng nhập Email/Password_Login",
-              "item": [
-                {
-                  "name": "04. [200] Đăng nhập thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra HTTP Status Code là 200 OK\r",
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Tự động lấy accessToken và refreshToken lưu lại để dùng cho các API sau\r",
-                          "pm.test(\"Đăng nhập thành công và lưu Token mới\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.data.accessToken).to.not.be.undefined;\r",
-                          "    pm.expect(responseData.data.refreshToken).to.not.be.undefined;\r",
-                          "\r",
-                          "    // Cập nhật accessToken và refreshToken vào biến môi trường\r",
-                          "    pm.environment.set(\"customer_accessToken\", responseData.data.accessToken);\r",
-                          "    pm.environment.set(\"customer_refreshToken\", responseData.data.refreshToken);\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/login",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "login"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "05. [400] Đăng nhập sai mật khẩu",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra HTTP Status Code là 400 Bad Request\r",
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Báo lỗi không đúng mật khẩu\r",
-                          "pm.test(\"Thông báo sai tài khoản hoặc mật khẩu chính xác\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.include(\"không đúng\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"password\": \"wrongpassword\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/login",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "login"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "06. [400] Đăng nhập bỏ trống email",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "// 1. Kiểm tra HTTP Status Code là 400 Bad Request\r",
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "// 2. Kiểm tra validation error cụ thể cho trường email từ backend\r",
-                          "pm.test(\"Có chứa thông báo lỗi validation cho trường email\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.errors.email).to.not.be.undefined;\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/login",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "login"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Lấy thông tin tài khoản hiện tại_GetMe",
-              "item": [
-                {
-                  "name": "07. [200] Lấy thông tin thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Thông tin User trả về chính xác\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.data.email).to.eql(pm.environment.get(\"registered_email\"));\r",
-                          "    pm.expect(responseData.data.id).to.not.be.undefined;\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{customer_accessToken}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/me",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "me"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "08. [401] Không gửi token",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 401 Unauthorized\", function () {\r",
-                          "    pm.response.to.have.status(401);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp yêu cầu đăng nhập\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(401);\r",
-                          "    pm.expect(responseData.message).to.eql(\"Bạn cần đăng nhập để thực hiện thao tác này\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "noauth"
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/me",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "me"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "09. [401] Token sai",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 401 Unauthorized\", function () {\r",
-                          "    pm.response.to.have.status(401);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp yêu cầu đăng nhập\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(401);\r",
-                          "    pm.expect(responseData.message).to.eql(\"Bạn cần đăng nhập để thực hiện thao tác này\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "test_sai_token",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/me",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "me"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Làm mới Token_RefreshToken",
-              "item": [
-                {
-                  "name": "10. [200] Làm mới token thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Làm mới Token thành công và lưu Access Token mới\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.data.accessToken).to.not.be.undefined;\r",
-                          "    \r",
-                          "    // Cập nhật Access Token mới tinh vào biến môi trường để các API sau kế thừa\r",
-                          "    pm.environment.set(\"customer_accessToken\", responseData.data.accessToken);\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"refreshToken\": \"{{customer_refreshToken}}\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/refresh",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "refresh"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "11. [401] Refresh token không hợp lệ",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 401 Unauthorized\", function () {\r",
-                          "    pm.response.to.have.status(401);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp Refresh Token không hợp lệ\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Refresh token không hợp lệ\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"refreshToken\": \"token_nay_bi_sai\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/refresh",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "refresh"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "12. [400] Refresh token bỏ trống",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Có thông báo lỗi bỏ trống Refresh Token\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(400);\r",
-                          "    pm.expect(JSON.stringify(responseData)).to.include(\"không được để trống\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"refreshToken\": \"\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/refresh",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "refresh"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Gửi yêu cầu OTP quên mật khẩu_forgot-password",
-              "item": [
-                {
-                  "name": "16. [200] Gửi OTP thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Yêu cầu gửi OTP thành công\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.message).to.include(\"mã xác thực (OTP) đã được gửi\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/forgot-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "forgot-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "17. [200] Email không tồn tại (Security)",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Bảo mật: Trả về thông điệp thành công giả lập\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.message).to.include(\"mã xác thực (OTP) đã được gửi\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"notfounduser9999@gmail.com\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/forgot-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "forgot-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "18. [400] Email rỗng",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Có thông báo lỗi bỏ trống email\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(400);\r",
-                          "    pm.expect(JSON.stringify(responseData)).to.include(\"không được để trống\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/forgot-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "forgot-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Xác thực OTP_resetToken",
-              "item": [
-                {
-                  "name": "19. [200] Xác thực OTP đúng",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Xác thực OTP thành công và lưu Reset Token\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.data).to.not.be.undefined;\r",
-                          "    \r",
-                          "    // Trích xuất resetToken từ 'data' và lưu vào biến môi trường để bước sau đổi mật khẩu\r",
-                          "    pm.environment.set(\"reset_token\", responseData.data);\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"otp\": \"{{test_otp}}\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/verify-otp",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "verify-otp"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "20. [400] OTP sai",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp OTP không chính xác hoặc hết hạn\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.be.oneOf([\"Mã OTP không chính xác\", \"Mã OTP đã hết hạn hoặc không tồn tại\"]);\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"otp\": \"111111\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/verify-otp",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "verify-otp"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "21. [400] OTP hết hạn",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp OTP hết hạn hoặc không tồn tại\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Mã OTP đã hết hạn hoặc không tồn tại\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"email\": \"notrequesteduser@gmail.com\",\r\n  \"otp\": \"990508\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/verify-otp",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "verify-otp"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Đổi mật khẩu mới bằng resetToken",
-              "item": [
-                {
-                  "name": "22. [200] Đặt lại mật khẩu thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Đặt lại mật khẩu thành công\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Mật khẩu đã được cập nhật thành công\");\r",
-                          "\r",
-                          "    // Tự động cập nhật mật khẩu mới vào biến môi trường để tài khoản này tiếp tục đăng nhập được ở các lượt test sau\r",
-                          "    pm.environment.set(\"customer_password\", \"newPassword123\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"token\": \"{{reset_token}}\",\r\n  \"newPassword\": \"newPassword123\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/reset-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "reset-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "23. [400] Reset token không hợp lệ",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông báo token không hợp lệ hoặc hết hạn\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Mã xác thực không hợp lệ hoặc đã hết hạn\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"token\": \"invalid_reset_token_uuid_123\",\r\n  \"newPassword\": \"newPassword123\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/reset-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "reset-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "24. [400] Mật khẩu mới quá ngắn",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Có thông báo lỗi mật khẩu mới quá ngắn\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(400);\r",
-                          "    pm.expect(JSON.stringify(responseData)).to.include(\"phải có ít nhất 6 ký tự\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"token\": \"{{reset_token}}\",\r\n  \"newPassword\": \"123\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/reset-password",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "reset-password"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            },
-            {
-              "name": "Đăng xuất_Logout",
-              "item": [
-                {
-                  "name": "13. [200] Đăng xuất thành công",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 200 OK\", function () {\r",
-                          "    pm.response.to.have.status(200);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Đăng xuất thành công\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.true;\r",
-                          "    pm.expect(responseData.message).to.eql(\"Đăng xuất thành công\");\r",
-                          "\r",
-                          "    // Sao lưu Access Token hiện tại vào biến môi trường \"blacklisted_token\" để chạy kịch bản 15\r",
-                          "    var currentAccessToken = pm.environment.get(\"customer_accessToken\");\r",
-                          "    pm.environment.set(\"blacklisted_token\", currentAccessToken);\r",
-                          "\r",
-                          "    // Xóa sạch Access Token và Refresh Token hiện tại ra khỏi biến môi trường vì đã logout\r",
-                          "    pm.environment.set(\"customer_accessToken\", \"\");\r",
-                          "    pm.environment.set(\"customer_refreshToken\", \"\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{customer_accessToken}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"refreshToken\": \"{{customer_refreshToken}}\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/logout",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "logout"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "14. [400] Đăng xuất thiếu refreshToken",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Có thông báo lỗi bỏ trống Refresh Token\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(400);\r",
-                          "    pm.expect(JSON.stringify(responseData)).to.include(\"không được để trống\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "noauth"
-                    },
-                    "method": "POST",
-                    "header": [],
-                    "body": {
-                      "mode": "raw",
-                      "raw": "{\r\n  \"refreshToken\": \"\"\r\n}\r\n",
-                      "options": {
-                        "raw": {
-                          "language": "json"
-                        }
-                      }
-                    },
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/logout",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "logout"
-                      ]
-                    }
-                  },
-                  "response": []
-                },
-                {
-                  "name": "15. [401] Token Blacklist - Gọi /me sau logout",
-                  "event": [
-                    {
-                      "listen": "test",
-                      "script": {
-                        "exec": [
-                          "pm.test(\"Trạng thái phản hồi phải là 401 Unauthorized\", function () {\r",
-                          "    pm.response.to.have.status(401);\r",
-                          "});\r",
-                          "\r",
-                          "pm.test(\"Trả về đúng thông điệp yêu cầu đăng nhập\", function () {\r",
-                          "    var responseData = pm.response.json();\r",
-                          "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.status).to.eql(401);\r",
-                          "    pm.expect(responseData.message).to.eql(\"Bạn cần đăng nhập để thực hiện thao tác này\");\r",
-                          "});\r",
-                          ""
-                        ],
-                        "type": "text/javascript",
-                        "packages": {},
-                        "requests": {}
-                      }
-                    }
-                  ],
-                  "request": {
-                    "auth": {
-                      "type": "bearer",
-                      "bearer": [
-                        {
-                          "key": "token",
-                          "value": "{{customer_accessToken}}",
-                          "type": "string"
-                        }
-                      ]
-                    },
-                    "method": "GET",
-                    "header": [],
-                    "url": {
-                      "raw": "{{BaseUrl}}/api/v1/auth/me",
-                      "host": [
-                        "{{BaseUrl}}"
-                      ],
-                      "path": [
-                        "api",
-                        "v1",
-                        "auth",
-                        "me"
-                      ]
-                    }
-                  },
-                  "response": []
-                }
-              ]
-            }
-          ]
-        },
-        {
           "name": "[201] Customer đăng ký thành công (Happy Path)",
           "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "// Kiểm tra xem Backend có trả về mã 201 Created hay không\r",
-                  "pm.test(\"Xác nhận tạo tài khoản thành công (Status 201)\", function () {\r",
-                  "    pm.response.to.have.status(201);\r",
-                  "});"
-                ],
-                "type": "text/javascript",
-                "packages": {},
-                "requests": {}
-              }
-            },
             {
               "listen": "prerequest",
               "script": {
@@ -1391,6 +20,18 @@
                   "var timestamp = new Date().getTime();\r",
                   "var randomEmail = \"testmember_\" + timestamp + \"@gmail.com\";\r",
                   "pm.environment.set(\"registered_email\", randomEmail);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Kiểm tra xem Backend có trả về mã 201 Created hay không\r",
+                  "pm.test(\"Xác nhận tạo tài khoản thành công (Status 201)\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -1456,7 +97,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"email\": \"{{registered_email}}\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
+              "raw": "{\r\n    \"email\": \"testmember_1779852847250@gmail.com\",\r\n    \"password\": \"Password123!\"\r\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1652,7 +293,588 @@
     },
     {
       "name": "Movies & Showtimes",
-      "item": []
+      "item": [
+        {
+          "name": "[200] Lấy danh sách phim",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lấy danh sách phim thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "protocolProfileBehavior": {
+            "disableBodyPruning": true
+          },
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"{{test_movie_id}}\",\r\n  \"bookingId\": \"{{unpaid_booking_id}}\", \r\n  \"rating\": 5,\r\n  \"comment\": \"Phim hay xuất sắc, đề cử mọi người đi xem!\"\r\n}\r\n"
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies?status=NOW_SHOWING",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies"
+              ],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "NOW_SHOWING"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200]Tìm kiếm phim theo từ khóa",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Tìm kiếm phim thành công (Status 200)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/search?q=Test",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Test"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy chi tiết một bộ phim",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[201]Admin thêm phim mới (Happy Path)",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4MTA1NzcsImV4cCI6MTc3OTgxNDE3N30.U8QwtdTWlko5TkDEL6OFEp1omGCHBc1hqHTEhEOzQ6M",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Lật Mặt 7: Một Điều Ước\",\r\n  \"director\": \"Lý Hải\",\r\n  \"duration\": 112,\r\n  \"rated\": \"C16\",\r\n  \"releaseDate\": \"2026-04-30\",\r\n  \"status\": \"NOW_SHOWING\",\r\n  \"genres\": [\r\n    {\r\n      \"id\": 3\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Admin cập nhật thông tin phim",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4NTM4OTEsImV4cCI6MTc3OTg1NzQ5MX0.kOvC41r0-T0dkGpb4QEsAAMoq-rRaMsWIuFfd0sbvOo",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"title\": \"Movie Automation Test - Updated\",\r\n  \"director\": \"Lý Hải\",\r\n  \"duration\": 135,\r\n  \"rated\": \"C16\",\r\n  \"releaseDate\": \"2026-04-30\",\r\n  \"status\": \"NOW_SHOWING\",\r\n  \"genres\": [\r\n    {\r\n      \"id\": 3\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Upload Poster phim lên Cloudinary (Happy Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"TC-06: Upload poster thành công lên Cloudinary - Code 200\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData.success).to.be.true;\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4MTA1NzcsImV4cCI6MTc3OTgxNDE3N30.U8QwtdTWlko5TkDEL6OFEp1omGCHBc1hqHTEhEOzQ6M",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "0e5e31d1-1c32-4d00-86bb-d05196615f6e",
+                  "src": "/D:/Testing/Nova-Cinema-Ticket-Booking-main/Nova-Cinema-Ticket-Booking-main/qa-tests/postman/images.jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8/poster",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "8ab5b0a5-994b-4b4c-86e9-c1b29ccde9c8",
+                "poster"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[201] Upload ảnh nền phim lên Cloudinary",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy danh sách thể loại phim",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Admin xóa phim",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4NTM4OTEsImV4cCI6MTc3OTg1NzQ5MX0.kOvC41r0-T0dkGpb4QEsAAMoq-rRaMsWIuFfd0sbvOo",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/8d7c0ed0-acd3-476c-8e7b-9d2276a9dab2",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "8d7c0ed0-acd3-476c-8e7b-9d2276a9dab2"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy lịch chiếu theo phim",
+          "request": {
+            "method": "GET",
+            "header": []
+          },
+          "response": []
+        },
+        {
+          "name": "[403] Khách hàng thường cố tình thêm phim (Security Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "// Kịch bản mong đợi theo đặc tả KAN-2: Phải trả về 403 Forbidden\r",
+                  "pm.test(\"[Security Path] Quyền CUSTOMER phải bị hệ thống chặn tạo phim (Mong đợi 403)\", function () {\r",
+                  "    pm.response.to.have.status(403);\r",
+                  "});\r",
+                  "\r",
+                  "// Đoạn code hỗ trợ phân tích chi tiết phản hồi từ Backend\r",
+                  "var responseData = pm.response.json();\r",
+                  "pm.test(\"Kiểm tra cấu trúc phản hồi khi bị từ chối truy cập\", function () {\r",
+                  "    pm.expect(responseData.success).to.be.false;\r",
+                  "    // Nếu hệ thống chuẩn, message thường là \"Bạn không có quyền truy cập...\"\r",
+                  "    if (pm.response.code === 403) {\r",
+                  "        pm.expect(responseData.message).to.not.be.null;\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJkMDIwNTNjOC02YjU2LTQwMGMtOTU3ZS0yMzNmZDY3MDFlYzIiLCJlbWFpbCI6InRlc3RtZW1iZXJfMTc3OTg1Mjg0NzI1MEBnbWFpbC5jb20iLCJyb2xlIjoiQ1VTVE9NRVIiLCJpYXQiOjE3Nzk4NTM0OTMsImV4cCI6MTc3OTg1NzA5M30.R_4_hUArOgnr6MBhmldeqVEY7nEjGv_4tF00eBUQ8zw",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"Lật Mặt 7: Một Điều Ước\",\r\n    \"director\": \"Lý Hải\",\r\n    \"duration\": 138,\r\n    \"rated\": \"T16\",\r\n    \"releaseDate\": \"2026-04-30\",\r\n    \"status\": \"NOW_SHOWING\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                ""
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[400] Thêm phim thiếu trường bắt buộc (Negative Path)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Hệ thống phải chặn dữ liệu rác (Mong đợi 400 Bad Request)\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4NTM4OTEsImV4cCI6MTc3OTg1NzQ5MX0.kOvC41r0-T0dkGpb4QEsAAMoq-rRaMsWIuFfd0sbvOo",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n    \"title\": \"\",\r\n    \"director\": \"Lý Hải\",\r\n    \"duration\": -10,\r\n    \"rated\": \"T16\",\r\n    \"releaseDate\": \"2026-04-30\",\r\n    \"status\": \"NOW_SHOWING\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[403] Upload file Poster vượt quá 10MB",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJjOWMyZjVmZC0zNDk5LTQzYmQtOTJhZS01N2ZlM2JjYWU3MjEiLCJlbWFpbCI6ImFkbWluX3Rlc3RAbm92YXRpY2tldC5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3Nzk4NTc4ODIsImV4cCI6MTc3OTg2MTQ4Mn0.mnerjR-tDjva7aR70AITLdyMluUwJquXNdAWQdmjr9E",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "uuid": "cc18824f-29c0-404d-85cc-4c355e34b944",
+                  "src": "/D:/Testing/Nova-Cinema-Ticket-Booking-main/Nova-Cinema-Ticket-Booking-main/qa-tests/postman/images (1).jpg"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/ce224c87-1cad-4adc-981a-9e4ce871b853/poster",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "ce224c87-1cad-4adc-981a-9e4ce871b853",
+                "poster"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo suất chiếu gốc(Gantt Timeline Constraint)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Status code is 201\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"Nếu lỗi 500, xem chi tiết\", function () {\r",
+                  "    if (pm.response.code === 500) {\r",
+                  "        console.log(\"Server error body:\", pm.response.json());\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"1\",\r\n  \"screenId\": 1,\r\n  \"startTime\": \"2026-05-28T19:00:00\",\r\n  \"endTime\": \"2026-05-28T21:00:00\",\r\n  \"basePrice\": 85000\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/showtimes",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "showtimes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tạo suất chiếu bị trùng(Gantt Timeline Constraint) Copy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Edge Case: Hệ thống phải chặn khi trùng lịch chiếu - Mã 400 hoặc 409\", function () {\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"1\",\r\n  \"screenId\": 1,\r\n  \"startTime\": \"2026-05-28T20:00:00\",\r\n  \"endTime\": \"2026-05-28T22:00:00\",\r\n  \"basePrice\": 85000\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/showtimes",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "showtimes"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
     },
     {
       "name": "Cinemas, Screens & Seat Layout",
