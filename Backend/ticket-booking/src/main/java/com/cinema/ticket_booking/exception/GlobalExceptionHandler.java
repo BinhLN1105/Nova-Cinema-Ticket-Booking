@@ -9,6 +9,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.dao.DataIntegrityViolationException;
 
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.hibernate.StaleObjectStateException;
@@ -90,6 +92,35 @@ public class GlobalExceptionHandler {
         log.warn("Data conflict detected: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT,
                 "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
+    }
+
+    // Xử lý lỗi trùng lặp dữ liệu / Vi phạm ràng buộc database (Unique Constraint)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<ErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex) {
+        log.warn("Data integrity violation: {}", ex.getMessage());
+        String message = "Vi phạm ràng buộc dữ liệu hoặc dữ liệu đã tồn tại trong hệ thống";
+
+        // Phát hiện cụ thể unique constraint trùng tọa độ ghế trên screen
+        if (ex.getMessage() != null && ex.getMessage().contains("uk_seat_screen_grid")) {
+            message = "Tọa độ ghế (hàng và cột) trên phòng chiếu này đã tồn tại";
+        }
+
+        return build(HttpStatus.CONFLICT, message);
+    }
+
+    // Xử lý trạng thái nghiệp vụ không hợp lệ (ví dụ: Xóa rạp khi đang có phòng
+    // chiếu/booking)
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex) {
+        log.warn("Illegal state: {}", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, ex.getMessage());
+    }
+
+    // Xử lý tải tệp tin quá giới hạn cho phép
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceeded(MaxUploadSizeExceededException ex) {
+        log.warn("Max upload size exceeded: {}", ex.getMessage());
+        return build(HttpStatus.CONTENT_TOO_LARGE, "Kích thước tệp tải lên vượt quá giới hạn cho phép");
     }
 
     // ── 402 Payment Required ───────────────────────────────────────────────
