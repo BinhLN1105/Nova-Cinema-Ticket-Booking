@@ -47,7 +47,7 @@
         "header": [],
         "body": {
           "mode": "raw",
-          "raw": "{\r\n  \"email\": \"admin.test@nova.local\",\r\n  \"password\": \"Admin@123456\"\r\n}",
+          "raw": "{\r\n  \"email\": \"admin_test@novaticket.com\",\r\n  \"password\": \"AdminPassword123!\"\r\n}",
           "options": {
             "raw": {
               "language": "json"
