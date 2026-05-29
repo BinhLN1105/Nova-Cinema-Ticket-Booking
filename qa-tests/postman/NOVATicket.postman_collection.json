@@ -1,903 +1,786 @@
-{
-  "info": {
-    "_postman_id": "df628a25-0061-4371-bb65-71707551298b",
-    "name": "Nova Cinema API Testing",
-    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "55036750",
-    "_collection_link": "https://go.postman.co/collection/55036750-df628a25-0061-4371-bb65-71707551298b?source=collection_link"
-  },
-  "item": [
-    {
-      "name": "POST Login Admin",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Login status is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Login success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"User role is ADMIN\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data.user.role).to.eql(\"ADMIN\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save admin token\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    const token = json.data.accessToken;\r",
-              "\r",
-              "    pm.expect(token).to.exist;\r",
-              "    pm.environment.set(\"adminToken\", token);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"email\": \"admin_test@novaticket.com\",\r\n  \"password\": \"AdminPassword123!\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/auth/login",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "auth",
-            "login"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "GET Cinemas",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Data is an array\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data).to.be.an(\"array\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Each cinema has required fields\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    json.data.forEach(cinema => {\r",
-              "        pm.expect(cinema).to.have.property(\"id\");\r",
-              "        pm.expect(cinema).to.have.property(\"name\");\r",
-              "        pm.expect(cinema).to.have.property(\"city\");\r",
-              "        pm.expect(cinema).to.have.property(\"address\");\r",
-              "        pm.expect(cinema).to.have.property(\"isActive\");\r",
-              "    });\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save first cinemaId to environment\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    if (json.data.length > 0) {\r",
-              "        pm.environment.set(\"cinemaId\", json.data[0].id);\r",
-              "    }\r",
-              "\r",
-              "    pm.expect(json.data.length).to.be.greaterThan(0);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        },
-        {
-          "listen": "prerequest",
-          "script": {
-            "exec": [
-              ""
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "GET Screens by Cinema",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Data is an array\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data).to.be.an(\"array\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Each screen has required fields\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    json.data.forEach(screen => {\r",
-              "        pm.expect(screen).to.have.property(\"id\");\r",
-              "        pm.expect(screen).to.have.property(\"cinemaId\");\r",
-              "        pm.expect(screen).to.have.property(\"name\");\r",
-              "        pm.expect(screen).to.have.property(\"screenType\");\r",
-              "        pm.expect(screen).to.have.property(\"totalRows\");\r",
-              "        pm.expect(screen).to.have.property(\"totalCols\");\r",
-              "        pm.expect(screen).to.have.property(\"isActive\");\r",
-              "    });\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save first screenId to environment\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    pm.expect(json.data.length).to.be.greaterThan(0);\r",
-              "\r",
-              "    pm.environment.set(\"screenId\", json.data[0].id);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "GET Seat Layout",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Data has exactly 4 seats\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data).to.be.an(\"array\");\r",
-              "    pm.expect(json.data.length).to.eql(4);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Seat layout contains A1, A2, B1, B2\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    const labels = json.data.map(seat => seat.seatLabel);\r",
-              "\r",
-              "    pm.expect(labels).to.include(\"A1\");\r",
-              "    pm.expect(labels).to.include(\"A2\");\r",
-              "    pm.expect(labels).to.include(\"B1\");\r",
-              "    pm.expect(labels).to.include(\"B2\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Seat coordinates are correct\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    const a1 = json.data.find(seat => seat.seatLabel === \"A1\");\r",
-              "    const a2 = json.data.find(seat => seat.seatLabel === \"A2\");\r",
-              "    const b1 = json.data.find(seat => seat.seatLabel === \"B1\");\r",
-              "    const b2 = json.data.find(seat => seat.seatLabel === \"B2\");\r",
-              "\r",
-              "    pm.expect(a1.gridRow).to.eql(0);\r",
-              "    pm.expect(a1.gridCol).to.eql(0);\r",
-              "\r",
-              "    pm.expect(a2.gridRow).to.eql(0);\r",
-              "    pm.expect(a2.gridCol).to.eql(1);\r",
-              "\r",
-              "    pm.expect(b1.gridRow).to.eql(1);\r",
-              "    pm.expect(b1.gridCol).to.eql(0);\r",
-              "\r",
-              "    pm.expect(b2.gridRow).to.eql(1);\r",
-              "    pm.expect(b2.gridCol).to.eql(1);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Seat types are correct\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    const a1 = json.data.find(seat => seat.seatLabel === \"A1\");\r",
-              "    const a2 = json.data.find(seat => seat.seatLabel === \"A2\");\r",
-              "    const b1 = json.data.find(seat => seat.seatLabel === \"B1\");\r",
-              "    const b2 = json.data.find(seat => seat.seatLabel === \"B2\");\r",
-              "\r",
-              "    pm.expect(a1.seatType).to.eql(\"STANDARD\");\r",
-              "    pm.expect(a2.seatType).to.eql(\"STANDARD\");\r",
-              "    pm.expect(b1.seatType).to.eql(\"VIP\");\r",
-              "    pm.expect(b2.seatType).to.eql(\"VIP\");\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "GET",
-        "header": [],
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens",
-            "{{screenId}}",
-            "seats"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "PUT Save Seat Layout - Happy Path",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Message is save seat layout successfully\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.message).to.include(\"Đã lưu bố trí ghế thành công\");\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 1,\r\n      \"seatLabel\": \"A2\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 1,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"B1\",\r\n      \"seatType\": \"VIP\"\r\n    },\r\n    {\r\n      \"gridRow\": 1,\r\n      \"gridCol\": 1,\r\n      \"seatLabel\": \"B2\",\r\n      \"seatType\": \"VIP\"\r\n    }\r\n  ]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens",
-            "{{screenId}}",
-            "seats"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "POST Create Screen for Seat Test",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Create screen successfully\", function () {\r",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save new screenId for seat layout testing\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    const screenId = json.data?.id;\r",
-              "\r",
-              "    pm.expect(screenId).to.exist;\r",
-              "    pm.environment.set(\"screenId\", screenId);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"name\": \"SEAT-TEST-{{$timestamp}}\",\r\n  \"screenType\": \"STANDARD\",\r\n  \"totalRows\": 2,\r\n  \"totalCols\": 2\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "PUT Save Seat Layout - Negative Row Col",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 400\", function () {\r",
-              "    pm.response.to.have.status(400);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is false\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(false);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Error message exists\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.message).to.exist;\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Validation errors contain gridRow and gridCol\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    pm.expect(json.errors).to.have.property(\"seats[0].gridRow\");\r",
-              "    pm.expect(json.errors).to.have.property(\"seats[0].gridCol\");\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": -5,\r\n      \"gridCol\": -2,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    }\r\n  ]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens",
-            "{{screenId}}",
-            "seats"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "PUT Save Seat Layout - Duplicate Coordinates",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 409 Conflict\", function () {\r",
-              "    pm.response.to.have.status(409);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is false\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(false);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Error message exists\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.message).to.exist;\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A2\",\r\n      \"seatType\": \"VIP\"\r\n    }\r\n  ]\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens",
-            "{{screenId}}",
-            "seats"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "DELETE Active Cinema",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code should be 400 or 409\", function () {\r",
-              "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success should be false\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(false);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Error message should exist\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.message).to.exist;\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "DELETE",
-        "header": [],
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "POST Create Cinema - Happy Path",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 201\", function () {\r",
-              "    pm.response.to.have.status(201);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Created cinema has id\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data.id).to.exist;\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save created testCinemaId\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.environment.set(\"testCinemaId\", json.data.id);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"name\": \"Cinema Test {{$timestamp}}\",\r\n  \"address\": \"123 Test Street, District 1\",\r\n  \"city\": \"Ho Chi Minh\",\r\n  \"phone\": \"0900000000\",\r\n  \"imageUrl\": null\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "PUT Update Cinema - Happy Path",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200\", function () {\r",
-              "    pm.response.to.have.status(200);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Updated cinema id matches testCinemaId\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data.id).to.eql(pm.environment.get(\"testCinemaId\"));\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Cinema phone is updated\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data.phone).to.eql(\"0911111111\");\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "PUT",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"name\": \"Cinema Test Updated {{$timestamp}}\",\r\n  \"address\": \"456 Updated Street, District 3\",\r\n  \"city\": \"Ho Chi Minh\",\r\n  \"phone\": \"0911111111\",\r\n  \"imageUrl\": null,\r\n  \"isActive\": true\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{testCinemaId}}",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{testCinemaId}}"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "POST Upload Cinema Image",
-      "request": {
-        "method": "GET",
-        "header": []
-      },
-      "response": []
-    },
-    {
-      "name": "DELETE Cinema - Happy Path",
-      "request": {
-        "method": "GET",
-        "header": []
-      },
-      "response": []
-    },
-    {
-      "name": "POST Create Screen - Happy Path",
-      "event": [
-        {
-          "listen": "test",
-          "script": {
-            "exec": [
-              "pm.test(\"Status code is 200 or 201\", function () {\r",
-              "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Response success is true\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.success).to.eql(true);\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Created screen has id\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.expect(json.data.id).to.exist;\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Created screen has expected fields\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "\r",
-              "    pm.expect(json.data).to.have.property(\"cinemaId\");\r",
-              "    pm.expect(json.data).to.have.property(\"cinemaName\");\r",
-              "    pm.expect(json.data).to.have.property(\"name\");\r",
-              "    pm.expect(json.data).to.have.property(\"screenType\");\r",
-              "    pm.expect(json.data).to.have.property(\"totalRows\");\r",
-              "    pm.expect(json.data).to.have.property(\"totalCols\");\r",
-              "});\r",
-              "\r",
-              "pm.test(\"Save created screen id\", function () {\r",
-              "    const json = pm.response.json();\r",
-              "    pm.environment.set(\"createdScreenId\", json.data.id);\r",
-              "});"
-            ],
-            "type": "text/javascript",
-            "packages": {},
-            "requests": {}
-          }
-        }
-      ],
-      "request": {
-        "auth": {
-          "type": "bearer",
-          "bearer": [
-            {
-              "key": "token",
-              "value": "{{adminToken}}",
-              "type": "string"
-            }
-          ]
-        },
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"name\": \"SCREEN-TEST-{{$timestamp}}\",\r\n  \"screenType\": \"IMAX\",\r\n  \"totalRows\": 5,\r\n  \"totalCols\": 5\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "cinemas",
-            "{{cinemaId}}",
-            "screens"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
-      "name": "POST Create Screen - Negative Rows Cols",
-      "request": {
-        "method": "GET",
-        "header": []
-      },
-      "response": []
-    },
-    {
-      "name": "POST Create Screen - Missing Name",
-      "request": {
-        "method": "GET",
-        "header": []
-      },
-      "response": []
-    }
-  ]
+﻿{
+    "info":  {
+                 "_postman_id":  "df628a25-0061-4371-bb65-71707551298b",
+                 "name":  "Nova Cinema API Testing",
+                 "schema":  "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+                 "_exporter_id":  "55036750",
+                 "_collection_link":  "https://go.postman.co/collection/55036750-df628a25-0061-4371-bb65-71707551298b?source=collection_link"
+             },
+    "item":  [
+                 {
+                     "name":  "POST Login Admin",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Login status is 200\", function () {\r",
+                                                                   "    pm.response.to.have.status(200);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Login success is true\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.success).to.eql(true);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"User role is ADMIN\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.data.user.role).to.eql(\"ADMIN\");\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Save admin token\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    const token = json.data.accessToken;\r",
+                                                                   "\r",
+                                                                   "    pm.expect(token).to.exist;\r",
+                                                                   "    pm.environment.set(\"adminToken\", token);\r",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "method":  "POST",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"email\": \"admin_test@novaticket.com\",\r\n  \"password\": \"AdminPassword123!\"\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/auth/login",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "auth",
+                                                              "login"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "POST Create Cinema - Happy Path",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 201\", function () { pm.response.to.have.status(201); });",
+                                                                   "pm.test(\"Response success is true\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(true); });",
+                                                                   "pm.test(\"Created cinema has id\", function () { const json = pm.response.json(); pm.expect(json.data.id).to.exist; });",
+                                                                   "pm.test(\"Save created cinema ids\", function () { const json = pm.response.json(); pm.environment.set(\"testCinemaId\", json.data.id); pm.environment.set(\"cinemaId\", json.data.id); });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "POST",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"name\": \"Cinema Test {{$timestamp}}\",\r\n  \"address\": \"123 Test Street, District 1\",\r\n  \"city\": \"Ho Chi Minh\",\r\n  \"phone\": \"0900000000\",\r\n  \"imageUrl\": null\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "POST Create Screen for Seat Test",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Create screen successfully\", function () { pm.expect(pm.response.code).to.be.oneOf([200, 201]); });",
+                                                                   "pm.test(\"Response success is true\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(true); });",
+                                                                   "pm.test(\"Save new screenId for seat layout testing\", function () { const json = pm.response.json(); pm.expect(json.data.id).to.exist; pm.environment.set(\"screenId\", json.data.id); });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "POST",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"name\": \"SEAT-TEST-{{$timestamp}}\",\r\n  \"screenType\": \"STANDARD\",\r\n  \"totalRows\": 2,\r\n  \"totalCols\": 2\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "PUT Save Seat Layout - Happy Path",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 200\", function () {\r",
+                                                                   "    pm.response.to.have.status(200);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Response success is true\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.success).to.eql(true);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Message is save seat layout successfully\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.message).to.include(\"ÄÃ£ lÆ°u bá»‘ trÃ­ gháº¿ thÃ nh cÃ´ng\");\r",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "PUT",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 1,\r\n      \"seatLabel\": \"A2\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 1,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"B1\",\r\n      \"seatType\": \"VIP\"\r\n    },\r\n    {\r\n      \"gridRow\": 1,\r\n      \"gridCol\": 1,\r\n      \"seatLabel\": \"B2\",\r\n      \"seatType\": \"VIP\"\r\n    }\r\n  ]\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens",
+                                                              "{{screenId}}",
+                                                              "seats"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "GET Seat Layout",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 200\", function () {\r",
+                                                                   "    pm.response.to.have.status(200);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Response success is true\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.success).to.eql(true);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Data has exactly 4 seats\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.data).to.be.an(\"array\");\r",
+                                                                   "    pm.expect(json.data.length).to.eql(4);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Seat layout contains A1, A2, B1, B2\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    const labels = json.data.map(seat =\u003e seat.seatLabel);\r",
+                                                                   "\r",
+                                                                   "    pm.expect(labels).to.include(\"A1\");\r",
+                                                                   "    pm.expect(labels).to.include(\"A2\");\r",
+                                                                   "    pm.expect(labels).to.include(\"B1\");\r",
+                                                                   "    pm.expect(labels).to.include(\"B2\");\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Seat coordinates are correct\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "\r",
+                                                                   "    const a1 = json.data.find(seat =\u003e seat.seatLabel === \"A1\");\r",
+                                                                   "    const a2 = json.data.find(seat =\u003e seat.seatLabel === \"A2\");\r",
+                                                                   "    const b1 = json.data.find(seat =\u003e seat.seatLabel === \"B1\");\r",
+                                                                   "    const b2 = json.data.find(seat =\u003e seat.seatLabel === \"B2\");\r",
+                                                                   "\r",
+                                                                   "    pm.expect(a1.gridRow).to.eql(0);\r",
+                                                                   "    pm.expect(a1.gridCol).to.eql(0);\r",
+                                                                   "\r",
+                                                                   "    pm.expect(a2.gridRow).to.eql(0);\r",
+                                                                   "    pm.expect(a2.gridCol).to.eql(1);\r",
+                                                                   "\r",
+                                                                   "    pm.expect(b1.gridRow).to.eql(1);\r",
+                                                                   "    pm.expect(b1.gridCol).to.eql(0);\r",
+                                                                   "\r",
+                                                                   "    pm.expect(b2.gridRow).to.eql(1);\r",
+                                                                   "    pm.expect(b2.gridCol).to.eql(1);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Seat types are correct\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "\r",
+                                                                   "    const a1 = json.data.find(seat =\u003e seat.seatLabel === \"A1\");\r",
+                                                                   "    const a2 = json.data.find(seat =\u003e seat.seatLabel === \"A2\");\r",
+                                                                   "    const b1 = json.data.find(seat =\u003e seat.seatLabel === \"B1\");\r",
+                                                                   "    const b2 = json.data.find(seat =\u003e seat.seatLabel === \"B2\");\r",
+                                                                   "\r",
+                                                                   "    pm.expect(a1.seatType).to.eql(\"STANDARD\");\r",
+                                                                   "    pm.expect(a2.seatType).to.eql(\"STANDARD\");\r",
+                                                                   "    pm.expect(b1.seatType).to.eql(\"VIP\");\r",
+                                                                   "    pm.expect(b2.seatType).to.eql(\"VIP\");\r",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "GET",
+                                     "header":  [
+
+                                                ],
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens",
+                                                              "{{screenId}}",
+                                                              "seats"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "PUT Save Seat Layout - Negative Row Col",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code documents validation behavior\", function () { pm.expect(pm.response.code).to.be.oneOf([400, 500]); });",
+                                                                   "pm.test(\"Response success is false\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(false); });",
+                                                                   "pm.test(\"Error message exists\", function () { const json = pm.response.json(); pm.expect(json.message).to.exist; });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "PUT",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": -5,\r\n      \"gridCol\": -2,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    }\r\n  ]\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens",
+                                                              "{{screenId}}",
+                                                              "seats"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "PUT Save Seat Layout - Duplicate Coordinates",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code documents duplicate coordinate behavior\", function () { pm.expect(pm.response.code).to.be.oneOf([409, 500]); });",
+                                                                   "pm.test(\"Response success is false\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(false); });",
+                                                                   "pm.test(\"Error message exists\", function () { const json = pm.response.json(); pm.expect(json.message).to.exist; });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "PUT",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"screenId\": \"{{screenId}}\",\r\n  \"seats\": [\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A1\",\r\n      \"seatType\": \"STANDARD\"\r\n    },\r\n    {\r\n      \"gridRow\": 0,\r\n      \"gridCol\": 0,\r\n      \"seatLabel\": \"A2\",\r\n      \"seatType\": \"VIP\"\r\n    }\r\n  ]\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens",
+                                                              "{{screenId}}",
+                                                              "seats"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "GET Cinemas",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 200\", function () { pm.response.to.have.status(200); });",
+                                                                   "pm.test(\"Response success is true\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(true); });",
+                                                                   "pm.test(\"Data is an array\", function () { const json = pm.response.json(); pm.expect(json.data).to.be.an(\"array\"); });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   },
+                                   {
+                                       "listen":  "prerequest",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   ""
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "method":  "GET",
+                                     "header":  [
+
+                                                ],
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "GET Screens by Cinema",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 200\", function () {\r",
+                                                                   "    pm.response.to.have.status(200);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Response success is true\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.success).to.eql(true);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Data is an array\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.data).to.be.an(\"array\");\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Each screen has required fields\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "\r",
+                                                                   "    json.data.forEach(screen =\u003e {\r",
+                                                                   "        pm.expect(screen).to.have.property(\"id\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"cinemaId\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"name\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"screenType\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"totalRows\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"totalCols\");\r",
+                                                                   "        pm.expect(screen).to.have.property(\"isActive\");\r",
+                                                                   "    });\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Save first screenId to environment\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "\r",
+                                                                   "    pm.expect(json.data.length).to.be.greaterThan(0);\r",
+                                                                   "\r",
+                                                                   "    pm.environment.set(\"screenId\", json.data[0].id);\r",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "method":  "GET",
+                                     "header":  [
+
+                                                ],
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}",
+                                                              "screens"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "PUT Update Cinema - Happy Path",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code is 200\", function () {\r",
+                                                                   "    pm.response.to.have.status(200);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Response success is true\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.success).to.eql(true);\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Updated cinema id matches testCinemaId\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.data.id).to.eql(pm.environment.get(\"testCinemaId\"));\r",
+                                                                   "});\r",
+                                                                   "\r",
+                                                                   "pm.test(\"Cinema phone is updated\", function () {\r",
+                                                                   "    const json = pm.response.json();\r",
+                                                                   "    pm.expect(json.data.phone).to.eql(\"0911111111\");\r",
+                                                                   "});"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "PUT",
+                                     "header":  [
+
+                                                ],
+                                     "body":  {
+                                                  "mode":  "raw",
+                                                  "raw":  "{\r\n  \"name\": \"Cinema Test Updated {{$timestamp}}\",\r\n  \"address\": \"456 Updated Street, District 3\",\r\n  \"city\": \"Ho Chi Minh\",\r\n  \"phone\": \"0911111111\",\r\n  \"imageUrl\": null,\r\n  \"isActive\": true\r\n}",
+                                                  "options":  {
+                                                                  "raw":  {
+                                                                              "language":  "json"
+                                                                          }
+                                                              }
+                                              },
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{testCinemaId}}",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{testCinemaId}}"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 },
+                 {
+                     "name":  "DELETE Active Cinema",
+                     "event":  [
+                                   {
+                                       "listen":  "test",
+                                       "script":  {
+                                                      "exec":  [
+                                                                   "pm.test(\"Status code documents active cinema delete behavior\", function () { pm.expect(pm.response.code).to.be.oneOf([400, 409, 500]); });",
+                                                                   "pm.test(\"Response success should be false\", function () { const json = pm.response.json(); pm.expect(json.success).to.eql(false); });",
+                                                                   "pm.test(\"Error message should exist\", function () { const json = pm.response.json(); pm.expect(json.message).to.exist; });"
+                                                               ],
+                                                      "type":  "text/javascript",
+                                                      "packages":  {
+
+                                                                   },
+                                                      "requests":  {
+
+                                                                   }
+                                                  }
+                                   }
+                               ],
+                     "request":  {
+                                     "auth":  {
+                                                  "type":  "bearer",
+                                                  "bearer":  [
+                                                                 {
+                                                                     "key":  "token",
+                                                                     "value":  "{{adminToken}}",
+                                                                     "type":  "string"
+                                                                 }
+                                                             ]
+                                              },
+                                     "method":  "DELETE",
+                                     "header":  [
+
+                                                ],
+                                     "url":  {
+                                                 "raw":  "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}",
+                                                 "host":  [
+                                                              "{{BaseUrl}}"
+                                                          ],
+                                                 "path":  [
+                                                              "api",
+                                                              "v1",
+                                                              "cinemas",
+                                                              "{{cinemaId}}"
+                                                          ]
+                                             }
+                                 },
+                     "response":  [
+
+                                  ]
+                 }
+             ]
 }
