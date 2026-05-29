@@ -8,35 +8,6 @@
   },
   "item": [
     {
-      "name": "POST Register Admin Candidate",
-      "request": {
-        "method": "POST",
-        "header": [],
-        "body": {
-          "mode": "raw",
-          "raw": "{\r\n  \"email\": \"admin.test@nova.local\",\r\n  \"password\": \"Admin@123456\",\r\n  \"fullName\": \"Admin Test\",\r\n  \"phone\": \"0900000000\"\r\n}",
-          "options": {
-            "raw": {
-              "language": "json"
-            }
-          }
-        },
-        "url": {
-          "raw": "{{BaseUrl}}/api/v1/auth/register",
-          "host": [
-            "{{BaseUrl}}"
-          ],
-          "path": [
-            "api",
-            "v1",
-            "auth",
-            "register"
-          ]
-        }
-      },
-      "response": []
-    },
-    {
       "name": "POST Login Admin",
       "event": [
         {
@@ -84,9 +55,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/auth/login",
+          "raw": "{{baseUrl}}/api/v1/auth/login",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -162,9 +133,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas",
+          "raw": "{{baseUrl}}/api/v1/cinemas",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -228,9 +199,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -330,9 +301,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -397,9 +368,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -467,9 +438,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -539,9 +510,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -606,9 +577,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -664,9 +635,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -733,9 +704,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas",
+          "raw": "{{baseUrl}}/api/v1/cinemas",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -801,9 +772,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{testCinemaId}}",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{testCinemaId}}",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
@@ -897,9 +868,9 @@
           }
         },
         "url": {
-          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{BaseUrl}}"
+            "{{baseUrl}}"
           ],
           "path": [
             "api",
