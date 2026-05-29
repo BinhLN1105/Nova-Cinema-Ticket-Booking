@@ -22,9 +22,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/auth/register",
+          "raw": "{{BaseUrl}}/api/v1/auth/register",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -84,9 +84,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/auth/login",
+          "raw": "{{BaseUrl}}/api/v1/auth/login",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -162,9 +162,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas",
+          "raw": "{{BaseUrl}}/api/v1/cinemas",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -228,9 +228,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -330,9 +330,9 @@
         "method": "GET",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -397,9 +397,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -467,9 +467,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -539,9 +539,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -606,9 +606,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens/{{screenId}}/seats",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -664,9 +664,9 @@
         "method": "DELETE",
         "header": [],
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -733,9 +733,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas",
+          "raw": "{{BaseUrl}}/api/v1/cinemas",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -801,9 +801,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{testCinemaId}}",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{testCinemaId}}",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
@@ -897,9 +897,9 @@
           }
         },
         "url": {
-          "raw": "{{baseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
+          "raw": "{{BaseUrl}}/api/v1/cinemas/{{cinemaId}}/screens",
           "host": [
-            "{{baseUrl}}"
+            "{{BaseUrl}}"
           ],
           "path": [
             "api",
