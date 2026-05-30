@@ -14,6 +14,7 @@ Thumbs.db
 .env.production.local
 *.gdrive_key.json
 /baocaoLocal/
+/node_modules/
 
 # ==============================
 # IDE & Editors

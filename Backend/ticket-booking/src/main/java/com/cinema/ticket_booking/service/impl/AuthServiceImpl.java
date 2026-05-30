@@ -35,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
 
 @Service
 @RequiredArgsConstructor
@@ -180,8 +181,9 @@ public class AuthServiceImpl implements AuthService {
 
             // 2. Tạo mã OTP 6 số
             String otp = String.format("%06d", new Random().nextInt(1000000));
-            if (java.util.Arrays.asList(env.getActiveProfiles()).contains("test")) {
-                otp = "123456"; // Fixed OTP for CI/CD test automation
+            if (Arrays.asList(env.getActiveProfiles()).contains("test")
+                    || Arrays.asList(env.getActiveProfiles()).contains("dev")) {
+                otp = "123456"; // Fixed OTP for CI/CD and local development test automation
             }
 
             // 3. Lưu vào Redis (5 phút)
