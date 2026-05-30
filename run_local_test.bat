@@ -11,6 +11,14 @@ echo [1/2] Dang chay kiem thu API thuc te qua Newman...
 call newman run qa-tests/postman/NOVATicket.postman_collection.json -e qa-tests/postman/NovaTicket-Local.postman_environment.json --reporters cli,json --reporter-json-export baocaoLocal/postman-report.json
 
 echo.
+echo [Trang thai: Check] Dang kiem tra loi API va tu dong dong bo/ACK len Jira...
+if not exist node_modules\axios (
+    echo [Local Setup] Dang tu dong cai dat thu vien Node.js de dong bo Jira...
+    call npm install axios dotenv
+)
+node scripts/auto_log_jira_bug.js
+
+echo.
 echo [2/2] Dang doc ket qua test, ve Excel va dong bo len Google Drive...
 python scripts/generate_test_report.py
 
