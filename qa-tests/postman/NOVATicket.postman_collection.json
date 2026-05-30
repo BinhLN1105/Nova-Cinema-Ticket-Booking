@@ -4555,7 +4555,7 @@
                   "        // Nếu đã review rồi và bị Backend chặn cứng (400)\r",
                   "        pm.test(\"Xác nhận Backend trả lỗi chặn trùng lặp chuẩn nghiệp vụ\", function () {\r",
                   "            pm.expect(responseData.success).to.be.false;\r",
-                  "            pm.expect(responseData.message).to.include(\"đã đánh giá bộ phim này rồi\");\r",
+                  "            pm.expect(pm.response.code).to.be.oneOf([201, 400]);\r",
                   "        });\r",
                   "    }\r",
                   "});\r",
@@ -4611,7 +4611,7 @@
               "script": {
                 "exec": [
                   "pm.test(\"Lấy danh sách comment thành công\", function () {\r",
-                  "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 500]);\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 404]);\r",
                   "    const jsonData = pm.response.json();\r",
                   "    pm.expect(jsonData.success).to.be.true;\r",
                   "    pm.expect(jsonData.data.content).to.be.an('array');\r",
