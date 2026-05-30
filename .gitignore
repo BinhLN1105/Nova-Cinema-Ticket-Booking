@@ -16,6 +16,12 @@ Thumbs.db
 /baocaoLocal/
 /node_modules/
 
+# Python cache (Global)
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+
+
 # ==============================
 # IDE & Editors
 # ==============================
