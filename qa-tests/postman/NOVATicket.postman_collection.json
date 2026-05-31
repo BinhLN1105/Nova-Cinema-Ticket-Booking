@@ -1,9 +1,10 @@
 {
   "info": {
-    "_postman_id": "758479ac-a6a2-4a7a-9d47-fa447f200c40",
+    "_postman_id": "11e2b5c7-efb2-4840-b35a-4c4215fc6daa",
     "name": "NOVA Ticket Booking",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "45637706"
+    "_exporter_id": "41821070",
+    "_collection_link": "https://go.postman.co/collection/41821070-11e2b5c7-efb2-4840-b35a-4c4215fc6daa?source=collection_link"
   },
   "item": [
     {
@@ -301,7 +302,735 @@
     },
     {
       "name": "Booking & Check-In Flow",
-      "item": []
+      "item": [
+        {
+          "name": "[Happy Path] Khóa ghế thành công",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  ""
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Khóa ghế thành công - Status phải là 201 Created\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "\r",
+                  "// Tự động lấy ID hóa đơn vừa tạo để dùng cho các API sau\r",
+                  "var jsonData = pm.response.json();\r",
+                  "if (jsonData && jsonData.id) {\r",
+                  "    pm.environment.set(\"currentBookingId\", jsonData.id);\r",
+                  "}",
+                  "",
+                  "pm.test(\"Status code phải là 201 Created\", function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test(\"Response trả về thông tin hóa đơn đặt vé\", function () {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property(\"id\");",
+                  "});",
+                  "",
+                  "// Lưu booking id để dùng cho các request sau",
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData && jsonData.id) {",
+                  "    pm.environment.set(\"unpaid_booking_id\", jsonData.id);",
+                  "}",
+                  "if (jsonData && jsonData.bookingCode) {",
+                  "    pm.environment.set(\"temp_booking_code\", jsonData.bookingCode);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": \"{{test_showtime_id}}\",\n  \"seatIds\": [\"{{test_seat_id}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Edge Path] Tranh chấp đặt trùng ghế",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Ghế đã bị khóa - Phải báo lỗi 409 Conflict\", function () {",
+                  "    pm.response.to.have.status(409);",
+                  "});",
+                  "",
+                  "pm.test(\"Response báo ghế đã được chọn hoặc đang thanh toán\", function () {",
+                  "    var responseText = pm.response.text().toLowerCase();",
+                  "    pm.expect(",
+                  "        responseText.includes(\"đã được chọn\") ||",
+                  "        responseText.includes(\"đang được thanh toán\") ||",
+                  "        responseText.includes(\"conflict\") ||",
+                  "        responseText.includes(\"locked\") ||",
+                  "        responseText.includes(\"seat\")",
+                  "    ).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": \"{{test_showtime_id}}\",\n  \"seatIds\": [\"{{test_seat_id}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[404] Suất chiếu ảo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Suất chiếu không tồn tại - Phải báo 404 Not Found\", function () {",
+                  "    pm.response.to.have.status(404);",
+                  "});",
+                  "",
+                  "pm.test(\"Response báo lỗi không tìm thấy showtime\", function () {",
+                  "    var responseText = pm.response.text().toLowerCase();",
+                  "    pm.expect(",
+                  "        responseText.includes(\"not found\") ||",
+                  "        responseText.includes(\"không tìm thấy\") ||",
+                  "        responseText.includes(\"showtime\")",
+                  "    ).to.be.true;",
+                  "});"
+                ],
+                "type": "text/javascript",
+                "packages": {},
+                "requests": {}
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"showtimeId\": \"550e8400-e29b-41d4-a716-446655440000\",\n  \"seatIds\": [\"{{test_seat_id}}\"]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "[Race Condition] Đặt cùng ghế đồng thời",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Race condition - 1 trong 2 request phải nhận 409 Conflict\", function () {",
+                  "    pm.expect([201, 409]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{test_seat_id}}\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Content-Type: application/json' -H 'Authorization: Bearer {{customer_accessToken}}' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{test_seat_id}}\"]}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy báo giá nháp (quote)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response chứa thông tin giá\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.be.an(\"object\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{test_seat_id}}\"]}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/quote",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "quote"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/quote' -H 'Content-Type: application/json' -H 'Authorization: Bearer {{customer_accessToken}}' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{test_seat_id}}\"]}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Lấy lịch sử mua vé của tôi",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response là danh sách booking\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.satisfy(function (data) {",
+                  "        return Array.isArray(data) || (data && (Array.isArray(data.content) || Array.isArray(data.items) || Array.isArray(data.data)));",
+                  "    });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/me",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "me"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET '{{BaseUrl}}/api/v1/bookings/me' -H 'Authorization: Bearer {{customer_accessToken}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Chi tiết hóa đơn đặt vé",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test(\"Response trả đúng booking id\", function () {",
+                  "    var json = pm.response.json();",
+                  "    pm.expect(json).to.have.property(\"id\");",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "{{unpaid_booking_id}}"
+              ]
+            },
+            "description": "Generated from cURL: curl -X GET '{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}' -H 'Authorization: Bearer {{customer_accessToken}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Yêu cầu hủy vé (gửi mail xác nhận)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}/cancel-request",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "{{unpaid_booking_id}}",
+                "cancel-request"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}/cancel-request' -H 'Content-Type: application/json' -H 'Authorization: Bearer {{customer_accessToken}}' -d '{}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Khách xác nhận hủy từ link Email",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"token\":\"REPLACE_WITH_EMAIL_CONFIRM_TOKEN\"}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "cancel-confirm"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/cancel-confirm' -H 'Content-Type: application/json' -H 'Authorization: Bearer {{customer_accessToken}}' -d '{\"token\":\"REPLACE_WITH_EMAIL_CONFIRM_TOKEN\"}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[200] Staff hủy vé tại quầy",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}/cancel",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "{{unpaid_booking_id}}",
+                "cancel"
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}/cancel' -H 'Content-Type: application/json' -H 'Authorization: Bearer {{staff_accessToken}}' -d '{}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[Happy Path] Check-in vé thành công",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Status 200 OK - check-in thành công\", function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{temp_booking_code}}",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "check-in"
+              ],
+              "query": [
+                {
+                  "key": "qrCode",
+                  "value": "{{temp_booking_code}}"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{temp_booking_code}}' -H 'Authorization: Bearer {{staff_accessToken}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[Edge Path] Double Check-In Scan (vé đã sử dụng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Vé đã sử dụng - Phải báo lỗi (409 hoặc 400)\", function () {",
+                  "    pm.expect([400, 409, 422]).to.include(pm.response.code);",
+                  "});",
+                  "pm.test(\"Response báo vé đã sử dụng\", function () {",
+                  "    var responseText = pm.response.text().toLowerCase();",
+                  "    pm.expect(",
+                  "        responseText.includes(\"đã sử dụng\") ||",
+                  "        responseText.includes(\"already\") ||",
+                  "        responseText.includes(\"used\")",
+                  "    ).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{temp_booking_code}}",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "check-in"
+              ],
+              "query": [
+                {
+                  "key": "qrCode",
+                  "value": "{{temp_booking_code}}"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{temp_booking_code}}' -H 'Authorization: Bearer {{staff_accessToken}}'"
+          },
+          "response": []
+        },
+        {
+          "name": "[Negative Path] Check-in mã vé ảo (sai định dạng)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"Mã vé sai định dạng - Phải báo lỗi (400/404)\", function () {",
+                  "    pm.expect([400, 404, 422]).to.include(pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{staff_accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode=INVALID_FAKE_CODE_123",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "check-in"
+              ],
+              "query": [
+                {
+                  "key": "qrCode",
+                  "value": "INVALID_FAKE_CODE_123"
+                }
+              ]
+            },
+            "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/check-in?qrCode=INVALID_FAKE_CODE_123' -H 'Authorization: Bearer {{staff_accessToken}}'"
+          },
+          "response": []
+        }
+      ]
     },
     {
       "name": "Payments & Wallet Flow",
@@ -2296,6 +3025,17 @@
           "response": []
         }
       ]
+    },
+    {
+      "name": "New Request",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": ""
+        }
+      },
+      "response": []
     }
   ]
 }
