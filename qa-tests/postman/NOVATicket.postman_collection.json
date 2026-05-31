@@ -1,4 +1,4 @@
-﻿{
+{
   "info": {
     "_postman_id": "8e96a998-d88d-454f-8f59-ea2101dae865",
     "name": "NOVA Ticket Booking",
@@ -2331,7 +2331,1373 @@
     },
     {
       "name": "Payments & Wallet Flow",
-      "item": []
+      "item": [
+            {
+              "name": "[201] [Setup] Đăng ký User test ví",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "var timestamp = new Date().getTime();\r",
+                      "pm.environment.set(\"wallet_test_email\", \"wallet_test_\" + timestamp + \"@gmail.com\");\r",
+                      "pm.environment.set(\"wallet_test_phone\", \"09\" + Math.floor(10000000 + Math.random() * 90000000));\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Đăng ký tài khoản test ví thành công\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.environment.set(\"wallet_test_accessToken\", jsonData.data.accessToken);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"email\": \"{{wallet_test_email}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"Wallet Tester\",\r\n  \"phone\": \"{{wallet_test_phone}}\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/register",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "register"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Setup] Đăng nhập User test ví",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Đăng nhập tài khoản test ví thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.environment.set(\"wallet_test_accessToken\", jsonData.data.accessToken);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"email\": \"{{wallet_test_email}}\",\r\n  \"password\": \"Password123!\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/login",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "login"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Lấy số dư ví ban đầu",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy thông tin tài khoản thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var rewardPoints = jsonData.data.rewardPoints !== undefined ? jsonData.data.rewardPoints : 0;\r",
+                      "    pm.expect(rewardPoints).to.be.a('number');\r",
+                      "    pm.environment.set(\"wallet_test_balance\", rewardPoints);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Setup] Bốc ghế trống (Test ví)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy sơ đồ ghế thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var availableSeat = jsonData.data.seats.find(s => s.status === \"AVAILABLE\");\r",
+                      "    pm.expect(availableSeat).to.not.be.undefined;\r",
+                      "    pm.environment.set(\"wallet_test_seat_id\", availableSeat.showtimeSeatId);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "showtimes",
+                    "{{test_showtime_id}}",
+                    "seats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[201] [Setup] Tạo đơn đặt vé (WALLET)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo đơn hàng thành công\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.environment.set(\"wallet_test_booking_id\", jsonData.data.id);\r",
+                      "    pm.environment.set(\"wallet_test_booking_code\", jsonData.data.bookingCode);\r",
+                      "    pm.environment.set(\"wallet_test_total_amount\", jsonData.data.totalAmount);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": [\"{{wallet_test_seat_id}}\"],\r\n  \"combos\": [],\r\n  \"voucherCode\": null,\r\n  \"paymentMethod\": \"WALLET\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[400/409] [Edge Path] Chặn thanh toán ví không hợp lệ",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Chặn thanh toán ví không hợp lệ - Trả về lỗi 400 hoặc 409\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.false;\r",
+                      "    pm.expect(jsonData.message).to.be.a('string');\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{wallet_test_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{wallet_test_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Tạo link nạp tiền ví qua VNPay",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo yêu cầu nạp ví thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.paymentUrl).to.not.be.undefined;\r",
+                      "    \r",
+                      "    // Trích xuất các tham số từ paymentUrl\r",
+                      "    var url = jsonData.data.paymentUrl;\r",
+                      "    var queryString = url.split(\"?\")[1];\r",
+                      "    var params = {};\r",
+                      "    queryString.split(\"&\").forEach(function(part) {\r",
+                      "        var item = part.split(\"=\");\r",
+                      "        params[item[0]] = decodeURIComponent(item[1]);\r",
+                      "    });\r",
+                      "    \r",
+                      "    pm.environment.set(\"test_vnp_TxnRef\", params[\"vnp_TxnRef\"]);\r",
+                      "    pm.environment.set(\"test_vnp_Amount\", params[\"vnp_Amount\"]);\r",
+                      "    pm.environment.set(\"test_vnp_CreateDate\", params[\"vnp_CreateDate\"]);\r",
+                      "    pm.environment.set(\"test_vnp_OrderInfo\", params[\"vnp_OrderInfo\"]);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"amount\": 200000\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/wallet/topup",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wallet",
+                    "topup"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[302] Giả lập VNPay callback nạp ví thành công",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const rawOrderInfo = pm.environment.get(\"test_vnp_OrderInfo\") || \"Nap CinePoint qua VNPay\";\r",
+                      "const cleanOrderInfo = rawOrderInfo.replace(/\\+/g, \" \"); \r",
+                      "const params = {\r",
+                      "    \"vnp_Amount\": pm.environment.get(\"test_vnp_Amount\"),\r",
+                      "    \"vnp_BankCode\": \"NCB\",\r",
+                      "    \"vnp_BankTranNo\": \"VNP12345678\",\r",
+                      "    \"vnp_CardType\": \"ATM\",\r",
+                      "    \"vnp_OrderInfo\": cleanOrderInfo,\r",
+                      "    \"vnp_PayDate\": pm.environment.get(\"test_vnp_CreateDate\"),\r",
+                      "    \"vnp_ResponseCode\": \"00\",\r",
+                      "    \"vnp_TmnCode\": \"N79FS0G0\",\r",
+                      "    \"vnp_TransactionNo\": \"12345678\",\r",
+                      "    \"vnp_TransactionStatus\": \"00\",\r",
+                      "    \"vnp_TxnRef\": pm.environment.get(\"test_vnp_TxnRef\")\r",
+                      "};\r",
+                      "const hashSecret = pm.environment.get(\"vnpay_hash_secret\") || \"Y1GKQK0Y3W911KG28X3ORIOYVCC8WPSD\";\r",
+                      "const keys = Object.keys(params).sort();\r",
+                      "let signData = \"\";\r",
+                      "for (let key of keys) {\r",
+                      "    let value = params[key];\r",
+                      "    if (value !== null && value !== undefined && value !== \"\") {\r",
+                      "        let encodedVal = encodeURIComponent(value)\r",
+                      "            .replace(/%20/g, \"%20\")\r",
+                      "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                      "        if (signData.length > 0) {\r",
+                      "            signData += \"&\";\r",
+                      "        }\r",
+                      "        signData += key + \"=\" + encodedVal;\r",
+                      "    }\r",
+                      "}\r",
+                      "const computedHash = CryptoJS.HmacSHA512(signData, hashSecret).toString(CryptoJS.enc.Hex);\r",
+                      "pm.environment.set(\"test_vnp_SecureHash\", computedHash);\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Giả lập VNPay callback thành công (302 Redirect)\", function () {\r",
+                      "    pm.response.to.have.status(302);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "followRedirects": false
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/wallet/vnpay-return?vnp_Amount={{test_vnp_Amount}}&vnp_BankCode=NCB&vnp_BankTranNo=VNP12345678&vnp_CardType=ATM&vnp_OrderInfo={{test_vnp_OrderInfo}}&vnp_PayDate={{test_vnp_CreateDate}}&vnp_ResponseCode=00&vnp_TmnCode=N79FS0G0&vnp_TransactionNo=12345678&vnp_TransactionStatus=00&vnp_TxnRef={{test_vnp_TxnRef}}&vnp_SecureHash={{test_vnp_SecureHash}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wallet",
+                    "vnpay-return"
+                  ],
+                  "query": [
+                    {
+                      "key": "vnp_Amount",
+                      "value": "{{test_vnp_Amount}}"
+                    },
+                    {
+                      "key": "vnp_BankCode",
+                      "value": "NCB"
+                    },
+                    {
+                      "key": "vnp_BankTranNo",
+                      "value": "VNP12345678"
+                    },
+                    {
+                      "key": "vnp_CardType",
+                      "value": "ATM"
+                    },
+                    {
+                      "key": "vnp_OrderInfo",
+                      "value": "{{test_vnp_OrderInfo}}"
+                    },
+                    {
+                      "key": "vnp_PayDate",
+                      "value": "{{test_vnp_CreateDate}}"
+                    },
+                    {
+                      "key": "vnp_ResponseCode",
+                      "value": "00"
+                    },
+                    {
+                      "key": "vnp_TmnCode",
+                      "value": "N79FS0G0"
+                    },
+                    {
+                      "key": "vnp_TransactionNo",
+                      "value": "12345678"
+                    },
+                    {
+                      "key": "vnp_TransactionStatus",
+                      "value": "00"
+                    },
+                    {
+                      "key": "vnp_TxnRef",
+                      "value": "{{test_vnp_TxnRef}}"
+                    },
+                    {
+                      "key": "vnp_SecureHash",
+                      "value": "{{test_vnp_SecureHash}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Kiểm tra số dư ví tăng lên sau khi nạp",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Kiểm tra ví nạp thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var initialBalance = parseFloat(pm.environment.get(\"wallet_test_balance\") || 0);\r",
+                      "    pm.expect(jsonData.data.rewardPoints).to.eql(initialBalance + 200);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Happy Path] Thanh toán đơn hàng bằng ví",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Thanh toán ví thành công (200 OK)\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.true;\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{wallet_test_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{wallet_test_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Kiểm tra trạng thái giao dịch thành công (SUCCESS)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy trạng thái giao dịch thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.status).to.eql(\"SUCCESS\");\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/booking/{{wallet_test_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "booking",
+                    "{{wallet_test_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Kiểm tra số dư ví bị trừ chính xác",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Ví tích lũy bị trừ chính xác\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var totalAmount = parseFloat(pm.environment.get(\"wallet_test_total_amount\") || 120000);\r",
+                      "    var initialBalance = parseFloat(pm.environment.get(\"wallet_test_balance\") || 0);\r",
+                      "    var expectedPoints = (initialBalance + 200) - (totalAmount / 1000);\r",
+                      "    pm.expect(jsonData.data.rewardPoints).to.eql(expectedPoints);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[400/409] [Security Path] Chặn trừ ví trùng lặp cho đơn đã PAID",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Chặn thanh toán trùng lặp (400 hoặc 409)\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.false;\r",
+                      "    pm.expect(jsonData.message).to.include(\"thanh toán\");\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{wallet_test_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{wallet_test_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Setup] Bốc ghế trống (Test hủy VNPay)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy sơ đồ ghế thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var availableSeat = jsonData.data.seats.find(s => s.status === \"AVAILABLE\");\r",
+                      "    pm.expect(availableSeat).to.not.be.undefined;\r",
+                      "    pm.environment.set(\"wallet_cancel_seat_id\", availableSeat.showtimeSeatId);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "showtimes",
+                    "{{test_showtime_id}}",
+                    "seats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[201] [Setup] Tạo đơn đặt vé mới (VNPAY)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo đơn hàng VNPay thành công\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.environment.set(\"wallet_cancel_booking_id\", jsonData.data.id);\r",
+                      "    pm.environment.set(\"wallet_cancel_booking_code\", jsonData.data.bookingCode);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": [\"{{wallet_cancel_seat_id}}\"],\r\n  \"combos\": [],\r\n  \"voucherCode\": null,\r\n  \"paymentMethod\": \"VNPAY\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Tạo link thanh toán đơn hàng qua VNPay",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo link thanh toán VNPay thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.paymentUrl).to.not.be.undefined;\r",
+                      "    \r",
+                      "    var url = jsonData.data.paymentUrl;\r",
+                      "    var queryString = url.split(\"?\")[1];\r",
+                      "    var params = {};\r",
+                      "    queryString.split(\"&\").forEach(function(part) {\r",
+                      "        var item = part.split(\"=\");\r",
+                      "        params[item[0]] = decodeURIComponent(item[1]);\r",
+                      "    });\r",
+                      "    \r",
+                      "    pm.environment.set(\"wallet_cancel_txn_ref\", params[\"vnp_TxnRef\"]);\r",
+                      "    pm.environment.set(\"wallet_cancel_amount\", params[\"vnp_Amount\"]);\r",
+                      "    pm.environment.set(\"wallet_cancel_create_date\", params[\"vnp_CreateDate\"]);\r",
+                      "    pm.environment.set(\"wallet_cancel_order_info\", params[\"vnp_OrderInfo\"]);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"bookingId\": \"{{wallet_cancel_booking_id}}\",\r\n  \"returnUrl\": null\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[302] Giả lập khách hủy giao dịch VNPay (ResponseCode 24)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const rawOrderInfo = pm.environment.get(\"wallet_cancel_order_info\") || \"Thanh toan ve\";\r",
+                      "const cleanOrderInfo = rawOrderInfo.replace(/\\+/g, \" \"); \r",
+                      "const params = {\r",
+                      "    \"vnp_Amount\": pm.environment.get(\"wallet_cancel_amount\"),\r",
+                      "    \"vnp_BankCode\": \"NCB\",\r",
+                      "    \"vnp_BankTranNo\": \"VNP12345678\",\r",
+                      "    \"vnp_CardType\": \"ATM\",\r",
+                      "    \"vnp_OrderInfo\": cleanOrderInfo,\r",
+                      "    \"vnp_PayDate\": pm.environment.get(\"wallet_cancel_create_date\"),\r",
+                      "    \"vnp_ResponseCode\": \"24\",\r",
+                      "    \"vnp_TmnCode\": \"N79FS0G0\",\r",
+                      "    \"vnp_TransactionNo\": \"12345678\",\r",
+                      "    \"vnp_TransactionStatus\": \"02\",\r",
+                      "    \"vnp_TxnRef\": pm.environment.get(\"wallet_cancel_txn_ref\")\r",
+                      "};\r",
+                      "const hashSecret = pm.environment.get(\"vnpay_hash_secret\") || \"Y1GKQK0Y3W911KG28X3ORIOYVCC8WPSD\";\r",
+                      "const keys = Object.keys(params).sort();\r",
+                      "let signData = \"\";\r",
+                      "for (let key of keys) {\r",
+                      "    let value = params[key];\r",
+                      "    if (value !== null && value !== undefined && value !== \"\") {\r",
+                      "        let encodedVal = encodeURIComponent(value)\r",
+                      "            .replace(/%20/g, \"%20\")\r",
+                      "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                      "        if (signData.length > 0) {\r",
+                      "            signData += \"&\";\r",
+                      "        }\r",
+                      "        signData += key + \"=\" + encodedVal;\r",
+                      "    }\r",
+                      "}\r",
+                      "const computedHash = CryptoJS.HmacSHA512(signData, hashSecret).toString(CryptoJS.enc.Hex);\r",
+                      "pm.environment.set(\"wallet_cancel_secure_hash\", computedHash);\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Giả lập VNPay callback thất bại thành công\", function () {\r",
+                      "    pm.response.to.have.status(302);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "followRedirects": false
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/vnpay/callback?vnp_Amount={{wallet_cancel_amount}}&vnp_BankCode=NCB&vnp_BankTranNo=VNP12345678&vnp_CardType=ATM&vnp_OrderInfo={{wallet_cancel_order_info}}&vnp_PayDate={{wallet_cancel_create_date}}&vnp_ResponseCode=24&vnp_TmnCode=N79FS0G0&vnp_TransactionNo=12345678&vnp_TransactionStatus=02&vnp_TxnRef={{wallet_cancel_txn_ref}}&vnp_SecureHash={{wallet_cancel_secure_hash}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "vnpay",
+                    "callback"
+                  ],
+                  "query": [
+                    {
+                      "key": "vnp_Amount",
+                      "value": "{{wallet_cancel_amount}}"
+                    },
+                    {
+                      "key": "vnp_BankCode",
+                      "value": "NCB"
+                    },
+                    {
+                      "key": "vnp_BankTranNo",
+                      "value": "VNP12345678"
+                    },
+                    {
+                      "key": "vnp_CardType",
+                      "value": "ATM"
+                    },
+                    {
+                      "key": "vnp_OrderInfo",
+                      "value": "{{wallet_cancel_order_info}}"
+                    },
+                    {
+                      "key": "vnp_PayDate",
+                      "value": "{{wallet_cancel_create_date}}"
+                    },
+                    {
+                      "key": "vnp_ResponseCode",
+                      "value": "24"
+                    },
+                    {
+                      "key": "vnp_TmnCode",
+                      "value": "N79FS0G0"
+                    },
+                    {
+                      "key": "vnp_TransactionNo",
+                      "value": "12345678"
+                    },
+                    {
+                      "key": "vnp_TransactionStatus",
+                      "value": "02"
+                    },
+                    {
+                      "key": "vnp_TxnRef",
+                      "value": "{{wallet_cancel_txn_ref}}"
+                    },
+                    {
+                      "key": "vnp_SecureHash",
+                      "value": "{{wallet_cancel_secure_hash}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Kiểm tra trạng thái giao dịch thất bại (FAILED)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Kiểm tra trạng thái thanh toán là FAILED\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.status).to.eql(\"FAILED\");\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/booking/{{wallet_cancel_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "booking",
+                    "{{wallet_cancel_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[201] [Setup] Tạo voucher giảm giá 35k",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo voucher 35k thành công\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.environment.set(\"wallet_hybrid_voucher_code\", jsonData.data.code);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"code\": \"VNP_HYBRID_35K_{{$timestamp}}\",\r\n  \"description\": \"Voucher giam 35k test hybrid limit\",\r\n  \"discountType\": \"FIXED_AMOUNT\",\r\n  \"discountValue\": 35000.0,\r\n  \"maxDiscount\": 35000.0,\r\n  \"minOrder\": 0.0,\r\n  \"usageLimit\": 10,\r\n  \"startDate\": \"2026-01-01\",\r\n  \"endDate\": \"2030-12-31\",\r\n  \"applicableTo\": \"ALL\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/vouchers",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "vouchers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Setup] Bốc ghế trống (Test Hybrid)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy sơ đồ ghế thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var availableSeat = jsonData.data.seats.find(s => s.status === \"AVAILABLE\");\r",
+                      "    pm.expect(availableSeat).to.not.be.undefined;\r",
+                      "    pm.environment.set(\"wallet_hybrid_seat_id\", availableSeat.showtimeSeatId);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "showtimes",
+                    "{{test_showtime_id}}",
+                    "seats"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[201] [Setup] Tạo đơn đặt vé áp voucher 35k",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo đơn hàng thành công\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.totalAmount).to.be.a('number');\r",
+                      "    pm.environment.set(\"wallet_hybrid_booking_id\", jsonData.data.id);\r",
+                      "    pm.environment.set(\"wallet_hybrid_total_amount\", jsonData.data.totalAmount);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": [\"{{wallet_hybrid_seat_id}}\"],\r\n  \"combos\": [],\r\n  \"voucherCode\": \"{{wallet_hybrid_voucher_code}}\",\r\n  \"paymentMethod\": \"WALLET\"\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] [Hybrid] Gọi API thanh toán ví",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Gọi API thanh toán lai thành công (200 OK)\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.true;\r",
+                      "    pm.environment.set(\"wallet_hybrid_points_used\", jsonData.data.pointsUsed || 0);\r",
+                      "    pm.environment.set(\"wallet_hybrid_remaining_amount\", jsonData.data.remainingAmount || 0);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{wallet_hybrid_booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{wallet_hybrid_booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Kiểm tra số dư ví sau Hybrid",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Kiểm tra số dư ví giảm chính xác\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var initialBalance = parseFloat(pm.environment.get(\"wallet_test_balance\") || 0);\r",
+                      "    var walletPointsUsed = parseFloat(pm.environment.get(\"wallet_test_total_amount\") || 0) / 1000;\r",
+                      "    var hybridPointsUsed = parseFloat(pm.environment.get(\"wallet_hybrid_points_used\") || 0);\r",
+                      "    var expectedPoints = (initialBalance - walletPointsUsed + 200) - hybridPointsUsed;\r",
+                      "    pm.expect(jsonData.data.rewardPoints).to.eql(expectedPoints);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{wallet_test_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/auth/me",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "auth",
+                    "me"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
     },
     {
       "name": "Utilities",
