@@ -40,11 +40,14 @@ psql -U postgres -d nova_db -c "SELECT ..."
 - Tạo **API Doc Artifact** sau mỗi endpoint mới được tạo
 - PR description luôn dùng template từ `.agents/workflows/create_pr.md`
 
-## Design Style (Frontend ReactJS)
-- Theme: Dark, cinema-inspired — navy `#0D1B2A`, accent gold `#F5C518`
-- Không dùng MUI hoặc AntD — dùng TailwindCSS + Radix UI
-- Animation: Framer Motion chỉ cho seat picker và page transition
-- Mobile-first, responsive
+## Design Style & UI/UX Rules (Web & Mobile)
+- **Source of Truth:** Giao diện Web (React) và Mobile (Android) phải tuân thủ tuyệt đối quy tắc thiết kế trong [MASTER.md](./design-system/novaticket/MASTER.md).
+- **UI/UX Skill:** Khi cần thiết kế, chỉnh sửa giao diện, hãy sử dụng bộ skill `ui-ux-pro-max` tại `.agents/skills/ui-ux-pro-max/`.
+- **Theme:** Dark, cinema-inspired — navy `#0D1B2A`, accent gold `#F5C518`.
+- **Frontend Stack:** Tailwind CSS + Radix UI (Tuyệt đối không dùng MUI hoặc AntD).
+- **Android Stack:** Material Components, Vector Drawables, colors/styles định nghĩa trong XML.
+- **Animation:** Hạn chế lạm dụng — Framer Motion (Web) chỉ dùng cho seat picker và page transition.
+- **Responsiveness:** Mobile-first, responsive, đảm bảo không có cuộn ngang trên thiết bị di động.
 
 ## Multi-service Rule
 Khi thay đổi ảnh hưởng nhiều service:
