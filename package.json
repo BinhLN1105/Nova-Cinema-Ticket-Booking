@@ -1,6 +1,7 @@
 {
   "dependencies": {
     "axios": "^1.16.1",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "newman-reporter-html": "^1.0.5"
   }
 }
