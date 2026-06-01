@@ -24,6 +24,11 @@ import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.repository.ShowtimeSeatRepository;
 import com.cinema.ticket_booking.repository.PricingRuleRepository;
 import com.cinema.ticket_booking.repository.ScreenRepository;
+import com.cinema.ticket_booking.repository.BookingRepository;
+import com.cinema.ticket_booking.repository.PaymentRepository;
+import com.cinema.ticket_booking.model.Booking;
+import com.cinema.ticket_booking.exception.ConflictException;
+import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.PricingEngineService;
@@ -63,6 +68,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     private final SystemConfigService systemConfigService;
     private final SeatLockService seatLockService;
     private final PricingEngineService pricingEngineService;
+    private final BookingRepository bookingRepository;
+    private final PaymentRepository paymentRepository;
 
     // ── Query ─────────────────────────────────────────────────────────────
 
@@ -281,6 +288,22 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     public void delete(UUID id) {
         Showtime showtime = findById(id);
+        List<Booking> bookings = bookingRepository.findByShowtimeId(showtime.getId());
+        
+        // Kiểm tra xem có giao dịch thành công nào không
+        boolean hasActiveTransactions = bookings.stream()
+                .anyMatch(b -> b.getStatus() == BookingStatus.PAID || b.getStatus() == BookingStatus.CHECKED_IN);
+        
+        if (hasActiveTransactions) {
+            throw new ConflictException("Không thể xóa suất chiếu đã phát sinh giao dịch thanh toán thành công (PAID/CHECKED_IN). Vui lòng hủy suất chiếu hoặc hoàn tiền trước.");
+        }
+        
+        // Nếu chỉ có các đơn nháp hoặc đã hủy/quá hạn, tiến hành dọn dẹp sạch sẽ
+        for (Booking booking : bookings) {
+            paymentRepository.findByBookingId(booking.getId()).ifPresent(paymentRepository::delete);
+            bookingRepository.delete(booking);
+        }
+        
         showtimeSeatRepository.deleteByShowtimeId(showtime.getId());
         showtimeRepository.delete(showtime);
     }

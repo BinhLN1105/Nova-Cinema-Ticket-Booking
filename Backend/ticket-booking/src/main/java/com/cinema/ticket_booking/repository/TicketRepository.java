@@ -18,34 +18,35 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
     // Lấy ticket kèm thông tin ghế để hiển thị chi tiết
     @Query("""
-        SELECT t FROM Ticket t
-        JOIN FETCH t.bookingItem bi
-        JOIN FETCH bi.showtimeSeat ss
-        JOIN FETCH ss.seat s
-        WHERE t.booking.id = :bookingId
-        ORDER BY s.rowLabel, s.colNumber
-    """)
+                SELECT t FROM Ticket t
+                JOIN FETCH t.bookingItem bi
+                JOIN FETCH bi.showtimeSeat ss
+                JOIN FETCH ss.seat s
+                WHERE t.booking.id = :bookingId
+                ORDER BY s.rowLabel, s.colNumber
+            """)
     List<Ticket> findByBookingIdWithSeatDetail(@Param("bookingId") UUID bookingId);
 
     // Kiểm tra toàn bộ ghế trong booking đã check-in chưa
     @Query("""
-        SELECT COUNT(t) = 0 FROM Ticket t
-        WHERE t.booking.id = :bookingId
-          AND t.isUsed = false
-    """)
+                SELECT COUNT(t) = 0 FROM Ticket t
+                WHERE t.booking.id = :bookingId
+                  AND t.isUsed = false
+            """)
     boolean areAllTicketsUsed(@Param("bookingId") UUID bookingId);
 
-    // Đếm số vé (ghế) đã soát của một rạp trong khoảng thời gian (dùng cho Staff Dashboard)
+    // Đếm số vé (ghế) đã soát của một rạp trong khoảng thời gian (dùng cho Staff
+    // Dashboard)
     @Query("""
-        SELECT COUNT(t) FROM Ticket t
-        JOIN t.bookingItem bi
-        JOIN bi.showtimeSeat ss
-        JOIN ss.showtime st
-        WHERE st.screen.cinema.id = :cinemaId
-          AND t.isUsed = true
-          AND t.usedAt >= :from
-          AND t.usedAt < :to
-    """)
+                SELECT COUNT(t) FROM Ticket t
+                JOIN t.bookingItem bi
+                JOIN bi.showtimeSeat ss
+                JOIN ss.showtime st
+                WHERE st.screen.cinema.id = :cinemaId
+                  AND t.isUsed = true
+                  AND t.usedAt >= :from
+                  AND t.usedAt < :to
+            """)
     long countCheckedInByCinemaAndDateRange(
             @Param("cinemaId") UUID cinemaId,
             @Param("from") LocalDateTime from,

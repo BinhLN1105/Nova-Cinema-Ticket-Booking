@@ -98,6 +98,17 @@ public class BookingController {
                                                 "Yêu cầu hủy vé đã được gửi. Vui lòng kiểm tra email để xác nhận."));
         }
 
+        // GET /api/v1/bookings/{id}/cancel-token — Lấy token hủy vé (hỗ trợ bảo mật & test)
+        @GetMapping("/{id}/cancel-token")
+        @PreAuthorize("isAuthenticated()")
+        public ResponseEntity<ApiResponse<String>> getCancelToken(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable UUID id) {
+                String token = bookingService.getCancelToken(currentUser.getId(), id);
+                return ResponseEntity.ok(
+                                ApiResponse.success(token, "Lấy token hủy vé thành công."));
+        }
+
         // POST /api/v1/bookings/cancel-confirm — Xác nhận hủy vé từ link email
         @PostMapping("/cancel-confirm")
         public ResponseEntity<ApiResponse<Void>> cancelConfirm(
