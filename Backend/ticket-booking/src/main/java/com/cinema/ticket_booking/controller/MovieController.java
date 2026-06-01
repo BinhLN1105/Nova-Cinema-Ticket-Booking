@@ -105,7 +105,7 @@ public class MovieController {
         var existingReview = reviewService.getExistingReview(currentUser.getId(), id);
 
         var response = CanReviewResponse.builder()
-                .canReview(bookingId != null && existingReview == null)
+                .canReview(bookingId != null)
                 .alreadyReviewed(existingReview != null)
                 .bookingId(bookingId)
                 .existingReview(existingReview)

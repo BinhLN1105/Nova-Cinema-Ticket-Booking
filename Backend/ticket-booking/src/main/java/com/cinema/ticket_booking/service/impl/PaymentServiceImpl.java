@@ -9,6 +9,7 @@ import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.enums.PaymentMethod;
 import com.cinema.ticket_booking.enums.PaymentStatus;
 import com.cinema.ticket_booking.exception.BadRequestException;
+import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.exception.PaymentException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.mapper.PaymentMapper;
@@ -68,7 +69,7 @@ public class PaymentServiceImpl implements PaymentService {
         Booking booking = bookingService.findById(UUID.fromString(request.getBookingId()));
 
         if (!booking.getUser().getId().equals(userId)) {
-            throw new BadRequestException("Bạn không có quyền thanh toán đơn này");
+            throw new ForbiddenException("Bạn không có quyền thanh toán đơn này");
         }
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new BadRequestException("Đơn đặt vé không ở trạng thái chờ thanh toán");
@@ -390,6 +391,8 @@ public class PaymentServiceImpl implements PaymentService {
         try {
             String hashData = VNPayUtils.buildHashData(filtered);
             String computedHash = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
+            log.info("VNPay Signature Verification - HashData: [{}], Computed: [{}], Received: [{}]", 
+                     hashData, computedHash, receivedHash);
             return computedHash.equalsIgnoreCase(receivedHash);
         } catch (Exception e) {
             log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());

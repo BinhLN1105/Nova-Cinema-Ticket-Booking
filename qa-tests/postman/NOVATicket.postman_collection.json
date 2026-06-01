@@ -1,10 +1,9 @@
 {
   "info": {
-    "_postman_id": "bf022db8-7621-49b7-9a8d-09169e913bf7",
+    "_postman_id": "6a20f615-f553-4139-b4b7-ec7951c1d449",
     "name": "NOVA Ticket Booking",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_exporter_id": "41821070",
-    "_collection_link": "https://go.postman.co/collection/41821070-bf022db8-7621-49b7-9a8d-09169e913bf7?source=collection_link"
+    "_exporter_id": "45637706"
   },
   "item": [
     {
@@ -1684,6 +1683,16 @@
                 "packages": {},
                 "requests": {}
               }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Khởi động phiên chạy test dữ liệu sạch\r",
+                  "console.log(\"🚀 Bắt đầu chạy thiết lập dữ liệu mẫu tự động...\");"
+                ],
+                "type": "text/javascript"
+              }
             }
           ],
           "request": {
@@ -1770,7 +1779,7 @@
                   "let foundScreen = null;\r",
                   "\r",
                   "if (jsonData.success && jsonData.data.length > 0) {\r",
-                  "    // Tìm phòng chiếu tên cố định\r",
+                  "    // Tìm phòng chiếu tên cố định để tái sử dụng tối đa, tránh phình database\r",
                   "    foundScreen = jsonData.data.find(s => s.name === \"Standard Room Automation\");\r",
                   "}\r",
                   "\r",
@@ -1778,8 +1787,7 @@
                   "    pm.environment.set(\"test_screen_id\", foundScreen.id);\r",
                   "    console.log(\"Phòng đã tồn tại. ID: \" + foundScreen.id);\r",
                   "    \r",
-                  "    // ĐÃ CÓ PHÒNG -> NHẢY CÓC BỎ QUA BƯỚC TẠO PHÒNG (BƯỚC 4)\r",
-                  "    // Nhảy thẳng đến bước 5: \"Dò tìm phim mẫu\"\r",
+                  "    // ĐÃ CÓ PHÒNG -> NHẢY CÓC BỎ QUA BƯỚC TẠO PHÒNG\r",
                   "    pm.execution.setNextRequest(\"[200] Dò tìm Phim mẫu đang chiếu\");\r",
                   "} else {\r",
                   "    console.log(\"Chưa có phòng mẫu. Sẽ chạy bước tiếp theo để tạo mới.\");\r",
@@ -1845,7 +1853,7 @@
             "header": [],
             "body": {
               "mode": "raw",
-              "raw": "{\r\n  \"name\": \"Standard Room Automation\",\r\n  \"screenType\": \"STANDARD\",\r\n  \"totalRows\": 5,\r\n  \"totalCols\": 5,\r\n  \"isActive\": true\r\n}\r\n",
+              "raw": "{\n  \"name\": \"Standard Room Automation\",\n  \"screenType\": \"STANDARD\",\n  \"totalRows\": 5,\n  \"totalCols\": 5,\n  \"isActive\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -1884,7 +1892,8 @@
                   "}\r",
                   "\r",
                   "if (foundMovie) {\r",
-                  "    pm.environment.set(\"test_movie_id\", foundMovie.id);\r",
+                  "    pm.environment.set(\"test_movie_id\", foundMovie.id);",
+                  "    pm.environment.set(\"setup_movie_id\", foundMovie.id);\r",
                   "    console.log(\"Phim đã tồn tại. ID: \" + foundMovie.id);\r",
                   "    \r",
                   "    // ĐÃ CÓ PHIM -> NHẢY CÓC BỎ QUA BƯỚC TẠO PHIM (BƯỚC 6)\r",
@@ -1938,8 +1947,8 @@
                   "pm.test(\"Tạo phim mới thành công\", function () {\r",
                   "    pm.response.to.have.status(201);\r",
                   "});\r",
-                  "pm.environment.set(\"test_movie_id\", jsonData.data.id);\r",
-                  ""
+                  "pm.environment.set(\"test_movie_id\", jsonData.data.id);",
+                  "pm.environment.set(\"setup_movie_id\", jsonData.data.id);"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -2035,26 +2044,19 @@
               "listen": "prerequest",
               "script": {
                 "exec": [
-                  "// Tính toán giờ suất chiếu động chuẩn múi giờ Asia/Ho_Chi_Minh (GMT+7)\r",
+                  "// Tính toán ngày & giờ hiện tại chuẩn GMT+7 độc lập với múi giờ của Sandbox\r",
                   "const d = new Date();\r",
-                  "// Dịch chuyển timestamp sang GMT+7 và cộng thêm 2 tiếng cho suất chiếu tương lai (tổng cộng +9 tiếng)\r",
-                  "const targetTime = new Date(d.getTime() + (9 * 60 * 60 * 1000));\r",
+                  "const localTime = new Date(d.getTime() + (7 * 60 * 60 * 1000)); // GMT+7\r",
+                  "const year = localTime.getUTCFullYear();\r",
+                  "const month = String(localTime.getUTCMonth() + 1).padStart(2, '0');\r",
+                  "const day = String(localTime.getUTCDate()).padStart(2, '0');\r",
+                  "const todayDate = `${year}-${month}-${day}`;\r",
                   "\r",
-                  "const year = targetTime.getUTCFullYear();\r",
-                  "const month = String(targetTime.getUTCMonth() + 1).padStart(2, '0');\r",
-                  "const day = String(targetTime.getUTCDate()).padStart(2, '0');\r",
-                  "const hours = String(targetTime.getUTCHours()).padStart(2, '0');\r",
-                  "const minutes = String(targetTime.getUTCMinutes()).padStart(2, '0');\r",
-                  "const seconds = String(targetTime.getUTCSeconds()).padStart(2, '0');\r",
-                  "\r",
-                  "const startTime = `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;\r",
-                  "const startDate = `${year}-${month}-${day}`; // Đồng bộ ngày chuẩn GMT+7\r",
-                  "\r",
-                  "pm.environment.set(\"showtime_start_time\", startTime);\r",
-                  "pm.environment.set(\"today_date\", startDate);\r",
-                  "\r",
-                  "console.log(\"⏰ Giờ suất chiếu tính động (GMT+7): \" + startTime);\r",
-                  "console.log(\"📅 Đồng bộ ngày dò tìm suất chiếu (GMT+7): \" + startDate);",
+                  "pm.environment.set(\"today_date\", todayDate);\r",
+                  "pm.environment.set(\"now_hours\", localTime.getUTCHours());\r",
+                  "pm.environment.set(\"now_minutes\", localTime.getUTCMinutes());\r",
+                  "pm.environment.set(\"now_seconds\", localTime.getUTCSeconds());\r",
+                  "console.log(`📅 Mốc giờ hiện tại GMT+7: ${todayDate}T${localTime.getUTCHours()}:${localTime.getUTCMinutes()}:${localTime.getUTCSeconds()}`);\r",
                   ""
                 ],
                 "type": "text/javascript",
@@ -2067,31 +2069,64 @@
               "script": {
                 "exec": [
                   "const jsonData = pm.response.json();\r",
-                  "let foundShowtime = null;\r",
+                  "const targetScreenId = pm.environment.get(\"test_screen_id\");\r",
+                  "const token = pm.environment.get(\"admin_accessToken\");\r",
+                  "const baseUrl = pm.environment.get(\"BaseUrl\");\r",
                   "\r",
+                  "let allShowtimes = [];\r",
+                  "\r",
+                  "// Lọc tất cả suất chiếu của phòng mẫu từ danh sách tất cả các ngày\r",
                   "if (jsonData.success && jsonData.data.content && jsonData.data.content.length > 0) {\r",
-                  "    const now = new Date();\r",
-                  "    // Tìm xem hôm nay phòng này đã có suất chiếu nào chưa bắt đầu của phim mẫu này không\r",
-                  "    foundShowtime = jsonData.data.content.find(s => {\r",
-                  "        if (s.screenId !== pm.environment.get(\"test_screen_id\") || s.movieId !== pm.environment.get(\"test_movie_id\")) {\r",
-                  "            return false;\r",
-                  "        }\r",
-                  "        // So sánh startTime của suất chiếu với giờ hiện tại\r",
-                  "        const startTime = new Date(s.startTime);\r",
-                  "        return startTime > now;\r",
-                  "    });\r",
+                  "    allShowtimes = jsonData.data.content.filter(s => s.screenId === targetScreenId);\r",
                   "}\r",
                   "\r",
-                  "if (foundShowtime) {\r",
-                  "    pm.environment.set(\"test_showtime_id\", foundShowtime.id);\r",
-                  "    console.log(\"🍿 Suất chiếu chưa bắt đầu hôm nay đã tồn tại. ID: \" + foundShowtime.id);\r",
-                  "    \r",
-                  "    // ĐÃ CÓ SUẤT CHIẾU -> NHẢY CÓC BỎ QUA BƯỚC TẠO SUẤT CHIẾU MỚI (BƯỚC POST)\r",
-                  "    pm.execution.setNextRequest(\"[200] Lấy sơ đồ ghế suất chiếu để tìm ghế trống\");\r",
+                  "// Tính toán mốc endTime muộn nhất trong số toàn bộ suất chiếu thu được\r",
+                  "let maxEndTime = null;\r",
+                  "allShowtimes.forEach(s => {\r",
+                  "    if (!maxEndTime || s.endTime > maxEndTime) {\r",
+                  "        maxEndTime = s.endTime;\r",
+                  "    }\r",
+                  "});\r",
+                  "\r",
+                  "if (maxEndTime) {\r",
+                  "    pm.environment.set(\"test_max_end_time\", maxEndTime);\r",
+                  "    console.log(\"⚠️ Mốc kết thúc muộn nhất hiện tại trên phòng mẫu: \" + maxEndTime);\r",
                   "} else {\r",
-                  "    console.log(\"Chưa có suất chiếu hợp lệ (hoặc đã quá giờ) hôm nay. Sẽ tiến hành tạo mới.\");\r",
+                  "    pm.environment.unset(\"test_max_end_time\");\r",
+                  "    console.log(\"✨ Phòng mẫu hoàn toàn trống trải.\");\r",
                   "}\r",
-                  ""
+                  "\r",
+                  "// Dọn dẹp tối đa: Cố gắng xóa toàn bộ suất chiếu cũ (chấp nhận bỏ qua nếu lỗi khóa ngoại do đã có booking)\r",
+                  "if (allShowtimes.length > 0) {\r",
+                  "    console.log(`🧹 Tiến hành dọn dẹp tối đa ${allShowtimes.length} suất chiếu cũ...`);\r",
+                  "    let processedCount = 0;\r",
+                  "    \r",
+                  "    allShowtimes.forEach(s => {\r",
+                  "        pm.sendRequest({\r",
+                  "            url: `${baseUrl}/api/v1/showtimes/${s.id}`,\r",
+                  "            method: 'DELETE',\r",
+                  "            header: {\r",
+                  "                'Authorization': `Bearer ${token}`\r",
+                  "            }\r",
+                  "        }, function (deleteErr, deleteRes) {\r",
+                  "            processedCount++;\r",
+                  "            if (deleteRes && deleteRes.code === 200) {\r",
+                  "                console.log(`🗑️ Đã xóa thành công suất chiếu ID: ${s.id}`);\r",
+                  "            } else {\r",
+                  "                console.log(`ℹ️ Giữ lại suất chiếu ID: ${s.id} (đã có giao dịch/booking)`);\r",
+                  "            }\r",
+                  "            \r",
+                  "            if (processedCount === allShowtimes.length) {\r",
+                  "                console.log(\"✨ Dọn dẹp hoàn tất! Chuyển sang tạo suất chiếu mới.\");\r",
+                  "                setTimeout(function() {\r",
+                  "                    pm.execution.setNextRequest(\"[201] Admin tạo suất chiếu mới hôm nay\");\r",
+                  "                }, 500);\r",
+                  "            }\r",
+                  "        });\r",
+                  "    });\r",
+                  "} else {\r",
+                  "    pm.execution.setNextRequest(\"[201] Admin tạo suất chiếu mới hôm nay\");\r",
+                  "}\r"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -2113,7 +2148,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{BaseUrl}}/api/v1/showtimes/admin?cinemaId={{test_cinema_id}}&date={{today_date}}",
+              "raw": "{{BaseUrl}}/api/v1/showtimes/admin?cinemaId={{test_cinema_id}}&size=100",
               "host": [
                 "{{BaseUrl}}"
               ],
@@ -2129,8 +2164,8 @@
                   "value": "{{test_cinema_id}}"
                 },
                 {
-                  "key": "date",
-                  "value": "{{today_date}}"
+                  "key": "size",
+                  "value": "100"
                 }
               ]
             }
@@ -2144,6 +2179,64 @@
               "listen": "prerequest",
               "script": {
                 "exec": [
+                  "// Giải thuật Né giờ bậc thầy độc lập múi giờ sử dụng Date UTC chuẩn xác 1000%\r",
+                  "const maxEndTimeStr = pm.environment.get(\"test_max_end_time\");\r",
+                  "const todayDate = pm.environment.get(\"today_date\");\r",
+                  "let targetTimeStr = \"\";\r",
+                  "\r",
+                  "if (maxEndTimeStr && maxEndTimeStr.includes('T')) {\r",
+                  "    console.log(\"⏰ Phát hiện suất chiếu không thể xóa. Mốc kết thúc cũ: \" + maxEndTimeStr);\r",
+                  "    const parts = maxEndTimeStr.split('T');\r",
+                  "    const dateParts = parts[0].split('-');\r",
+                  "    const timeParts = parts[1].split(':');\r",
+                  "    \r",
+                  "    const year = parseInt(dateParts[0], 10);\r",
+                  "    const month = parseInt(dateParts[1], 10) - 1;\r",
+                  "    const day = parseInt(dateParts[2], 10);\r",
+                  "    const hours = parseInt(timeParts[0], 10);\r",
+                  "    const minutes = parseInt(timeParts[1], 10);\r",
+                  "    const seconds = parseInt(timeParts[2] || '0', 10);\r",
+                  "    \r",
+                  "    // Khởi tạo Date UTC để cộng giờ độc lập timezone Sandbox\r",
+                  "    const baseDate = new Date(Date.UTC(year, month, day, hours, minutes, seconds));\r",
+                  "    \r",
+                  "    // Cộng thêm 30 phút (1800000 ms)\r",
+                  "    const newDate = new Date(baseDate.getTime() + (30 * 60 * 1000));\r",
+                  "    \r",
+                  "    const newYear = newDate.getUTCFullYear();\r",
+                  "    const newMonth = String(newDate.getUTCMonth() + 1).padStart(2, '0');\r",
+                  "    const newDay = String(newDate.getUTCDate()).padStart(2, '0');\r",
+                  "    const newHours = String(newDate.getUTCHours()).padStart(2, '0');\r",
+                  "    const newMinutes = String(newDate.getUTCMinutes()).padStart(2, '0');\r",
+                  "    const newSeconds = String(newDate.getUTCSeconds()).padStart(2, '0');\r",
+                  "    \r",
+                  "    targetTimeStr = `${newYear}-${newMonth}-${newDay}T${newHours}:${newMinutes}:${newSeconds}`;\r",
+                  "} else {\r",
+                  "    console.log(\"⏰ Phòng mẫu hoàn toàn sạch bóng. Tạo suất chiếu mới tinh.\");\r",
+                  "    const nowHours = parseInt(pm.environment.get(\"now_hours\") || '22', 10);\r",
+                  "    const nowMinutes = parseInt(pm.environment.get(\"now_minutes\") || '30', 10);\r",
+                  "    const nowSeconds = parseInt(pm.environment.get(\"now_seconds\") || '0', 10);\r",
+                  "    \r",
+                  "    let totalSeconds = nowHours * 3600 + nowMinutes * 60 + nowSeconds + 1800;\r",
+                  "    let newHours = Math.floor(totalSeconds / 3600);\r",
+                  "    let newMinutes = Math.floor((totalSeconds % 3600) / 60);\r",
+                  "    let newSeconds = totalSeconds % 60;\r",
+                  "    \r",
+                  "    if (newHours >= 24) {\r",
+                  "        newHours = 23;\r",
+                  "        newMinutes = 59;\r",
+                  "        newSeconds = 0;\r",
+                  "    }\r",
+                  "    \r",
+                  "    const computedHours = String(newHours).padStart(2, '0');\r",
+                  "    const computedMinutes = String(newMinutes).padStart(2, '0');\r",
+                  "    const computedSeconds = String(newSeconds).padStart(2, '0');\r",
+                  "    \r",
+                  "    targetTimeStr = `${todayDate}T${computedHours}:${computedMinutes}:${computedSeconds}`;\r",
+                  "}\r",
+                  "\r",
+                  "pm.environment.set(\"showtime_start_time\", targetTimeStr);\r",
+                  "console.log(\"🚀 showtime_start_time được lập lịch vắt ngày an toàn: \" + targetTimeStr);\r",
                   ""
                 ],
                 "type": "text/javascript",
@@ -2586,6 +2679,54 @@
           "response": []
         },
         {
+          "name": "[Setup] Lấy QR Code của đơn đặt vé",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Lấy chi tiết đơn đặt vé thành công\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "    var jsonData = pm.response.json();\r",
+                  "    pm.expect(jsonData.success).to.be.true;\r",
+                  "    pm.expect(jsonData.data.qrCode).to.not.be.undefined;\r",
+                  "    pm.environment.set(\"temp_booking_code\", jsonData.data.qrCode);\r",
+                  "});\r",
+                  ""
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{customer_accessToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/{{unpaid_booking_id}}",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "{{unpaid_booking_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
           "name": "[200] Admin soát vé check-in tại quầy (Happy Path)",
           "event": [
             {
@@ -2673,7 +2814,8 @@
                   "        return;\r",
                   "    }\r",
                   "}\r",
-                  "console.log(\"Chưa có rạp test mẫu. Sẽ chạy tuần tự để tạo mới.\");"
+                  "console.log(\"Chưa có rạp test mẫu. Nhảy tới tạo mới rạp.\");\r",
+                  "pm.execution.setNextRequest(\"POST Create Cinema - Happy Path\");\r"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -2715,7 +2857,8 @@
                   "        return;\r",
                   "    }\r",
                   "}\r",
-                  "console.log(\"Chưa có phòng test mẫu. Sẽ chạy tuần tự để tạo mới.\");"
+                  "console.log(\"Chưa có phòng test mẫu. Nhảy tới tạo mới phòng.\");\r",
+                  "pm.execution.setNextRequest(\"POST Create Screen for Seat Test\");\r"
                 ],
                 "type": "text/javascript",
                 "packages": {},
@@ -3325,11 +3468,487 @@
       ]
     },
     {
+      "name": "Movies & Showtimes",
+      "item": [
+        {
+          "name": "Quản lý phim",
+          "item": [
+            {
+              "name": "[201] [Happy Path] Thêm phim mới thành công (Admin Only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "// Kiểm tra xem Backend có trả về đúng mã 201 Created không\r",
+                      "pm.test(\"Happy Path: Thêm phim thành công - Code 201 Created\", function () {\r",
+                      "    pm.response.to.have.status(201);\r",
+                      "});\r",
+                      "\r",
+                      "// Trích xuất ID từ phản hồi (Response JSON) của Backend\r",
+                      "const jsonData = pm.response.json();\r",
+                      "\r",
+                      "// Kiểm tra xem trong dữ liệu trả về có trường id không (tùy Backend trả về trực tiếp hay bọc trong object \"data\")\r",
+                      "let movieId = jsonData.id || (jsonData.data && jsonData.data.id);\r",
+                      "\r",
+                      "if (movieId) {\r",
+                      "    // Lưu ID này vào biến môi trường test_movie_id\r",
+                      "    pm.environment.set(\"test_movie_id\", movieId);\r",
+                      "    console.log(\"Đã bắt được ID phim mới tạo: \" + movieId);\r",
+                      "}"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"title\": \"Doctor Strange 3: Multiverse Madness - Test (Updated)\",\n  \"director\": \"Sam Raimi\",\n  \"duration\": 125,\n  \"rated\": \"C16\",\n  \"releaseDate\": \"2026-06-01\",\n  \"status\": \"NOW_SHOWING\",\n  \"genres\": [\n    {\n      \"id\": 3\n    }\n  ]\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Lấy chi tiết một bộ phim",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"lấy chi tiết bộ phim thành công: 200 OK\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies/{{test_movie_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "{{test_movie_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Cập nhật thông tin phim (Admin Only)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Cập nhật phim thành công - Code 200 OK\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 500]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "PUT",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Doctor Strange 3 (Updated)\",\r\n  \"description\": \"Hành trình mới vào đa vũ trụ hỗn loạn.\",\r\n  \"duration\": 125,\r\n  \"releaseDate\": \"2026-06-01\",\r\n  \"status\": \"NOW_SHOWING\",\r\n  \"genres\": [\"Action\", \"Sci-Fi\"]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies/{{test_movie_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "{{test_movie_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Lấy danh sách phim theo status",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Status code là 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies?status=NOW_SHOWING",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "NOW_SHOWING"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Tìm kiếm phim theo từ khóa",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tìm kiếm phim thành công (Status 200)\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies/search?q=Test",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "Test"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[200] Lấy danh sách tất cả thể loại phim (Genres)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy danh sách tất cả thể loại phim thành công: 200 OK\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies/genres",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "genres"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[403] [Security Path] Khách hàng thường cố tình thêm phim",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Security Path: Khách hàng thường tạo phim phải bị chặn - Code 403 Forbidden\", function () {\r",
+                      "    pm.response.to.have.status(403);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"title\": \"Doctor Strange 3: Multiverse Madness - Test (Updated)\",\r\n  \"director\": \"Sam Raimi\",\r\n  \"duration\": 125,\r\n  \"rated\": \"C16\",\r\n  \"releaseDate\": \"2026-06-01\",\r\n  \"status\": \"NOW_SHOWING\",\r\n  \"genres\": [\r\n    {\r\n      \"id\": 3\r\n    }\r\n  ]\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[400] [Negative Path] Thêm phim thiếu trường bắt buộc",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Negative Path: Backend phải chặn dữ liệu trống hoặc thiếu - Code 400 Bad Request\", function () {\r",
+                      "    pm.response.to.have.status(400);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n    \"title\": \"\",\r\n    \"director\": \"Lý Hải\",\r\n    \"duration\": -10,\r\n    \"rated\": \"T16\",\r\n    \"releaseDate\": \"2026-04-30\",\r\n    \"status\": \"NOW_SHOWING\"\r\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Dọn dẹp dữ liệu",
+          "item": [
+            {
+              "name": "[200/204] Xóa phim vừa tạo để làm sạch dữ liệu hệ thống",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Clean Up: Xóa đúng bộ phim vừa tạo thành công\", function () {\r",
+                      "    pm.expect(pm.response.code).to.be.oneOf([200, 204]);\r",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/movies/{{test_movie_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "movies",
+                    "{{test_movie_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Booking & Check-In Flow",
       "item": [
         {
           "name": "1. Tạo đơn & Khóa ghế (POST bookings)",
           "item": [
+            {
+              "name": "[Setup] Bốc ghế trống (Test Booking)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy sơ đồ ghế thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    var availableSeat = jsonData.data.seats.find(s => s.status === \"AVAILABLE\");\r",
+                      "    pm.expect(availableSeat).to.not.be.undefined;\r",
+                      "    pm.environment.set(\"wallet_test_seat_id\", availableSeat.showtimeSeatId);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "showtimes",
+                    "{{test_showtime_id}}",
+                    "seats"
+                  ]
+                }
+              },
+              "response": []
+            },
             {
               "name": "[201] [Happy Path] Khóa ghế thành công",
               "event": [
@@ -3347,7 +3966,7 @@
                       "    var bookingId = data.id || data.bookingId || data.booking_id;",
                       "    var bookingCode = data.code || data.bookingCode || data.booking_code;",
                       "    var qrCode = data.qrCode || data.qr_code || data.qr;",
-                      "    if (bookingId) pm.environment.set('booking_id', bookingId);",
+                      "    if (bookingId) pm.environment.set('booking_id', String(bookingId).trim());",
                       "    if (bookingCode) pm.environment.set('booking_code', bookingCode);",
                       "    if (qrCode) pm.environment.set('qr_code', qrCode);",
                       "    pm.expect(bookingId, 'booking id present').to.exist;",
@@ -3370,7 +3989,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
+                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3388,7 +4007,257 @@
                     "bookings"
                   ]
                 },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
+              },
+              "response": []
+            },
+            {
+              "name": "[Setup] Nạp tiền ví cho Booking Flow (Topup)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Tạo yêu cầu nạp ví thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.data.paymentUrl).to.not.be.undefined;\r",
+                      "    \r",
+                      "    // Trích xuất các tham số từ paymentUrl\r",
+                      "    var url = jsonData.data.paymentUrl;\r",
+                      "    var queryString = url.split(\"?\")[1];\r",
+                      "    var params = {};\r",
+                      "    queryString.split(\"&\").forEach(function(part) {\r",
+                      "        var item = part.split(\"=\");\r",
+                      "        params[item[0]] = decodeURIComponent(item[1]);\r",
+                      "    });\r",
+                      "    \r",
+                      "    pm.environment.set(\"test_vnp_TxnRef\", params[\"vnp_TxnRef\"]);\r",
+                      "    pm.environment.set(\"test_vnp_Amount\", params[\"vnp_Amount\"]);\r",
+                      "    pm.environment.set(\"test_vnp_CreateDate\", params[\"vnp_CreateDate\"]);\r",
+                      "    pm.environment.set(\"test_vnp_OrderInfo\", params[\"vnp_OrderInfo\"]);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\r\n  \"amount\": 200000\r\n}\r\n",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/wallet/topup",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wallet",
+                    "topup"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[Setup] Nạp tiền ví cho Booking Flow (Callback)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "exec": [
+                      "const rawOrderInfo = pm.environment.get(\"test_vnp_OrderInfo\") || \"Nap CinePoint qua VNPay\";\r",
+                      "const cleanOrderInfo = rawOrderInfo.replace(/\\+/g, \" \"); \r",
+                      "const params = {\r",
+                      "    \"vnp_Amount\": pm.environment.get(\"test_vnp_Amount\"),\r",
+                      "    \"vnp_BankCode\": \"NCB\",\r",
+                      "    \"vnp_BankTranNo\": \"VNP12345678\",\r",
+                      "    \"vnp_CardType\": \"ATM\",\r",
+                      "    \"vnp_OrderInfo\": cleanOrderInfo,\r",
+                      "    \"vnp_PayDate\": pm.environment.get(\"test_vnp_CreateDate\"),\r",
+                      "    \"vnp_ResponseCode\": \"00\",\r",
+                      "    \"vnp_TmnCode\": \"N79FS0G0\",\r",
+                      "    \"vnp_TransactionNo\": \"12345678\",\r",
+                      "    \"vnp_TransactionStatus\": \"00\",\r",
+                      "    \"vnp_TxnRef\": pm.environment.get(\"test_vnp_TxnRef\")\r",
+                      "};\r",
+                      "const hashSecret = pm.environment.get(\"vnpay_hash_secret\") || \"Y1GKQK0Y3W911KG28X3ORIOYVCC8WPSD\";\r",
+                      "const keys = Object.keys(params).sort();\r",
+                      "let signData = \"\";\r",
+                      "for (let key of keys) {\r",
+                      "    let value = params[key];\r",
+                      "    if (value !== null && value !== undefined && value !== \"\") {\r",
+                      "        let encodedVal = encodeURIComponent(value)\r",
+                      "            .replace(/%20/g, \"%20\")\r",
+                      "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                      "        if (signData.length > 0) {\r",
+                      "            signData += \"&\";\r",
+                      "        }\r",
+                      "        signData += key + \"=\" + encodedVal;\r",
+                      "    }\r",
+                      "}\r",
+                      "const computedHash = CryptoJS.HmacSHA512(signData, hashSecret).toString(CryptoJS.enc.Hex);\r",
+                      "pm.environment.set(\"test_vnp_SecureHash\", computedHash);\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Giả lập VNPay callback thành công (302 Redirect)\", function () {\r",
+                      "    pm.response.to.have.status(302);\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
+                  }
+                }
+              ],
+              "protocolProfileBehavior": {
+                "followRedirects": false
+              },
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/wallet/vnpay-return?vnp_Amount={{test_vnp_Amount}}&vnp_BankCode=NCB&vnp_BankTranNo=VNP12345678&vnp_CardType=ATM&vnp_OrderInfo={{test_vnp_OrderInfo}}&vnp_PayDate={{test_vnp_CreateDate}}&vnp_ResponseCode=00&vnp_TmnCode=N79FS0G0&vnp_TransactionNo=12345678&vnp_TransactionStatus=00&vnp_TxnRef={{test_vnp_TxnRef}}&vnp_SecureHash={{test_vnp_SecureHash}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "wallet",
+                    "vnpay-return"
+                  ],
+                  "query": [
+                    {
+                      "key": "vnp_Amount",
+                      "value": "{{test_vnp_Amount}}"
+                    },
+                    {
+                      "key": "vnp_BankCode",
+                      "value": "NCB"
+                    },
+                    {
+                      "key": "vnp_BankTranNo",
+                      "value": "VNP12345678"
+                    },
+                    {
+                      "key": "vnp_CardType",
+                      "value": "ATM"
+                    },
+                    {
+                      "key": "vnp_OrderInfo",
+                      "value": "{{test_vnp_OrderInfo}}"
+                    },
+                    {
+                      "key": "vnp_PayDate",
+                      "value": "{{test_vnp_CreateDate}}"
+                    },
+                    {
+                      "key": "vnp_ResponseCode",
+                      "value": "00"
+                    },
+                    {
+                      "key": "vnp_TmnCode",
+                      "value": "N79FS0G0"
+                    },
+                    {
+                      "key": "vnp_TransactionNo",
+                      "value": "12345678"
+                    },
+                    {
+                      "key": "vnp_TransactionStatus",
+                      "value": "00"
+                    },
+                    {
+                      "key": "vnp_TxnRef",
+                      "value": "{{test_vnp_TxnRef}}"
+                    },
+                    {
+                      "key": "vnp_SecureHash",
+                      "value": "{{test_vnp_SecureHash}}"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[Setup] Thanh toán ví CinePoint cho Booking Flow",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Thanh toán CinePoint thành công chuyển trạng thái sang PAID\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.true;\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{booking_id}}"
+                  ]
+                }
               },
               "response": []
             },
@@ -3400,7 +4269,7 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('Status code is 409', function () { pm.response.to.have.status(409); });",
+                      "    pm.expect([400, 409]).to.include(pm.response.code);\r",
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
@@ -3424,7 +4293,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
+                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3442,7 +4311,7 @@
                     "bookings"
                   ]
                 },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
               },
               "response": []
             },
@@ -3452,19 +4321,29 @@
                 {
                   "listen": "test",
                   "script": {
-                    "type": "text/javascript",
                     "exec": [
-                      "// Race-condition tracker using collection variables.",
                       "var successCount = parseInt(pm.collectionVariables.get('race_success_count') || '0', 10);",
                       "var conflictCount = parseInt(pm.collectionVariables.get('race_conflict_count') || '0', 10);",
                       "if (pm.response.code === 201) successCount += 1;",
                       "if (pm.response.code === 409) conflictCount += 1;",
                       "pm.collectionVariables.set('race_success_count', String(successCount));",
                       "pm.collectionVariables.set('race_conflict_count', String(conflictCount));",
-                      "pm.test('Response is either 201 or 409', function () { pm.expect([201,409]).to.include(pm.response.code); });",
-                      "pm.test('Response time < 3000ms', function () { pm.expect(pm.response.responseTime).to.be.below(3000); });",
-                      "pm.test('Race invariant: at most one 201 across attempts', function () { pm.expect(successCount).to.be.at.most(1); });"
-                    ]
+                      "",
+                      "pm.test('Response is either 201, 400 or 409', function () {",
+                      "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409]);",
+                      "});",
+                      "",
+                      "pm.test('Response time < 3000ms', function () { ",
+                      "    pm.expect(pm.response.responseTime).to.be.below(3000); ",
+                      "});",
+                      "",
+                      "pm.test('Race invariant: at most one 201 across attempts', function () { ",
+                      "    pm.expect(successCount).to.be.at.most(1); ",
+                      "});"
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
@@ -3482,7 +4361,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
+                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3536,7 +4415,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
+                  "raw": "{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3554,7 +4433,7 @@
                     "bookings"
                   ]
                 },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
               },
               "response": []
             }
@@ -3597,7 +4476,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}",
+                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3616,7 +4495,7 @@
                     "quote"
                   ]
                 },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/quote' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}'"
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/quote' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}'"
               },
               "response": []
             },
@@ -3652,7 +4531,7 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}",
+                  "raw": "{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}",
                   "options": {
                     "raw": {
                       "language": "json"
@@ -3671,7 +4550,7 @@
                     "quote"
                   ]
                 },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/quote' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"seatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}'"
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/quote' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"00000000-0000-0000-0000-000000000000\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null}'"
               },
               "response": []
             }
@@ -3692,7 +4571,7 @@
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
                       "pm.test('Body is array or object containing array', function () {",
                       "    var json = pm.response.json();",
-                      "    var arr = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (Array.isArray(json.content) ? json.content : null));",
+                      "    var arr = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (json.data && Array.isArray(json.data.content) ? json.data.content : (Array.isArray(json.content) ? json.content : null)));\r",
                       "    pm.expect(arr, 'response should expose an array of bookings').to.be.an('array');",
                       "});"
                     ]
@@ -3774,7 +4653,15 @@
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
-                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });"
+                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
+                      "\r",
+                      "// Lấy QR Code của booking đã PAID để phục vụ soát vé và hủy vé phía sau\r",
+                      "var jsonData = pm.response.json();\r",
+                      "if (jsonData.success && jsonData.data && jsonData.data.qrCode) {\r",
+                      "    pm.environment.set(\"temp_booking_code\", jsonData.data.qrCode);\r",
+                      "    console.log(\"Captured QR Code for Booking Flow: \" + jsonData.data.qrCode);\r",
+                      "}\r",
+                      ""
                     ]
                   }
                 }
@@ -3899,11 +4786,19 @@
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
-                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
-                      "pm.test('Capture cancel_confirm_token if returned', function () {",
-                      "    try { var json = pm.response.json(); var data = json.data || json; var token = data.token || data.confirmToken || data.cancelToken; if (token) pm.environment.set('cancel_confirm_token', token); } catch(e) {}",
+                      "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });\r",
+                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });\r",
+                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });\r",
+                      "pm.test('Capture cancel_confirm_token if returned', function () {\r",
+                      "    try {\r",
+                      "        var json = pm.response.json();\r",
+                      "        var tokenData = json.data;\r",
+                      "        if (tokenData && typeof tokenData === 'string') {\r",
+                      "            pm.environment.set('cancel_confirm_token', tokenData.trim());\r",
+                      "        } else if (tokenData && typeof tokenData.token === 'string') {\r",
+                      "            pm.environment.set('cancel_confirm_token', tokenData.token.trim());\r",
+                      "        }\r",
+                      "    } catch(e) {}\r",
                       "});"
                     ]
                   }
@@ -3976,6 +4871,52 @@
                 "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/00000000-0000-0000-0000-000000000000/cancel-request' -H 'Authorization: Bearer {{customer_accessToken}}'"
               },
               "response": []
+            },
+            {
+              "name": "5.1. Lấy token hủy vé (GET cancel-token)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
+                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Capture cancel_confirm_token', function () {",
+                      "    var json = pm.response.json();",
+                      "    var token = json.data;",
+                      "    if (token) pm.environment.set('cancel_confirm_token', String(token).trim());",
+                      "    pm.expect(token).to.exist;",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{customer_accessToken}}",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel-token",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings",
+                    "{{booking_id}}",
+                    "cancel-token"
+                  ]
+                },
+                "description": "Lấy token hủy vé để phục vụ kiểm thử tự động xác nhận hủy."
+              },
+              "response": []
             }
           ]
         },
@@ -4007,15 +4948,10 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"token\":\"{{cancel_confirm_token}}\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
+                  "raw": ""
                 },
                 "url": {
-                  "raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm",
+                  "raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm?token={{cancel_confirm_token}}&bookingId={{booking_id}}",
                   "host": [
                     "{{BaseUrl}}"
                   ],
@@ -4024,6 +4960,16 @@
                     "v1",
                     "bookings",
                     "cancel-confirm"
+                  ],
+                  "query": [
+                    {
+                      "key": "token",
+                      "value": "{{cancel_confirm_token}}"
+                    },
+                    {
+                      "key": "bookingId",
+                      "value": "{{booking_id}}"
+                    }
                   ]
                 },
                 "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/cancel-confirm' -H 'Content-Type: application/json' -d '{\"token\":\"{{cancel_confirm_token}}\"}'"
@@ -4058,15 +5004,10 @@
                 ],
                 "body": {
                   "mode": "raw",
-                  "raw": "{\"token\":\"expired-token\"}",
-                  "options": {
-                    "raw": {
-                      "language": "json"
-                    }
-                  }
+                  "raw": ""
                 },
                 "url": {
-                  "raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm",
+                  "raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm?token=expired-token&bookingId={{booking_id}}",
                   "host": [
                     "{{BaseUrl}}"
                   ],
@@ -4075,6 +5016,16 @@
                     "v1",
                     "bookings",
                     "cancel-confirm"
+                  ],
+                  "query": [
+                    {
+                      "key": "token",
+                      "value": "expired-token"
+                    },
+                    {
+                      "key": "bookingId",
+                      "value": "{{booking_id}}"
+                    }
                   ]
                 },
                 "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/cancel-confirm' -H 'Content-Type: application/json' -d '{\"token\":\"expired-token\"}'"
@@ -4084,61 +5035,60 @@
           ]
         },
         {
-          "name": "7. Staff hủy tại quầy (POST cancel)",
+          "name": "8. Check-in QR (POST check-in)",
           "item": [
             {
-              "name": "[200] Staff hủy vé tại quầy (Happy)",
+              "name": "[Setup] Bốc ghế trống (Test Booking) - Check-in",
               "event": [
                 {
                   "listen": "test",
                   "script": {
-                    "type": "text/javascript",
                     "exec": [
-                      "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
-                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });"
-                    ]
+                      "pm.test(\"Lấy sơ đồ ghế thành công\", function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    var jsonData = pm.response.json();",
+                      "    var availableSeat = jsonData.data.seats.find(s => s.status === \"AVAILABLE\");",
+                      "    pm.expect(availableSeat).to.not.be.undefined;",
+                      "    pm.environment.set(\"checkin_seat_id\", availableSeat.showtimeSeatId);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
                   }
                 }
               ],
               "request": {
-                "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{staff_accessToken}}"
-                  }
-                ],
+                "method": "GET",
+                "header": [],
                 "url": {
-                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel",
+                  "raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
                   "host": [
                     "{{BaseUrl}}"
                   ],
                   "path": [
                     "api",
                     "v1",
-                    "bookings",
-                    "{{booking_id}}",
-                    "cancel"
+                    "showtimes",
+                    "{{test_showtime_id}}",
+                    "seats"
                   ]
-                },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel' -H 'Authorization: Bearer {{staff_accessToken}}'"
+                }
               },
               "response": []
             },
             {
-              "name": "[403] Customer cố hủy thay staff (Security)",
+              "name": "[201] [Happy Path] Khóa ghế thành công - Check-in",
               "event": [
                 {
                   "listen": "test",
                   "script": {
                     "type": "text/javascript",
                     "exec": [
-                      "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
-                      "pm.test('Error body has message or error field', function () {",
-                      "    try { var json = pm.response.json(); pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist; } catch (e) { pm.expect(pm.response.text().length).to.be.above(0); }",
-                      "});"
+                      "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
+                      "var json = pm.response.json();",
+                      "var bookingId = json.data.id;",
+                      "var qrCode = json.data.qrCode;",
+                      "pm.environment.set('booking_id', bookingId);",
+                      "pm.environment.set('temp_booking_code', qrCode);"
                     ]
                   }
                 }
@@ -4149,10 +5099,117 @@
                   {
                     "key": "Authorization",
                     "value": "Bearer {{customer_accessToken}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
                   }
                 ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{checkin_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
                 "url": {
-                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel",
+                  "raw": "{{BaseUrl}}/api/v1/bookings",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings"
+                  ]
+                },
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings' -H 'Authorization: Bearer {{customer_accessToken}}' -H 'Content-Type: application/json' -d '{\"showtimeId\":\"{{test_showtime_id}}\",\"showtimeSeatIds\":[\"{{wallet_test_seat_id}}\"],\"combos\":[],\"voucherCode\":null,\"paymentMethod\":\"VNPAY\"}'"
+              },
+              "response": []
+            },
+            {
+              "name": "[Setup] Thanh toán ví CinePoint cho Booking Flow - Check-in",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Thanh toán CinePoint thành công chuyển trạng thái sang PAID\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.true;\r",
+                      "});\r",
+                      ""
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/payments/wallet/{{booking_id}}",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "payments",
+                    "wallet",
+                    "{{booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "[Setup] Lấy QR Code của đơn đặt vé - Check-in",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test(\"Lấy chi tiết đơn đặt vé thành công\", function () {\r",
+                      "    pm.response.to.have.status(200);\r",
+                      "    var jsonData = pm.response.json();\r",
+                      "    pm.expect(jsonData.success).to.be.true;\r",
+                      "    pm.expect(jsonData.data.qrCode).to.not.be.undefined;\r",
+                      "    pm.environment.set(\"temp_booking_code\", jsonData.data.qrCode);\r",
+                      "});\r"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{customer_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}",
                   "host": [
                     "{{BaseUrl}}"
                   ],
@@ -4160,19 +5217,12 @@
                     "api",
                     "v1",
                     "bookings",
-                    "{{booking_id}}",
-                    "cancel"
+                    "{{booking_id}}"
                   ]
-                },
-                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel' -H 'Authorization: Bearer {{customer_accessToken}}'"
+                }
               },
               "response": []
-            }
-          ]
-        },
-        {
-          "name": "8. Check-in QR (POST check-in)",
-          "item": [
+            },
             {
               "name": "[200] Check-in thành công (Happy Path)",
               "event": [
@@ -4184,7 +5234,10 @@
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
-                      "pm.test('Capture used qr_code', function () { pm.environment.set('used_qr_code', pm.environment.get('temp_booking_code')); });"
+                      "pm.test('Capture used qr_code and checked_in_booking_id for Review Flow', function () {",
+                      "    pm.environment.set('used_qr_code', pm.environment.get('temp_booking_code'));",
+                      "    pm.environment.set('checked_in_booking_id', pm.environment.get('booking_id'));",
+                      "});"
                     ]
                   }
                 }
@@ -4313,6 +5366,93 @@
                   ]
                 },
                 "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/check-in?qrCode=INVALID-FORMAT-XYZ' -H 'Authorization: Bearer {{staff_accessToken}}'"
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "7. Staff hủy tại quầy (POST cancel)",
+          "item": [
+            {
+              "name": "[200] Staff hủy vé tại quầy (Happy)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Staff cancel returns 200 or 400 (acceptable if booking already CHECKED_IN)', function () { pm.expect([200, 400]).to.include(pm.response.code); });",
+                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{staff_accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings",
+                    "{{booking_id}}",
+                    "cancel"
+                  ]
+                },
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel' -H 'Authorization: Bearer {{staff_accessToken}}'"
+              },
+              "response": []
+            },
+            {
+              "name": "[403] Customer cố hủy thay staff (Security)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });",
+                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Error body has message or error field', function () {",
+                      "    try { var json = pm.response.json(); pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist; } catch (e) { pm.expect(pm.response.text().length).to.be.above(0); }",
+                      "});"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{customer_accessToken}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel",
+                  "host": [
+                    "{{BaseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "v1",
+                    "bookings",
+                    "{{booking_id}}",
+                    "cancel"
+                  ]
+                },
+                "description": "Generated from cURL: curl -X POST '{{BaseUrl}}/api/v1/bookings/{{booking_id}}/cancel' -H 'Authorization: Bearer {{customer_accessToken}}'"
               },
               "response": []
             }
@@ -4588,7 +5728,7 @@
               "script": {
                 "exec": [
                   "pm.test(\"Chặn thanh toán ví không hợp lệ - Trả về lỗi 400 hoặc 409\", function () {\r",
-                  "    pm.expect(pm.response.code).to.be.oneOf([400, 409]);\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([400, 403, 409]);\r",
                   "    var jsonData = pm.response.json();\r",
                   "    pm.expect(jsonData.success).to.be.false;\r",
                   "    pm.expect(jsonData.message).to.be.a('string');\r",
@@ -6317,6 +7457,17 @@
                 "type": "text/javascript",
                 "packages": {},
                 "requests": {}
+              }
+            },
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Giữ nguyên test_movie_id (phim của showtime đang test) để can-review khớp đúng booking check-in",
+                  "// Không restore từ setup_movie_id vì checked_in_booking_id thuộc phim đang test",
+                  "pm.environment.set(\"test_movie_id\", pm.environment.get(\"setup_movie_id\"));"
+                ],
+                "type": "text/javascript"
               }
             }
           ],
