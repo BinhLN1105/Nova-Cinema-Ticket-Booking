@@ -99,3 +99,10 @@ UI-UX_App_Design
 *.DS_Store
 *.Trashes
 Desktop.ini
+
+# ==============================
+# SonarQube / SonarCloud
+# ==============================
+.scannerwork/
+.sonar/
+
