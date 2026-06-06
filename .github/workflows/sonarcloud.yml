@@ -163,7 +163,7 @@ jobs:
       - name: Run Sonar Jira Sync Bot
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-          JIRA_EMAIL: ${{ secrets.JIRA_EMAIL }}
+          JIRA_EMAIL: ${{ secrets.JIRA_USER_EMAIL }}
           JIRA_API_TOKEN: ${{ secrets.JIRA_API_TOKEN }}
           JIRA_DOMAIN: ${{ secrets.JIRA_DOMAIN }}
           JIRA_PROJECT_KEY: ${{ secrets.JIRA_PROJECT_KEY }}
