@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.hilt)
     id 'com.google.gms.google-services'
     alias(libs.plugins.navigation.safeargs)
+    alias(libs.plugins.sonar)
 }
 
 android {
@@ -111,4 +112,17 @@ dependencies {
     testImplementation libs.junit
     androidTestImplementation libs.androidx.junit
     androidTestImplementation libs.androidx.espresso.core
+}
+
+sonar {
+    properties {
+        property "sonar.projectKey", "novaticket-android"
+        property "sonar.organization", "binhln115"
+        property "sonar.host.url", "https://sonarcloud.io"
+        property "sonar.projectName", "NovaTicket Android"
+        property "sonar.sources", "src/main/java"
+        property "sonar.tests", "src/test/java"
+        property "sonar.java.binaries", "build/intermediates/javac/debug/compileDebugJavaWithJavac"
+        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
+    }
 }
