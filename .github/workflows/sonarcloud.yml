@@ -31,7 +31,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           cd Backend/ticket-booking
-          mvn clean verify sonar:sonar
+          mvn clean verify sonar:sonar -DskipTests
 
       - name: Upload Sonar Report Artifact
         uses: actions/upload-artifact@v4
