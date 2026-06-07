@@ -20,6 +20,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.beans.factory.annotation.Value;
 
 import java.util.List;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -106,15 +107,16 @@ public class SecurityConfig {
                 CorsConfiguration configuration = new CorsConfiguration();
 
                 // Hỗ trợ nhiều origin từ cấu hình (comma-separated)
-                if (allowedOrigins != null && !allowedOrigins.isBlank()) {
-                        configuration.setAllowedOriginPatterns(java.util.Arrays.asList(allowedOrigins.split(",")));
+                if (allowedOrigins != null && !allowedOrigins.isBlank() && !allowedOrigins.contains("*")) {
+                        configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
+                        configuration.setAllowCredentials(true);
                 } else {
                         configuration.setAllowedOriginPatterns(List.of("*"));
+                        configuration.setAllowCredentials(false);
                 }
 
                 configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
                 configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-                configuration.setAllowCredentials(true);
 
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", configuration);

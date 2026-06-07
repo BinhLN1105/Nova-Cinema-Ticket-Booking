@@ -9,7 +9,7 @@ import java.util.Locale;
  */
 public final class CurrencyUtil {
 
-    private static final Locale VN_LOCALE = new Locale("vi", "VN");
+    private static final Locale VN_LOCALE = Locale.of("vi", "VN");
 
     private CurrencyUtil() {
     }

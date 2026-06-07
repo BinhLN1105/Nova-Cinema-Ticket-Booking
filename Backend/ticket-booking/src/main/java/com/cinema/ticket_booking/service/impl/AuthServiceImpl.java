@@ -24,7 +24,7 @@ import com.cinema.ticket_booking.service.social.SocialUserInfo;
 
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
-import java.util.Random;
+import java.security.SecureRandom;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,6 +42,8 @@ import java.util.Arrays;
 @Transactional
 @Slf4j
 public class AuthServiceImpl implements AuthService {
+
+    private static final SecureRandom secureRandom = new SecureRandom();
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
@@ -180,7 +182,7 @@ public class AuthServiceImpl implements AuthService {
             }
 
             // 2. Tạo mã OTP 6 số
-            String otp = String.format("%06d", new Random().nextInt(1000000));
+            String otp = String.format("%06d", secureRandom.nextInt(1000000));
             if (Arrays.asList(env.getActiveProfiles()).contains("test")
                     || Arrays.asList(env.getActiveProfiles()).contains("dev")) {
                 otp = "123456"; // Fixed OTP for CI/CD and local development test automation

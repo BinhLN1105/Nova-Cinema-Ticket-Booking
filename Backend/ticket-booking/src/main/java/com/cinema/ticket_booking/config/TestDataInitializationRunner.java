@@ -9,6 +9,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.beans.factory.annotation.Value;
 
 @Configuration
 @Profile("test") // Chỉ chạy khi Spring Profile là "test" (Dùng cho CI/CD và Local Newman Test)
@@ -18,6 +19,12 @@ public class TestDataInitializationRunner implements CommandLineRunner {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Value("${app.test.admin-password}")
+    private String adminPassword;
+
+    @Value("${app.test.staff-password}")
+    private String staffPassword;
 
     @Override
     public void run(String... args) throws Exception {
@@ -29,7 +36,7 @@ public class TestDataInitializationRunner implements CommandLineRunner {
             if (!userRepository.existsByEmail(adminEmail)) {
                 User admin = User.builder()
                         .email(adminEmail)
-                        .password(passwordEncoder.encode("AdminPassword123!"))
+                        .password(passwordEncoder.encode(adminPassword))
                         .fullName("Admin Test CI/CD")
                         .role(UserRole.ADMIN)
                         .isActive(true)
@@ -45,7 +52,7 @@ public class TestDataInitializationRunner implements CommandLineRunner {
             if (!userRepository.existsByEmail(staffEmail)) {
                 User staff = User.builder()
                         .email(staffEmail)
-                        .password(passwordEncoder.encode("StaffPassword123!"))
+                        .password(passwordEncoder.encode(staffPassword))
                         .fullName("Staff Test CI/CD")
                         .role(UserRole.STAFF)
                         .isActive(true)
