@@ -168,27 +168,27 @@ export default function BookingsPage() {
       <AdminCard>
         <div className="p-4 border-b border-gray-100 flex flex-wrap gap-4 items-end">
           <div className="flex-1 min-w-[240px]">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Tìm kiếm</label>
-            <SearchInput value={filters.search} onChange={v => updateFilter('search', v)}
+            <label htmlFor="booking-search" className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Tìm kiếm</label>
+            <SearchInput id="booking-search" value={filters.search} onChange={v => updateFilter('search', v)}
               placeholder="Mã vé, tên, email..." className="w-full" />
           </div>
           
           <div className="w-48">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Trạng thái</label>
-            <Select value={filters.status}
+            <label htmlFor="booking-status" className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Trạng thái</label>
+            <Select id="booking-status" value={filters.status}
               onChange={e => updateFilter('status', e.target.value)}
               options={STATUS_OPTIONS} placeholder="Tất cả trạng thái"
             />
           </div>
 
           <div className="w-44">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Từ ngày</label>
-            <Input type="date" value={filters.startDate} onChange={e => updateFilter('startDate', e.target.value)} />
+            <label htmlFor="booking-start-date" className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Từ ngày</label>
+            <Input id="booking-start-date" type="date" value={filters.startDate} onChange={e => updateFilter('startDate', e.target.value)} />
           </div>
 
           <div className="w-44">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Đến ngày</label>
-            <Input type="date" value={filters.endDate} onChange={e => updateFilter('endDate', e.target.value)} />
+            <label htmlFor="booking-end-date" className="block text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Đến ngày</label>
+            <Input id="booking-end-date" type="date" value={filters.endDate} onChange={e => updateFilter('endDate', e.target.value)} />
           </div>
 
           <Button variant="ghost" onClick={handleClearFilters} className="px-4">

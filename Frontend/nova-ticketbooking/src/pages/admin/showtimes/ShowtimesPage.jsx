@@ -53,9 +53,11 @@ function CinemaShowtimesList({ cinema, onOpenCreate, onOpenDelete }) {
 
   return (
     <div className="border border-gray-200 rounded-xl mb-4 overflow-hidden bg-white shadow-sm">
-      <div 
-        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+      <button
+        type="button"
+        className="w-full p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors text-left"
         onClick={() => setExpanded(!expanded)}
+        aria-expanded={expanded}
       >
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-brand-50 flex items-center justify-center text-brand-600 shrink-0">
@@ -79,7 +81,7 @@ function CinemaShowtimesList({ cinema, onOpenCreate, onOpenDelete }) {
             {expanded ? <ChevronUp className="w-5 h-5 text-gray-500" /> : <ChevronDown className="w-5 h-5 text-gray-500" />}
           </div>
         </div>
-      </div>
+      </button>
       
       {expanded && (
         <div className="p-5 bg-gray-50/50 border-t border-gray-100">
@@ -317,10 +319,10 @@ export default function ShowtimesPage() {
       <Modal open={showCreate} onClose={() => { setShowCreate(false); resetForm() }} title="Thêm suất chiếu mới" size="lg">
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="showtime-movie" className="block text-sm font-medium text-gray-700 mb-1">
               <Film className="w-4 h-4 inline mr-1" /> Phim
             </label>
-            <select value={movieId} onChange={(e) => setMovieId(e.target.value)}
+            <select id="showtime-movie" value={movieId} onChange={(e) => setMovieId(e.target.value)}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400">
               <option value="">Chọn phim...</option>
               {(moviesData || []).map(m => (
@@ -330,10 +332,10 @@ export default function ShowtimesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label htmlFor="showtime-cinema" className="block text-sm font-medium text-gray-700 mb-1">
               <MapPin className="w-4 h-4 inline mr-1" /> Rạp
             </label>
-            <select value={cinemaId} onChange={(e) => { setCinemaId(e.target.value); setScreenId('') }}
+            <select id="showtime-cinema" value={cinemaId} onChange={(e) => { setCinemaId(e.target.value); setScreenId('') }}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400">
               <option value="">Chọn rạp...</option>
               {(cinemasData || []).map(c => (
@@ -343,8 +345,8 @@ export default function ShowtimesPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Phòng chiếu</label>
-            <select value={screenId} onChange={(e) => setScreenId(e.target.value)}
+            <label htmlFor="showtime-screen" className="block text-sm font-medium text-gray-700 mb-1">Phòng chiếu</label>
+            <select id="showtime-screen" value={screenId} onChange={(e) => setScreenId(e.target.value)}
               disabled={!cinemaId}
               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400 disabled:bg-gray-50 disabled:text-gray-300">
               <option value="">{cinemaId ? 'Chọn phòng...' : 'Chọn rạp trước'}</option>
@@ -356,17 +358,17 @@ export default function ShowtimesPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="showtime-start-time" className="block text-sm font-medium text-gray-700 mb-1">
                 <Clock className="w-4 h-4 inline mr-1" /> Giờ chiếu
               </label>
-              <input type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+              <input id="showtime-start-time" type="datetime-local" value={startTime} onChange={(e) => setStartTime(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="showtime-base-price" className="block text-sm font-medium text-gray-700 mb-1">
                 <DollarSign className="w-4 h-4 inline mr-1" /> Giá vé (VNĐ)
               </label>
-              <input type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)}
+              <input id="showtime-base-price" type="number" value={basePrice} onChange={(e) => setBasePrice(e.target.value)}
                 min="0" step="5000"
                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400" />
             </div>
