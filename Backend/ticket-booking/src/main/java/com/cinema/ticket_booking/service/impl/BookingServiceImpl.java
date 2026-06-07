@@ -46,11 +46,14 @@ import java.util.stream.Collectors;
 import java.math.RoundingMode;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
+import java.security.SecureRandom;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BookingServiceImpl implements BookingService {
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
     private final BookingRepository bookingRepository;
     private final BookingItemRepository bookingItemRepository;
     private final BookingComboRepository bookingComboRepository;
@@ -777,8 +780,10 @@ public class BookingServiceImpl implements BookingService {
         // 2. Kiểm tra thời gian: Customer phải hủy trước X giờ, Staff/Admin bypass
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
-        boolean enableCancelTimeCheck = "true".equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
-        if (enableCancelTimeCheck && !isStaffOrAdmin && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+        boolean enableCancelTimeCheck = "true"
+                .equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
+        if (enableCancelTimeCheck && !isStaffOrAdmin && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
@@ -872,8 +877,10 @@ public class BookingServiceImpl implements BookingService {
         // Kiểm tra thời gian
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
-        boolean enableCancelTimeCheck = "true".equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
-        if (enableCancelTimeCheck && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+        boolean enableCancelTimeCheck = "true"
+                .equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
+        if (enableCancelTimeCheck && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"))
+                .isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
@@ -948,7 +955,7 @@ public class BookingServiceImpl implements BookingService {
 
     private String generateBookingCode() {
         String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-        String randPart = String.format("%04d", (int) (Math.random() * 10000));
+        String randPart = String.format("%04d", SECURE_RANDOM.nextInt(10000));
         return "BK" + datePart + randPart;
     }
 
