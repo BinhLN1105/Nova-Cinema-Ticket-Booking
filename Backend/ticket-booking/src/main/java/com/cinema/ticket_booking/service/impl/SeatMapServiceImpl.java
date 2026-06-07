@@ -13,6 +13,8 @@ import com.cinema.ticket_booking.service.SystemConfigService;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -48,9 +50,11 @@ public class SeatMapServiceImpl implements SeatMapService {
             }
         }
 
-
         // Calculate actual hold time
-        long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        long minutesToStart = Duration.between(
+                ZonedDateTime.now(zoneId),
+                showtime.getStartTime().atZone(zoneId)).toMinutes();
         int defaultHold = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
         int lateHold = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
 

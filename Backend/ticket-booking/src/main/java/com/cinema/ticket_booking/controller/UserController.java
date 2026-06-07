@@ -75,7 +75,7 @@ public class UserController {
             @RequestParam("file") MultipartFile file) throws IOException {
 
         // 1. Validate File Size (<10MB)
-        long maxSize = 10 * 1024 * 1024;
+        long maxSize = 10L * 1024 * 1024;
         if (file.getSize() > maxSize) {
             throw new IllegalArgumentException("Dung lượng ảnh vượt quá 10MB. Vui lòng nén ảnh lại.");
         }

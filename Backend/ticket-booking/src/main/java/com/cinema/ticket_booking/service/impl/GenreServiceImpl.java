@@ -44,6 +44,7 @@ public class GenreServiceImpl implements GenreService {
                 .replaceAll("\\p{M}", "")
                 .toLowerCase()
                 .replaceAll("[^a-z0-9]+", "-")
-                .replaceAll("^-|-$", "");
+                .replaceAll("^-", "")
+                .replaceAll("-$", "");
     }
 }

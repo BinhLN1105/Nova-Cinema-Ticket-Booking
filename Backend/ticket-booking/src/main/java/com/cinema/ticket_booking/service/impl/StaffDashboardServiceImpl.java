@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.YearMonth;
 import java.util.List;
 import java.util.UUID;
@@ -39,7 +40,8 @@ public class StaffDashboardServiceImpl {
 
         public StaffDashboardResponse getDashboardStats(User currentUser) {
                 UUID cinemaId = getCinemaId(currentUser);
-                LocalDate today = LocalDate.now();
+                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+                LocalDate today = LocalDate.now(zoneId);
 
                 long totalShowtimesToday = showtimeRepository.countByCinemaAndDate(cinemaId, today);
 
@@ -48,7 +50,7 @@ public class StaffDashboardServiceImpl {
                 long ticketsCheckedToday = ticketRepository.countCheckedInByCinemaAndDateRange(
                                 cinemaId, startOfDay, endOfDay);
 
-                YearMonth currentMonth = YearMonth.now();
+                YearMonth currentMonth = YearMonth.now(zoneId);
                 LocalDateTime startOfMonth = currentMonth.atDay(1).atStartOfDay();
                 LocalDateTime endOfMonth = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
                 long ticketsCheckedThisMonth = ticketRepository.countCheckedInByCinemaAndDateRange(
@@ -65,13 +67,16 @@ public class StaffDashboardServiceImpl {
 
         public List<UpcomingShowtimeItem> getUpcomingShowtimes(User currentUser) {
                 UUID cinemaId = getCinemaId(currentUser);
-                LocalDateTime now = LocalDateTime.now();
+                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+                LocalDateTime now = LocalDateTime.now(zoneId);
                 LocalDateTime until = now.plusMinutes(60);
 
                 return showtimeRepository.findUpcomingByCinema(cinemaId, now, until)
                                 .stream()
                                 .map(showtime -> {
-                                        long minutes = Duration.between(now, showtime.getStartTime()).toMinutes();
+                                        long minutes = Duration.between(
+                                                        now.atZone(zoneId),
+                                                        showtime.getStartTime().atZone(zoneId)).toMinutes();
                                         String title = "N/A";
                                         String poster = null;
                                         if (showtime.getMovie() != null) {
@@ -102,16 +107,17 @@ public class StaffDashboardServiceImpl {
                         User currentUser, String filter, Pageable pageable) {
 
                 UUID cinemaId = getCinemaId(currentUser);
+                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
                 // Xác định khoảng thời gian theo filter
                 LocalDateTime from;
-                LocalDateTime to = LocalDateTime.now().plusSeconds(1);
+                LocalDateTime to = LocalDateTime.now(zoneId).plusSeconds(1);
 
                 if ("TODAY".equalsIgnoreCase(filter)) {
-                        from = LocalDate.now().atStartOfDay();
+                        from = LocalDate.now(zoneId).atStartOfDay();
                 } else {
                         // THIS_MONTH (mặc định)
-                        YearMonth month = YearMonth.now();
+                        YearMonth month = YearMonth.now(zoneId);
                         from = month.atDay(1).atStartOfDay();
                 }
 

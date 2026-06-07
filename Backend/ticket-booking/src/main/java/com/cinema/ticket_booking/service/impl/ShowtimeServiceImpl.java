@@ -180,7 +180,9 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
         // Tính toán thời gian giữ ghế linh hoạt
         LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
-        long minutesToStart = Duration.between(now, showtime.getStartTime()).toMinutes();
+        long minutesToStart = Duration.between(
+                now.atZone(ZoneId.of("Asia/Ho_Chi_Minh")),
+                showtime.getStartTime().atZone(ZoneId.of("Asia/Ho_Chi_Minh"))).toMinutes();
         int seatHoldMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
 
         // Nếu phim sắp chiếu (trong 15p), rút ngắn thời gian giữ ghế xuống 3p
@@ -289,21 +291,22 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     public void delete(UUID id) {
         Showtime showtime = findById(id);
         List<Booking> bookings = bookingRepository.findByShowtimeId(showtime.getId());
-        
+
         // Kiểm tra xem có giao dịch thành công nào không
         boolean hasActiveTransactions = bookings.stream()
                 .anyMatch(b -> b.getStatus() == BookingStatus.PAID || b.getStatus() == BookingStatus.CHECKED_IN);
-        
+
         if (hasActiveTransactions) {
-            throw new ConflictException("Không thể xóa suất chiếu đã phát sinh giao dịch thanh toán thành công (PAID/CHECKED_IN). Vui lòng hủy suất chiếu hoặc hoàn tiền trước.");
+            throw new ConflictException(
+                    "Không thể xóa suất chiếu đã phát sinh giao dịch thanh toán thành công (PAID/CHECKED_IN). Vui lòng hủy suất chiếu hoặc hoàn tiền trước.");
         }
-        
+
         // Nếu chỉ có các đơn nháp hoặc đã hủy/quá hạn, tiến hành dọn dẹp sạch sẽ
         for (Booking booking : bookings) {
             paymentRepository.findByBookingId(booking.getId()).ifPresent(paymentRepository::delete);
             bookingRepository.delete(booking);
         }
-        
+
         showtimeSeatRepository.deleteByShowtimeId(showtime.getId());
         showtimeRepository.delete(showtime);
     }

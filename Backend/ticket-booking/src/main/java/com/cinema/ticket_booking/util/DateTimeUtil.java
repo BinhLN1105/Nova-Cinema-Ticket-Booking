@@ -6,6 +6,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.TextStyle;
 import java.util.Locale;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.Duration;
 
 /**
  * Tiện ích xử lý ngày giờ dùng chung trong project.
@@ -16,7 +19,7 @@ public final class DateTimeUtil {
     private static final DateTimeFormatter TIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm");
     private static final DateTimeFormatter DATETIME_FORMATTER = DateTimeFormatter.ofPattern("HH:mm - dd/MM/yyyy");
     private static final DateTimeFormatter VNPAY_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
-    private static final Locale VI_LOCALE = new Locale("vi", "VN");
+    private static final Locale VI_LOCALE = Locale.of("vi", "VN");
 
     private DateTimeUtil() {
     }
@@ -54,7 +57,7 @@ public final class DateTimeUtil {
     /** Trả về true nếu ngày là cuối tuần (để tính giá vé cao điểm) */
     public static boolean isWeekend(LocalDateTime dt) {
         DayOfWeek dow = dt.getDayOfWeek();
-        return dow == DayOfWeek.SATURDAY || dow == DayOfWeek.SUNDAY;
+        return DayOfWeek.SATURDAY.equals(dow) || DayOfWeek.SUNDAY.equals(dow);
     }
 
     /** Trả về true nếu giờ là khung giờ vàng (18:00–22:00) */
@@ -65,6 +68,12 @@ public final class DateTimeUtil {
 
     /** Số phút còn lại đến thời điểm hết hạn (âm nếu đã quá hạn) */
     public static long minutesUntil(LocalDateTime deadline) {
-        return java.time.Duration.between(LocalDateTime.now(), deadline).toMinutes();
+        if (deadline == null) {
+            return 0;
+        }
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        return Duration.between(
+                ZonedDateTime.now(zoneId),
+                deadline.atZone(zoneId)).toMinutes();
     }
 }

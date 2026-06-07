@@ -44,6 +44,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.math.RoundingMode;
+import java.time.ZonedDateTime;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -307,7 +309,10 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime lockUntil = LocalDateTime.now().plusMinutes(pendingMins);
 
         if (!seats.isEmpty()) {
-            long minutesToStart = Duration.between(LocalDateTime.now(), showtime.getStartTime()).toMinutes();
+            ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+            long minutesToStart = Duration.between(
+                    ZonedDateTime.now(zoneId),
+                    showtime.getStartTime().atZone(zoneId)).toMinutes();
             if (minutesToStart <= 15 && minutesToStart >= -10) {
                 pendingMins = systemConfigService.getIntConfig("LATE_SEAT_HOLD_TIME", 3);
             }
@@ -545,7 +550,8 @@ public class BookingServiceImpl implements BookingService {
         LocalDate showDate = showTimeStart.toLocalDate();
         LocalDate today = LocalDate.now();
         if (!showDate.equals(today) && !showDate.equals(today.plusDays(1)) && !showDate.equals(today.minusDays(1))) {
-            // Cho phép check-in trước đối với môi trường dev/test khi chạy automation test (trong vòng 30 ngày)
+            // Cho phép check-in trước đối với môi trường dev/test khi chạy automation test
+            // (trong vòng 30 ngày)
             if (showDate.isBefore(today.plusDays(30)) && showDate.isAfter(today.minusDays(30))) {
                 // Hợp lệ
             } else {
@@ -991,7 +997,8 @@ public class BookingServiceImpl implements BookingService {
         if (booking.getStatus() != BookingStatus.PAID) {
             throw new BadRequestException("Đơn đặt vé chưa được thanh toán hoặc trạng thái không hợp lệ");
         }
-        if (booking.getCancellationTokenExpiry() == null || booking.getCancellationTokenExpiry().isBefore(LocalDateTime.now())) {
+        if (booking.getCancellationTokenExpiry() == null
+                || booking.getCancellationTokenExpiry().isBefore(LocalDateTime.now())) {
             throw new BadRequestException("Yêu cầu hủy vé đã hết hạn hoặc chưa được tạo");
         }
         return booking.getCancellationToken();

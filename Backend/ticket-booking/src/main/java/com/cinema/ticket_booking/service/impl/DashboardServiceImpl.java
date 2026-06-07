@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -45,7 +46,8 @@ public class DashboardServiceImpl implements DashboardService {
         log.info("📊 Fetching Stats: [{} TO {}] | Cinema: {}", startDate, endDate, cinemaId);
 
         // 0. Validation: Giới hạn 180 ngày để bảo vệ DB
-        long daysInRange = Duration.between(startDate, endDate).toDays();
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        long daysInRange = Duration.between(startDate.atZone(zoneId), endDate.atZone(zoneId)).toDays();
         if (daysInRange > 180) {
             throw new IllegalArgumentException("Khoảng thời gian thống kê không được vượt quá 180 ngày.");
         }
@@ -87,7 +89,8 @@ public class DashboardServiceImpl implements DashboardService {
             double revenueChange = 0;
             double bookingChange = 0;
 
-            LocalDateTime prevStartDate = startDate.minus(Duration.between(startDate, endDate));
+            LocalDateTime prevStartDate = startDate
+                    .minus(Duration.between(startDate.atZone(zoneId), endDate.atZone(zoneId)));
             LocalDateTime prevEndDate = startDate;
 
             BigDecimal prevNetRevenue = bookingRepository.calculateNetRevenue(prevStartDate, prevEndDate, cinemaId);
@@ -116,7 +119,7 @@ public class DashboardServiceImpl implements DashboardService {
                     .getDailyConcessionRevenueInRange(startDate, endDate, cinemaId);
 
             List<RevenueByDay> revenueByDay = new ArrayList<>();
-            long daysBetween = Duration.between(startDate, endDate).toDays();
+            long daysBetween = Duration.between(startDate.atZone(zoneId), endDate.atZone(zoneId)).toDays();
 
             for (int i = 0; i < (int) daysBetween + 1; i++) {
                 LocalDateTime currentDateTime = startDate.plusDays(i);
@@ -129,7 +132,7 @@ public class DashboardServiceImpl implements DashboardService {
 
                 // Total & Count
                 for (BookingRepository.RevenueByDayProjection row : dbRevData) {
-                    if (dateStr.equals(row.getDate().toString())) {
+                    if (dateStr.equals(row.getDate())) {
                         totalRev = row.getRevenue() != null ? row.getRevenue() : BigDecimal.ZERO;
                         dayCount = row.getBookingCount() != null ? row.getBookingCount() : 0L;
                         break;
@@ -137,14 +140,14 @@ public class DashboardServiceImpl implements DashboardService {
                 }
                 // Ticket Split
                 for (BookingRepository.RevenueByDayProjection row : dbTicketData) {
-                    if (row.getDate() != null && dateStr.equals(row.getDate().toString())) {
+                    if (row.getDate() != null && dateStr.equals(row.getDate())) {
                         ticketRev = row.getRevenue() != null ? row.getRevenue() : BigDecimal.ZERO;
                         break;
                     }
                 }
                 // Concession Split
                 for (BookingRepository.RevenueByDayProjection row : dbConcessionData) {
-                    if (row.getDate() != null && dateStr.equals(row.getDate().toString())) {
+                    if (row.getDate() != null && dateStr.equals(row.getDate())) {
                         concessionRev = row.getRevenue() != null ? row.getRevenue() : BigDecimal.ZERO;
                         break;
                     }
