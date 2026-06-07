@@ -219,13 +219,13 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                 <div className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="text-sm font-semibold text-gray-700 block mb-1">Tên phim (Tiếng Việt) *</label>
-                      <input name="title" required value={formData.title} onChange={handleChange}
+                      <label htmlFor="movie-title" className="text-sm font-semibold text-gray-700 block mb-1">Tên phim (Tiếng Việt) *</label>
+                      <input id="movie-title" name="title" required value={formData.title} onChange={handleChange}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 focus:ring-1 focus:ring-brand-500 outline-none transition-all" />
                     </div>
                     <div>
-                      <label className="text-sm font-semibold text-gray-700 block mb-1">Tên gốc (Original)</label>
-                      <input name="originalTitle" value={formData.originalTitle} onChange={handleChange}
+                      <label htmlFor="movie-original-title" className="text-sm font-semibold text-gray-700 block mb-1">Tên gốc (Original)</label>
+                      <input id="movie-original-title" name="originalTitle" value={formData.originalTitle} onChange={handleChange}
                         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:border-brand-500 outline-none transition-all" />
                     </div>
                   </div>
@@ -234,32 +234,33 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                 {/* Khối 2: Thông số & Trạng thái (Grid) */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 bg-gray-50 p-5 rounded-3xl border border-gray-100">
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Thời lượng (Phút) *</label>
-                    <input name="duration" type="number" required value={formData.duration} onChange={handleChange}
+                    <label htmlFor="movie-duration" className="text-sm font-semibold text-gray-700 block mb-1">Thời lượng (Phút) *</label>
+                    <input id="movie-duration" name="duration" type="number" required value={formData.duration} onChange={handleChange}
                       className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Phân loại (Rated) *</label>
-                    <select name="rated" value={formData.rated} onChange={handleChange}
+                    <label htmlFor="movie-rated" className="text-sm font-semibold text-gray-700 block mb-1">Phân loại (Rated) *</label>
+                    <select id="movie-rated" name="rated" value={formData.rated} onChange={handleChange}
                       className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none">
                       {RATED_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Trạng thái</label>
-                    <select name="status" value={formData.status} onChange={handleChange}
+                    <label htmlFor="movie-status" className="text-sm font-semibold text-gray-700 block mb-1">Trạng thái</label>
+                    <select id="movie-status" name="status" value={formData.status} onChange={handleChange}
                       className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none font-bold text-brand-600">
                       {STATUS_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                   </div>
                   <div className="sm:col-span-1">
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Ngày phát hành *</label>
-                    <input name="releaseDate" type="date" required value={formData.releaseDate} onChange={handleChange}
+                    <label htmlFor="movie-release-date" className="text-sm font-semibold text-gray-700 block mb-1">Ngày phát hành *</label>
+                    <input id="movie-release-date" name="releaseDate" type="date" required value={formData.releaseDate} onChange={handleChange}
                       className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
                   </div>
                   <div className="sm:col-span-1">
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Ngày kết thúc</label>
+                    <label htmlFor="movie-end-date" className="text-sm font-semibold text-gray-700 block mb-1">Ngày kết thúc</label>
                     <input 
+                      id="movie-end-date"
                       name="endDate" 
                       type="date" 
                       value={formData.endDate} 
@@ -269,8 +270,8 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                     />
                   </div>
                   <div className="sm:col-span-1">
-                     <label className="text-sm font-semibold text-gray-700 block mb-1">Trailer (Youtube Link)</label>
-                     <input name="trailerUrl" value={formData.trailerUrl} onChange={handleChange} placeholder="https://youtube.com/..."
+                     <label htmlFor="movie-trailer-url" className="text-sm font-semibold text-gray-700 block mb-1">Trailer (Youtube Link)</label>
+                     <input id="movie-trailer-url" name="trailerUrl" value={formData.trailerUrl} onChange={handleChange} placeholder="https://youtube.com/..."
                       className="w-full px-4 py-2 bg-white border border-gray-200 rounded-xl" />
                   </div>
                 </div>
@@ -278,13 +279,13 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                 {/* Khối 3: Nhân sự (Director/Cast) */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Đạo diễn</label>
-                    <input name="director" value={formData.director} onChange={handleChange}
+                    <label htmlFor="movie-director" className="text-sm font-semibold text-gray-700 block mb-1">Đạo diễn</label>
+                    <input id="movie-director" name="director" value={formData.director} onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl" />
                   </div>
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-1">Diễn viên chính</label>
-                    <input name="cast" value={formData.cast} onChange={handleChange}
+                    <label htmlFor="movie-cast" className="text-sm font-semibold text-gray-700 block mb-1">Diễn viên chính</label>
+                    <input id="movie-cast" name="cast" value={formData.cast} onChange={handleChange}
                       className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl" />
                   </div>
                 </div>
@@ -329,8 +330,8 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                   </div>
 
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-2">Tóm tắt nội dung</label>
-                    <textarea name="description" rows={5} value={formData.description} onChange={handleChange}
+                    <label htmlFor="movie-description" className="text-sm font-semibold text-gray-700 block mb-2">Tóm tắt nội dung</label>
+                    <textarea id="movie-description" name="description" rows={5} value={formData.description} onChange={handleChange}
                       placeholder="Nhập nội dung phim..."
                       className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:bg-white focus:border-brand-500 outline-none resize-none transition-all" />
                   </div>

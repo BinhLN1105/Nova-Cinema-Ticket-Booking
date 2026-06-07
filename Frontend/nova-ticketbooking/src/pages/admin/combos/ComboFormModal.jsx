@@ -104,10 +104,11 @@ export default function ComboFormModal({ isOpen, onClose, combo }) {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label htmlFor="combo-name" className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Tên combo <span className="text-red-500">*</span>
                 </label>
                 <input
+                  id="combo-name"
                   value={form.name}
                   onChange={set("name")}
                   placeholder="VD: Combo Bắp Vừa + Nước Ngọt"
@@ -118,10 +119,11 @@ export default function ComboFormModal({ isOpen, onClose, combo }) {
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                <label htmlFor="combo-description" className="block text-sm font-semibold text-gray-700 mb-1.5">
                   Mô tả
                 </label>
                 <textarea
+                  id="combo-description"
                   value={form.description}
                   onChange={set("description")}
                   rows={3}
@@ -134,10 +136,11 @@ export default function ComboFormModal({ isOpen, onClose, combo }) {
               {/* Price & Type row */}
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label htmlFor="combo-price" className="block text-sm font-semibold text-gray-700 mb-1.5">
                     Giá (₫) <span className="text-red-500">*</span>
                   </label>
                   <input
+                    id="combo-price"
                     type="number"
                     min={1000}
                     value={form.price}
@@ -148,10 +151,11 @@ export default function ComboFormModal({ isOpen, onClose, combo }) {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label htmlFor="combo-type" className="block text-sm font-semibold text-gray-700 mb-1.5">
                     Loại
                   </label>
                   <select
+                    id="combo-type"
                     value={form.type}
                     onChange={set("type")}
                     className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800
