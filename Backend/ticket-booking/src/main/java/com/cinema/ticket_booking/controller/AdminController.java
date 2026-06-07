@@ -92,9 +92,9 @@ public class AdminController {
         };
 
         if (isYearly) {
-            startDate = now.minusMonths(units - 1).withDayOfMonth(1).with(LocalTime.MIN);
+            startDate = now.minusMonths((long) units - 1).withDayOfMonth(1).with(LocalTime.MIN);
         } else {
-            startDate = now.minusDays(units - 1).with(LocalTime.MIN);
+            startDate = now.minusDays((long) units - 1).with(LocalTime.MIN);
         }
 
         LocalDateTime endDate = now.with(LocalTime.MAX);
@@ -106,14 +106,14 @@ public class AdminController {
 
         for (int i = 0; i < units; i++) {
             String targetDateStr = isYearly
-                    ? now.minusMonths(units - 1 - i).format(formatter)
-                    : now.minusDays(units - 1 - i).format(formatter);
+                    ? now.minusMonths((long) units - 1 - i).format(formatter)
+                    : now.minusDays((long) units - 1 - i).format(formatter);
 
             BigDecimal rev = BigDecimal.ZERO;
             Long count = 0L;
 
             for (BookingRepository.RevenueByDayProjection row : data) {
-                String rowDate = row.getDate() != null ? row.getDate().toString() : "";
+                String rowDate = row.getDate() != null ? row.getDate() : "";
                 if (rowDate.equals(targetDateStr)) {
                     rev = row.getRevenue();
                     count = row.getBookingCount() != null ? row.getBookingCount() : 0L;

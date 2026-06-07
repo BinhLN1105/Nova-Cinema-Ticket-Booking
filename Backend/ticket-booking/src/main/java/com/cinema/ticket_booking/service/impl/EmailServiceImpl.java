@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -20,6 +21,7 @@ import jakarta.mail.internet.MimeMessage;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class EmailServiceImpl implements EmailService {
 
     private final JavaMailSender mailSender;
@@ -47,8 +49,7 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send OTP email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("CRITICAL ERROR: Failed to send OTP email", e);
         }
     }
 
@@ -92,7 +93,7 @@ public class EmailServiceImpl implements EmailService {
 
                 List<String> seatLabels = booking.getBookingItems().stream()
                         .map(item -> item.getShowtimeSeat().getSeat().getSeatLabel())
-                        .collect(Collectors.toList());
+                        .toList();
                 context.setVariable("seats", String.join(", ", seatLabels));
                 context.setVariable("qrCode", booking.getQrCode());
             }
@@ -105,7 +106,7 @@ public class EmailServiceImpl implements EmailService {
                         map.put("quantity", bc.getQuantity());
                         map.put("totalPrice", bc.getUnitPrice().multiply(BigDecimal.valueOf(bc.getQuantity())));
                         return map;
-                    }).collect(Collectors.toList());
+                    }).toList();
             context.setVariable("combos", comboList);
 
             String htmlContent = templateEngine.process(templateName, context);
@@ -113,8 +114,7 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send booking confirmation email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("CRITICAL ERROR: Failed to send booking confirmation email", e);
         }
     }
 
@@ -143,8 +143,7 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send cancellation email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("CRITICAL ERROR: Failed to send cancellation email", e);
         }
     }
 
@@ -166,7 +165,7 @@ public class EmailServiceImpl implements EmailService {
             String confirmUrl = String.format("%s/booking/cancel-confirm?token=%s&bookingId=%s",
                     frontendUrl, token, booking.getId());
             String appConfirmUrl = String.format("%s/app-redirect?token=%s&bookingId=%s", 
-                frontendUrl, token, booking.getId());
+                    frontendUrl, token, booking.getId());
                 
             context.setVariable("confirmUrl", confirmUrl);
             context.setVariable("appConfirmUrl", appConfirmUrl);
@@ -176,8 +175,7 @@ public class EmailServiceImpl implements EmailService {
 
             mailSender.send(message);
         } catch (Exception e) {
-            System.err.println("CRITICAL ERROR: Failed to send cancellation request email: " + e.getMessage());
-            e.printStackTrace();
+            log.error("CRITICAL ERROR: Failed to send cancellation request email", e);
         }
     }
 }

@@ -29,6 +29,7 @@ public final class SlugUtil {
                                 .replace(" ", "-"))
                         .replaceAll("-"))
                 .replaceAll("")
-                .replaceAll("^-|-$", "");
+                .replaceAll("^-", "")
+                .replaceAll("-$", "");
     }
 }

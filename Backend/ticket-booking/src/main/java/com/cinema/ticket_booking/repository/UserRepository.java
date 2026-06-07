@@ -22,7 +22,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
 
     // Kiểm tra xem Email đã tồn tại chưa (Dùng cho Đăng ký)
-    Boolean existsByEmail(String email);
+    boolean existsByEmail(String email);
 
     // Social login: tìm user theo provider + providerId
     Optional<User> findByAuthProviderAndProviderId(AuthProvider authProvider, String providerId);

@@ -18,6 +18,7 @@ import com.cinema.ticket_booking.repository.ReviewRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.CloudinaryService;
+import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -25,16 +26,17 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
+import java.math.RoundingMode;
+import java.math.BigDecimal;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.Arrays;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import com.cinema.ticket_booking.service.SystemConfigService;
 
 @Service // Bắt buộc phải có ở file Impl
 @RequiredArgsConstructor
@@ -326,8 +328,8 @@ public class MovieServiceImpl implements MovieService {
     public void updateAvgRating(UUID movieId, Double newAvg) {
         Movie movie = findById(movieId);
         movie.setAvgRating(newAvg != null
-                ? new java.math.BigDecimal(newAvg).setScale(2, java.math.RoundingMode.HALF_UP)
-                : java.math.BigDecimal.ZERO);
+                ? BigDecimal.valueOf(newAvg).setScale(2, RoundingMode.HALF_UP)
+                : BigDecimal.ZERO);
         movieRepository.save(movie);
     }
 
