@@ -10,8 +10,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 @Slf4j
 @Service
@@ -20,9 +19,7 @@ public class CloudinaryService {
 
     private final Cloudinary cloudinary;
 
-    // Regex bóc tách publicId từ URL Cloudinary (Bỏ version v123... và đuôi .jpg)
-    private static final Pattern CLOUDINARY_URL_PATTERN =
-            Pattern.compile(".*/upload/(?:v\\d+/)?([^/.]+/[^.]+)\\.[a-z]+$");
+
 
     /**
      * Upload ảnh lên Cloudinary vào thư mục cụ thể
@@ -69,10 +66,26 @@ public class CloudinaryService {
     public String extractPublicId(String url) {
         if (url == null || url.isEmpty()) return null;
 
-        Matcher matcher = CLOUDINARY_URL_PATTERN.matcher(url);
-        if (matcher.find()) {
-            return matcher.group(1);
+        int uploadIndex = url.indexOf("/upload/");
+        if (uploadIndex == -1) return null;
+
+        // Cắt chuỗi từ sau "/upload/"
+        String afterUpload = url.substring(uploadIndex + 8);
+
+        // Bỏ version nếu có (ví dụ "v12345678/")
+        if (afterUpload.startsWith("v") && afterUpload.indexOf('/') > 0) {
+            String temp = afterUpload.substring(0, afterUpload.indexOf('/'));
+            if (temp.substring(1).matches("\\d+")) {
+                afterUpload = afterUpload.substring(afterUpload.indexOf('/') + 1);
+            }
         }
-        return null;
+
+        // Loại bỏ phần đuôi mở rộng (extension) như ".jpg", ".png"
+        int dotIndex = afterUpload.lastIndexOf('.');
+        if (dotIndex != -1) {
+            afterUpload = afterUpload.substring(0, dotIndex);
+        }
+
+        return afterUpload;
     }
 }

@@ -136,7 +136,8 @@ public class EmailServiceImpl implements EmailService {
                     ? booking.getShowtime().getMovie().getTitle()
                     : "Bắp nước & Combo";
             context.setVariable("movieTitle", movieTitle);
-            context.setVariable("reason", reason != null ? reason : "Hệ thống tự động hủy theo yêu cầu.");
+            String sanitizedReason = reason != null ? reason.replace("\n", "_").replace("\r", "_") : "Hệ thống tự động hủy theo yêu cầu.";
+            context.setVariable("reason", sanitizedReason);
 
             String htmlContent = templateEngine.process("cancellation-success", context);
             helper.setText(htmlContent, true);
