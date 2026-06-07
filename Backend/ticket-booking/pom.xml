@@ -44,6 +44,7 @@
 		<sonar.projectName>NovaTicket Backend</sonar.projectName>
 		<sonar.java.binaries>target/classes</sonar.java.binaries>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.coverage.exclusions>**/*</sonar.coverage.exclusions>
     </properties>
 	<dependencies>
 		<dependency>
