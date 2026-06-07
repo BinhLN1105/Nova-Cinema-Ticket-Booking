@@ -123,13 +123,14 @@ export default function AdminCheckInPage() {
       {mode === 'upload' && (
         <div className="space-y-4">
           {/* Drop zone */}
-          <div
+          <button
             ref={dropRef}
+            type="button"
             onDrop={handleDrop}
             onDragOver={(e) => e.preventDefault()}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              'relative border-2 border-dashed rounded-2xl cursor-pointer transition-all',
+              'w-full block text-left relative border-2 border-dashed rounded-2xl cursor-pointer transition-all',
               'hover:border-brand-400 hover:bg-brand-50/30',
               preview ? 'border-brand-300 bg-brand-50/20' : 'border-gray-200 bg-gray-50'
             )}
@@ -149,7 +150,7 @@ export default function AdminCheckInPage() {
               </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 gap-3">
-                <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-2xl bg-brand-50 flex items-center justify-center mx-auto">
                   <ImageIcon className="w-8 h-8 text-brand-400" />
                 </div>
                 <div className="text-center">
@@ -158,7 +159,7 @@ export default function AdminCheckInPage() {
                 </div>
               </div>
             )}
-          </div>
+          </button>
           <input
             ref={fileInputRef} type="file" accept="image/*" className="hidden"
             onChange={(e) => handleFile(e.target.files?.[0])}
