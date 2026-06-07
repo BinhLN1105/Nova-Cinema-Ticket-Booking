@@ -218,8 +218,9 @@ export default function AdminDashboard() {
             className="flex items-center gap-4"
           >
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Từ:</label>
+              <label htmlFor="custom-start-date" className="text-sm font-medium text-gray-700">Từ:</label>
               <input
+                id="custom-start-date"
                 type="datetime-local"
                 className="input text-sm py-1.5 h-auto w-auto"
                 value={startDate}
@@ -227,8 +228,9 @@ export default function AdminDashboard() {
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-sm font-medium text-gray-700">Đến:</label>
+              <label htmlFor="custom-end-date" className="text-sm font-medium text-gray-700">Đến:</label>
               <input
+                id="custom-end-date"
                 type="datetime-local"
                 className="input text-sm py-1.5 h-auto w-auto"
                 value={endDate}
