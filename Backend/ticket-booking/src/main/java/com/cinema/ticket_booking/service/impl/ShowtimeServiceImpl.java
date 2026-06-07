@@ -56,6 +56,8 @@ import java.util.stream.Collectors;
 @Transactional
 public class ShowtimeServiceImpl implements ShowtimeService {
 
+    private static final ZoneId ZONE_HCM = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private final ShowtimeRepository showtimeRepository;
     private final ShowtimeSeatRepository showtimeSeatRepository;
     private final SeatRepository seatRepository;
@@ -160,7 +162,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         List<ShowtimeSeat> seats = showtimeSeatRepository.findByShowtimeIdWithSeat(showtimeId);
         List<PricingRule> activeRules = pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc();
 
-        List<String> validSeatIds = seats.stream().map(s -> s.getId().toString()).collect(Collectors.toList());
+        List<String> validSeatIds = seats.stream().map(s -> s.getId().toString()).toList();
         List<String> lockedSeatIds = seatLockService.getLockedSeats(validSeatIds);
 
         List<SeatMapResponse.SeatItem> mappedSeats = seats.stream().map(seat -> {
@@ -179,10 +181,10 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         }).toList();
 
         // Tính toán thời gian giữ ghế linh hoạt
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDateTime now = LocalDateTime.now(ZONE_HCM);
         long minutesToStart = Duration.between(
-                now.atZone(ZoneId.of("Asia/Ho_Chi_Minh")),
-                showtime.getStartTime().atZone(ZoneId.of("Asia/Ho_Chi_Minh"))).toMinutes();
+                now.atZone(ZONE_HCM),
+                showtime.getStartTime().atZone(ZONE_HCM)).toMinutes();
         int seatHoldMins = systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10);
 
         // Nếu phim sắp chiếu (trong 15p), rút ngắn thời gian giữ ghế xuống 3p
@@ -224,7 +226,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
     @Override
     public ShowtimeResponse create(ShowtimeRequest request) {
         // Validation: Phải là tương lai (Múi giờ VN)
-        LocalDateTime now = LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDateTime now = LocalDateTime.now(ZONE_HCM);
         if (request.getStartTime().isBefore(now.plusMinutes(5))) {
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("HH:mm:ss");
             throw new BadRequestException("Suất chiếu phải bắt đầu sau ít nhất 5 phút kể từ hiện tại (Giờ hệ thống: "
@@ -237,7 +239,7 @@ public class ShowtimeServiceImpl implements ShowtimeService {
 
         // Lấy thời gian dọn phòng từ cấu hình (đã được Cache)
         int cleanupMins = systemConfigService.getIntConfig("CLEANUP_TIME_MINUTES", 15);
-        LocalDateTime endTime = request.getStartTime().plusMinutes(movie.getDuration() + cleanupMins);
+        LocalDateTime endTime = request.getStartTime().plusMinutes((long) movie.getDuration() + cleanupMins);
 
         if (showtimeRepository.existsConflict(screen.getId(), request.getStartTime(), endTime)) {
             throw new BadRequestException("Phòng chiếu đã có suất chiếu khác trong khung giờ này (bao gồm "

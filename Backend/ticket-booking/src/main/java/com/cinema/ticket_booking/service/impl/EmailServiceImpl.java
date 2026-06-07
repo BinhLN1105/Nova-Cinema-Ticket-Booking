@@ -93,7 +93,7 @@ public class EmailServiceImpl implements EmailService {
 
                 List<String> seatLabels = booking.getBookingItems().stream()
                         .map(item -> item.getShowtimeSeat().getSeat().getSeatLabel())
-                        .collect(Collectors.toList());
+                        .toList();
                 context.setVariable("seats", String.join(", ", seatLabels));
                 context.setVariable("qrCode", booking.getQrCode());
             }
@@ -106,7 +106,7 @@ public class EmailServiceImpl implements EmailService {
                         map.put("quantity", bc.getQuantity());
                         map.put("totalPrice", bc.getUnitPrice().multiply(BigDecimal.valueOf(bc.getQuantity())));
                         return map;
-                    }).collect(Collectors.toList());
+                    }).toList();
             context.setVariable("combos", comboList);
 
             String htmlContent = templateEngine.process(templateName, context);

@@ -4,11 +4,9 @@ import com.cinema.ticket_booking.dto.response.CheckInHistoryItemResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
 import com.cinema.ticket_booking.dto.response.StaffDashboardResponse;
 import com.cinema.ticket_booking.dto.response.UpcomingShowtimeItem;
-import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.StaffProfile;
 import com.cinema.ticket_booking.model.User;
-import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.ShowtimeRepository;
 import com.cinema.ticket_booking.repository.StaffProfileRepository;
@@ -31,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class StaffDashboardServiceImpl {
 
+        private static final ZoneId ZONE_HCM = ZoneId.of("Asia/Ho_Chi_Minh");
+
         private final StaffProfileRepository staffProfileRepository;
         private final ShowtimeRepository showtimeRepository;
         private final TicketRepository ticketRepository;
@@ -40,8 +40,7 @@ public class StaffDashboardServiceImpl {
 
         public StaffDashboardResponse getDashboardStats(User currentUser) {
                 UUID cinemaId = getCinemaId(currentUser);
-                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
-                LocalDate today = LocalDate.now(zoneId);
+                LocalDate today = LocalDate.now(ZONE_HCM);
 
                 long totalShowtimesToday = showtimeRepository.countByCinemaAndDate(cinemaId, today);
 
@@ -50,7 +49,7 @@ public class StaffDashboardServiceImpl {
                 long ticketsCheckedToday = ticketRepository.countCheckedInByCinemaAndDateRange(
                                 cinemaId, startOfDay, endOfDay);
 
-                YearMonth currentMonth = YearMonth.now(zoneId);
+                YearMonth currentMonth = YearMonth.now(ZONE_HCM);
                 LocalDateTime startOfMonth = currentMonth.atDay(1).atStartOfDay();
                 LocalDateTime endOfMonth = currentMonth.plusMonths(1).atDay(1).atStartOfDay();
                 long ticketsCheckedThisMonth = ticketRepository.countCheckedInByCinemaAndDateRange(
@@ -67,16 +66,15 @@ public class StaffDashboardServiceImpl {
 
         public List<UpcomingShowtimeItem> getUpcomingShowtimes(User currentUser) {
                 UUID cinemaId = getCinemaId(currentUser);
-                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
-                LocalDateTime now = LocalDateTime.now(zoneId);
+                LocalDateTime now = LocalDateTime.now(ZONE_HCM);
                 LocalDateTime until = now.plusMinutes(60);
 
                 return showtimeRepository.findUpcomingByCinema(cinemaId, now, until)
                                 .stream()
                                 .map(showtime -> {
                                         long minutes = Duration.between(
-                                                        now.atZone(zoneId),
-                                                        showtime.getStartTime().atZone(zoneId)).toMinutes();
+                                                        now.atZone(ZONE_HCM),
+                                                        showtime.getStartTime().atZone(ZONE_HCM)).toMinutes();
                                         String title = "N/A";
                                         String poster = null;
                                         if (showtime.getMovie() != null) {
@@ -96,7 +94,7 @@ public class StaffDashboardServiceImpl {
                                                         .urgency(minutes < 15 ? "SOON" : "UPCOMING")
                                                         .build();
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
         }
 
         // ── Check-in History ────────────────────────────────────────────────────
@@ -107,17 +105,16 @@ public class StaffDashboardServiceImpl {
                         User currentUser, String filter, Pageable pageable) {
 
                 UUID cinemaId = getCinemaId(currentUser);
-                ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
 
                 // Xác định khoảng thời gian theo filter
                 LocalDateTime from;
-                LocalDateTime to = LocalDateTime.now(zoneId).plusSeconds(1);
+                LocalDateTime to = LocalDateTime.now(ZONE_HCM).plusSeconds(1);
 
                 if ("TODAY".equalsIgnoreCase(filter)) {
-                        from = LocalDate.now(zoneId).atStartOfDay();
+                        from = LocalDate.now(ZONE_HCM).atStartOfDay();
                 } else {
                         // THIS_MONTH (mặc định)
-                        YearMonth month = YearMonth.now(zoneId);
+                        YearMonth month = YearMonth.now(ZONE_HCM);
                         from = month.atDay(1).atStartOfDay();
                 }
 
@@ -187,7 +184,7 @@ public class StaffDashboardServiceImpl {
                                                         .scannedAt(scannedAt)
                                                         .build();
                                 })
-                                .collect(Collectors.toList());
+                                .toList();
 
                 return PageResponse.of(page, content);
         }

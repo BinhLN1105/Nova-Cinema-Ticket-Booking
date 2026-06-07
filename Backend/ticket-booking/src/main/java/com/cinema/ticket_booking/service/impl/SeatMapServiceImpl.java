@@ -11,7 +11,6 @@ import org.springframework.stereotype.Service;
 import com.cinema.ticket_booking.service.SystemConfigService;
 
 import java.time.Duration;
-import java.time.LocalDateTime;
 import java.util.UUID;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;

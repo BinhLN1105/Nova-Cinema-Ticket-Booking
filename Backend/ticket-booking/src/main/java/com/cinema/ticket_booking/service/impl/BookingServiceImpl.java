@@ -578,7 +578,7 @@ public class BookingServiceImpl implements BookingService {
         LocalDateTime now = LocalDateTime.now();
 
         for (Ticket ticket : tickets) {
-            if (!ticket.getIsUsed()) {
+            if (!Boolean.TRUE.equals(ticket.getIsUsed())) {
                 ticket.setIsUsed(true);
                 ticket.setUsedAt(now);
             }
@@ -777,7 +777,8 @@ public class BookingServiceImpl implements BookingService {
         // 2. Kiểm tra thời gian: Customer phải hủy trước X giờ, Staff/Admin bypass
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
-        if (false && !isStaffOrAdmin && LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+        boolean enableCancelTimeCheck = "true".equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
+        if (enableCancelTimeCheck && !isStaffOrAdmin && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
@@ -871,7 +872,8 @@ public class BookingServiceImpl implements BookingService {
         // Kiểm tra thời gian
         LocalDateTime showtimeStartTime = booking.getShowtime().getStartTime();
         int minHoursBefore = systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2);
-        if (false && LocalDateTime.now().isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
+        boolean enableCancelTimeCheck = "true".equalsIgnoreCase(systemConfigService.getConfig("ENABLE_CANCEL_TIME_CHECK", "false"));
+        if (enableCancelTimeCheck && LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")).isAfter(showtimeStartTime.minusHours(minHoursBefore))) {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
@@ -998,7 +1000,7 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Đơn đặt vé chưa được thanh toán hoặc trạng thái không hợp lệ");
         }
         if (booking.getCancellationTokenExpiry() == null
-                || booking.getCancellationTokenExpiry().isBefore(LocalDateTime.now())) {
+                || booking.getCancellationTokenExpiry().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
             throw new BadRequestException("Yêu cầu hủy vé đã hết hạn hoặc chưa được tạo");
         }
         return booking.getCancellationToken();

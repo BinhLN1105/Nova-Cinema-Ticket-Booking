@@ -85,6 +85,8 @@ jobs:
           CLOUDINARY_NAME: placeholder_cloudinary
           CLOUDINARY_API_KEY: placeholder_cloudinary_key
           CLOUDINARY_API_SECRET: placeholder_cloudinary_secret
+          APP_TEST_ADMIN_PASSWORD: ${{ secrets.APP_TEST_ADMIN_PASSWORD }}
+          APP_TEST_STAFF_PASSWORD: ${{ secrets.APP_TEST_STAFF_PASSWORD }}
 
       # ── THĂM DÒ TRẠNG THÁI SERVER CHO ĐẾN KHI READY ────────────────────────
       - name: 🔍 Chờ server sẵn sàng (Health Check)

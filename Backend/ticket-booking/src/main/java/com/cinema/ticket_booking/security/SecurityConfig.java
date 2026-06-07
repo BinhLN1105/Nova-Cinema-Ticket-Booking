@@ -111,7 +111,7 @@ public class SecurityConfig {
                         configuration.setAllowedOriginPatterns(Arrays.asList(allowedOrigins.split(",")));
                         configuration.setAllowCredentials(true);
                 } else {
-                        configuration.setAllowedOrigins(List.of("*"));
+                        configuration.setAllowedOriginPatterns(List.of("*"));
                         configuration.setAllowCredentials(false);
                 }
 
