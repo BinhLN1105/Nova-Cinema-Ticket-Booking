@@ -66,3 +66,4 @@ android-application = { id = "com.android.application",       version.ref = "agp
 hilt                = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services     = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 navigation-safeargs = { id = "androidx.navigation.safeargs", version.ref = "navigation" }
+sonar                = { id = "org.sonarqube", version = "5.0.0.4638" }

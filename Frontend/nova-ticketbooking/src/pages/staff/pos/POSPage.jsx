@@ -189,9 +189,9 @@ export default function POSPage() {
       voucherCode: voucherCode || undefined,
       paymentMethod
     }),
-    onSuccess: (data, pMethod) => {
+    onSuccess: (data, paymentMethod) => {
       setCurrentBookingId(data.id);
-      if (pMethod === 'CASH') {
+      if (paymentMethod === 'CASH') {
         setPaymentStep('success');
         toast.success('Thanh toán tiền mặt thành công!');
       } else {

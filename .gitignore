@@ -14,6 +14,13 @@ Thumbs.db
 .env.production.local
 *.gdrive_key.json
 /baocaoLocal/
+/node_modules/
+
+# Python cache (Global)
+**/__pycache__/
+**/*.py[cod]
+*$py.class
+
 
 # ==============================
 # IDE & Editors
@@ -92,3 +99,10 @@ UI-UX_App_Design
 *.DS_Store
 *.Trashes
 Desktop.ini
+
+# ==============================
+# SonarQube / SonarCloud
+# ==============================
+.scannerwork/
+.sonar/
+

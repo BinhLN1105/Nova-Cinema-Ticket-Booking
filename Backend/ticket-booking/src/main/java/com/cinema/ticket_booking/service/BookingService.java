@@ -29,6 +29,8 @@ public interface BookingService {
 
     void cancelConfirm(String token, UUID bookingId);
 
+    String getCancelToken(UUID userId, UUID bookingId);
+
     
 
     Booking findById(UUID id);

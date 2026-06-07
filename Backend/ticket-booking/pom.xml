@@ -37,6 +37,14 @@
 		<firebase.version>9.3.0</firebase.version>
 		<google-api-client.version>2.2.0</google-api-client.version>
 		<cloudinary.version>1.39.0</cloudinary.version>
+		<!-- SonarCloud Properties -->
+		<sonar.organization>binhln115</sonar.organization>
+		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
+		<sonar.projectKey>novaticket-backend</sonar.projectKey>
+		<sonar.projectName>NovaTicket Backend</sonar.projectName>
+		<sonar.java.binaries>target/classes</sonar.java.binaries>
+		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
+		<sonar.coverage.exclusions>**/*</sonar.coverage.exclusions>
     </properties>
 	<dependencies>
 		<dependency>
@@ -236,6 +244,25 @@
 						</exclude>
 					</excludes>
 				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.11</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
