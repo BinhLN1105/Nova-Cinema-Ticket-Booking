@@ -14,12 +14,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import lombok.extern.slf4j.Slf4j;
+
 import java.io.IOException;
 import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/wallet")
 @RequiredArgsConstructor
+@Slf4j
 public class WalletController {
 
     private final WalletService walletService;
@@ -53,7 +56,7 @@ public class WalletController {
         try {
             walletService.handleVnpayCallback(params);
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to handle VNPay topup callback", e);
         }
 
         String redirectUrl = frontendUrl + "/profile?topup=" + status + "&vnp_ResponseCode=" + responseCode;
