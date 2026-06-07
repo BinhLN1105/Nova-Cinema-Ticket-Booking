@@ -128,10 +128,11 @@ export default function ComboImageModal({ isOpen, onClose, combo }) {
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               {tab === "url" ? (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <label htmlFor="combo-image-url" className="block text-sm font-semibold text-gray-700 mb-1.5">
                     URL ảnh
                   </label>
                   <input
+                    id="combo-image-url"
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
@@ -154,9 +155,9 @@ export default function ComboImageModal({ isOpen, onClose, combo }) {
                 </div>
               ) : (
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                  <p className="block text-sm font-semibold text-gray-700 mb-1.5">
                     Chọn ảnh (tối đa 10MB)
-                  </label>
+                  </p>
                   <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-dashed border-gray-200 rounded-xl cursor-pointer hover:border-brand-400 hover:bg-brand-50/30 transition-all">
                     <input
                       type="file"
