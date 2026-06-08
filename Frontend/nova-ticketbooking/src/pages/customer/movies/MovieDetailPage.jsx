@@ -247,8 +247,14 @@ export default function MovieDetailPage() {
                         const total = reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : 1;
                         const count = reviewStats ? reviewStats[star] || 0 : 0;
                         const percent = total > 0 ? (count / total) * 100 : 0;
+                        // Sửa lỗi biến div thành nút(Từ dòng 251 -> 266)
                         return (
-                          <div key={star} className="flex items-center gap-2 text-sm cursor-pointer" onClick={() => { setRatingFilter(star); setReviewSize(5); }}>
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => { setRatingFilter(star); setReviewSize(5); }}
+                            className="flex items-center gap-2 text-sm cursor-pointer border-none bg-transparent p-0"
+                          >
                             <div className="flex items-center gap-1 w-8 text-cinema-200">
                               {star}<Star className="w-3 h-3 text-gold-400 fill-current" />
                             </div>
@@ -256,35 +262,35 @@ export default function MovieDetailPage() {
                               <div className="h-full bg-gold-400 rounded-full" style={{ width: `${percent}%` }}></div>
                             </div>
                             <div className="w-8 text-right text-cinema-400 text-xs">{count}</div>
-                          </div>
+                          </button>
                         )
                       })}
                     </div>
                   </div>
-                  
+
                   {/* Filters */}
                   <div className="mt-5 pt-5 border-t border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
                     <div className="flex flex-wrap gap-2">
-                       <button onClick={() => { setRatingFilter(null); setReviewSize(5); }} 
-                         className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border", 
-                           ratingFilter === null ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
-                         Tất cả
-                       </button>
-                       {[5, 4, 3, 2, 1].map(star => (
-                         <button key={star} onClick={() => { setRatingFilter(star); setReviewSize(5); }} 
-                           className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border flex items-center justify-center gap-1", 
-                             ratingFilter === star ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
-                           {star} <Star className="w-3.5 h-3.5" />
-                         </button>
-                       ))}
+                      <button onClick={() => { setRatingFilter(null); setReviewSize(5); }}
+                        className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border",
+                          ratingFilter === null ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
+                        Tất cả
+                      </button>
+                      {[5, 4, 3, 2, 1].map(star => (
+                        <button key={star} onClick={() => { setRatingFilter(star); setReviewSize(5); }}
+                          className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border flex items-center justify-center gap-1",
+                            ratingFilter === star ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
+                          {star} <Star className="w-3.5 h-3.5" />
+                        </button>
+                      ))}
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-cinema-300">Sắp xếp:</span>
                       <select className="bg-cinema-800 border border-white/10 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none"
                         value={sort} onChange={e => { setSort(e.target.value); setReviewSize(5); }}>
-                         <option value="highest">Cao nhất</option>
-                         <option value="lowest">Thấp nhất</option>
-                         <option value="newest">Mới nhất</option>
+                        <option value="highest">Cao nhất</option>
+                        <option value="lowest">Thấp nhất</option>
+                        <option value="newest">Mới nhất</option>
                       </select>
                     </div>
                   </div>
@@ -328,7 +334,7 @@ export default function MovieDetailPage() {
                       </div>
                     ))
                   )}
-                  
+
                   {/* Load more button */}
                   {!reviews.last && (
                     <div className="pt-4 text-center">
@@ -406,15 +412,16 @@ export default function MovieDetailPage() {
                 onClick={() => setRating(starValue)}
                 className="p-1 transition-transform hover:scale-110 focus:outline-none"
               >
-                <Star className={cn('w-8 h-8 transition-colors', 
+                <Star className={cn('w-8 h-8 transition-colors',
                   rating >= starValue ? 'text-gold-400 fill-current' : 'text-cinema-600'
                 )} />
               </button>
             ))}
           </div>
 
+          {/* Sửa lỗi label. dòng 424 (thay lable thành span)  */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-cinema-200">Bình luận (tùy chọn)</label>
+            <span className="text-sm font-medium text-cinema-200 block">Bình luận (tùy chọn)</span>
             <textarea
               className="w-full px-4 py-3 bg-cinema-800/80 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-white"
               placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
@@ -428,10 +435,18 @@ export default function MovieDetailPage() {
           </div>
 
           <div className="flex justify-end gap-3 pt-4 border-t border-white/10">
-            <button type="button" onClick={() => setIsReviewModalOpen(false)} className="px-5 py-2.5 rounded-xl font-medium text-white hover:bg-white/5 transition-colors">
+            <button
+              type="button"
+              onClick={() => setIsReviewModalOpen(false)}
+              className="px-5 py-2.5 rounded-xl font-medium text-white hover:bg-white/5 transition-colors"
+            >
               Hủy
             </button>
-            <button type="submit" disabled={isSubmittingReview} className="px-5 py-2.5 rounded-xl font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            <button
+              type="submit"
+              disabled={isSubmittingReview}
+              className="px-5 py-2.5 rounded-xl font-medium bg-brand-500 text-white hover:bg-brand-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               {isSubmittingReview ? 'Đang gửi...' : 'Gửi đánh giá'}
             </button>
           </div>

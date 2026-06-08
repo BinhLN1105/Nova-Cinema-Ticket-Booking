@@ -349,8 +349,9 @@ export default function TicketDetail() {
             ))}
           </div>
 
+          {/* - Sửa lỗi label ở trang chi tiết vé.(Thay label thành span tại dòng 354) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-cinema-200">Bình luận (tùy chọn)</label>
+            <span className="text-sm font-medium text-cinema-200 block">Bình luận (tùy chọn)</span>
             <textarea
               className="w-full px-4 py-3 bg-cinema-800/80 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-white"
               placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
