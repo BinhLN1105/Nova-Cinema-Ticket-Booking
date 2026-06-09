@@ -1,33 +1,32 @@
-import { create } from 'zustand'
-import { persist } from 'zustand/middleware'
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 const DEFAULTS = {
-  brandColor:  '#E50914',
-  accentColor: '#F5A623',
-  animations:  true,
-  compact:     false,
-}
+  brandColor: "#E50914",
+  accentColor: "#F5A623",
+  animations: true,
+  compact: false,
+};
 
 /** Parse hex → { r, g, b } */
 function hexToRgb(hex) {
-  const r = parseInt(hex.slice(1, 3), 16)
-  const g = parseInt(hex.slice(3, 5), 16)
-  const b = parseInt(hex.slice(5, 7), 16)
-  return { r, g, b }
+  const r = Number.parseInt(hex.slice(1, 3), 16);
+  const g = Number.parseInt(hex.slice(3, 5), 16);
+  const b = Number.parseInt(hex.slice(5, 7), 16);
+  return { r, g, b };
 }
 
 /** Generate lighter/darker shades from a base hex */
 function generatePalette(hex) {
-  const { r, g, b } = hexToRgb(hex)
-  const mix = (base, target, pct) =>
-    Math.round(base + (target - base) * pct)
+  const { r, g, b } = hexToRgb(hex);
+  const mix = (base, target, pct) => Math.round(base + (target - base) * pct);
   const lighter = (pct) =>
-    `rgb(${mix(r, 255, pct)}, ${mix(g, 255, pct)}, ${mix(b, 255, pct)})`
+    `rgb(${mix(r, 255, pct)}, ${mix(g, 255, pct)}, ${mix(b, 255, pct)})`;
   const darker = (pct) =>
-    `rgb(${mix(r, 0, pct)}, ${mix(g, 0, pct)}, ${mix(b, 0, pct)})`
+    `rgb(${mix(r, 0, pct)}, ${mix(g, 0, pct)}, ${mix(b, 0, pct)})`;
 
   return {
-    50:  lighter(0.95),
+    50: lighter(0.95),
     100: lighter(0.88),
     200: lighter(0.75),
     300: lighter(0.55),
@@ -38,28 +37,28 @@ function generatePalette(hex) {
     800: darker(0.45),
     900: darker(0.55),
     950: darker(0.75),
-  }
+  };
 }
 
-const STYLE_ID = 'nova-theme-overrides'
+const STYLE_ID = "nova-theme-overrides";
 
 function applyTheme({ brandColor, accentColor, animations, compact }) {
-  const root = document.documentElement
-  const brand = generatePalette(brandColor)
-  const accent = generatePalette(accentColor)
-  const { r: br, g: bg, b: bb } = hexToRgb(brandColor)
-  const { r: ar, g: ab, b: ac } = hexToRgb(accentColor)
+  const root = document.documentElement;
+  const brand = generatePalette(brandColor);
+  const accent = generatePalette(accentColor);
+  const { r: br, g: bg, b: bb } = hexToRgb(brandColor);
+  const { r: ar, g: ab, b: ac } = hexToRgb(accentColor);
 
   // Update CSS custom properties
-  root.style.setProperty('--brand-red', brandColor)
-  root.style.setProperty('--brand-gold', accentColor)
+  root.style.setProperty("--brand-red", brandColor);
+  root.style.setProperty("--brand-gold", accentColor);
 
   // Inject dynamic style overrides for Tailwind brand classes
-  let styleEl = document.getElementById(STYLE_ID)
+  let styleEl = document.getElementById(STYLE_ID);
   if (!styleEl) {
-    styleEl = document.createElement('style')
-    styleEl.id = STYLE_ID
-    document.head.appendChild(styleEl)
+    styleEl = document.createElement("style");
+    styleEl.id = STYLE_ID;
+    document.head.appendChild(styleEl);
   }
 
   styleEl.textContent = `
@@ -182,23 +181,31 @@ function applyTheme({ brandColor, accentColor, animations, compact }) {
     }
 
     /* ── Animation toggle ─── */
-    ${!animations ? `
+    ${
+      !animations
+        ? `
     *, *::before, *::after {
       animation-duration: 0s !important;
       transition-duration: 0s !important;
     }
-    ` : ''}
+    `
+        : ""
+    }
 
     /* ── Compact mode ─── */
-    ${compact ? `
+    ${
+      compact
+        ? `
     .py-6 { padding-top: 1rem !important; padding-bottom: 1rem !important; }
     .py-8 { padding-top: 1.5rem !important; padding-bottom: 1.5rem !important; }
     .gap-6 { gap: 1rem !important; }
     .gap-8 { gap: 1.5rem !important; }
     .space-y-6 > * + * { margin-top: 1rem !important; }
     .space-y-8 > * + * { margin-top: 1.5rem !important; }
-    ` : ''}
-  `
+    `
+        : ""
+    }
+  `;
 }
 
 export const useThemeStore = create(
@@ -207,19 +214,19 @@ export const useThemeStore = create(
       ...DEFAULTS,
 
       setTheme: (updates) => {
-        set(updates)
-        applyTheme({ ...get(), ...updates })
+        set(updates);
+        applyTheme({ ...get(), ...updates });
       },
 
       resetTheme: () => {
-        set(DEFAULTS)
-        applyTheme(DEFAULTS)
+        set(DEFAULTS);
+        applyTheme(DEFAULTS);
       },
 
       init: () => applyTheme(get()),
     }),
     {
-      name: 'nova-theme',
-    }
-  )
-)
+      name: "nova-theme",
+    },
+  ),
+);
