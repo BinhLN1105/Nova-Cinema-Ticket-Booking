@@ -419,7 +419,7 @@ export default function MovieDetailPage() {
             ))}
           </div>
 
-          {/* Sửa lỗi label. dòng 424 (thay lable thành span)  */}
+          {/* Sửa lỗi label dòng 424 (thay lable thành span)  */}
           <div className="space-y-2">
             <span className="text-sm font-medium text-cinema-200 block">Bình luận (tùy chọn)</span>
             <textarea
