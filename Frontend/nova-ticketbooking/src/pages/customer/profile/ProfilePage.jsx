@@ -374,7 +374,7 @@ export default function ProfilePage() {
 
               <div className="space-y-5">
                 <div>
-                  <label className="text-cinema-200 text-sm font-semibold mb-2 block">Cập nhật ảnh đại diện</label>
+                  <span className="text-cinema-200 text-sm font-semibold mb-2 block">Cập nhật ảnh đại diện</span>
                   <div className="max-w-md">
                     <ImageUploader 
                       label=""
@@ -390,9 +390,13 @@ export default function ProfilePage() {
 
                 {/* Họ và tên */}
                 <div>
-                  <label className="text-cinema-200 text-sm font-semibold mb-2 block">Họ và tên</label>
                   {isEditing ? (
-                    <input value={fullName} onChange={e => setFullName(e.target.value)}
+                    <label htmlFor="fullName" className="text-cinema-200 text-sm font-semibold mb-2 block">Họ và tên</label>
+                  ) : (
+                    <span className="text-cinema-200 text-sm font-semibold mb-2 block">Họ và tên</span>
+                  )}
+                  {isEditing ? (
+                    <input id="fullName" value={fullName} onChange={e => setFullName(e.target.value)}
                       className="w-full px-4 py-2.5 rounded-xl bg-cinema-800 border border-white/10
                         text-white placeholder-cinema-500 focus:border-brand-500/50 focus:outline-none transition-all" />
                   ) : (
@@ -404,7 +408,7 @@ export default function ProfilePage() {
 
                 {/* Email */}
                 <div>
-                  <label className="text-cinema-200 text-sm font-semibold mb-2 block">Email</label>
+                  <span className="text-cinema-200 text-sm font-semibold mb-2 block">Email</span>
                   <p className="text-white text-base font-medium flex items-center gap-2.5 py-1">
                     <Mail className="w-4.5 h-4.5 text-brand-400" /> {user?.email}
                   </p>
@@ -412,9 +416,13 @@ export default function ProfilePage() {
 
                 {/* Số điện thoại */}
                 <div>
-                  <label className="text-cinema-200 text-sm font-semibold mb-2 block">Số điện thoại</label>
                   {isEditing ? (
-                    <input value={phone} onChange={e => setPhone(e.target.value)}
+                    <label htmlFor="phone" className="text-cinema-200 text-sm font-semibold mb-2 block">Số điện thoại</label>
+                  ) : (
+                    <span className="text-cinema-200 text-sm font-semibold mb-2 block">Số điện thoại</span>
+                  )}
+                  {isEditing ? (
+                    <input id="phone" value={phone} onChange={e => setPhone(e.target.value)}
                       placeholder="Nhập số điện thoại"
                       type="tel"
                       className="w-full px-4 py-2.5 rounded-xl bg-cinema-800 border border-white/10
@@ -513,6 +521,7 @@ export default function ProfilePage() {
                     </div>
                     <button type="button" 
                       onClick={handleTogglePush}
+                      aria-label={isPushEnabled ? "Tắt thông báo push" : "Bật thông báo push"}
                       disabled={isTogglingPush}
                       className={cn(
                         "relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none",
@@ -570,7 +579,9 @@ export default function ProfilePage() {
                   Nhập mã ưu đãi
                 </h3>
                 <div className="flex gap-3">
+                  <label htmlFor="voucherCode" className="sr-only">Nhập mã ưu đãi</label>
                   <input 
+                    id="voucherCode"
                     value={voucherCode}
                     onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                     placeholder="VD: SUMMER2024"
@@ -578,6 +589,7 @@ export default function ProfilePage() {
                       text-white placeholder-cinema-500 focus:border-brand-500/50 focus:outline-none transition-all font-mono tracking-wider"
                   />
                   <button 
+                    type="button"
                     onClick={() => {
                       if (!voucherCode.trim()) return toast.error('Vui lòng nhập mã')
                       claimMutation.mutate(voucherCode)
