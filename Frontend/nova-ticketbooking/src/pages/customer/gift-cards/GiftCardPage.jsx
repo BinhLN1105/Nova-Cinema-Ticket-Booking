@@ -109,14 +109,15 @@ export default function GiftCardPage() {
 
           <div className="space-y-6 max-w-md mx-auto">
             <div>
-              <label className="block text-sm font-medium text-cinema-200 mb-3">
+              <span className="block text-sm font-medium text-cinema-200 mb-3">
                 Chọn mệnh giá (VNĐ)
-              </label>
+              </span>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {PRESET_AMOUNTS.map(amount => (
                   <button
                     key={amount}
                     onClick={() => setSelectedAmount(amount)}
+                    aria-label={`Chọn mệnh giá thẻ ${formatCurrency(amount)}`}
                     className={cn(
                       'py-3 rounded-xl border text-sm font-medium transition-all duration-200',
                       selectedAmount === amount
@@ -131,9 +132,9 @@ export default function GiftCardPage() {
             </div>
 
             <div className="pt-4 border-t border-white/10">
-              <label className="block text-sm font-medium text-cinema-200 mb-3">
+              <span className="block text-sm font-medium text-cinema-200 mb-3">
                 Phương thức thanh toán
-              </label>
+              </span>
               <div className="space-y-2">
                 {paymentMethods.map((method) => {
                   const Icon = method.icon

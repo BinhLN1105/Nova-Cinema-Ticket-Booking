@@ -8,10 +8,10 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
 
   const { availableVouchers, disabledVouchers } = useMemo(() => {
     if (!vouchers?.length) return { availableVouchers: [], disabledVouchers: [] }
-    
+
     const available = []
     const disabled = []
-    
+
     vouchers.forEach(v => {
       // Check base status
       if (v.status !== 'AVAILABLE') {
@@ -24,7 +24,7 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
         disabled.push({ ...v, reason: `Đơn tối thiểu ${formatCurrency(v.minOrder)}.` })
         return
       }
-      
+
       // Khả dụng - tính discount thực tế luôn
       const actualDiscount = calculateActualDiscount(cartTotal, v);
       available.push({ ...v, actualDiscount })
@@ -32,7 +32,7 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
 
     // Sort by actual discount DESC
     available.sort((a, b) => b.actualDiscount - a.actualDiscount)
-    
+
     return { availableVouchers: available, disabledVouchers: disabled }
   }, [vouchers, cartTotal])
 
@@ -67,13 +67,13 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
           {/* Input Section */}
           <div className="p-5 bg-cinema-900/50">
             <div className="flex gap-3">
-              <input 
+              <input
                 value={manualCode}
                 onChange={e => setManualCode(e.target.value.toUpperCase())}
                 placeholder="Nhập mã ưu đãi..."
                 className="flex-1 bg-cinema-800 rounded-xl px-4 text-sm text-white placeholder-cinema-500 border border-white/5 focus:border-brand-500/50 focus:outline-none"
               />
-              <button 
+              <button
                 onClick={handleManualClaim}
                 className="bg-brand-500 hover:bg-brand-600 px-4 py-2 rounded-xl text-white text-sm font-bold transition-colors"
               >
@@ -84,15 +84,18 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
 
           {/* Lists */}
           <div className="flex-1 overflow-y-auto p-5 scrollbar-hide space-y-6">
-            
-            {/* Khả Dụng */}
+
+            {/* Khả Dụng*/}
             <div>
               <p className="text-xs font-bold uppercase tracking-wider text-green-400 mb-3">Khả dụng ({availableVouchers.length})</p>
               <div className="space-y-3">
+                {/* Sửa lỗi interactive element (thay thẻ tĩnh bằng nút).- từ dòng 92 -> 114 */}
                 {availableVouchers.map(v => (
-                  <div key={v.id} 
+                  <button
+                    key={v.id}
+                    type="button"
                     onClick={() => { onSelectVoucher(v); onClose() }}
-                    className="group border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 rounded-xl p-4 cursor-pointer transition-all relative overflow-hidden"
+                    className="w-full text-left block group border border-green-500/30 bg-green-500/5 hover:bg-green-500/10 rounded-xl p-4 cursor-pointer transition-all relative overflow-hidden outline-none"
                   >
                     <div className="absolute top-0 right-0 bottom-0 w-1 bg-green-500" />
                     <div className="flex justify-between items-start gap-4">
@@ -107,7 +110,7 @@ export function VoucherModal({ isOpen, onClose, vouchers, cartTotal, onSelectVou
                         <p className="text-[10px] text-cinema-400 mt-1">HSD: {formatDate(v.endDate)}</p>
                       </div>
                     </div>
-                  </div>
+                  </button>
                 ))}
                 {availableVouchers.length === 0 && (
                   <p className="text-sm text-cinema-500 text-center italic py-2">Không có mã nào khả dụng cho đơn hàng này.</p>
