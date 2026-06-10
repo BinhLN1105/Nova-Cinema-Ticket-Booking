@@ -55,36 +55,39 @@ export function SecurityTab({ user }) {
         ) : (
           <div className="space-y-4">
             <div>
-              <label className="text-cinema-200 text-sm font-semibold mb-2 block">Mật khẩu hiện tại</label>
+              <label htmlFor="currentPassword" className="text-cinema-200 text-sm font-semibold mb-2 block">Mật khẩu hiện tại</label>
               <div className="relative">
-                <input type={showCurrent ? 'text' : 'password'} value={currentPassword}
+                <input id="currentPassword" type={showCurrent ? 'text' : 'password'} value={currentPassword}
                   onChange={e => setCurrentPassword(e.target.value)}
                   placeholder="Nhập mật khẩu hiện tại" className={inputCls} />
                 <button type="button" onClick={() => setShowCurrent(!showCurrent)}
+                  aria-label={showCurrent ? "Ẩn mật khẩu hiện tại" : "Hiện mật khẩu hiện tại"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-cinema-400 hover:text-white transition-colors">
                   {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="text-cinema-200 text-sm font-semibold mb-2 block">Mật khẩu mới</label>
+              <label htmlFor="newPassword" className="text-cinema-200 text-sm font-semibold mb-2 block">Mật khẩu mới</label>
               <div className="relative">
-                <input type={showNew ? 'text' : 'password'} value={newPassword}
+                <input id="newPassword" type={showNew ? 'text' : 'password'} value={newPassword}
                   onChange={e => setNewPassword(e.target.value)}
                   placeholder="Tối thiểu 6 ký tự" className={inputCls} />
                 <button type="button" onClick={() => setShowNew(!showNew)}
+                  aria-label={showNew ? "Ẩn mật khẩu mới" : "Hiện mật khẩu mới"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-cinema-400 hover:text-white transition-colors">
                   {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
             <div>
-              <label className="text-cinema-200 text-sm font-semibold mb-2 block">Xác nhận mật khẩu mới</label>
+              <label htmlFor="confirmPassword" className="text-cinema-200 text-sm font-semibold mb-2 block">Xác nhận mật khẩu mới</label>
               <div className="relative">
-                <input type={showConfirm ? 'text' : 'password'} value={confirmPassword}
+                <input id="confirmPassword" type={showConfirm ? 'text' : 'password'} value={confirmPassword}
                   onChange={e => setConfirmPassword(e.target.value)}
                   placeholder="Nhập lại mật khẩu mới" className={inputCls} />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)}
+                  aria-label={showConfirm ? "Ẩn xác nhận mật khẩu mới" : "Hiện xác nhận mật khẩu mới"}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-cinema-400 hover:text-white transition-colors">
                   {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>

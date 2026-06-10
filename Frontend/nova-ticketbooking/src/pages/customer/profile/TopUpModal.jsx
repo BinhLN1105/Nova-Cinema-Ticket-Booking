@@ -21,7 +21,7 @@ export function TopUpModal({ isOpen, onClose }) {
   const handleTopUp = async (e) => {
     e.preventDefault()
     const numAmount = Number(amount)
-    if (isNaN(numAmount) || numAmount < 10000) {
+    if (Number.isNaN(numAmount) || numAmount < 10000) {
       toast.error('Số tiền tối thiểu là 10.000 VNĐ')
       return
     }
@@ -70,7 +70,9 @@ export function TopUpModal({ isOpen, onClose }) {
                   Nạp CinePoint
                 </h3>
                 <button
+                  type="button"
                   onClick={onClose}
+                  aria-label="Đóng"
                   className="p-1.5 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <X className="w-5 h-5" />
@@ -80,10 +82,11 @@ export function TopUpModal({ isOpen, onClose }) {
               <form onSubmit={handleTopUp} className="p-6 space-y-5">
                 {/* Amount input */}
                 <div>
-                  <label className="block text-sm font-medium text-cinema-300 mb-2">
+                  <label htmlFor="topUpAmount" className="block text-sm font-medium text-cinema-300 mb-2">
                     Số tiền cần nạp (VNĐ)
                   </label>
                   <input
+                    id="topUpAmount"
                     type="number"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
@@ -104,6 +107,7 @@ export function TopUpModal({ isOpen, onClose }) {
                     <button
                       key={amt}
                       type="button"
+                      aria-label={`Chọn số tiền ${formatCurrency(amt)}`}
                       onClick={() => setAmount(String(amt))}
                       className={cn(
                         'py-2.5 rounded-xl text-sm font-medium transition-all',
@@ -119,9 +123,9 @@ export function TopUpModal({ isOpen, onClose }) {
 
                 {/* Payment methods */}
                 <div>
-                  <label className="block text-sm font-medium text-cinema-300 mb-2">
+                  <span className="block text-sm font-medium text-cinema-300 mb-2">
                     Phương thức thanh toán
-                  </label>
+                  </span>
                   <div className="space-y-2">
                     {PAYMENT_METHODS.map((method) => {
                       const Icon = method.icon
