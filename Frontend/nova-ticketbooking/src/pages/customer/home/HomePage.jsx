@@ -7,6 +7,7 @@ import { cn, formatDate, getRatedColor } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { promotionApi, movieApi } from '@/api/endpoints'
+import PropTypes from 'prop-types'
 
 // ── Skeleton ──────────────────────────────────
 function MovieSkeleton() {
@@ -18,17 +19,23 @@ function MovieSkeleton() {
 // ── Movie Card ────────────────────────────────
 function MovieCard({ movie, index }) {
   const navigate = useNavigate()
+
   return (
-    <motion.div
+    <motion.button
+      type="button"
       initial={{ opacity: 0, y: 32 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay: index * 0.08, ease: [0.4,0,0.2,1] }}
+      transition={{
+        duration: 0.5,
+        delay: index * 0.08,
+        ease: [0.4, 0, 0.2, 1],
+      }}
       className="movie-card group"
-      onClick={() => navigate(`/movies/${movie.id}`)}>
-
+      onClick={() => navigate(`/movies/${movie.id}`)}
+    >
       {/* Poster */}
       <img
-        src={movie.posterUrl || '/placeholder-movie.jpg'}
+        src={movie.posterUrl || "/placeholder-movie.jpg"}
         alt={movie.title}
         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         loading="lazy"
@@ -38,10 +45,12 @@ function MovieCard({ movie, index }) {
       <div className="movie-card-overlay" />
 
       {/* Rated badge */}
-      <div className={cn(
-        'absolute top-3 left-3 badge text-xs',
-        getRatedColor(movie.rated)
-      )}>
+      <div
+        className={cn(
+          "absolute top-3 left-3 badge text-xs",
+          getRatedColor(movie.rated)
+        )}
+      >
         {movie.rated}
       </div>
 
@@ -50,35 +59,61 @@ function MovieCard({ movie, index }) {
         <h3 className="font-display font-bold text-white text-base leading-tight mb-2 line-clamp-2">
           {movie.title}
         </h3>
+
         <div className="flex items-center gap-3 text-xs text-cinema-200">
           <span className="flex items-center gap-1">
             <Star className="w-3 h-3 text-gold-400 fill-current" />
             {movie.avgRating.toFixed(1)}
           </span>
+
           <span className="flex items-center gap-1">
             <Clock className="w-3 h-3" />
             {movie.duration} phút
           </span>
         </div>
+
         <div className="mt-3 flex flex-wrap gap-1">
-          {movie.genres?.slice(0, 2).map(g => (
-            <span key={g.id} className="text-xs px-2 py-0.5 rounded-full
-              bg-white/10 text-cinema-100">
+          {movie.genres?.slice(0, 2).map((g) => (
+            <span
+              key={g.id}
+              className="text-xs px-2 py-0.5 rounded-full bg-white/10 text-cinema-100"
+            >
               {g.name}
             </span>
           ))}
         </div>
+
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation()
             navigate(`/booking/showtime/${movie.id}`)
           }}
-          className="mt-3 w-full btn-primary text-xs py-2">
-          <Ticket className="w-3 h-3" /> Đặt vé
+          className="mt-3 w-full btn-primary text-xs py-2"
+        >
+          <Ticket className="w-3 h-3" />
+          Đặt vé
         </button>
       </div>
-    </motion.div>
+    </motion.button>
   )
+}
+MovieCard.propTypes = {
+  movie: PropTypes.shape({
+    id: PropTypes.any,
+    posterUrl: PropTypes.string,
+    title: PropTypes.string,
+    rated: PropTypes.string,
+    avgRating: PropTypes.number,
+    duration: PropTypes.number,
+    genres: PropTypes.arrayOf(
+      PropTypes.shape({
+        id: PropTypes.any,
+        name: PropTypes.string,
+      })
+    ),
+  }).isRequired,
+  index: PropTypes.number.isRequired,
 }
 
 // ── Section ───────────────────────────────────
@@ -189,6 +224,12 @@ function Hero({ featured }) {
       </motion.div>
     </section>
   )
+}
+Hero.propTypes = {
+  featured: PropTypes.shape({
+    backdropUrl: PropTypes.string,
+    posterUrl: PropTypes.string,
+  }),
 }
 
 // ── Promotions Carousel ───────────────────────
