@@ -39,13 +39,14 @@ export default function ScreensModal({ open, onClose, cinema }) {
 
   // Focus effect when opening form
   useEffect(() => {
-    if (!formOpen) setForm({
-      name: "",
-      screenType: "STANDARD",
-      totalRows: 10,
-      totalCols: 10,
-      isActive: true,
-    });
+    if (!formOpen)
+      setForm({
+        name: "",
+        screenType: "STANDARD",
+        totalRows: 10,
+        totalCols: 10,
+        isActive: true,
+      });
   }, [formOpen]);
 
   const { data: screens = [], isLoading } = useQuery({
@@ -61,7 +62,9 @@ export default function ScreensModal({ open, onClose, cinema }) {
         ? cinemaApi.updateScreen(cinema.id, editing.id, data) // Make sure you have updateScreen in endpoints.js or use axios directly. Wait, the endpoint is in cinemaApi, although we only added deleteScreen. I need to add createScreen and updateScreen to cinemaApi!
         : cinemaApi.createScreen(cinema.id, data), // Let's use custom functions if not in endpoints
     onSuccess: () => {
-      toast.success(editing ? "Đã cập nhật phòng chiếu" : "Đã thêm phòng chiếu");
+      toast.success(
+        editing ? "Đã cập nhật phòng chiếu" : "Đã thêm phòng chiếu",
+      );
       qc.invalidateQueries({ queryKey: ["admin-screens", cinema?.id] });
       setFormOpen(false);
     },
@@ -76,7 +79,7 @@ export default function ScreensModal({ open, onClose, cinema }) {
     },
     onError: (error) => {
       toast.error(error.response?.data?.message || "Lỗi khi xóa phòng chiếu");
-    }
+    },
   });
 
   const handleSave = () => {
@@ -98,11 +101,17 @@ export default function ScreensModal({ open, onClose, cinema }) {
   };
 
   const columns = [
-    { key: "name", header: "Tên phòng", className: "font-medium text-gray-900" },
+    {
+      key: "name",
+      header: "Tên phòng",
+      className: "font-medium text-gray-900",
+    },
     {
       key: "screenType",
       header: "Loại phòng",
-      render: (s) => SCREEN_TYPES.find((t) => t.value === s.screenType)?.label || s.screenType,
+      render: (s) =>
+        SCREEN_TYPES.find((t) => t.value === s.screenType)?.label ||
+        s.screenType,
     },
     {
       key: "size",
@@ -217,7 +226,10 @@ export default function ScreensModal({ open, onClose, cinema }) {
                 min="1"
                 value={form.totalRows}
                 onChange={(e) =>
-                  setForm({ ...form, totalRows: parseInt(e.target.value) || 0 })
+                  setForm({
+                    ...form,
+                    totalRows: Number.parseInt(e.target.value, 10) || 0,
+                  })
                 }
               />
             </Field>
@@ -227,7 +239,10 @@ export default function ScreensModal({ open, onClose, cinema }) {
                 min="1"
                 value={form.totalCols}
                 onChange={(e) =>
-                  setForm({ ...form, totalCols: parseInt(e.target.value) || 0 })
+                  setForm({
+                    ...form,
+                    totalCols: Number.parseInt(e.target.value, 10) || 0,
+                  })
                 }
               />
             </Field>
@@ -273,41 +288,59 @@ export default function ScreensModal({ open, onClose, cinema }) {
       >
         <div className="p-6 space-y-4">
           <p className="text-gray-600">
-            Bạn đang chọn xoá phòng chiếu <span className="font-semibold text-gray-900">{deleteTarget?.name}</span>. Vui lòng chọn phương thức:
+            Bạn đang chọn xoá phòng chiếu{" "}
+            <span className="font-semibold text-gray-900">
+              {deleteTarget?.name}
+            </span>
+            . Vui lòng chọn phương thức:
           </p>
 
           <div className="space-y-3 mt-4">
-            <label className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === 'soft' ? 'border-brand-500 bg-brand-50/50' : 'border-gray-200'}`}>
+            <label
+              className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "soft" ? "border-brand-500 bg-brand-50/50" : "border-gray-200"}`}
+            >
               <div className="h-5 flex items-center">
                 <input
                   type="radio"
                   name="deleteType"
                   value="soft"
-                  checked={deleteType === 'soft'}
-                  onChange={() => setDeleteType('soft')}
+                  checked={deleteType === "soft"}
+                  onChange={() => setDeleteType("soft")}
                   className="w-4 h-4 text-brand-600 focus:ring-brand-600 border-gray-300"
                 />
               </div>
               <div className="ml-3">
-                <span className="block text-sm font-medium text-gray-900">🗃️ Đưa vào thùng rác (Xoá mềm)</span>
-                <span className="block text-sm text-gray-500 mt-1">Phòng chiếu sẽ bị ẩn hoàn toàn khỏi danh sách nhưng lịch sử doanh thu vẫn được giữ lại nguyên vẹn.</span>
+                <span className="block text-sm font-medium text-gray-900">
+                  🗃️ Đưa vào thùng rác (Xoá mềm)
+                </span>
+                <span className="block text-sm text-gray-500 mt-1">
+                  Phòng chiếu sẽ bị ẩn hoàn toàn khỏi danh sách nhưng lịch sử
+                  doanh thu vẫn được giữ lại nguyên vẹn.
+                </span>
               </div>
             </label>
 
-            <label className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === 'hard' ? 'border-red-500 bg-red-50/50' : 'border-gray-200'}`}>
+            <label
+              className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "hard" ? "border-red-500 bg-red-50/50" : "border-gray-200"}`}
+            >
               <div className="h-5 flex items-center">
                 <input
                   type="radio"
                   name="deleteType"
                   value="hard"
-                  checked={deleteType === 'hard'}
-                  onChange={() => setDeleteType('hard')}
+                  checked={deleteType === "hard"}
+                  onChange={() => setDeleteType("hard")}
                   className="w-4 h-4 text-red-600 focus:ring-red-600 border-gray-300"
                 />
               </div>
               <div className="ml-3">
-                <span className="block text-sm font-medium text-red-700">🧹 Xoá vĩnh viễn (Xoá cứng)</span>
-                <span className="block text-sm text-gray-500 mt-1">Xóa sạch khỏi hệ thống. Chỉ áp dụng cho phòng mới tạo do nhầm lẫn. Bị CHẶN nếu phòng đã có vé đặt.</span>
+                <span className="block text-sm font-medium text-red-700">
+                  🧹 Xoá vĩnh viễn (Xoá cứng)
+                </span>
+                <span className="block text-sm text-gray-500 mt-1">
+                  Xóa sạch khỏi hệ thống. Chỉ áp dụng cho phòng mới tạo do nhầm
+                  lẫn. Bị CHẶN nếu phòng đã có vé đặt.
+                </span>
               </div>
             </label>
           </div>
@@ -321,9 +354,11 @@ export default function ScreensModal({ open, onClose, cinema }) {
               Huỷ bỏ
             </Button>
             <Button
-              onClick={() => deleteMutation.mutate({ id: deleteTarget.id, type: deleteType })}
+              onClick={() =>
+                deleteMutation.mutate({ id: deleteTarget.id, type: deleteType })
+              }
               loading={deleteMutation.isPending}
-              className={`flex-1 ${deleteType === 'hard' ? '!bg-red-600 hover:!bg-red-700 !text-white' : ''}`}
+              className={`flex-1 ${deleteType === "hard" ? "!bg-red-600 hover:!bg-red-700 !text-white" : ""}`}
             >
               Xác nhận xoá
             </Button>
