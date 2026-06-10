@@ -54,11 +54,11 @@ export default function TicketDetail() {
           comment
         })
       } else {
-        return reviewApi.create({ 
-          movieId: booking.movieId, 
+        return reviewApi.create({
+          movieId: booking.movieId,
           bookingId: id,
-          rating, 
-          comment 
+          rating,
+          comment
         })
       }
     },
@@ -214,7 +214,7 @@ export default function TicketDetail() {
                   <p className="text-cinema-400 font-mono text-sm tracking-wider">
                     {showCode ? booking.bookingCode : maskCode(booking.bookingCode)}
                   </p>
-                  <button 
+                  <button
                     onClick={() => setShowCode(!showCode)}
                     className="p-1 text-cinema-500 hover:text-brand-400 transition-colors"
                   >
@@ -240,7 +240,7 @@ export default function TicketDetail() {
                     <button onClick={shareZalo}
                       className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
-                        <rect width="24" height="24" rx="6" fill="#0068FF"/>
+                        <rect width="24" height="24" rx="6" fill="#0068FF" />
                         <text x="3" y="17" fontSize="11" fontWeight="bold" fill="white">Za</text>
                       </svg>
                       <span className="text-[10px] text-cinema-400">Zalo</span>
@@ -249,7 +249,7 @@ export default function TicketDetail() {
                     <button onClick={shareFacebook}
                       className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
-                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                        <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
                       <span className="text-[10px] text-cinema-400">Facebook</span>
                     </button>
@@ -300,13 +300,13 @@ export default function TicketDetail() {
             className="w-full mt-4 flex items-center justify-center gap-2 py-3
               rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
               hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25">
-             <Star className="w-5 h-5 fill-white" /> {alreadyReviewed ? 'Sửa đánh giá phim' : 'Đánh giá phim'}
+            <Star className="w-5 h-5 fill-white" /> {alreadyReviewed ? 'Sửa đánh giá phim' : 'Đánh giá phim'}
           </button>
         )}
 
         {/* Thanh toán lại nếu PENDING */}
         {booking.status === 'PENDING' && (
-          <button 
+          <button
             onClick={() => navigate(`/booking/payment/${booking.id}`)}
             className="w-full mt-4 flex items-center justify-center gap-2 py-3
               rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
@@ -330,27 +330,33 @@ export default function TicketDetail() {
 
       {/* Review Modal */}
       <Modal open={isReviewOpen} onClose={() => setIsReviewOpen(false)} title="Đánh giá phim" theme="dark">
-        <form 
-          onSubmit={(e) => { e.preventDefault(); reviewMutation.mutate(); }} 
+        <form
+          onSubmit={(e) => { e.preventDefault(); reviewMutation.mutate(); }}
           className="space-y-4 pt-2"
         >
           <p className="text-sm font-medium text-cinema-200">Chất lượng phim (Điểm: {rating}/5)</p>
           <div className="flex items-center gap-1 justify-center py-2">
-            {[1, 2, 3, 4, 5].map((starValue) => (
-              <button
-                key={starValue} type="button"
-                onClick={() => setRating(starValue)}
-                className="p-1 transition-transform hover:scale-110 focus:outline-none"
-              >
-                <Star className={cn('w-8 h-8 transition-colors', 
-                  rating >= starValue ? 'text-gold-400 fill-current' : 'text-cinema-600'
-                )} />
-              </button>
-            ))}
+            {/* Đổi 'starValue' -> 'itemIndex' và dùng block { return } */}
+            {[1, 2, 3, 4, 5].map((itemIndex) => {
+              const isSelected = rating >= itemIndex;
+              return (
+                <button
+                  key={`ticket-star-${itemIndex}`}
+                  type="button"
+                  onClick={() => setRating(itemIndex)}
+                  className="p-1 transition-transform hover:scale-110 focus:outline-none"
+                >
+                  <Star className={cn('w-8 h-8 transition-colors',
+                    isSelected ? 'text-gold-400 fill-current' : 'text-cinema-600'
+                  )} />
+                </button>
+              );
+            })}
           </div>
 
+          {/* - Sửa lỗi label ở trang chi tiết vé.(Thay label thành span tại dòng 354) */}
           <div className="space-y-2">
-            <label className="text-sm font-medium text-cinema-200">Bình luận (tùy chọn)</label>
+            <span className="text-sm font-medium text-cinema-200 block">Bình luận(tùy chọn)</span>
             <textarea
               className="w-full px-4 py-3 bg-cinema-800/80 border border-white/10 rounded-xl outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all resize-none h-24 text-white"
               placeholder="Chia sẻ cảm nhận của bạn về bộ phim này..."
