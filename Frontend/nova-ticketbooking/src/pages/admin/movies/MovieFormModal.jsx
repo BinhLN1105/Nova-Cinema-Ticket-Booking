@@ -314,7 +314,7 @@ export default function MovieFormModal({ isOpen, onClose, movie = null }) {
                 {/* Khối 5: Thể loại & Mô tả */}
                 <div className="space-y-6 pt-4 border-t border-gray-100">
                   <div>
-                    <label className="text-sm font-semibold text-gray-700 block mb-3">Thể loại phim</label>
+                    <p className="text-sm font-semibold text-gray-700 block mb-3">Thể loại phim</p>
                     <div className="flex flex-wrap gap-2">
                       {genres?.map((g) => (
                         <button key={g.id} type="button" onClick={() => handleGenreChange(g.id)}
