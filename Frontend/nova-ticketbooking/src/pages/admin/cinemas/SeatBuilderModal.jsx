@@ -3,7 +3,14 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { cinemaApi } from "@/api/endpoints";
 import { Modal } from "@/components/common/ui/Modal";
 import { Button } from "@/components/common/ui/FormElements";
-import { Save, RotateCcw, Wand2, Grid3X3, MousePointer, Armchair } from "lucide-react";
+import {
+  Save,
+  RotateCcw,
+  Wand2,
+  Grid3X3,
+  MousePointer,
+  Armchair,
+} from "lucide-react";
 import toast from "react-hot-toast";
 
 const TOOLS = [
@@ -45,9 +52,9 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
         .map(() =>
           Array(c)
             .fill(null)
-            .map(() => ({ type: "EMPTY", label: "" }))
+            .map(() => ({ type: "EMPTY", label: "" })),
         ),
-    []
+    [],
   );
 
   // Load existing seats from API
@@ -69,7 +76,9 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
     const grid = initEmptyGrid(r, c);
 
     // Kiểm tra xem đã có ghế nào được lưu chưa
-    const isNewLayout = !existingSeats || (Array.isArray(existingSeats) && existingSeats.length === 0);
+    const isNewLayout =
+      !existingSeats ||
+      (Array.isArray(existingSeats) && existingSeats.length === 0);
 
     if (isNewLayout) {
       // Nếu là phòng mới hoàn toàn: Lấp đầy ghế thường và tự động đánh nhãn
@@ -131,7 +140,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
         return newGrid;
       });
     },
-    [activeTool]
+    [activeTool],
   );
 
   const getRowLabel = (index) => {
@@ -180,7 +189,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
       if (cell.type === "COUPLE") acc.couple++;
       return acc;
     },
-    { total: 0, standard: 0, vip: 0, couple: 0 }
+    { total: 0, standard: 0, vip: 0, couple: 0 },
   );
 
   // Save mutation
@@ -192,7 +201,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
         for (let c = 0; c < gridData[r].length; c++) {
           const cell = gridData[r][c];
           if (cell.type === "EMPTY") continue;
-          
+
           seats.push({
             gridRow: r,
             gridCol: c,
@@ -202,11 +211,16 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
           seatNum++;
         }
       }
-      return cinemaApi.saveCustomLayout(cinema.id, screen.id, { screenId: screen.id, seats });
+      return cinemaApi.saveCustomLayout(cinema.id, screen.id, {
+        screenId: screen.id,
+        seats,
+      });
     },
     onSuccess: () => {
       toast.success("Đã lưu bố trí ghế thành công!");
-      qc.invalidateQueries({ queryKey: ["screen-seats", cinema?.id, screen?.id] });
+      qc.invalidateQueries({
+        queryKey: ["screen-seats", cinema?.id, screen?.id],
+      });
       qc.invalidateQueries({ queryKey: ["admin-screens", cinema?.id] });
       onClose();
     },
@@ -239,9 +253,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
                 style={
-                  activeTool === tool.id
-                    ? { backgroundColor: tool.color }
-                    : {}
+                  activeTool === tool.id ? { backgroundColor: tool.color } : {}
                 }
               >
                 <span>{tool.icon}</span>
@@ -261,7 +273,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
               max="26"
               value={rows}
               onChange={(e) =>
-                handleResize(parseInt(e.target.value) || 1, cols)
+                handleResize(Number.parseInt(e.target.value, 10) || 1, cols)
               }
               className="w-14 px-2 py-1 border rounded text-center text-sm"
             />
@@ -272,7 +284,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
               max="30"
               value={cols}
               onChange={(e) =>
-                handleResize(rows, parseInt(e.target.value) || 1)
+                handleResize(rows, Number.parseInt(e.target.value, 10) || 1)
               }
               className="w-14 px-2 py-1 border rounded text-center text-sm"
             />
@@ -351,7 +363,9 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
                         onMouseUp={() => setIsPainting(false)}
                       >
                         {isOccupied && (
-                          <span className="leading-none">{cell.label || "·"}</span>
+                          <span className="leading-none">
+                            {cell.label || "·"}
+                          </span>
                         )}
                       </button>
                     );
