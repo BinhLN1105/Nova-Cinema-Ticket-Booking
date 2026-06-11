@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { motion, useScroll, useTransform, AnimatePresence } from 'framer-motion'
 import { Play, Star, Clock, ChevronRight, Ticket, Zap } from 'lucide-react'
 import { useMovies } from '@/hooks'
-import { cn, formatDate, getRatedColor } from '@/utils'
+import { cn, getRatedColor } from '@/utils'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
 import { promotionApi, movieApi } from '@/api/endpoints'
@@ -134,6 +134,11 @@ function SectionHeader({ title, subtitle, href }) {
   )
 }
 
+SectionHeader.propTypes = {
+  title: PropTypes.string.isRequired,
+  subtitle: PropTypes.string,
+  href: PropTypes.string.isRequired,
+}
 // ── Hero ──────────────────────────────────────
 function Hero({ featured }) {
   const { t } = useTranslation()
@@ -263,11 +268,17 @@ function PromotionsCarousel() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
-      <div 
-        className="relative overflow-hidden rounded-3xl aspect-[3/1] md:aspect-[4/1] bg-surface-lowest group cursor-pointer"
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
+      <button
+  type="button"
+  className="relative overflow-hidden rounded-3xl aspect-[3/1] md:aspect-[4/1] bg-surface-lowest group cursor-pointer w-full"
+  onMouseEnter={() => setIsHovered(true)}
+  onMouseLeave={() => setIsHovered(false)}
+  onClick={() => {
+    if (promotions[currentIndex].targetUrl) {
+      globalThis.location.href = promotions[currentIndex].targetUrl
+    }
+  }}
+>
         <AnimatePresence mode="wait">
           <motion.img
             key={currentIndex}
@@ -278,20 +289,15 @@ function PromotionsCarousel() {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -50 }}
             transition={{ duration: 0.5, ease: "easeInOut" }}
-            onClick={() => {
-              if (promotions[currentIndex].targetUrl) {
-                window.location.href = promotions[currentIndex].targetUrl;
-              }
-            }}
           />
         </AnimatePresence>
 
         {/* Navigation Dots */}
         {promotions.length > 1 && (
           <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
-            {promotions.map((_, i) => (
+            {promotions.map((promotion, i) => (
               <button
-                key={i}
+                 key={promotion.id}
                 onClick={() => setCurrentIndex(i)}
                 className={cn(
                   "w-2 h-2 rounded-full transition-all duration-300",
@@ -302,7 +308,7 @@ function PromotionsCarousel() {
             ))}
           </div>
         )}
-      </div>
+      </button>
     </section>
   )
 }
@@ -331,9 +337,18 @@ export default function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
           <div className="h-8 w-48 skeleton mb-8" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-            {Array.from({ length: 6 }).map((_, i) => <MovieSkeleton key={i} />)}
+           {[
+             "skeleton1",
+             "skeleton2",
+             "skeleton3",
+             "skeleton4",
+             "skeleton5",
+             "skeleton6",
+            ].map((id) => (
+              <MovieSkeleton key={id} />
+            ))}
           </div>
-        </div>
+        </div> 
       </div>
     )
   }
@@ -354,9 +369,18 @@ export default function HomePage() {
         />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {nowShowing.isLoading
-            ? Array.from({ length: 6 }).map((_, i) => <MovieSkeleton key={i} />)
+            ? [
+                "skeleton1",
+                "skeleton2",
+                "skeleton3",
+                "skeleton4",
+                "skeleton5",
+                "skeleton6",
+              ].map((id) => (
+                <MovieSkeleton key={id} />
+              ))
             : nowShowing.data?.content?.slice(0, 6).map((movie, i) => (
-                <MovieCard key={movie.id} movie={movie} index={i} />
+               <MovieCard key={movie.id} movie={movie} index={i} />
               ))
           }
         </div>
@@ -376,7 +400,16 @@ export default function HomePage() {
         />
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6 gap-4">
           {comingSoon.isLoading
-            ? Array.from({ length: 6 }).map((_, i) => <MovieSkeleton key={i} />)
+            ? [
+                "skeleton1",
+                "skeleton2",
+                "skeleton3",
+                "skeleton4",
+                "skeleton5",
+                "skeleton6",
+              ].map((id) => (
+                <MovieSkeleton key={id} />
+              ))
             : comingSoon.data?.content?.slice(0, 6).map((movie, i) => (
                 <MovieCard key={movie.id} movie={movie} index={i} />
               ))
