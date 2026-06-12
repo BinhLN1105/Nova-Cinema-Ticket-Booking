@@ -234,7 +234,7 @@ export default function ProfilePage() {
                   Nạp điểm
                 </button>
                 <button 
-                  onClick={() => setActiveTab('giftcards')}
+                  onClick={() => { setActiveTab('giftcards'); setSearchParams({ tab: 'giftcards' }) }}
                   className="ml-1 text-xs bg-white/10 text-brand-300 border border-brand-500/30 px-2 py-1 rounded-md hover:bg-white/20 transition-colors font-semibold"
                 >
                   Đổi thẻ
@@ -333,7 +333,7 @@ export default function ProfilePage() {
         {/* Tabs */}
         <div className="flex gap-1 mb-8 overflow-x-auto scrollbar-hide">
           {TABS.map(({ id, label, icon: Icon }) => (
-            <button key={id} onClick={() => setActiveTab(id)}
+            <button key={id} onClick={() => { setActiveTab(id); setSearchParams({ tab: id }) }}
               className={cn(
                 'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap',
                 activeTab === id

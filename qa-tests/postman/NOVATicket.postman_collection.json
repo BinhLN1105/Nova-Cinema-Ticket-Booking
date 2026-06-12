@@ -1,6 +1,6 @@
 {
   "info": {
-    "_postman_id": "6a20f615-f553-4139-b4b7-ec7951c1d449",
+    "_postman_id": "3d3fc76f-bf3d-49d5-8985-338d44acfd7d",
     "name": "NOVA Ticket Booking",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     "_exporter_id": "45637706"
@@ -2461,8 +2461,8 @@
                   "    if (value !== null && value !== undefined && value !== \"\") {\r",
                   "        // Encode khoảng trắng thành %20 và bọc thép các ký tự đặc biệt (!'()*) khớp chuẩn Java\r",
                   "        let encodedVal = encodeURIComponent(value)\r",
-                  "            .replace(/%20/g, \"%20\")\r",
-                  "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                  "            .replace(/%20/g, \"+\")\r",
+                  "            .replace(/[!'()~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
                   "        if (signData.length > 0) {\r",
                   "            signData += \"&\";\r",
                   "        }\r",
@@ -4111,8 +4111,8 @@
                       "    let value = params[key];\r",
                       "    if (value !== null && value !== undefined && value !== \"\") {\r",
                       "        let encodedVal = encodeURIComponent(value)\r",
-                      "            .replace(/%20/g, \"%20\")\r",
-                      "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                      "            .replace(/%20/g, \"+\")\r",
+                      "            .replace(/[!'()~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
                       "        if (signData.length > 0) {\r",
                       "            signData += \"&\";\r",
                       "        }\r",
@@ -5229,7 +5229,6 @@
                 {
                   "listen": "test",
                   "script": {
-                    "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
@@ -5238,11 +5237,24 @@
                       "    pm.environment.set('used_qr_code', pm.environment.get('temp_booking_code'));",
                       "    pm.environment.set('checked_in_booking_id', pm.environment.get('booking_id'));",
                       "});"
-                    ]
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
               "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
                 "method": "POST",
                 "header": [
                   {
@@ -5278,7 +5290,6 @@
                 {
                   "listen": "test",
                   "script": {
-                    "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 409', function () { pm.response.to.have.status(409); });",
                       "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
@@ -5287,18 +5298,26 @@
                       "    var msg = (json.message || json.error || (json.data && (json.data.message || json.data.error)) || '').toString();",
                       "    pm.expect(msg.length).to.be.above(0);",
                       "});"
-                    ]
+                    ],
+                    "type": "text/javascript",
+                    "packages": {},
+                    "requests": {}
                   }
                 }
               ],
               "request": {
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{admin_accessToken}}",
+                      "type": "string"
+                    }
+                  ]
+                },
                 "method": "POST",
-                "header": [
-                  {
-                    "key": "Authorization",
-                    "value": "Bearer {{staff_accessToken}}"
-                  }
-                ],
+                "header": [],
                 "url": {
                   "raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{temp_booking_code}}",
                   "host": [
@@ -5870,8 +5889,8 @@
                   "    let value = params[key];\r",
                   "    if (value !== null && value !== undefined && value !== \"\") {\r",
                   "        let encodedVal = encodeURIComponent(value)\r",
-                  "            .replace(/%20/g, \"%20\")\r",
-                  "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                  "            .replace(/%20/g, \"+\")\r",
+                  "            .replace(/[!'()~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
                   "        if (signData.length > 0) {\r",
                   "            signData += \"&\";\r",
                   "        }\r",
@@ -6417,8 +6436,8 @@
                   "    let value = params[key];\r",
                   "    if (value !== null && value !== undefined && value !== \"\") {\r",
                   "        let encodedVal = encodeURIComponent(value)\r",
-                  "            .replace(/%20/g, \"%20\")\r",
-                  "            .replace(/[!'()*]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
+                  "            .replace(/%20/g, \"+\")\r",
+                  "            .replace(/[!'()~]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase());\r",
                   "        if (signData.length > 0) {\r",
                   "            signData += \"&\";\r",
                   "        }\r",
