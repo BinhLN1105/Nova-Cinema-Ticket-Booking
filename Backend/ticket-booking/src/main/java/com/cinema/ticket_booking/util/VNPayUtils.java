@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.util;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeMap;
 import javax.crypto.Mac;
@@ -20,7 +21,7 @@ public class VNPayUtils {
         
         sortedParams.forEach((k, v) -> {
             if (v != null && !v.isBlank()) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append('&');
                 }
                 try {
@@ -43,7 +44,7 @@ public class VNPayUtils {
         
         sortedParams.forEach((k, v) -> {
             if (v != null && !v.isBlank()) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append('&');
                 }
                 try {
@@ -70,5 +71,32 @@ public class VNPayUtils {
             sb.append(String.format("%02x", b));
         }
         return sb.toString();
+    }
+
+    /**
+     * Xác thực chữ ký VNPay sử dụng chung cho các service.
+     */
+    public static boolean verifySignature(Map<String, String> params, String receivedHash, String secret) {
+        if (receivedHash == null || receivedHash.isBlank()) {
+            return false;
+        }
+        Map<String, String> vnpParams = new HashMap<>(params);
+        vnpParams.remove("vnp_SecureHash");
+        vnpParams.remove("vnp_SecureHashType");
+
+        Map<String, String> filtered = new TreeMap<>();
+        vnpParams.forEach((k, v) -> {
+            if (k.startsWith("vnp_") && v != null && !v.isBlank()) {
+                filtered.put(k, v);
+            }
+        });
+
+        try {
+            String hashData = buildHashData(filtered);
+            String computedHash = hmacSha512(hashData, secret);
+            return computedHash.equalsIgnoreCase(receivedHash);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

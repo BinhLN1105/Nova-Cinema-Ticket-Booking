@@ -120,7 +120,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 1. Xác minh chữ ký
         String vnp_SecureHash = params.get("vnp_SecureHash");
-        if (!verifyVnpaySignature(params, vnp_SecureHash)) {
+        if (!VNPayUtils.verifySignature(params, vnp_SecureHash, vnpayHashSecret)) {
             throw new PaymentException("Chữ ký VNPay không hợp lệ (Checksum failed)");
         }
 
@@ -363,45 +363,13 @@ public class PaymentServiceImpl implements PaymentService {
             params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
 
             String hashData = VNPayUtils.buildHashData(params);
-            log.info("[VNPay Debug] hashSecret: {}", vnpayHashSecret);
-            log.info("[VNPay Debug] hashData: {}", hashData);
             String signature = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            log.info("[VNPay Debug] signature: {}", signature);
             String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
             String fullUrl = vnpayUrl + "?" + queryString;
-            log.info("[VNPay Debug] Generated Payment URL: {}", fullUrl);
             return fullUrl;
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL thanh toán VNPay");
-        }
-    }
-
-    private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
-        // Tạo một bản sao để tránh làm hỏng map gốc nếu cần dùng sau này
-        Map<String, String> vnp_Params = new HashMap<>(params);
-
-        // Bắt buộc loại bỏ SecureHash trước khi tính toán
-        vnp_Params.remove("vnp_SecureHash");
-        vnp_Params.remove("vnp_SecureHashType");
-
-        // Lọc các tham số bắt đầu bằng vnp_ và sắp xếp
-        Map<String, String> filtered = new TreeMap<>();
-        vnp_Params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && v != null && !v.isBlank()) {
-                filtered.put(k, v);
-            }
-        });
-
-        try {
-            String hashData = VNPayUtils.buildHashData(filtered);
-            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            log.info("VNPay Signature Verification - HashData: [{}], Computed: [{}], Received: [{}]", 
-                     hashData, computedHash, receivedHash);
-            return computedHash.equalsIgnoreCase(receivedHash);
-        } catch (Exception e) {
-            log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());
-            return false;
         }
     }
 

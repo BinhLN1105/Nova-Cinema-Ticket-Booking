@@ -88,7 +88,7 @@ public class GiftCardServiceImpl implements GiftCardService {
         String txnRef = params.get("vnp_TxnRef");
         String responseCode = params.get("vnp_ResponseCode");
 
-        if (!verifyVnpaySignature(params, receivedHash)) {
+        if (!VNPayUtils.verifySignature(params, receivedHash, vnpayProperties.getHashSecret())) {
             throw new PaymentException("Chữ ký VNPay không hợp lệ");
         }
 
@@ -199,26 +199,9 @@ public class GiftCardServiceImpl implements GiftCardService {
             String signature = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
             String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
-            String fullUrl = vnpayProperties.getUrl() + "?" + queryString;
-            return fullUrl;
+            return vnpayProperties.getUrl() + "?" + queryString;
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL nạp thẻ VNPay");
-        }
-    }
-
-    private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
-        Map<String, String> filtered = new TreeMap<>();
-        params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType") && v != null && !v.isBlank()) {
-                filtered.put(k, v);
-            }
-        });
-        try {
-            String hashData = VNPayUtils.buildHashData(filtered);
-            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
-            return computedHash.equalsIgnoreCase(receivedHash);
-        } catch (Exception e) {
-            return false;
         }
     }
 }
