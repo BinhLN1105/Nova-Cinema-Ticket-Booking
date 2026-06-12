@@ -351,7 +351,8 @@ export function CustomerLayout() {
                   {links.map((l) => (
                     <li key={l}>
                       <a
-                        href="#"
+                        href="#!"
+                        onClick={(e) => e.preventDefault()}
                         className="text-sm text-cinema-300 hover:text-white
                         transition-colors duration-200"
                       >
@@ -374,7 +375,8 @@ export function CustomerLayout() {
               {["Chính sách bảo mật", "Điều khoản sử dụng"].map((t) => (
                 <a
                   key={t}
-                  href="#"
+                  href="#!"
+                  onClick={(e) => e.preventDefault()}
                   className="text-sm text-cinema-400 hover:text-white
                   transition-colors"
                 >

@@ -80,6 +80,30 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "movies_list", key = "'page_' + (#status != null ? #status.name() : 'ALL') + '_' + (#search != null ? #search : '') + '_' + #pageable.pageNumber + '_' + #pageable.pageSize")
+    public PageResponse<MovieResponse.Summary> getMovies(String search, MovieStatus status, Pageable pageable) {
+        boolean hasSearch = search != null && !search.isBlank();
+        boolean hasStatus = status != null;
+
+        org.springframework.data.domain.Page<Movie> page;
+        if (hasStatus) {
+            if (hasSearch) {
+                page = movieRepository.findByStatusAndTitleContainingIgnoreCase(status, search, pageable);
+            } else {
+                page = movieRepository.findByStatus(status, pageable);
+            }
+        } else {
+            if (hasSearch) {
+                page = movieRepository.findByStatusNotAndTitleContainingIgnoreCase(MovieStatus.ENDED, search, pageable);
+            } else {
+                page = movieRepository.findByStatusNot(MovieStatus.ENDED, pageable);
+            }
+        }
+        return PageResponse.of(page.map(movieMapper::toSummary));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public PageResponse<MovieResponse.Summary> getAllForAdmin(String search, MovieStatus status, Pageable pageable) {
         boolean hasSearch = search != null && !search.isBlank();
         boolean hasStatus = status != null;
@@ -158,7 +182,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse create(MovieRequest request) {
         if (request.getEndDate() != null && request.getEndDate().isBefore(request.getReleaseDate())) {
             throw new BadRequestException("Ngày kết thúc không được trước ngày phát hành");
@@ -169,7 +193,7 @@ public class MovieServiceImpl implements MovieService {
     }
 
     @Override
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse update(UUID id, MovieRequest request) {
         if (request.getEndDate() != null && request.getEndDate().isBefore(request.getReleaseDate())) {
             throw new BadRequestException("Ngày kết thúc không được trước ngày phát hành");
@@ -184,7 +208,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse updatePoster(UUID id, MultipartFile file) throws IOException {
         Movie movie = findById(id);
         String oldUrl = movie.getPosterUrl();
@@ -213,7 +237,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse updatePosterFromUrl(UUID id, String url) throws IOException {
         Movie movie = findById(id);
         String oldUrl = movie.getPosterUrl();
@@ -242,7 +266,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse updateBackdrop(UUID id, MultipartFile file) throws IOException {
         Movie movie = findById(id);
         String oldUrl = movie.getBackdropUrl();
@@ -271,7 +295,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public MovieResponse updateBackdropFromUrl(UUID id, String url) throws IOException {
         Movie movie = findById(id);
         String oldUrl = movie.getBackdropUrl();
@@ -300,7 +324,7 @@ public class MovieServiceImpl implements MovieService {
 
     @Override
     @Transactional
-    @CacheEvict(value = { "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
     public void delete(UUID id) {
         Movie movie = findById(id);
 

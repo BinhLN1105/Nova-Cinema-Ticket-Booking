@@ -28,11 +28,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+// import javax.crypto.Mac;
+// import javax.crypto.spec.SecretKeySpec;
+// import java.net.URLEncoder;
+// import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -114,13 +114,13 @@ public class PaymentServiceImpl implements PaymentService {
      */
     @Override
     public PaymentResponse handleVnpayCallback(Map<String, String> params) {
-        String receivedHash = params.get("vnp_SecureHash");
+        // String receivedHash = params.get("vnp_SecureHash");
         String txnRef = params.get("vnp_TxnRef");
         String responseCode = params.get("vnp_ResponseCode");
 
         // 1. Xác minh chữ ký
         String vnp_SecureHash = params.get("vnp_SecureHash");
-        if (!verifyVnpaySignature(params, vnp_SecureHash)) {
+        if (!VNPayUtils.verifySignature(params, vnp_SecureHash, vnpayHashSecret)) {
             throw new PaymentException("Chữ ký VNPay không hợp lệ (Checksum failed)");
         }
 
@@ -347,71 +347,17 @@ public class PaymentServiceImpl implements PaymentService {
 
     private String buildVnpayUrl(BigDecimal amount, String txnRef, String returnUrl) {
         try {
-            Map<String, String> params = new TreeMap<>();
-            params.put("vnp_Version", "2.1.0");
-            params.put("vnp_Command", "pay");
-            params.put("vnp_TmnCode", vnpayTmnCode);
-            // VNPay nhân thêm 100 (đơn vị VND * 100)
-            params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
-            params.put("vnp_CurrCode", "VND");
-            params.put("vnp_TxnRef", txnRef);
-            params.put("vnp_OrderInfo", "Thanh toan ve xem phim " + txnRef);
-            params.put("vnp_OrderType", "250000");
-            params.put("vnp_Locale", "vn");
-            params.put("vnp_ReturnUrl", returnUrl);
-            params.put("vnp_IpAddr", "127.0.0.1");
-            params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
-
-            String hashData = VNPayUtils.buildHashData(params);
-            String signature = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
-
-            return vnpayUrl + "?" + queryString;
+            return VNPayUtils.buildPaymentUrl(
+                    vnpayUrl,
+                    vnpayTmnCode,
+                    vnpayHashSecret,
+                    amount,
+                    txnRef,
+                    "Thanh toan ve xem phim " + txnRef,
+                    returnUrl);
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL thanh toán VNPay");
         }
-    }
-
-    private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
-        // Tạo một bản sao để tránh làm hỏng map gốc nếu cần dùng sau này
-        Map<String, String> vnp_Params = new HashMap<>(params);
-
-        // Bắt buộc loại bỏ SecureHash trước khi tính toán
-        vnp_Params.remove("vnp_SecureHash");
-        vnp_Params.remove("vnp_SecureHashType");
-
-        // Lọc các tham số bắt đầu bằng vnp_ và sắp xếp
-        Map<String, String> filtered = new TreeMap<>();
-        vnp_Params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && v != null && !v.isBlank()) {
-                filtered.put(k, v);
-            }
-        });
-
-        try {
-            String hashData = VNPayUtils.buildHashData(filtered);
-            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            log.info("VNPay Signature Verification - HashData: [{}], Computed: [{}], Received: [{}]", 
-                     hashData, computedHash, receivedHash);
-            return computedHash.equalsIgnoreCase(receivedHash);
-        } catch (Exception e) {
-            log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());
-            return false;
-        }
-    }
-
-    private String buildQueryString(Map<String, String> params) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            if (e.getValue() != null && !e.getValue().isBlank()) {
-                if (sb.length() > 0)
-                    sb.append('&');
-                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII))
-                        .append('=')
-                        .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
-            }
-        }
-        return sb.toString();
     }
 
     private String generateTxnRef(String bookingCode) {
