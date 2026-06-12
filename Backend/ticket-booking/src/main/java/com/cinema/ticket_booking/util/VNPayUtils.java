@@ -10,9 +10,9 @@ import javax.crypto.spec.SecretKeySpec;
 public class VNPayUtils {
 
     /**
-     * Sắp xếp các tham số và xây dựng chuỗi Hash Data theo chuẩn VNPay.
-     * Đặc biệt tự động thay thế dấu '+' (sinh ra từ URLEncoder) thành '%20'
-     * để khớp hoàn toàn với chuẩn mã hóa của cổng thanh toán VNPay.
+     * Sắp xếp các tham số và xây dựng chuỗi Hash Data theo chuẩn VNPay 2.1.0.
+     * Sử dụng US_ASCII để encode các value của tham số, giữ nguyên dấu '+' (khoảng trắng)
+     * để khớp 100% với cơ chế verify signature phía VNPAY.
      */
     public static String buildHashData(Map<String, String> params) {
         Map<String, String> sortedParams = new TreeMap<>(params);
@@ -24,9 +24,32 @@ public class VNPayUtils {
                     sb.append('&');
                 }
                 try {
-                    // VNPay chuẩn yêu cầu khoảng trắng mã hóa thành %20 chứ không phải dấu +
-                    String encodedValue = URLEncoder.encode(v, StandardCharsets.UTF_8.toString()).replace("+", "%20");
-                    sb.append(k).append('=').append(encodedValue);
+                    sb.append(k).append('=').append(URLEncoder.encode(v, StandardCharsets.US_ASCII.toString()));
+                } catch (Exception e) {
+                    // Bỏ qua lỗi mã hóa
+                }
+            }
+        });
+        return sb.toString();
+    }
+
+    /**
+     * Xây dựng chuỗi Query String gửi đi trên URL thanh toán theo chuẩn VNPay.
+     * Sử dụng US_ASCII và encode cả key lẫn value.
+     */
+    public static String buildQueryString(Map<String, String> params) {
+        Map<String, String> sortedParams = new TreeMap<>(params);
+        StringBuilder sb = new StringBuilder();
+        
+        sortedParams.forEach((k, v) -> {
+            if (v != null && !v.isBlank()) {
+                if (sb.length() > 0) {
+                    sb.append('&');
+                }
+                try {
+                    sb.append(URLEncoder.encode(k, StandardCharsets.US_ASCII.toString()))
+                            .append('=')
+                            .append(URLEncoder.encode(v, StandardCharsets.US_ASCII.toString()));
                 } catch (Exception e) {
                     // Bỏ qua lỗi mã hóa
                 }

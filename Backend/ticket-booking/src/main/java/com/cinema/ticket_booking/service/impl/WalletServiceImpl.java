@@ -129,9 +129,10 @@ public class WalletServiceImpl implements WalletService {
 
             String hashData = VNPayUtils.buildHashData(params);
             String signature = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
-            String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
+            String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
-            return vnpayProperties.getUrl() + "?" + queryString;
+            String fullUrl = vnpayProperties.getUrl() + "?" + queryString;
+            return fullUrl;
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL nạp tiền VNPay");
         }
@@ -151,18 +152,5 @@ public class WalletServiceImpl implements WalletService {
         } catch (Exception e) {
             return false;
         }
-    }
-
-    private String buildQueryString(Map<String, String> params) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            if (e.getValue() != null && !e.getValue().isBlank()) {
-                if (sb.length() > 0) sb.append('&');
-                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII))
-                        .append('=')
-                        .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
-            }
-        }
-        return sb.toString();
     }
 }

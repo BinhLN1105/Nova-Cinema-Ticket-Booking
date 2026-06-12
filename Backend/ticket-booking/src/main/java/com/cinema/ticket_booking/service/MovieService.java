@@ -18,6 +18,8 @@ import java.util.UUID;
 public interface MovieService {
     PageResponse<MovieResponse.Summary> getByStatus(MovieStatus status, Pageable pageable);
     
+    PageResponse<MovieResponse.Summary> getMovies(String search, MovieStatus status, Pageable pageable);
+    
     PageResponse<MovieResponse.Summary> getAllForAdmin(String search, MovieStatus status, Pageable pageable);
 
     PageResponse<MovieResponse.Summary> search(String title, Pageable pageable);

@@ -150,23 +150,23 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     @Async("asyncExecutor")
-    public void sendCancellationRequestEmail(Booking booking, String token) {
+    public void sendCancellationRequestEmail(String email, String customerName, String bookingCode, String movieTitle, java.util.UUID bookingId, String token) {
         try {
             MimeMessage message = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
 
-            helper.setTo(booking.getUser().getEmail());
-            helper.setSubject("[Nova Ticket] Xác nhận hủy vé - " + booking.getBookingCode());
+            helper.setTo(email);
+            helper.setSubject("[Nova Ticket] Xác nhận hủy vé - " + bookingCode);
 
             Context context = new Context();
-            context.setVariable("customerName", booking.getUser().getFullName());
-            context.setVariable("bookingCode", booking.getBookingCode());
-            context.setVariable("movieTitle", booking.getShowtime().getMovie().getTitle());
+            context.setVariable("customerName", customerName);
+            context.setVariable("bookingCode", bookingCode);
+            context.setVariable("movieTitle", movieTitle);
 
             String confirmUrl = String.format("%s/booking/cancel-confirm?token=%s&bookingId=%s",
-                    frontendUrl, token, booking.getId());
+                    frontendUrl, token, bookingId);
             String appConfirmUrl = String.format("%s/app-redirect?token=%s&bookingId=%s", 
-                    frontendUrl, token, booking.getId());
+                    frontendUrl, token, bookingId);
                 
             context.setVariable("confirmUrl", confirmUrl);
             context.setVariable("appConfirmUrl", appConfirmUrl);

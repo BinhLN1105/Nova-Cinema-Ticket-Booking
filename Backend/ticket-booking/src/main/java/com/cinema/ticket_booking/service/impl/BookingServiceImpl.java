@@ -567,14 +567,11 @@ public class BookingServiceImpl implements BookingService {
         // STAFF: kiểm tra xem có StaffProfile và có thuộc rạp này không
         if (staff.getRole() == UserRole.STAFF) {
             UUID bookingCinemaId = booking.getShowtime().getScreen().getCinema().getId();
-            staffProfileRepository.findByUserId(staff.getId())
-                    .ifPresent(profile -> {
-                        if (!profile.getCinema().getId().equals(bookingCinemaId)) {
-                            throw new BadRequestException(
-                                    "Bạn không có quyền quét vé cho rạp '" +
-                                            booking.getShowtime().getScreen().getCinema().getName() + "'");
-                        }
-                    });
+            var profile = staffProfileRepository.findByUserId(staff.getId())
+                    .orElseThrow(() -> new ForbiddenException("Tài khoản nhân viên chưa được cấu hình rạp làm việc"));
+            if (!profile.getCinema().getId().equals(bookingCinemaId)) {
+                throw new ForbiddenException("Nhân viên không có quyền soát vé của rạp khác!");
+            }
         }
 
         List<Ticket> tickets = ticketRepository.findByBookingIdWithSeatDetail(booking.getId());
@@ -890,16 +887,15 @@ public class BookingServiceImpl implements BookingService {
         booking.setCancellationTokenExpiry(LocalDateTime.now().plusMinutes(15));
         bookingRepository.save(booking);
 
-        // Gửi email - Initialize lazy fields for async thread
-        if (booking.getUser() != null) {
-            booking.getUser().getEmail();
-            booking.getUser().getFullName();
-        }
-        if (booking.getShowtime() != null && booking.getShowtime().getMovie() != null) {
-            booking.getShowtime().getMovie().getTitle();
-        }
+        // Gửi email
+        String email = booking.getUser() != null ? booking.getUser().getEmail() : "";
+        String customerName = booking.getUser() != null ? booking.getUser().getFullName() : "Khách hàng";
+        String movieTitle = (booking.getShowtime() != null && booking.getShowtime().getMovie() != null)
+                ? booking.getShowtime().getMovie().getTitle()
+                : "Vé xem phim";
 
-        emailService.sendCancellationRequestEmail(booking, token);
+        emailService.sendCancellationRequestEmail(email, customerName, booking.getBookingCode(), movieTitle,
+                booking.getId(), token);
     }
 
     @Override

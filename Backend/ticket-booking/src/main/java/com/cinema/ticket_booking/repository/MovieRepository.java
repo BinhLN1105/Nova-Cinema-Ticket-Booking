@@ -51,5 +51,9 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     // Lấy phim theo chuyên dụng cho Admin (hỗ trợ search và filter)
     Page<Movie> findByStatusAndTitleContainingIgnoreCase(MovieStatus status, String title, Pageable pageable);
 
+    Page<Movie> findByStatusNot(MovieStatus status, Pageable pageable);
+
+    Page<Movie> findByStatusNotAndTitleContainingIgnoreCase(MovieStatus status, String title, Pageable pageable);
+
     long countByStatus(MovieStatus status);
 }

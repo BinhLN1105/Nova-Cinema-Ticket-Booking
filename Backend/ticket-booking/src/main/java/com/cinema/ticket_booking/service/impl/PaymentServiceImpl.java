@@ -363,10 +363,15 @@ public class PaymentServiceImpl implements PaymentService {
             params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
 
             String hashData = VNPayUtils.buildHashData(params);
+            log.info("[VNPay Debug] hashSecret: {}", vnpayHashSecret);
+            log.info("[VNPay Debug] hashData: {}", hashData);
             String signature = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
+            log.info("[VNPay Debug] signature: {}", signature);
+            String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
 
-            return vnpayUrl + "?" + queryString;
+            String fullUrl = vnpayUrl + "?" + queryString;
+            log.info("[VNPay Debug] Generated Payment URL: {}", fullUrl);
+            return fullUrl;
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL thanh toán VNPay");
         }
@@ -398,20 +403,6 @@ public class PaymentServiceImpl implements PaymentService {
             log.error("Lỗi khi xác thực chữ ký VNPay: {}", e.getMessage());
             return false;
         }
-    }
-
-    private String buildQueryString(Map<String, String> params) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            if (e.getValue() != null && !e.getValue().isBlank()) {
-                if (sb.length() > 0)
-                    sb.append('&');
-                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII))
-                        .append('=')
-                        .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
-            }
-        }
-        return sb.toString();
     }
 
     private String generateTxnRef(String bookingCode) {
