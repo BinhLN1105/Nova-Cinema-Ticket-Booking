@@ -17,15 +17,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+// import javax.crypto.Mac;
+// import javax.crypto.spec.SecretKeySpec;
+// import java.net.URLEncoder;
+// import java.nio.charset.StandardCharsets;
+// import java.util.TreeMap;
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.UUID;
 
 @Service
@@ -47,7 +47,8 @@ public class WalletServiceImpl implements WalletService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BadRequestException("Không tìm thấy người dùng"));
 
-        String txnRef = "TU" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        String txnRef = "TU" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"))
+                + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         Transaction transaction = Transaction.builder()
                 .user(user)
@@ -57,7 +58,7 @@ public class WalletServiceImpl implements WalletService {
                 .referenceId(txnRef)
                 .description("Nạp CinePoint qua VNPay")
                 .build();
-        
+
         transactionRepository.save(transaction);
 
         String returnUrl = returnUrlBase + "/api/v1/wallet/vnpay-return";
@@ -78,7 +79,7 @@ public class WalletServiceImpl implements WalletService {
         String txnRef = params.get("vnp_TxnRef");
         String responseCode = params.get("vnp_ResponseCode");
 
-        if (!verifyVnpaySignature(params, receivedHash)) {
+        if (!VNPayUtils.verifySignature(params, receivedHash, vnpayProperties.getHashSecret())) {
             throw new PaymentException("Chữ ký VNPay không hợp lệ");
         }
 
@@ -113,56 +114,16 @@ public class WalletServiceImpl implements WalletService {
 
     private String buildVnpayUrl(BigDecimal amount, String txnRef, String returnUrl) {
         try {
-            Map<String, String> params = new TreeMap<>();
-            params.put("vnp_Version", "2.1.0");
-            params.put("vnp_Command", "pay");
-            params.put("vnp_TmnCode", vnpayProperties.getTmnCode());
-            params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
-            params.put("vnp_CurrCode", "VND");
-            params.put("vnp_TxnRef", txnRef);
-            params.put("vnp_OrderInfo", "Nap CinePoint " + txnRef);
-            params.put("vnp_OrderType", "190000"); // Mã danh mục cho phần nạp tiền
-            params.put("vnp_Locale", "vn");
-            params.put("vnp_ReturnUrl", returnUrl);
-            params.put("vnp_IpAddr", "127.0.0.1");
-            params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
-
-            String hashData = VNPayUtils.buildHashData(params);
-            String signature = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
-            String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
-
-            return vnpayProperties.getUrl() + "?" + queryString;
+            return VNPayUtils.buildPaymentUrl(
+                    vnpayProperties.getUrl(),
+                    vnpayProperties.getTmnCode(),
+                    vnpayProperties.getHashSecret(),
+                    amount,
+                    txnRef,
+                    "Nap CinePoint " + txnRef,
+                    returnUrl);
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL nạp tiền VNPay");
         }
-    }
-
-    private boolean verifyVnpaySignature(Map<String, String> params, String receivedHash) {
-        Map<String, String> filtered = new TreeMap<>();
-        params.forEach((k, v) -> {
-            if (k.startsWith("vnp_") && !k.equals("vnp_SecureHash") && !k.equals("vnp_SecureHashType") && v != null && !v.isBlank()) {
-                filtered.put(k, v);
-            }
-        });
-        try {
-            String hashData = VNPayUtils.buildHashData(filtered);
-            String computedHash = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
-            return computedHash.equalsIgnoreCase(receivedHash);
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    private String buildQueryString(Map<String, String> params) throws Exception {
-        StringBuilder sb = new StringBuilder();
-        for (Map.Entry<String, String> e : params.entrySet()) {
-            if (e.getValue() != null && !e.getValue().isBlank()) {
-                if (sb.length() > 0) sb.append('&');
-                sb.append(URLEncoder.encode(e.getKey(), StandardCharsets.US_ASCII))
-                        .append('=')
-                        .append(URLEncoder.encode(e.getValue(), StandardCharsets.US_ASCII));
-            }
-        }
-        return sb.toString();
     }
 }

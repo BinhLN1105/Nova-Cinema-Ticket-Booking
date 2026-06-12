@@ -1,5 +1,19 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { useAuthStore } from "./authStore";
+
+const getInitialRole = () => {
+  try {
+    const authData = localStorage.getItem("nova-auth");
+    if (authData) {
+      const parsed = JSON.parse(authData);
+      return parsed.state?.user?.role || "CUSTOMER";
+    }
+  } catch (e) {
+    // ignore
+  }
+  return "CUSTOMER";
+};
 
 const DEFAULTS = {
   brandColor: "#E50914",
@@ -226,7 +240,24 @@ export const useThemeStore = create(
       init: () => applyTheme(get()),
     }),
     {
-      name: "nova-theme",
+      name: `nova-theme-${getInitialRole()}`,
     },
   ),
 );
+
+// Dynamic theme persistence based on user role to avoid theme leaking
+if (typeof window !== "undefined") {
+  let currentRole = null;
+  useAuthStore.subscribe((state) => {
+    const newRole = state.user?.role || "CUSTOMER";
+    if (newRole !== currentRole) {
+      currentRole = newRole;
+      useThemeStore.persist.setOptions({
+        name: `nova-theme-${newRole}`,
+      });
+      useThemeStore.persist.rehydrate().then(() => {
+        applyTheme(useThemeStore.getState());
+      });
+    }
+  });
+}

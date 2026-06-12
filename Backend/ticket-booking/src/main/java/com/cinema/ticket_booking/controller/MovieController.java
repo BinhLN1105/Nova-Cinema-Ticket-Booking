@@ -42,11 +42,12 @@ public class MovieController {
     // GET /api/v1/movies?status=NOW_SHOWING&page=0&size=10
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<MovieResponse.Summary>>> getMovies(
-            @RequestParam(defaultValue = "NOW_SHOWING") MovieStatus status,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) MovieStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        return ResponseEntity.ok(ApiResponse.success(movieService.getByStatus(status, pageable)));
+        return ResponseEntity.ok(ApiResponse.success(movieService.getMovies(search, status, pageable)));
     }
 
     // GET /api/v1/movies/admin?search=...&status=...&page=0&size=10

@@ -132,7 +132,7 @@ export const bookingApi = {
   // Admin/Staff
   getAll: (params) => api.get("/admin/bookings", params),
   verifyQr: (qrCode) => api.post("/staff/bookings/verify", { qrCode }),
-  checkIn: (bookingId) => api.patch(`/staff/bookings/${bookingId}/checkin`),
+  checkIn: (qrCode) => api.post(`/bookings/check-in?qrCode=${encodeURIComponent(qrCode)}`),
 };
 
 // ── Reviews ───────────────────────────────────
