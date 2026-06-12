@@ -1,5 +1,6 @@
 package com.cinema.ticket_booking.util;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -7,18 +8,21 @@ import java.util.Map;
 import java.util.TreeMap;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.time.format.DateTimeFormatter;
+import java.time.LocalDateTime;
 
 public class VNPayUtils {
 
     /**
      * Sắp xếp các tham số và xây dựng chuỗi Hash Data theo chuẩn VNPay 2.1.0.
-     * Sử dụng US_ASCII để encode các value của tham số, giữ nguyên dấu '+' (khoảng trắng)
+     * Sử dụng US_ASCII để encode các value của tham số, giữ nguyên dấu '+' (khoảng
+     * trắng)
      * để khớp 100% với cơ chế verify signature phía VNPAY.
      */
     public static String buildHashData(Map<String, String> params) {
         Map<String, String> sortedParams = new TreeMap<>(params);
         StringBuilder sb = new StringBuilder();
-        
+
         sortedParams.forEach((k, v) -> {
             if (v != null && !v.isBlank()) {
                 if (!sb.isEmpty()) {
@@ -41,7 +45,7 @@ public class VNPayUtils {
     public static String buildQueryString(Map<String, String> params) {
         Map<String, String> sortedParams = new TreeMap<>(params);
         StringBuilder sb = new StringBuilder();
-        
+
         sortedParams.forEach((k, v) -> {
             if (v != null && !v.isBlank()) {
                 if (!sb.isEmpty()) {
@@ -97,6 +101,43 @@ public class VNPayUtils {
             return computedHash.equalsIgnoreCase(receivedHash);
         } catch (Exception e) {
             return false;
+        }
+    }
+
+    /**
+     * Tạo URL thanh toán VNPay dùng chung cho các service.
+     */
+    public static String buildPaymentUrl(
+            String vnpayUrl,
+            String tmnCode,
+            String hashSecret,
+            BigDecimal amount,
+            String txnRef,
+            String orderInfo,
+            String returnUrl) {
+        try {
+            Map<String, String> params = new TreeMap<>();
+            params.put("vnp_Version", "2.1.0");
+            params.put("vnp_Command", "pay");
+            params.put("vnp_TmnCode", tmnCode);
+            params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
+            params.put("vnp_CurrCode", "VND");
+            params.put("vnp_TxnRef", txnRef);
+            params.put("vnp_OrderInfo", orderInfo);
+            params.put("vnp_OrderType", "190000");
+            params.put("vnp_Locale", "vn");
+            params.put("vnp_ReturnUrl", returnUrl);
+            params.put("vnp_IpAddr", "127.0.0.1");
+            params.put("vnp_CreateDate", LocalDateTime.now()
+                    .format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
+
+            String hashData = buildHashData(params);
+            String signature = hmacSha512(hashData, hashSecret);
+            String queryString = buildQueryString(params) + "&vnp_SecureHash=" + signature;
+
+            return vnpayUrl + "?" + queryString;
+        } catch (Exception e) {
+            throw new RuntimeException("Không thể tạo URL thanh toán VNPay", e);
         }
     }
 }

@@ -28,11 +28,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
+// import javax.crypto.Mac;
+// import javax.crypto.spec.SecretKeySpec;
+// import java.net.URLEncoder;
+// import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -114,7 +114,7 @@ public class PaymentServiceImpl implements PaymentService {
      */
     @Override
     public PaymentResponse handleVnpayCallback(Map<String, String> params) {
-        String receivedHash = params.get("vnp_SecureHash");
+        // String receivedHash = params.get("vnp_SecureHash");
         String txnRef = params.get("vnp_TxnRef");
         String responseCode = params.get("vnp_ResponseCode");
 
@@ -347,27 +347,14 @@ public class PaymentServiceImpl implements PaymentService {
 
     private String buildVnpayUrl(BigDecimal amount, String txnRef, String returnUrl) {
         try {
-            Map<String, String> params = new TreeMap<>();
-            params.put("vnp_Version", "2.1.0");
-            params.put("vnp_Command", "pay");
-            params.put("vnp_TmnCode", vnpayTmnCode);
-            // VNPay nhân thêm 100 (đơn vị VND * 100)
-            params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
-            params.put("vnp_CurrCode", "VND");
-            params.put("vnp_TxnRef", txnRef);
-            params.put("vnp_OrderInfo", "Thanh toan ve xem phim " + txnRef);
-            params.put("vnp_OrderType", "250000");
-            params.put("vnp_Locale", "vn");
-            params.put("vnp_ReturnUrl", returnUrl);
-            params.put("vnp_IpAddr", "127.0.0.1");
-            params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
-
-            String hashData = VNPayUtils.buildHashData(params);
-            String signature = VNPayUtils.hmacSha512(hashData, vnpayHashSecret);
-            String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
-
-            String fullUrl = vnpayUrl + "?" + queryString;
-            return fullUrl;
+            return VNPayUtils.buildPaymentUrl(
+                    vnpayUrl,
+                    vnpayTmnCode,
+                    vnpayHashSecret,
+                    amount,
+                    txnRef,
+                    "Thanh toan ve xem phim " + txnRef,
+                    returnUrl);
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL thanh toán VNPay");
         }

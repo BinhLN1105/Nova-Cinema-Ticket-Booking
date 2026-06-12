@@ -57,7 +57,8 @@ public class GiftCardServiceImpl implements GiftCardService {
                 .orElseThrow(() -> new BadRequestException("Không tìm thấy người dùng"));
 
         // Tạo Transaction chờ xử lý
-        String txnRef = "GC" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss")) + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
+        String txnRef = "GC" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("HHmmss"))
+                + UUID.randomUUID().toString().substring(0, 4).toUpperCase();
 
         Transaction transaction = Transaction.builder()
                 .user(user)
@@ -102,7 +103,7 @@ public class GiftCardServiceImpl implements GiftCardService {
 
         if ("00".equals(responseCode)) {
             transaction.setStatus(TransactionStatus.SUCCESS);
-            
+
             // Giả định 1000đ = 1 CinePoint
             long pointValue = transaction.getAmount().divide(new BigDecimal("1000")).longValue();
 
@@ -116,7 +117,8 @@ public class GiftCardServiceImpl implements GiftCardService {
                     .build();
 
             giftCardRepository.save(giftCard);
-            log.info("Tạo Gift Card {} mệnh giá {} ({}) thành công bởi txn {}", giftCard.getCode(), pointValue, transaction.getAmount(), txnRef);
+            log.info("Tạo Gift Card {} mệnh giá {} ({}) thành công bởi txn {}", giftCard.getCode(), pointValue,
+                    transaction.getAmount(), txnRef);
         } else {
             transaction.setStatus(TransactionStatus.FAILED);
             log.warn("Mua Gift Card thất bại: {} - ResponseCode: {}", txnRef, responseCode);
@@ -181,25 +183,14 @@ public class GiftCardServiceImpl implements GiftCardService {
 
     private String buildVnpayUrl(BigDecimal amount, String txnRef, String returnUrl) {
         try {
-            Map<String, String> params = new TreeMap<>();
-            params.put("vnp_Version", "2.1.0");
-            params.put("vnp_Command", "pay");
-            params.put("vnp_TmnCode", vnpayProperties.getTmnCode());
-            params.put("vnp_Amount", String.valueOf(amount.multiply(BigDecimal.valueOf(100)).longValue()));
-            params.put("vnp_CurrCode", "VND");
-            params.put("vnp_TxnRef", txnRef);
-            params.put("vnp_OrderInfo", "Mua Gift Card CinePoint " + txnRef);
-            params.put("vnp_OrderType", "190000"); // Mã danh mục
-            params.put("vnp_Locale", "vn");
-            params.put("vnp_ReturnUrl", returnUrl);
-            params.put("vnp_IpAddr", "127.0.0.1");
-            params.put("vnp_CreateDate", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
-
-            String hashData = VNPayUtils.buildHashData(params);
-            String signature = VNPayUtils.hmacSha512(hashData, vnpayProperties.getHashSecret());
-            String queryString = VNPayUtils.buildQueryString(params) + "&vnp_SecureHash=" + signature;
-
-            return vnpayProperties.getUrl() + "?" + queryString;
+            return VNPayUtils.buildPaymentUrl(
+                    vnpayProperties.getUrl(),
+                    vnpayProperties.getTmnCode(),
+                    vnpayProperties.getHashSecret(),
+                    amount,
+                    txnRef,
+                    "Mua Gift Card CinePoint " + txnRef,
+                    returnUrl);
         } catch (Exception e) {
             throw new PaymentException("Không thể tạo URL nạp thẻ VNPay");
         }
