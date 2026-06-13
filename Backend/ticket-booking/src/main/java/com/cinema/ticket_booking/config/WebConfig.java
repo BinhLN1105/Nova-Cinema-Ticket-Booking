@@ -11,7 +11,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  *
  * app:
  * cors:
- * allowed-origins: "http://localhost:3000,https://admin.cinema.com"
+ * allowed-origins: "http://localhost:5173,http://localhost:8080"
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
