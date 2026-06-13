@@ -108,9 +108,9 @@ export default function SelectShowtime() {
         {/* Cinema filter */}
         <div className="mb-8">
           <p className="text-gray-300 text-sm uppercase tracking-widest mb-3 font-semibold">Lọc theo rạp</p>
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex gap-2.5 overflow-x-auto scrollbar-hide pb-2 flex-nowrap">
             <button onClick={() => setSelectedCinema('')}
-              className={cn('px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300',
+              className={cn('px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 flex-shrink-0',
                 !selectedCinema
                   ? 'bg-brand-500 border-brand-400 text-white shadow-md shadow-brand-500/20'
                   : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/30')}>
@@ -118,7 +118,7 @@ export default function SelectShowtime() {
             </button>
             {cinemas?.map(c => (
               <button key={c.id} onClick={() => setSelectedCinema(c.id)}
-                className={cn('px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300',
+                className={cn('px-5 py-2.5 rounded-xl border text-sm font-semibold transition-all duration-300 flex-shrink-0',
                   selectedCinema === c.id
                     ? 'bg-brand-500 border-brand-400 text-white shadow-md shadow-brand-500/20'
                     : 'border-white/10 bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white hover:border-white/30')}>

@@ -139,6 +139,12 @@ export default function SettingsPage() {
                   <Field label="Tỉ lệ hoàn tiền (%)" info="Phần trăm số tiền sẽ được hoàn lại dưới dạng CinePoint khi khách hàng hủy vé thành công.">
                     <Input value={localConfigs['REFUND_PERCENT_CINEPOINT'] || ''} type="number" onChange={(e) => handleConfigChange('REFUND_PERCENT_CINEPOINT', e.target.value)} />
                   </Field>
+                  <Field label="Giới hạn ghế tối đa / Vé" info="Số lượng ghế tối đa mà khách hàng được phép chọn và đặt trong cùng một giao dịch.">
+                    <Input value={localConfigs['BOOKING_MAX_SEATS'] || ''} type="number" onChange={(e) => handleConfigChange('BOOKING_MAX_SEATS', e.target.value)} />
+                  </Field>
+                  <Field label="Giới hạn combo tối đa / Vé" info="Tổng số lượng combo bắp nước tối đa mà khách hàng được phép mua trong cùng một giao dịch.">
+                    <Input value={localConfigs['BOOKING_MAX_COMBOS'] || ''} type="number" onChange={(e) => handleConfigChange('BOOKING_MAX_COMBOS', e.target.value)} />
+                  </Field>
                 </div>
               )}
               <div className="pt-2 border-t border-gray-100">
