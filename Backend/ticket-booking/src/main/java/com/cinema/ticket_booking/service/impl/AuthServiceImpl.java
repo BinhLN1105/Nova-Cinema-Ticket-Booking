@@ -91,7 +91,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
-                .orElseThrow(() -> new BadRequestException("Email hoặc mật khẩu không đúng"));
+                .orElseThrow(() -> new UnauthorizedException("Tài khoản hoặc mật khẩu không chính xác"));
 
         if (!user.getIsActive()) {
             throw new BadRequestException("Tài khoản đã bị khoá");
@@ -101,7 +101,7 @@ public class AuthServiceImpl implements AuthService {
                     user.getAuthProvider().name().toLowerCase() + ", vui lòng dùng đúng phương thức");
         }
         if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
-            throw new BadRequestException("Email hoặc mật khẩu không đúng");
+            throw new UnauthorizedException("Tài khoản hoặc mật khẩu không chính xác");
         }
 
         return buildAuthResponse(user);

@@ -37,6 +37,7 @@
 		<firebase.version>9.3.0</firebase.version>
 		<google-api-client.version>2.2.0</google-api-client.version>
 		<cloudinary.version>1.39.0</cloudinary.version>
+		<jsoup.version>1.17.2</jsoup.version>
 		<!-- SonarCloud Properties -->
 		<sonar.organization>binhln115</sonar.organization>
 		<sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -205,6 +206,19 @@
             <groupId>com.cloudinary</groupId>
             <artifactId>cloudinary-http44</artifactId>
             <version>${cloudinary.version}</version>
+        </dependency>
+
+        <!-- AOP for Rate Limiting Aspect -->
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aspects</artifactId>
+        </dependency>
+
+        <!-- Jsoup for XSS Sanitizing -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
         </dependency>
 
 	</dependencies>

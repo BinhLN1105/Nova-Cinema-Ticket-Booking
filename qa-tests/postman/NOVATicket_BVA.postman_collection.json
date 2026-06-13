@@ -1,0 +1,1099 @@
+{
+  "info": {
+    "_postman_id": "9d4f12a8-34fd-4a2a-9e7f-4f286e0c1f40",
+    "name": "NOVA Ticket - Boundary Value Analysis (BVA) Testing",
+    "description": "Collection kiểm thử Phân tích Giá trị Biên (BVA) phục vụ báo cáo môn học Kiểm thử phần mềm.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. BVA - User Registration",
+      "item": [
+        {
+          "name": "BVA_PWD_01: Biên dưới mật khẩu không hợp lệ [5 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_1\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu 5 ký tự bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Mật khẩu phải từ 6 đến 32 ký tự\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_1}}\",\r\n  \"password\": \"abc12\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654321\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_02: Biên dưới mật khẩu hợp lệ nhỏ nhất [6 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_2\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu 6 ký tự được chấp nhận - Đăng ký thành công\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_2}}\",\r\n  \"password\": \"abc123\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654322\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_03: Nominal - Vùng hợp lệ mật khẩu [12 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_3\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu 12 ký tự hợp lệ - Đăng ký thành công\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_3}}\",\r\n  \"password\": \"novaTicket2026\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654323\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_04: Biên trên mật khẩu hợp lệ lớn nhất [32 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_4\", \"bva_reg_\" + timestamp + \"@gmail.com\");\r",
+                  "var pwd32 = \"a\".repeat(26) + \"123456\";\r",
+                  "pm.environment.set(\"bva_pwd_32\", pwd32);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu 32 ký tự hợp lệ - Đăng ký thành công\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_4}}\",\r\n  \"password\": \"{{bva_pwd_32}}\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654324\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_05: Biên trên mật khẩu không hợp lệ [33 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_5\", \"bva_reg_\" + timestamp + \"@gmail.com\");\r",
+                  "var pwd33 = \"a\".repeat(27) + \"123456\";\r",
+                  "pm.environment.set(\"bva_pwd_33\", pwd33);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu 33 ký tự bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Mật khẩu phải từ 6 đến 32 ký tự\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_5}}\",\r\n  \"password\": \"{{bva_pwd_33}}\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654325\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_06: Biên mật khẩu thiếu Số [chỉ chứa chữ]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_6\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu chỉ chứa chữ bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Mật khẩu phải chứa cả chữ cái và chữ số\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_6}}\",\r\n  \"password\": \"abcdefgh\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654326\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_PWD_07: Biên mật khẩu thiếu Chữ [chỉ chứa số]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_7\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Mật khẩu chỉ chứa số bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Mật khẩu phải chứa cả chữ cái và chữ số\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_7}}\",\r\n  \"password\": \"12345678\",\r\n  \"fullName\": \"Nguyễn Văn A\",\r\n  \"phone\": \"0987654327\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_NAM_01: Biên dưới fullName không hợp lệ [1 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_8\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"fullName 1 ký tự bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Họ tên phải từ 2 đến 100 ký tự\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_8}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"A\",\r\n  \"phone\": \"0987654328\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_NAM_02: Biên dưới fullName hợp lệ nhỏ nhất [2 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_9\", \"bva_reg_\" + timestamp + \"@gmail.com\");"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"fullName 2 ký tự hợp lệ - Đăng ký thành công\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_9}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"An\",\r\n  \"phone\": \"0987654329\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_NAM_03: Biên trên fullName hợp lệ lớn nhất [100 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_10\", \"bva_reg_\" + timestamp + \"@gmail.com\");\r",
+                  "var longName = \"A\".repeat(100);\r",
+                  "pm.environment.set(\"bva_long_name_100\", longName);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"fullName 100 ký tự hợp lệ - Đăng ký thành công\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_10}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"{{bva_long_name_100}}\",\r\n  \"phone\": \"0987654330\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_NAM_04: Biên trên fullName không hợp lệ [101 ký tự]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"bva_reg_email_11\", \"bva_reg_\" + timestamp + \"@gmail.com\");\r",
+                  "var longName101 = \"A\".repeat(101);\r",
+                  "pm.environment.set(\"bva_long_name_101\", longName101);"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"fullName 101 ký tự bị chặn - Trả về 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Họ tên phải từ 2 đến 100 ký tự\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{bva_reg_email_11}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"{{bva_long_name_101}}\",\r\n  \"phone\": \"0987654331\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. BVA - Movie Rating (Scale 1-5)",
+      "item": [
+        {
+          "name": "BVA_RAT_01: Biên dưới rating không hợp lệ [Rating = 0]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rating = 0 bị chặn - Trả về 400 Bad Request\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Rating tối thiểu là 1\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"{{test_movie_id}}\",\r\n  \"bookingId\": \"{{booking_id}}\",\r\n  \"rating\": 0,\r\n  \"comment\": \"Phim rất hay!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/reviews",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_RAT_02: Biên dưới rating hợp lệ nhỏ nhất [Rating = 1]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Nếu test_movie_id chưa được gán, dùng UUID ngẫu nhiên làm giá trị mặc định để tránh lỗi rỗng\r",
+                  "if (!pm.environment.get(\"test_movie_id\")) {\r",
+                  "    pm.environment.set(\"test_movie_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}\r",
+                  "if (!pm.environment.get(\"booking_id\")) {\r",
+                  "    pm.environment.set(\"booking_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rating = 1 được chấp nhận qua lớp Validate\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    // Đi qua được validator nên không báo lỗi Rating tối thiểu là 1\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400, 401, 404]);\r",
+                  "    if (pm.response.code === 400) {\r",
+                  "        pm.expect(responseData.message).to.not.include(\"Rating tối thiểu là 1\");\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"{{test_movie_id}}\",\r\n  \"bookingId\": \"{{booking_id}}\",\r\n  \"rating\": 1,\r\n  \"comment\": \"Tạm được!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/reviews",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_RAT_03: Biên trên rating hợp lệ lớn nhất [Rating = 5]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rating = 5 được chấp nhận qua lớp Validate\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201, 400, 401, 404]);\r",
+                  "    if (pm.response.code === 400) {\r",
+                  "        pm.expect(responseData.message).to.not.include(\"Rating tối đa là 5\");\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"{{test_movie_id}}\",\r\n  \"bookingId\": \"{{booking_id}}\",\r\n  \"rating\": 5,\r\n  \"comment\": \"Tuyệt cú mèo!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/reviews",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_RAT_04: Biên trên rating không hợp lệ [Rating = 6]",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Rating = 6 bị chặn - Trả về 400 Bad Request\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.message).to.contain(\"Rating tối đa là 5\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"movieId\": \"{{test_movie_id}}\",\r\n  \"bookingId\": \"{{booking_id}}\",\r\n  \"rating\": 6,\r\n  \"comment\": \"Phim quá xuất sắc!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/reviews",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "reviews"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. BVA - Booking Limits",
+      "item": [
+        {
+          "name": "BVA_SEAT_01: Biên ghế hợp lệ lớn nhất [6 ghế]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Sinh 6 UUID ngẫu nhiên làm showtimeSeatIds để kiểm thử biên chặn độ rộng mảng\r",
+                  "var seats = [];\r",
+                  "for (var i = 0; i < 6; i++) {\r",
+                  "    seats.push(pm.variables.replaceIn('{{$guid}}'));\r",
+                  "}\r",
+                  "pm.environment.set(\"bva_6_seats\", JSON.stringify(seats));\r",
+                  "if (!pm.environment.get(\"test_showtime_id\")) {\r",
+                  "    pm.environment.set(\"test_showtime_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Không bị chặn bởi giới hạn 6 ghế\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 404]);\r",
+                  "    if (pm.response.code === 400) {\r",
+                  "        pm.expect(responseData.message).to.not.include(\"tối đa 6 ghế\");\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": {{bva_6_seats}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/quote",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "quote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_SEAT_02: Vượt biên ghế không hợp lệ đầu tiên [7 ghế]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "// Sinh 7 UUID ngẫu nhiên làm showtimeSeatIds\r",
+                  "var seats = [];\r",
+                  "for (var i = 0; i < 7; i++) {\r",
+                  "    seats.push(pm.variables.replaceIn('{{$guid}}'));\r",
+                  "}\r",
+                  "pm.environment.set(\"bva_7_seats\", JSON.stringify(seats));\r",
+                  "if (!pm.environment.get(\"test_showtime_id\")) {\r",
+                  "    pm.environment.set(\"test_showtime_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Kích hoạt chặn vượt biên 7 ghế - Trả về lỗi 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.success).to.be.false;\r",
+                  "    pm.expect(responseData.message).to.equal(\"Mỗi giao dịch chỉ được đặt tối đa 6 ghế.\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": {{bva_7_seats}}\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/quote",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "quote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_COMBO_01: Biên combo hợp lệ lớn nhất [8 combo]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var seats = [pm.variables.replaceIn('{{$guid}}')];\r",
+                  "pm.environment.set(\"bva_1_seat\", JSON.stringify(seats));\r",
+                  "if (!pm.environment.get(\"test_showtime_id\")) {\r",
+                  "    pm.environment.set(\"test_showtime_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Không bị chặn bởi giới hạn 8 combo\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 400, 401, 404]);\r",
+                  "    if (pm.response.code === 400) {\r",
+                  "        pm.expect(responseData.message).to.not.include(\"tối đa 8 combo\");\r",
+                  "    }\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": {{bva_1_seat}},\r\n  \"combos\": [\r\n    {\r\n      \"comboId\": \"123e4567-e89b-12d3-a456-426614174000\",\r\n      \"quantity\": 5\r\n    },\r\n    {\r\n      \"comboId\": \"223e4567-e89b-12d3-a456-426614174000\",\r\n      \"quantity\": 3\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/quote",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "quote"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "BVA_COMBO_02: Vượt biên combo không hợp lệ đầu tiên [9 combo]",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var seats = [pm.variables.replaceIn('{{$guid}}')];\r",
+                  "pm.environment.set(\"bva_1_seat\", JSON.stringify(seats));\r",
+                  "if (!pm.environment.get(\"test_showtime_id\")) {\r",
+                  "    pm.environment.set(\"test_showtime_id\", \"00000000-0000-0000-0000-000000000000\");\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"Kích hoạt chặn vượt biên 9 combo - Trả về lỗi 400\", function () {\r",
+                  "    pm.response.to.have.status(400);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.success).to.be.false;\r",
+                  "    pm.expect(responseData.message).to.equal(\"Mỗi giao dịch chỉ được đặt tối đa 8 combo bắp nước.\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{customer_accessToken}}",
+                "type": "text"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"showtimeId\": \"{{test_showtime_id}}\",\r\n  \"showtimeSeatIds\": {{bva_1_seat}},\r\n  \"combos\": [\r\n    {\r\n      \"comboId\": \"123e4567-e89b-12d3-a456-426614174000\",\r\n      \"quantity\": 5\r\n    },\r\n    {\r\n      \"comboId\": \"223e4567-e89b-12d3-a456-426614174000\",\r\n      \"quantity\": 4\r\n    }\r\n  ]\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/bookings/quote",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "bookings",
+                "quote"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

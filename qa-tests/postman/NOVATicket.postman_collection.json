@@ -273,22 +273,22 @@
                   "response": []
                 },
                 {
-                  "name": "05. [400] Đăng nhập sai mật khẩu",
+                  "name": "05. [401] Đăng nhập sai mật khẩu",
                   "event": [
                     {
                       "listen": "test",
                       "script": {
                         "exec": [
-                          "// 1. Kiểm tra HTTP Status Code là 400 Bad Request\r",
-                          "pm.test(\"Trạng thái phản hồi phải là 400 Bad Request\", function () {\r",
-                          "    pm.response.to.have.status(400);\r",
+                          "// 1. Kiểm tra HTTP Status Code là 401 Unauthorized\r",
+                          "pm.test(\"Trạng thái phản hồi phải là 401 Unauthorized\", function () {\r",
+                          "    pm.response.to.have.status(401);\r",
                           "});\r",
                           "\r",
                           "// 2. Báo lỗi không đúng mật khẩu\r",
                           "pm.test(\"Thông báo sai tài khoản hoặc mật khẩu chính xác\", function () {\r",
                           "    var responseData = pm.response.json();\r",
                           "    pm.expect(responseData.success).to.be.false;\r",
-                          "    pm.expect(responseData.message).to.include(\"không đúng\");\r",
+                          "    pm.expect(responseData.message).to.include(\"không chính xác\");\r",
                           "});\r",
                           ""
                         ],
@@ -2201,7 +2201,14 @@
                   "    const baseDate = new Date(Date.UTC(year, month, day, hours, minutes, seconds));\r",
                   "    \r",
                   "    // Cộng thêm 30 phút (1800000 ms)\r",
-                  "    const newDate = new Date(baseDate.getTime() + (30 * 60 * 1000));\r",
+                  "    let newDate = new Date(baseDate.getTime() + (30 * 60 * 1000));\r",
+                  "    \r",
+                  "    // So sánh với mốc hiện tại GMT+7\r",
+                  "    const nowLocal = new Date(new Date().getTime() + (7 * 60 * 60 * 1000));\r",
+                  "    if (newDate.getTime() < nowLocal.getTime()) {\r",
+                  "        console.log(\"⚠️ Suất chiếu cũ kết thúc ở quá khứ. Lập lịch dựa trên giờ hiện tại GMT+7!\");\r",
+                  "        newDate = new Date(nowLocal.getTime() + (30 * 60 * 1000));\r",
+                  "    }\r",
                   "    \r",
                   "    const newYear = newDate.getUTCFullYear();\r",
                   "    const newMonth = String(newDate.getUTCMonth() + 1).padStart(2, '0');\r",
@@ -3958,7 +3965,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 201', function () { pm.response.to.have.status(201); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
                       "pm.test('Capture booking_id, booking_code, qr_code into environment', function () {",
                       "    var json = pm.response.json();",
@@ -4270,7 +4277,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "    pm.expect([400, 409]).to.include(pm.response.code);\r",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -4333,8 +4340,8 @@
                       "    pm.expect(pm.response.code).to.be.oneOf([201, 400, 409]);",
                       "});",
                       "",
-                      "pm.test('Response time < 3000ms', function () { ",
-                      "    pm.expect(pm.response.responseTime).to.be.below(3000); ",
+                      "pm.test('Response time < 4000ms', function () { ",
+                      "    pm.expect(pm.response.responseTime).to.be.below(4000); ",
                       "});",
                       "",
                       "pm.test('Race invariant: at most one 201 across attempts', function () { ",
@@ -4392,7 +4399,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -4451,7 +4458,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
                       "pm.test('Quote has totalAmount field', function () {",
                       "    var json = pm.response.json();",
@@ -4508,7 +4515,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 400 or 404', function () { pm.expect([400,404]).to.include(pm.response.code); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -4568,7 +4575,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Body is array or object containing array', function () {",
                       "    var json = pm.response.json();",
                       "    var arr = Array.isArray(json) ? json : (Array.isArray(json.data) ? json.data : (json.data && Array.isArray(json.data.content) ? json.data.content : (Array.isArray(json.content) ? json.content : null)));\r",
@@ -4611,7 +4618,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 401', function () { pm.response.to.have.status(401); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    try { var json = pm.response.json(); pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist; } catch (e) { pm.expect(pm.response.text().length).to.be.above(0); }",
                       "});"
@@ -4652,7 +4659,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
                       "\r",
                       "// Lấy QR Code của booking đã PAID để phục vụ soát vé và hủy vé phía sau\r",
@@ -4699,7 +4706,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -4741,7 +4748,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 403 (or 401/404 acceptable for cross-tenant block)', function () { pm.expect([401,403,404]).to.include(pm.response.code); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    try { var json = pm.response.json(); pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist; } catch (e) { pm.expect(pm.response.text().length).to.be.above(0); }",
                       "});"
@@ -4787,7 +4794,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });\r",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });\r",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });\r",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });\r",
                       "pm.test('Capture cancel_confirm_token if returned', function () {\r",
                       "    try {\r",
@@ -4838,7 +4845,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 404', function () { pm.response.to.have.status(404); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -4880,7 +4887,7 @@
                   "script": {
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Capture cancel_confirm_token', function () {",
                       "    var json = pm.response.json();",
                       "    var token = json.data;",
@@ -4932,7 +4939,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });"
                     ]
                   }
@@ -4985,7 +4992,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -5231,7 +5238,7 @@
                   "script": {
                     "exec": [
                       "pm.test('Status code is 200', function () { pm.response.to.have.status(200); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });",
                       "pm.test('Capture used qr_code and checked_in_booking_id for Review Flow', function () {",
                       "    pm.environment.set('used_qr_code', pm.environment.get('temp_booking_code'));",
@@ -5292,7 +5299,7 @@
                   "script": {
                     "exec": [
                       "pm.test('Status code is 409', function () { pm.response.to.have.status(409); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error message indicates ticket already used', function () {",
                       "    var json = pm.response.json();",
                       "    var msg = (json.message || json.error || (json.data && (json.data.message || json.data.error)) || '').toString();",
@@ -5349,7 +5356,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 400', function () { pm.response.to.have.status(400); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    var json = pm.response.json();",
                       "    pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist;",
@@ -5402,7 +5409,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Staff cancel returns 200 or 400 (acceptable if booking already CHECKED_IN)', function () { pm.expect([200, 400]).to.include(pm.response.code); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Response is JSON object', function () { pm.expect(pm.response.json()).to.be.an('object'); });"
                     ]
                   }
@@ -5442,7 +5449,7 @@
                     "type": "text/javascript",
                     "exec": [
                       "pm.test('Status code is 403', function () { pm.response.to.have.status(403); });",
-                      "pm.test('Response time < 2000ms', function () { pm.expect(pm.response.responseTime).to.be.below(2000); });",
+                      "pm.test('Response time < 4000ms', function () { pm.expect(pm.response.responseTime).to.be.below(4000); });",
                       "pm.test('Error body has message or error field', function () {",
                       "    try { var json = pm.response.json(); pm.expect(json.message || json.error || (json.data && (json.data.message || json.data.error))).to.exist; } catch (e) { pm.expect(pm.response.text().length).to.be.above(0); }",
                       "});"

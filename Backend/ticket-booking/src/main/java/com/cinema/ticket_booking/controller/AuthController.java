@@ -11,7 +11,7 @@ import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.AuthResponse;
 import com.cinema.ticket_booking.dto.response.UserResponse;
 import com.cinema.ticket_booking.model.User;
-
+import com.cinema.ticket_booking.security.RateLimit;
 import com.cinema.ticket_booking.service.AuthService;
 import com.cinema.ticket_booking.service.TokenBlacklistService;
 import com.cinema.ticket_booking.service.UserService;
@@ -21,7 +21,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -43,6 +42,7 @@ public class AuthController {
 
     // POST /api/v1/auth/register
     @PostMapping("/register")
+    @RateLimit(key = "register", limit = 3, period = 60)
     public ResponseEntity<ApiResponse<AuthResponse>> register(
             @Valid @RequestBody RegisterRequest request) {
         AuthResponse data = authService.register(request);
@@ -52,6 +52,7 @@ public class AuthController {
 
     // POST /api/v1/auth/login
     @PostMapping("/login")
+    @RateLimit(key = "login", limit = 5, period = 60)
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Đăng nhập thành công"));
@@ -59,6 +60,7 @@ public class AuthController {
 
     // POST /api/v1/auth/social-login
     @PostMapping("/social-login")
+    @RateLimit(key = "social-login", limit = 5, period = 60)
     public ResponseEntity<ApiResponse<AuthResponse>> socialLogin(
             @Valid @RequestBody SocialLoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.socialLogin(request), "Đăng nhập thành công"));
@@ -89,14 +91,17 @@ public class AuthController {
 
     // POST /api/v1/auth/forgot-password
     @PostMapping("/forgot-password")
+    @RateLimit(key = "forgot-password", limit = 2, period = 60)
     public ResponseEntity<ApiResponse<Void>> forgotPassword(
             @Valid @RequestBody ForgotPasswordRequest request) {
         authService.requestPasswordReset(request.getEmail());
-        return ResponseEntity.ok(ApiResponse.success(null, "Nếu email hợp lệ, một mã xác thực (OTP) đã được gửi đến hộp thư của bạn."));
+        return ResponseEntity.ok(
+                ApiResponse.success(null, "Nếu email hợp lệ, một mã xác thực (OTP) đã được gửi đến hộp thư của bạn."));
     }
 
     // POST /api/v1/auth/verify-otp
     @PostMapping("/verify-otp")
+    @RateLimit(key = "verify-otp", limit = 5, period = 60)
     public ResponseEntity<ApiResponse<String>> verifyOtp(
             @Valid @RequestBody VerifyOtpRequest request) {
         String resetToken = authService.verifyOtp(request.getEmail(), request.getOtp());
