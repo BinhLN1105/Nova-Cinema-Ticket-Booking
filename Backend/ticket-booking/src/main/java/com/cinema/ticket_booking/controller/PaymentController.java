@@ -4,6 +4,7 @@ import com.cinema.ticket_booking.dto.request.PaymentRequest;
 import com.cinema.ticket_booking.dto.response.ApiResponse;
 import com.cinema.ticket_booking.dto.response.PaymentResponse;
 import com.cinema.ticket_booking.model.User;
+import com.cinema.ticket_booking.security.RateLimit;
 import com.cinema.ticket_booking.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class PaymentController {
 
         // POST /api/v1/payments — tạo URL thanh toán VNPay
         @PostMapping("/payments")
+        @RateLimit(key = "create-payment", limit = 5, period = 60)
         public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
                         @AuthenticationPrincipal User currentUser,
                         @Valid @RequestBody PaymentRequest request) {
@@ -39,6 +41,7 @@ public class PaymentController {
 
         // POST /api/v1/payments/wallet/{bookingId}
         @PostMapping("/payments/wallet/{bookingId}")
+        @RateLimit(key = "pay-wallet", limit = 5, period = 60)
         public ResponseEntity<ApiResponse<PaymentResponse>> payWithWallet(
                         @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID bookingId) {

@@ -33,6 +33,10 @@ public class SystemConfigServiceImpl implements SystemConfigService {
         createIfMissing("HERO_SECTION_IDS", "", "Danh sách ID phim cho banner Android (Dùng cho chế độ MANUAL)");
         createIfMissing("HERO_SECTION_WEB_MODE", "TOP_RATING", "Chế độ hiển thị banner Web (TOP_RATING, NEW_RELEASE, MANUAL, TOP_SALES)");
         createIfMissing("HERO_SECTION_WEB_IDS", "", "Danh sách ID phim cho banner Web (Dùng cho chế độ MANUAL)");
+
+        // Booking Limits Configs
+        createIfMissing("BOOKING_MAX_SEATS", "6", "Số lượng ghế tối đa được đặt trong một giao dịch");
+        createIfMissing("BOOKING_MAX_COMBOS", "8", "Số lượng combo bắp nước tối đa được đặt trong một giao dịch");
     }
 
     private void createIfMissing(String key, String defaultValue, String description) {
