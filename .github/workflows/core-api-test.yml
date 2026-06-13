@@ -110,17 +110,39 @@ jobs:
         run: |
           mkdir -p baocaoLocal
           newman run qa-tests/postman/NOVATicket.postman_collection.json \
-            -e qa-tests/postman/NovaTicket-Local.postman_environment.json \
+            -e qa-tests/postman/environment/NovaTicket-Local.postman_environment.json \
             --env-var "BaseUrl=http://localhost:8080" \
             --env-var "vnpay_hash_secret=${{ secrets.VNPAY_HASH_SECRET }}" \
+            --export-environment baocaoLocal/updated_env.json \
             --reporters cli,json \
             --reporter-json-export baocaoLocal/postman-report.json
 
+      - name: 🛡️ Chạy bộ kiểm thử Newman Security Test
+        if: always()
+        run: |
+          newman run qa-tests/postman/NOVATicket_Security.postman_collection.json \
+            -e baocaoLocal/updated_env.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --reporters cli,json \
+            --reporter-json-export baocaoLocal/security-report.json
+
+      - name: 🧪 Chạy bộ kiểm thử Newman BVA Test
+        if: always()
+        run: |
+          newman run qa-tests/postman/NOVATicket_BVA.postman_collection.json \
+            -e baocaoLocal/updated_env.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --reporters cli,json \
+            --reporter-json-export baocaoLocal/bva-report.json
+
       # ── UPLOAD KẾT QUẢ TEST JSON LÊN ARTIFACT BỘ NHỚ TẠM ───────────────────
       - name: 💾 Lưu trữ kết quả test tạm thời (Artifact)
-        if: always() # Luôn lưu trữ kết quả dù test PASS hay FAIL
+        if: always() # Luôn lưu trữ kết quả dù bất kỳ test nào PASS hay FAIL
         uses: actions/upload-artifact@v4
         with:
           name: postman-report
-          path: baocaoLocal/postman-report.json
+          path: |
+            baocaoLocal/postman-report.json
+            baocaoLocal/security-report.json
+            baocaoLocal/bva-report.json
           retention-days: 2 # Chỉ giữ 2 ngày trên bộ nhớ tạm để tiết kiệm dung lượng
