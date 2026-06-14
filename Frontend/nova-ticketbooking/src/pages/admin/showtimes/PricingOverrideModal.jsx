@@ -212,13 +212,16 @@ export default function PricingOverrideModal({
                   className="flex flex-col h-full gap-4"
                 >
                   <div>
-                    <label htmlFor="overrideNewPrice" className="block text-sm font-medium text-cinema-300 mb-1.5">
+                    <label
+                      htmlFor="overrideNewPrice"
+                      className="block text-sm font-medium text-cinema-300 mb-1.5"
+                    >
                       Giá vé mới (VNĐ)
                     </label>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-400" />
                       <input
-                      id="overrideNewPrice"
+                        id="overrideNewPrice"
                         type="number"
                         value={newPrice}
                         onChange={(e) => setNewPrice(e.target.value)}
