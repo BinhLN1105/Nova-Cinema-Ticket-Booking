@@ -296,11 +296,11 @@ export default function ScreensModal({ open, onClose, cinema }) {
           </p>
 
           <div className="space-y-3 mt-4">
-            <label
-              className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "soft" ? "border-brand-500 bg-brand-50/50" : "border-gray-200"}`}
+            <label htmlFor="deleteTypeSoft" className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "soft" ? "border-brand-500 bg-brand-50/50" : "border-gray-200"}`}
             >
               <div className="h-5 flex items-center">
                 <input
+                id="deleteTypeSoft"
                   type="radio"
                   name="deleteType"
                   value="soft"
@@ -320,11 +320,11 @@ export default function ScreensModal({ open, onClose, cinema }) {
               </div>
             </label>
 
-            <label
-              className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "hard" ? "border-red-500 bg-red-50/50" : "border-gray-200"}`}
+            <label htmlFor="deleteTypeHard" className={`flex p-4 border rounded-xl cursor-pointer transition-colors hover:bg-gray-50 ${deleteType === "hard" ? "border-red-500 bg-red-50/50" : "border-gray-200"}`}
             >
               <div className="h-5 flex items-center">
                 <input
+                id="deleteTypeHard"
                   type="radio"
                   name="deleteType"
                   value="hard"

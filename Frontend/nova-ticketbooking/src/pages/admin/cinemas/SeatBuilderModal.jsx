@@ -438,6 +438,7 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
       {/* Global mouseUp listener */}
       {isPainting && (
         <div
+          aria-hidden="true"
           className="fixed inset-0 z-50 cursor-crosshair"
           style={{ pointerEvents: "all", background: "transparent" }}
           onMouseUp={() => setIsPainting(false)}

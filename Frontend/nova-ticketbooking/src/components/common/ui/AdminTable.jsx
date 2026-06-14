@@ -37,10 +37,10 @@ export function Table({
               <tr key={i} className="border-b border-gray-100">
                 {columns.map((col) => (
                   <td key={col.key} className="px-4 py-3">
-                    {/* NOSONAR: Pseudo-random skeleton UI */}
                     <div
                       className="h-4 bg-gray-100 rounded animate-pulse"
                       style={{
+                        // NOSONAR: Pseudo-random skeleton UI using crypto.getRandomValues
                         width: `${60 + (crypto.getRandomValues(new Uint32Array(1))[0] / 0x100000000) * 40}%`,
                       }}
                     />
