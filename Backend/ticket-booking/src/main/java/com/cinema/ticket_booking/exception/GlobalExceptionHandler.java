@@ -106,7 +106,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOptimisticLocking(Exception ex) {
         log.warn("Data conflict detected: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT,
-                "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
+                "Yêu cầu đang được xử lý, vui lòng không thao tác liên tiếp");
     }
 
     // Xử lý lỗi trùng lặp dữ liệu / Vi phạm ràng buộc database (Unique Constraint)
