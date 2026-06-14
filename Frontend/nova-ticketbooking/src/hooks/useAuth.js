@@ -27,6 +27,10 @@ export function useAuth() {
       else if (role === "STAFF") navigate("/staff/dashboard");
       else navigate("/");
     },
+    onError: (error) => {
+      const msg = error?.response?.data?.message || "Tài khoản hoặc mật khẩu không chính xác";
+      toast.error(msg);
+    },
   });
 
   const registerMutation = useMutation({

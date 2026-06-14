@@ -77,3 +77,12 @@ jobs:
           GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
           GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
           GDRIVE_SERVICE_ACCOUNT_KEY_RAW: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY_RAW }}
+
+      - name: 🎓 Xuất báo cáo (BVA & Security) & Tự động đẩy lên Google Drive
+        run: python scripts/generate_bva-sec_report.py
+        env:
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GDRIVE_SERVICE_ACCOUNT_KEY_RAW: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY_RAW }}

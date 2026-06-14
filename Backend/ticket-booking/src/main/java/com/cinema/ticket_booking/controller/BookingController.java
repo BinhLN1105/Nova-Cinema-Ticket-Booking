@@ -9,6 +9,7 @@ import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.BookingService;
 import com.cinema.ticket_booking.service.SystemConfigService;
 import com.cinema.ticket_booking.service.impl.ScanLogServiceImpl;
+import com.cinema.ticket_booking.security.RateLimit;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -98,7 +99,8 @@ public class BookingController {
                                                 "Yêu cầu hủy vé đã được gửi. Vui lòng kiểm tra email để xác nhận."));
         }
 
-        // GET /api/v1/bookings/{id}/cancel-token — Lấy token hủy vé (hỗ trợ bảo mật & test)
+        // GET /api/v1/bookings/{id}/cancel-token — Lấy token hủy vé (hỗ trợ bảo mật &
+        // test)
         @GetMapping("/{id}/cancel-token")
         @PreAuthorize("isAuthenticated()")
         public ResponseEntity<ApiResponse<String>> getCancelToken(
@@ -122,6 +124,7 @@ public class BookingController {
         // POST /api/v1/bookings/check-in [STAFF, ADMIN] — quét QR tại rạp
         @PostMapping("/check-in")
         @PreAuthorize("hasAnyRole('STAFF','ADMIN')")
+        @RateLimit(key = "checkin", limit = 30, period = 60)
         public ResponseEntity<ApiResponse<CheckInResponse>> checkIn(
                         @AuthenticationPrincipal User currentUser,
                         @RequestParam String qrCode) {

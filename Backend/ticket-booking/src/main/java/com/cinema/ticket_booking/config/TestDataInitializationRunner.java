@@ -26,6 +26,9 @@ public class TestDataInitializationRunner implements CommandLineRunner {
     @Value("${app.test.staff-password}")
     private String staffPassword;
 
+    @Value("${app.test.customer-password}")
+    private String customerPassword;
+
     @Override
     public void run(String... args) throws Exception {
         log.info("[TestDataInit] Đang kiểm tra và khởi tạo dữ liệu tài khoản test cho CI/CD...");
@@ -61,6 +64,23 @@ public class TestDataInitializationRunner implements CommandLineRunner {
                 log.info("[TestDataInit] Đã tạo thành công tài khoản STAFF: {}", staffEmail);
             } else {
                 log.info("[TestDataInit] Tài khoản STAFF đã tồn tại, bỏ qua tạo mới: {}", staffEmail);
+            }
+
+            // 3. Tạo tài khoản Customer test
+            String customerEmail = "customer_test@novaticket.com";
+            if (!userRepository.existsByEmail(customerEmail)) {
+                User customer = User.builder()
+                        .email(customerEmail)
+                        .password(passwordEncoder.encode(customerPassword))
+                        .fullName("Customer Test CI/CD")
+                        .role(UserRole.CUSTOMER)
+                        .isActive(true)
+                        .rewardPoints(2000L) // Ví dụ: 2000 CinePoints = 2.000.000 VNĐ cho E2E Wallet test
+                        .build();
+                userRepository.save(customer);
+                log.info("[TestDataInit] Đã tạo thành công tài khoản CUSTOMER: {} với 2000 CinePoints", customerEmail);
+            } else {
+                log.info("[TestDataInit] Tài khoản CUSTOMER đã tồn tại, bỏ qua tạo mới: {}", customerEmail);
             }
 
             log.info("[TestDataInit] Hoàn tất khởi tạo dữ liệu tài khoản test.");

@@ -1,0 +1,937 @@
+{
+  "info": {
+    "_postman_id": "8b9e594d-4bc5-4076-96a8-202a647d69a6",
+    "name": "NOVATicket_UI_Seed_Data",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. POST Auth Login (Admin)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Login admin success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "    pm.expect(jsonData.data.accessToken).to.exist;",
+              "});",
+              "pm.environment.set(\"admin_token\", jsonData.data.accessToken);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "2. POST Create Cinema",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create cinema success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "    pm.expect(jsonData.data.id).to.exist;",
+              "});",
+              "pm.environment.set(\"cinema_id\", jsonData.data.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"NovaCinema Test UI\",\n  \"address\": \"123 Đường Test, Quận 1, TP. HCM\",\n  \"city\": \"HoChiMinh\",\n  \"phone\": \"0901234567\",\n  \"imageUrl\": \"https://res.cloudinary.com/novaticket/image/upload/v1/cinemas/default.jpg\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/cinemas",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "cinemas"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. POST Create Screen",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create screen success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "    pm.expect(jsonData.data.id).to.exist;",
+              "});",
+              "pm.environment.set(\"screen_id\", jsonData.data.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Phòng Chiếu 1 E2E\",\n  \"screenType\": \"STANDARD\",\n  \"totalRows\": 8,\n  \"totalCols\": 8,\n  \"isActive\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/cinemas/{{cinema_id}}/screens",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "cinemas",
+            "{{cinema_id}}",
+            "screens"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. POST Create Movie",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const today = new Date();",
+              "const start = today.toISOString().split('T')[0];",
+              "const nextMonth = new Date();",
+              "nextMonth.setMonth(nextMonth.getMonth() + 1);",
+              "const end = nextMonth.toISOString().split('T')[0];",
+              "pm.environment.set(\"movie_release_date\", start);",
+              "pm.environment.set(\"movie_end_date\", end);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create movie success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "    pm.expect(jsonData.data.id).to.exist;",
+              "});",
+              "pm.environment.set(\"movie_id\", jsonData.data.id);",
+              "pm.environment.set(\"movie_name\", jsonData.data.title);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"title\": \"Phim Siêu Nhân E2E\",\n  \"originalTitle\": \"Superman E2E\",\n  \"description\": \"Phim test giao diện tự động\",\n  \"duration\": 120,\n  \"releaseDate\": \"{{movie_release_date}}\",\n  \"endDate\": \"{{movie_end_date}}\",\n  \"director\": \"Nova Director\",\n  \"cast\": \"Nova Cast\",\n  \"language\": \"Vietnamese\",\n  \"rated\": \"P\",\n  \"status\": \"NOW_SHOWING\",\n  \"genreIds\": []\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/movies",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "movies"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "5. POST Create Showtime",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const tomorrow = new Date();",
+              "tomorrow.setDate(tomorrow.getDate() + 1);",
+              "tomorrow.setHours(19, 0, 0, 0);",
+              "const formatted = tomorrow.getFullYear() + \"-\" +",
+              "  String(tomorrow.getMonth() + 1).padStart(2, '0') + \"-\" +",
+              "  String(tomorrow.getDate()).padStart(2, '0') + \"T\" +",
+              "  String(tomorrow.getHours()).padStart(2, '0') + \":\" +",
+              "  String(tomorrow.getMinutes()).padStart(2, '0') + \":\" +",
+              "  String(tomorrow.getSeconds()).padStart(2, '0');",
+              "pm.environment.set(\"showtime_start_time\", formatted);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create showtime success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "    pm.expect(jsonData.data.id).to.exist;",
+              "});",
+              "pm.environment.set(\"showtime_id\", jsonData.data.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"movieId\": \"{{movie_id}}\",\n  \"screenId\": \"{{screen_id}}\",\n  \"startTime\": \"{{showtime_start_time}}\",\n  \"basePrice\": 80000\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/showtimes",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "showtimes"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "6. POST Create Valid Voucher",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const today = new Date();",
+              "const start = today.toISOString().split('T')[0];",
+              "const nextYear = new Date();",
+              "nextYear.setFullYear(nextYear.getFullYear() + 1);",
+              "const end = nextYear.toISOString().split('T')[0];",
+              "pm.environment.set(\"voucher_start\", start);",
+              "pm.environment.set(\"voucher_end\", end);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Voucher valid created or already exists\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([201, 409, 400]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"NOVA2026\",\n  \"description\": \"Voucher hợp lệ test E2E UI\",\n  \"discountType\": \"FIXED_AMOUNT\",\n  \"discountValue\": 10000,\n  \"minOrder\": 50000,\n  \"usageLimit\": 9999,\n  \"startDate\": \"{{voucher_start}}\",\n  \"endDate\": \"{{voucher_end}}\",\n  \"applicableTo\": \"ALL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/vouchers",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "vouchers"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "7. POST Create Expired Voucher",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "const lastYear = new Date();",
+              "lastYear.setFullYear(lastYear.getFullYear() - 1);",
+              "const start = lastYear.toISOString().split('T')[0];",
+              "const end = lastYear.toISOString().split('T')[0];",
+              "pm.environment.set(\"expired_start\", start);",
+              "pm.environment.set(\"expired_end\", end);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Voucher expired created or already exists\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([201, 409, 400]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"code\": \"EXPIRED99\",\n  \"description\": \"Voucher hết hạn test E2E UI\",\n  \"discountType\": \"FIXED_AMOUNT\",\n  \"discountValue\": 50000,\n  \"minOrder\": 50000,\n  \"usageLimit\": 9999,\n  \"startDate\": \"{{expired_start}}\",\n  \"endDate\": \"{{expired_end}}\",\n  \"applicableTo\": \"ALL\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/vouchers",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "vouchers"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "8. POST Auth Login (Staff)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Login staff success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "pm.environment.set(\"staff_user_id\", jsonData.data.user.id);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{staff_email}}\",\n  \"password\": \"{{staff_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "9. PATCH Link Staff to Cinema",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Link staff success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"cinemaId\": \"{{cinema_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/staff/{{staff_user_id}}/cinema",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "staff",
+            "{{staff_user_id}}",
+            "cinema"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "10. POST Auth Login (Customer)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Login customer success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "pm.environment.set(\"customer_token\", jsonData.data.accessToken);",
+              "var rewardPoints = jsonData.data.user.rewardPoints || 0;",
+              "pm.environment.set(\"customer_reward_points\", rewardPoints);",
+              "pm.environment.set(\"customer_wallet_balance\", rewardPoints * 1000);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{customer_email}}\",\n  \"password\": \"{{customer_password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/auth/login",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "11. GET Fetch Showtime Seats",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Get seat map success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "    pm.expect(jsonData.data.seats.length).to.be.above(0);",
+              "});",
+              "var seats = jsonData.data.seats;",
+              "var available = seats.filter(function(s) { return s.status === 'AVAILABLE'; });",
+              "if (available.length >= 2) {",
+              "  pm.environment.set(\"selected_seat_1\", available[0].showtimeSeatId);",
+              "  pm.environment.set(\"selected_seat_2\", available[1].showtimeSeatId);",
+              "} else if (available.length >= 1) {",
+              "  pm.environment.set(\"selected_seat_1\", available[0].showtimeSeatId);",
+              "  pm.environment.set(\"selected_seat_2\", available[0].showtimeSeatId);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/showtimes/{{showtime_id}}/seats",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "showtimes",
+            "{{showtime_id}}",
+            "seats"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "12. POST Create Booking 1 (Check-in)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create booking 1 success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "});",
+              "pm.environment.set(\"booking_id_1\", jsonData.data.id);",
+              "pm.environment.set(\"booking_code_1\", jsonData.data.bookingCode);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showtimeId\": \"{{showtime_id}}\",\n  \"showtimeSeatIds\": [\"{{selected_seat_1}}\"],\n  \"paymentMethod\": \"WALLET\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/bookings",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "bookings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "13. POST Pay Booking 1 (Wallet)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Pay booking 1 success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "pm.environment.set(\"staff_checkin_code\", pm.environment.get(\"booking_code_1\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/wallet/{{booking_id_1}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "wallet",
+            "{{booking_id_1}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "14. POST Create Booking 2 (Cancel)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Create booking 2 success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(201);",
+              "});",
+              "pm.environment.set(\"booking_id_2\", jsonData.data.id);",
+              "pm.environment.set(\"booking_code_2\", jsonData.data.bookingCode);"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"showtimeId\": \"{{showtime_id}}\",\n  \"showtimeSeatIds\": [\"{{selected_seat_2}}\"],\n  \"paymentMethod\": \"WALLET\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/bookings",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "bookings"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "15. POST Pay Booking 2 (Wallet)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Pay booking 2 success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "pm.environment.set(\"cancel_test_booking_code\", pm.environment.get(\"booking_code_2\"));"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{customer_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/payments/wallet/{{booking_id_2}}",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "payments",
+            "wallet",
+            "{{booking_id_2}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "16. POST Register Banned User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Register success or already exists\", function () {",
+              "    pm.expect(pm.response.code).to.be.oneOf([201, 409]);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"banned_test@novaticket.com\",\n  \"password\": \"CustomerPassword123!\",\n  \"fullName\": \"Banned Customer\",\n  \"phone\": \"0988776655\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/v1/auth/register",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "register"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "17. GET Find Banned User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "var jsonData = pm.response.json();",
+              "pm.test(\"Find users success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});",
+              "var users = jsonData.data.content || [];",
+              "var targetUser = users.find(function(u) { return u.email === 'banned_test@novaticket.com'; });",
+              "if (targetUser) {",
+              "    pm.environment.set(\"banned_user_id\", targetUser.id);",
+              "    if (targetUser.isActive === true) {",
+              "        // User is currently active, proceed to ban request",
+              "        pm.test(\"User needs to be banned\", function () { pm.expect(true).to.be.true; });",
+              "    } else {",
+              "        // User is already banned, skip next request",
+              "        pm.test(\"User already banned, skipping toggle\", function () { pm.expect(true).to.be.true; });",
+              "        postman.setNextRequest(null);",
+              "    }",
+              "} else {",
+              "    postman.setNextRequest(null);",
+              "}"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users?search=banned_test@novaticket.com",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users"
+          ],
+          "query": [
+            {
+              "key": "search",
+              "value": "banned_test@novaticket.com"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "18. PATCH Ban User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test(\"Ban user success\", function () {",
+              "    pm.expect(pm.response.code).to.equal(200);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Authorization",
+            "value": "Bearer {{admin_token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/v1/admin/users/{{banned_user_id}}/ban",
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "users",
+            "{{banned_user_id}}",
+            "ban"
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}

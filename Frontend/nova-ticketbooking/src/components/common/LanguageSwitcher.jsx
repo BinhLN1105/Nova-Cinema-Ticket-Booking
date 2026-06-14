@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/utils';
 
-export function LanguageSwitcher() {
+export function LanguageSwitcher({ direction = 'down' }) {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -51,11 +51,14 @@ export function LanguageSwitcher() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 8, scale: 0.96 }}
+            initial={{ opacity: 0, y: direction === 'up' ? -8 : 8, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 8, scale: 0.96 }}
+            exit={{ opacity: 0, y: direction === 'up' ? -8 : 8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
-            className="absolute right-0 top-full mt-2 w-40 rounded-2xl glass-dark border border-white/8 overflow-hidden shadow-card-float z-50"
+            className={cn(
+              "absolute right-0 w-40 rounded-2xl glass-dark border border-white/8 overflow-hidden shadow-card-float z-50",
+              direction === 'up' ? "bottom-full mb-2" : "top-full mt-2"
+            )}
           >
             <div className="py-1">
               {languages.map((lang) => (

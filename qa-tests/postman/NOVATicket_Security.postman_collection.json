@@ -1,0 +1,226 @@
+{
+  "info": {
+    "_postman_id": "8e3c12a8-12fd-4a2a-9e7f-4f286e0c1f20",
+    "name": "NOVA Ticket - Security Testing",
+    "description": "Collection kiểm thử Bảo mật (XSS, Rate Limiting, SQL Injection) phục vụ báo cáo môn học Kiểm thử phần mềm.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. XSS Sanitizer",
+      "item": [
+        {
+          "name": "01. Đăng ký tài khoản với XSS Payload (fullName)",
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "exec": [
+                  "var timestamp = new Date().getTime();\r",
+                  "pm.environment.set(\"xss_email\", \"xss_user_\" + timestamp + \"@gmail.com\");\r",
+                  "pm.environment.set(\"xss_phone\", \"09\" + Math.floor(10000000 + Math.random() * 90000000));"
+                ],
+                "type": "text/javascript"
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"HTTP Status phải là 201 Created\", function () {\r",
+                  "    pm.response.to.have.status(201);\r",
+                  "});\r",
+                  "\r",
+                  "pm.test(\"XSS Payload trong fullName phải bị làm sạch hoàn toàn\", function () {\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.data.user.fullName).to.not.include(\"<script>\");\r",
+                  "    pm.expect(responseData.data.user.fullName).to.not.include(\"</script>\");\r",
+                  "    pm.expect(responseData.data.user.fullName).to.equal(\"Nguyễn Văn A\");\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"{{xss_email}}\",\r\n  \"password\": \"Password123!\",\r\n  \"fullName\": \"<script>alert('XSS')</script>Nguyễn Văn A\",\r\n  \"phone\": \"{{xss_phone}}\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/register",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Rate Limiting",
+      "item": [
+        {
+          "name": "01. Login liên tiếp để kích hoạt Rate Limit",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 429) {\r",
+                  "    pm.test(\"Đã kích hoạt Rate Limit - Trả về 429 Too Many Requests\", function () {\r",
+                  "        pm.response.to.have.status(429);\r",
+                  "        var jsonData = pm.response.json();\r",
+                  "        pm.expect(jsonData.success).to.be.false;\r",
+                  "        pm.expect(jsonData.message).to.contain(\"Vượt quá giới hạn yêu cầu\");\r",
+                  "    });\r",
+                  "} else {\r",
+                  "    pm.test(\"Yêu cầu được xử lý thông thường (Sai mật khẩu - 401)\", function () {\r",
+                  "        pm.response.to.have.status(401);\r",
+                  "    });\r",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"test_ratelimit@gmail.com\",\r\n  \"password\": \"WrongPassword123!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. SQL Injection",
+      "item": [
+        {
+          "name": "01. SQL Injection trên tham số tìm kiếm phim (q)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"API không bị crash và không bị lỗi Database (Không trả về 500)\", function () {\r",
+                  "    pm.expect(pm.response.code).to.not.equal(500);\r",
+                  "});\r",
+                  "pm.test(\"API phản hồi thành công và trả về danh sách rỗng (Không rò rỉ dữ liệu)\", function () {\r",
+                  "    pm.response.to.have.status(200);\r",
+                  "    var responseData = pm.response.json();\r",
+                  "    pm.expect(responseData.success).to.be.true;\r",
+                  "    pm.expect(responseData.data.content.length).to.equal(0);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/movies/search?q=avengers' OR 1=1 --",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "movies",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "avengers' OR 1=1 --"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "02. SQL Injection trên API Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test(\"API không bị crash 500\", function () {\r",
+                  "    pm.expect(pm.response.code).to.not.equal(500);\r",
+                  "});\r",
+                  "pm.test(\"Bị từ chối đăng nhập thông thường (401 Unauthorized)\", function () {\r",
+                  "    pm.response.to.have.status(401);\r",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "raw",
+              "raw": "{\r\n  \"email\": \"admin' OR '1'='1\",\r\n  \"password\": \"WrongPassword123!\"\r\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{BaseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{BaseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}

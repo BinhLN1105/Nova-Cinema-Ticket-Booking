@@ -54,12 +54,16 @@
     "@vitejs/plugin-basic-ssl": "^2.1.4",
     "@vitejs/plugin-react": "^4.3.1",
     "autoprefixer": "^10.4.19",
+    "codeceptjs": "^4.0.7",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.8",
+    "newman": "^6.2.2",
+    "playwright": "^1.60.0",
     "postcss": "^8.4.40",
     "tailwindcss": "^3.4.7",
     "vite": "^5.3.4",
-    "vite-plugin-mkcert": "^1.17.10"
+    "vite-plugin-mkcert": "^1.17.10",
+    "wait-on": "^9.0.10"
   }
 }

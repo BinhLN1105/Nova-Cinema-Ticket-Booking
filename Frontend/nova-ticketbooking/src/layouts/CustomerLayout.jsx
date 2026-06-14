@@ -19,6 +19,7 @@ import { useTranslation } from "react-i18next";
 import { LanguageSwitcher } from "@/components/common/LanguageSwitcher";
 import { TopUpModal } from "@/pages/customer/profile/TopUpModal";
 import { AiChatbot } from "@/components/customer/AiChatbot";
+import Logo from "@/components/common/ui/Logo";
 
 export function CustomerLayout() {
   const location = useLocation();
@@ -63,21 +64,7 @@ export function CustomerLayout() {
         )}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center gap-6">
-          {/* Logo */}
-          <Link
-            to="/"
-            className="flex items-center gap-2.5 flex-shrink-0 group"
-          >
-            <div
-              className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700
-              flex items-center justify-center shadow-glow-red group-hover:scale-110 transition-transform duration-300"
-            >
-              <Film className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-display text-xl font-bold">
-              Nova<span className="text-brand-500">Ticket</span>
-            </span>
-          </Link>
+          <Logo />
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1 ml-4">
@@ -106,8 +93,6 @@ export function CustomerLayout() {
             >
               <Search className="w-5 h-5" />
             </button>
-
-            <LanguageSwitcher />
 
             {isAuthenticated ? (
               <>
@@ -317,13 +302,8 @@ export function CustomerLayout() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
             <div className="col-span-2 md:col-span-1">
-              <div className="flex items-center gap-2.5 mb-4">
-                <div className="w-8 h-8 rounded-xl bg-brand-500 flex items-center justify-center">
-                  <Film className="w-4 h-4 text-white" />
-                </div>
-                <span className="font-display text-lg font-bold">
-                  Nova<span className="text-brand-500">Ticket</span>
-                </span>
+              <div className="mb-4">
+                <Logo />
               </div>
               <p className="text-cinema-300 text-sm leading-relaxed">
                 Trải nghiệm điện ảnh đỉnh cao, đặt vé chỉ trong vài giây.
@@ -383,6 +363,8 @@ export function CustomerLayout() {
                   {t}
                 </a>
               ))}
+              <div className="border-l border-white/10 h-4 mx-1" />
+              <LanguageSwitcher direction="up" />
             </div>
           </div>
         </div>

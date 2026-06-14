@@ -1,0 +1,173 @@
+name: 🖥️ Frontend UI E2E Testing
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'dev'
+      - 'KAN-*'
+  pull_request:
+    branches:
+      - 'main'
+
+jobs:
+  run-ui-tests:
+    runs-on: ubuntu-latest
+
+    services:
+      # ── POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: nova_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # ── REDIS CACHING ────────────────────────────────────────
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      # ── CHECKOUT MÃ NGUỒN ──────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # ── SETUP JAVA JDK 21 ──────────────────────────────────
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: maven
+
+      # ── SETUP NODE.JS 20 ──────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: 'Frontend/nova-ticketbooking/package-lock.json'
+
+      # ── BIÊN DỊCH BACKEND ───────────────────────────────────
+      - name: 🔨 Biên dịch Backend Spring Boot
+        run: mvn compile -f Backend/ticket-booking/pom.xml
+
+      # ── CHẠY NGẦM BACKEND ───────────────────────────────────
+      - name: 🚀 Khởi chạy server Backend (Spring Boot)
+        run: |
+          nohup mvn spring-boot:run -f Backend/ticket-booking/pom.xml -Dspring-boot.run.profiles=test -Dspring-boot.run.jvmArguments="-Duser.timezone=Asia/Ho_Chi_Minh" > spring.log 2>&1 &
+          echo "Backend đang khởi động ngầm..."
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: admin
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+          JWT_SECRET: mySuperSecretKeyForJWTAuthToken2026PlaceholderSecretKeyJWT
+          QR_SECRET: myQrSecretKey2026PlaceholderSecretKeyQR
+          INTERNAL_API_KEY: internal_test_secret_key_2026
+          VNPAY_TMN_CODE: placeholder_vnpay_code
+          VNPAY_HASH_SECRET: ${{ secrets.VNPAY_HASH_SECRET }}
+          VNPAY_RETURN_URL: http://localhost:8080/api/v1/payments/vnpay/callback
+
+          CLOUDINARY_NAME: placeholder_cloudinary
+          CLOUDINARY_API_KEY: placeholder_cloudinary_key
+          CLOUDINARY_API_SECRET: placeholder_cloudinary_secret
+          APP_TEST_ADMIN_PASSWORD: ${{ secrets.APP_TEST_ADMIN_PASSWORD }}
+          APP_TEST_STAFF_PASSWORD: ${{ secrets.APP_TEST_STAFF_PASSWORD }}
+          APP_TEST_CUSTOMER_PASSWORD: ${{ secrets.APP_TEST_CUSTOMER_PASSWORD }}
+
+
+      # ── CHỜ BACKEND HEALTHY ────────────────────────────────────────
+      - name: 🔍 Kiểm tra trạng thái Backend
+        run: |
+          echo "Đang chờ Backend khởi chạy hoàn tất..."
+          for i in {1..20}; do
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8080/api/v1/auth/me || echo "000")
+            if [ "$HTTP_STATUS" -eq 401 ] || [ "$HTTP_STATUS" -eq 200 ]; then
+              echo "✅ Backend đã phản hồi!"
+              exit 0
+            fi
+            echo "Backend chưa sẵn sàng (Status: $HTTP_STATUS). Chờ 5s... ($i/20)"
+            sleep 5
+          done
+          echo "❌ Backend khởi động thất bại hoặc bị kẹt. Log backend:"
+          cat spring.log
+          exit 1
+
+      # ── CÀI ĐẶT DEPENDENCIES FRONTEND ──────────────────────────────
+      - name: 📦 Cài đặt thư viện Frontend
+        working-directory: Frontend/nova-ticketbooking
+        run: npm install --legacy-peer-deps
+
+      # ── KHỞI CHẠY PLAYWRIGHT BROWSERS ──────────────────────────────
+      - name: 🌐 Cài đặt Playwright Chromium
+        working-directory: Frontend/nova-ticketbooking
+        run: npx playwright install chromium
+
+      # ── CHẠY NGẦM FRONTEND ─────────────────────────────────────────
+      - name: 🚀 Khởi chạy ngầm server React Frontend
+        working-directory: Frontend/nova-ticketbooking
+        run: |
+          echo "VITE_BACKEND_URL=http://localhost:8080" > .env
+          echo "VITE_API_URL=http://localhost:8080/api/v1" >> .env
+          echo "VITE_CDN_URL=" >> .env
+          echo "VITE_GOOGLE_CLIENT_ID=1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com" >> .env
+          echo "VITE_FACEBOOK_APP_ID=1425414802373273" >> .env
+          echo "VITE_FIREBASE_API_KEY=AIzaSyC_z2bEHc5Laq1EL5xQPujl3TYE5tQUPD8" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=novaticket-804bb.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=novaticket-804bb" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=novaticket-804bb.firebasestorage.app" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=1028959237971" >> .env
+          echo "VITE_FIREBASE_APP_ID=1:1028959237971:web:2bf502be6e6ece178d93a6" >> .env
+          echo "VITE_FIREBASE_MEASUREMENT_ID=G-X7K5XCWX9J" >> .env
+          echo "VITE_FIREBASE_VAPID_KEY=BG9N2ncRFp5E4neYkJc-B-ecZJDDxULXRhcuo-j-ih5L6_03ME7VDIsYiVphVu8JkpQPkD-JJ5GmtL0hi14W9iM" >> .env
+          nohup npm run dev > vite-frontend.log 2>&1 &
+          echo "React Frontend đang khởi chạy ngầm..."
+
+      # ── CHỜ PORT FRONTEND MỞ HẲN (Bọc thép lưu ý 3) ────────────────
+      - name: ⏱️ Đợi React Frontend sẵn sàng
+        working-directory: Frontend/nova-ticketbooking
+        run: NODE_TLS_REJECT_UNAUTHORIZED=0 npx wait-on https://localhost:5173 --timeout 60000
+
+      # ── THỰC THI KIỂM THỬ E2E UI ───────────────────────────────────
+      - name: 🧪 Chạy E2E UI Tests (CodeceptJS + Playwright)
+        working-directory: Frontend/nova-ticketbooking
+        run: npx codeceptjs run --steps
+        env:
+          HEADLESS: "true"
+          BASE_URL: "https://localhost:5173"
+          NODE_TLS_REJECT_UNAUTHORIZED: "0"
+          VNPAY_HASH_SECRET: ${{ secrets.VNPAY_HASH_SECRET }}
+          APP_TEST_ADMIN_PASSWORD: ${{ secrets.APP_TEST_ADMIN_PASSWORD }}
+          APP_TEST_STAFF_PASSWORD: ${{ secrets.APP_TEST_STAFF_PASSWORD }}
+          APP_TEST_CUSTOMER_PASSWORD: ${{ secrets.APP_TEST_CUSTOMER_PASSWORD }}
+
+
+
+
+      # ── THU THẬP LOG KHI LỖI ───────────────────────────────────────
+      - name: 📂 Thu thập log khi lỗi
+        if: failure()
+        run: |
+          cp spring.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
+          cp Frontend/nova-ticketbooking/vite-frontend.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
+
+      # ── UPLOAD KẾT QUẢ VÀ SCREENSHOTS NẾU THẤT BẠI ─────────────────
+      - name: 💾 Upload screenshot/logs lỗi
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-test-failures
+          path: Frontend/nova-ticketbooking/tests/e2e/output/
+          retention-days: 5
+

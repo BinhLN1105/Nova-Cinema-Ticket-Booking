@@ -25,6 +25,8 @@ import com.cinema.ticket_booking.service.SystemConfigService;
 import com.cinema.ticket_booking.enums.UserVoucherStatus;
 import com.cinema.ticket_booking.repository.UserVoucherRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +45,7 @@ import java.util.Objects;
 import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.concurrent.CompletableFuture;
 import java.math.RoundingMode;
 import java.time.ZonedDateTime;
 import java.time.ZoneId;
@@ -51,6 +54,7 @@ import java.security.SecureRandom;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class BookingServiceImpl implements BookingService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
@@ -89,6 +93,24 @@ public class BookingServiceImpl implements BookingService {
     @Override
     public BookingResponse calculateQuote(UUID userId, BookingRequest request) {
         User user = userService.findById(userId);
+
+        int maxSeats = systemConfigService.getIntConfig("BOOKING_MAX_SEATS", 6);
+        int maxCombos = systemConfigService.getIntConfig("BOOKING_MAX_COMBOS", 8);
+
+        // ── Kiểm tra giới hạn số lượng ghế đặt tối đa ──
+        if (request.getShowtimeSeatIds() != null && request.getShowtimeSeatIds().size() > maxSeats) {
+            throw new BadRequestException("Mỗi giao dịch chỉ được đặt tối đa " + maxSeats + " ghế.");
+        }
+
+        // ── Kiểm tra giới hạn số lượng combo đặt tối đa (tính tổng quantity) ──
+        if (request.getCombos() != null) {
+            int totalCombosCount = request.getCombos().stream()
+                    .mapToInt(BookingRequest.ComboItem::getQuantity)
+                    .sum();
+            if (totalCombosCount > maxCombos) {
+                throw new BadRequestException("Mỗi giao dịch chỉ được đặt tối đa " + maxCombos + " combo bắp nước.");
+            }
+        }
 
         // ── 0. Phân quyền & Ràng buộc nghiệp vụ ──────────────────────────
         // Trong luồng hiện tại, userId chính là người thực hiện request (Staff hoặc
@@ -414,36 +436,54 @@ public class BookingServiceImpl implements BookingService {
             }
         }
 
-        // ── 5. Tạo BookingItem + Ticket ───────────────────────────────────
-        for (BookingResponse.SeatItem sItem : quote.getSeats()) {
-            ShowtimeSeat ss = showtimeSeatRepository.findById(UUID.fromString(sItem.getShowtimeSeatId()))
-                    .orElseThrow(() -> new ResourceNotFoundException("Ghế suất chiếu", sItem.getShowtimeSeatId()));
+        // Tạo Map để ánh xạ nhanh từ List seats có sẵn nhằm tránh gọi database lặp lại
+        Map<UUID, ShowtimeSeat> seatMap = seats.stream()
+                .collect(Collectors.toMap(ShowtimeSeat::getId, s -> s));
 
-            BookingItem item = bookingItemRepository.save(BookingItem.builder()
+        // ── 5. Tạo BookingItem + Ticket ───────────────────────────────────
+        List<BookingItem> itemsToSave = new ArrayList<>();
+        for (BookingResponse.SeatItem sItem : quote.getSeats()) {
+            UUID seatId = UUID.fromString(sItem.getShowtimeSeatId());
+            ShowtimeSeat ss = seatMap.get(seatId);
+            if (ss == null) {
+                ss = showtimeSeatRepository.findById(seatId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Ghế suất chiếu", sItem.getShowtimeSeatId()));
+            }
+
+            BookingItem item = BookingItem.builder()
                     .booking(booking)
                     .showtimeSeat(ss)
                     .seatPrice(sItem.getPrice())
-                    .build());
+                    .build();
+            itemsToSave.add(item);
+        }
 
-            ticketRepository.save(Ticket.builder()
+        List<BookingItem> savedItems = bookingItemRepository.saveAll(itemsToSave);
+
+        List<Ticket> ticketsToSave = new ArrayList<>();
+        for (BookingItem item : savedItems) {
+            ticketsToSave.add(Ticket.builder()
                     .booking(booking)
                     .bookingItem(item)
                     .isUsed(false)
                     .build());
         }
+        ticketRepository.saveAll(ticketsToSave);
 
         // ── 6. Tạo BookingCombo ───────────────────────────────────────────
         if (quote.getCombos() != null) {
+            List<BookingCombo> combosToSave = new ArrayList<>();
             for (BookingResponse.ComboItem cItem : quote.getCombos()) {
                 Combo combo = comboRepository.findById(UUID.fromString(cItem.getComboId()))
                         .orElseThrow(() -> new ResourceNotFoundException("Combo", cItem.getComboId()));
-                bookingComboRepository.save(BookingCombo.builder()
+                combosToSave.add(BookingCombo.builder()
                         .booking(booking)
                         .combo(combo)
                         .quantity(cItem.getQuantity())
                         .unitPrice(cItem.getUnitPrice())
                         .build());
             }
+            bookingComboRepository.saveAll(combosToSave);
         }
 
         return getDetail(userId, booking.getId());
@@ -649,14 +689,16 @@ public class BookingServiceImpl implements BookingService {
 
         // Mark ghế → BOOKED
         List<String> showtimeSeatIdsToRelease = new ArrayList<>();
+        List<ShowtimeSeat> seatsToUpdate = new ArrayList<>();
         bookingItemRepository.findByBookingIdWithSeat(bookingId).forEach(item -> {
             ShowtimeSeat ss = item.getShowtimeSeat();
             ss.setStatus(SeatStatus.BOOKED);
             ss.setLockedBy(null);
             ss.setLockedUntil(null);
-            showtimeSeatRepository.save(ss);
+            seatsToUpdate.add(ss);
             showtimeSeatIdsToRelease.add(ss.getId().toString());
         });
+        showtimeSeatRepository.saveAll(seatsToUpdate);
 
         seatLockService.releaseSeats(showtimeSeatIdsToRelease);
 
@@ -709,6 +751,11 @@ public class BookingServiceImpl implements BookingService {
 
         // Prepare data for Async Email (Avoid LazyLoading Exception)
         if (shouldSendEmail(booking)) {
+            // Force load user info
+            if (booking.getUser() != null) {
+                booking.getUser().getEmail();
+                booking.getUser().getFullName();
+            }
             // Force load booking items and seats
             booking.getBookingItems().forEach(item -> {
                 if (item.getShowtimeSeat() != null) {
@@ -743,7 +790,13 @@ public class BookingServiceImpl implements BookingService {
                 }
             });
 
-            emailService.sendBookingConfirmationEmail(booking);
+            CompletableFuture.runAsync(() -> {
+                try {
+                    emailService.sendBookingConfirmationEmail(booking);
+                } catch (Exception e) {
+                    log.error("Failed to send booking confirmation email async", e);
+                }
+            });
         }
     }
 
@@ -784,14 +837,13 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
-        // 3. Atomic Update: Chống double-click / race condition
-        int updatedRows = bookingRepository.cancelPaidBooking(bookingId);
-        if (updatedRows == 0) {
-            throw new BadRequestException("Đơn vé đã được hủy hoặc trạng thái không hợp lệ");
-        }
-
-        // Refresh entity sau atomic update
-        booking = findById(bookingId);
+        // 3. Cập nhật trạng thái Booking trực tiếp trên thực thể managed
+        // Optimistic Locking (@Version) sẽ tự động bảo vệ chống double-click / race condition
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationToken(null);
+        booking.setCancellationTokenExpiry(null);
+        booking.setEarnedExp(0L);
+        bookingRepository.save(booking);
 
         // 4. Nhả ghế
         releaseSeats(bookingId);
@@ -900,7 +952,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public void cancelConfirm(String token, UUID bookingId) {
-        Booking booking = findById(bookingId);
+        Booking booking = bookingRepository.findByIdWithUser(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn đặt vé", bookingId));
         if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
             throw new BadRequestException("Mã xác nhận không chính xác");
         }
@@ -908,12 +961,8 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Mã xác nhận đã hết hạn");
         }
 
-        // Xóa token để tránh dùng lại
-        booking.setCancellationToken(null);
-        booking.setCancellationTokenExpiry(null);
-        bookingRepository.save(booking);
-
         // Thực hiện hủy vé (tận dụng logic cancelBooking đã có)
+        // Việc xóa token đã được thực hiện an toàn bên trong cancelBooking
         cancelBooking(booking.getUser(), bookingId);
     }
 
@@ -950,7 +999,7 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private String generateBookingCode() {
-        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String datePart = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMddHHmmss"));
         String randPart = String.format("%04d", SECURE_RANDOM.nextInt(10000));
         return "BK" + datePart + randPart;
     }

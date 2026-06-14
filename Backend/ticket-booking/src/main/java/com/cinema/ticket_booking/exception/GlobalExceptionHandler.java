@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.dao.DataIntegrityViolationException;
 
+import com.cinema.ticket_booking.dto.request.LoginRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.hibernate.StaleObjectStateException;
 import java.util.HashMap;
@@ -31,6 +32,20 @@ public class GlobalExceptionHandler {
     // @Valid / @Validated validation lỗi — trả về từng field
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
+        if (ex.getBindingResult().getTarget() instanceof LoginRequest) {
+            LoginRequest req = (LoginRequest) ex.getBindingResult().getTarget();
+            boolean isMissingFields = req.getEmail() == null || req.getEmail().trim().isEmpty()
+                    || req.getPassword() == null || req.getPassword().trim().isEmpty();
+            if (!isMissingFields) {
+                ErrorResponse body = ErrorResponse.builder()
+                        .success(false)
+                        .status(HttpStatus.UNAUTHORIZED.value())
+                        .message("Tài khoản hoặc mật khẩu không chính xác")
+                        .build();
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(body);
+            }
+        }
+
         Map<String, String> errors = new HashMap<>();
         StringBuilder detailMessage = new StringBuilder("Dữ liệu không hợp lệ");
         boolean first = true;
@@ -91,7 +106,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleOptimisticLocking(Exception ex) {
         log.warn("Data conflict detected: {}", ex.getMessage());
         return build(HttpStatus.CONFLICT,
-                "Dữ liệu đã được thay đổi bởi một tiến trình khác, vui lòng tải lại trang và thử lại");
+                "Yêu cầu đang được xử lý, vui lòng không thao tác liên tiếp");
     }
 
     // Xử lý lỗi trùng lặp dữ liệu / Vi phạm ràng buộc database (Unique Constraint)
@@ -128,6 +143,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(PaymentException.class)
     public ResponseEntity<ErrorResponse> handlePayment(PaymentException ex) {
         return build(HttpStatus.PAYMENT_REQUIRED, ex.getMessage());
+    }
+
+    // ── Custom Application Exceptions (e.g., Rate Limiting) ────────────────
+    @ExceptionHandler(AppException.class)
+    public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
+        return build(ex.getStatus(), ex.getMessage());
     }
 
     // ── 500 Internal Server Error (fallback) ──────────────────────────────

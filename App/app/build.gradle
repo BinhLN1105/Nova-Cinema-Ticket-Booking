@@ -122,6 +122,7 @@ sonar {
         property "sonar.projectName", "NovaTicket Android"
         property "sonar.sources", "src/main/java"
         property "sonar.tests", "src/test/java"
+        property "sonar.java.binaries", "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
         property "sonar.coverage.exclusions", "**/*"
         property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
     }
