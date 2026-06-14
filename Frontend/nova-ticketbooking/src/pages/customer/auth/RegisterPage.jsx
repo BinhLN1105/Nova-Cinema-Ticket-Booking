@@ -57,6 +57,7 @@ export default function RegisterPage() {
       <form
         onSubmit={handleSubmit((d) => doRegister(d))}
         className="space-y-3.5"
+        noValidate
       >
         {fields.map(({ name, icon: Icon, type, placeholder }) => (
           <div key={name}>

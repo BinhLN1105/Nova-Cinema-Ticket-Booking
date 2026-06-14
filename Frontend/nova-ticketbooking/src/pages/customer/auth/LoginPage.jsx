@@ -62,7 +62,11 @@ export default function LoginPage() {
         <p className="text-cinema-300">Đăng nhập để tiếp tục trải nghiệm</p>
       </div>
 
-      <form onSubmit={handleSubmit((d) => login(d))} className="space-y-4">
+      <form
+        onSubmit={handleSubmit((d) => login(d))}
+        className="space-y-4"
+        noValidate
+      >
         {/* Email */}
         <div>
           <div className="relative">

@@ -2,6 +2,23 @@ const newman = require('newman');
 const fs = require('fs');
 const path = require('path');
 
+// Parse .env manually without external dotenv dependency
+const envPathDot = path.resolve(__dirname, '../../.env');
+if (fs.existsSync(envPathDot)) {
+  const envContent = fs.readFileSync(envPathDot, 'utf-8');
+  envContent.split(/\r?\n/).forEach(line => {
+    const trimmed = line.trim();
+    if (trimmed && !trimmed.startsWith('#')) {
+      const index = trimmed.indexOf('=');
+      if (index !== -1) {
+        const key = trimmed.substring(0, index).trim();
+        const value = trimmed.substring(index + 1).trim();
+        process.env[key] = value;
+      }
+    }
+  });
+}
+
 module.exports = async function() {
   console.log('\x1b[36m%s\x1b[0m', '[E2E Bootstrap] Khởi chạy Newman Seed Data cho môi trường UI...');
   
@@ -47,7 +64,10 @@ module.exports = async function() {
       reporters: 'cli',
       exportEnvironment: envOutputPath,
       envVar: [
-        { key: 'vnpay_hash_secret', value: process.env.VNPAY_HASH_SECRET || '' }
+        { key: 'vnpay_hash_secret', value: process.env.VNPAY_HASH_SECRET || '' },
+        { key: 'admin_password', value: process.env.APP_TEST_ADMIN_PASSWORD || '' },
+        { key: 'staff_password', value: process.env.APP_TEST_STAFF_PASSWORD || '' },
+        { key: 'customer_password', value: process.env.APP_TEST_CUSTOMER_PASSWORD || '' }
       ]
     }, function (err) {
       if (err) {
