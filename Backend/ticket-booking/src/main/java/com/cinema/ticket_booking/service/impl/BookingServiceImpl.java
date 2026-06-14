@@ -837,14 +837,13 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Chỉ được huỷ vé trước giờ chiếu ít nhất " + minHoursBefore + " tiếng");
         }
 
-        // 3. Atomic Update: Chống double-click / race condition
-        int updatedRows = bookingRepository.cancelPaidBooking(bookingId);
-        if (updatedRows == 0) {
-            throw new BadRequestException("Đơn vé đã được hủy hoặc trạng thái không hợp lệ");
-        }
-
-        // Refresh entity sau atomic update
-        booking = findById(bookingId);
+        // 3. Cập nhật trạng thái Booking trực tiếp trên thực thể managed
+        // Optimistic Locking (@Version) sẽ tự động bảo vệ chống double-click / race condition
+        booking.setStatus(BookingStatus.CANCELLED);
+        booking.setCancellationToken(null);
+        booking.setCancellationTokenExpiry(null);
+        booking.setEarnedExp(0L);
+        bookingRepository.save(booking);
 
         // 4. Nhả ghế
         releaseSeats(bookingId);
@@ -953,7 +952,8 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     public void cancelConfirm(String token, UUID bookingId) {
-        Booking booking = findById(bookingId);
+        Booking booking = bookingRepository.findByIdWithUser(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Đơn đặt vé", bookingId));
         if (booking.getCancellationToken() == null || !booking.getCancellationToken().equals(token)) {
             throw new BadRequestException("Mã xác nhận không chính xác");
         }
@@ -961,12 +961,8 @@ public class BookingServiceImpl implements BookingService {
             throw new BadRequestException("Mã xác nhận đã hết hạn");
         }
 
-        // Xóa token để tránh dùng lại
-        booking.setCancellationToken(null);
-        booking.setCancellationTokenExpiry(null);
-        bookingRepository.save(booking);
-
         // Thực hiện hủy vé (tận dụng logic cancelBooking đã có)
+        // Việc xóa token đã được thực hiện an toàn bên trong cancelBooking
         cancelBooking(booking.getUser(), bookingId);
     }
 
