@@ -141,6 +141,13 @@ jobs:
 
 
 
+      # ── THU THẬP LOG KHI LỖI ───────────────────────────────────────
+      - name: 📂 Thu thập log khi lỗi
+        if: failure()
+        run: |
+          cp spring.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
+          cp Frontend/nova-ticketbooking/vite-frontend.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
+
       # ── UPLOAD KẾT QUẢ VÀ SCREENSHOTS NẾU THẤT BẠI ─────────────────
       - name: 💾 Upload screenshot/logs lỗi
         if: failure()
@@ -149,3 +156,4 @@ jobs:
           name: ui-test-failures
           path: Frontend/nova-ticketbooking/tests/e2e/output/
           retention-days: 5
+
