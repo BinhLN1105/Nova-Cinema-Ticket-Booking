@@ -117,6 +117,19 @@ jobs:
       - name: 🚀 Khởi chạy ngầm server React Frontend
         working-directory: Frontend/nova-ticketbooking
         run: |
+          echo "VITE_BACKEND_URL=http://localhost:8080" > .env
+          echo "VITE_API_URL=http://localhost:8080/api/v1" >> .env
+          echo "VITE_CDN_URL=" >> .env
+          echo "VITE_GOOGLE_CLIENT_ID=1028959237971-4fiecevks10aus7jsrd84mhrh9s2ast7.apps.googleusercontent.com" >> .env
+          echo "VITE_FACEBOOK_APP_ID=1425414802373273" >> .env
+          echo "VITE_FIREBASE_API_KEY=AIzaSyC_z2bEHc5Laq1EL5xQPujl3TYE5tQUPD8" >> .env
+          echo "VITE_FIREBASE_AUTH_DOMAIN=novaticket-804bb.firebaseapp.com" >> .env
+          echo "VITE_FIREBASE_PROJECT_ID=novaticket-804bb" >> .env
+          echo "VITE_FIREBASE_STORAGE_BUCKET=novaticket-804bb.firebasestorage.app" >> .env
+          echo "VITE_FIREBASE_MESSAGING_SENDER_ID=1028959237971" >> .env
+          echo "VITE_FIREBASE_APP_ID=1:1028959237971:web:2bf502be6e6ece178d93a6" >> .env
+          echo "VITE_FIREBASE_MEASUREMENT_ID=G-X7K5XCWX9J" >> .env
+          echo "VITE_FIREBASE_VAPID_KEY=BG9N2ncRFp5E4neYkJc-B-ecZJDDxULXRhcuo-j-ih5L6_03ME7VDIsYiVphVu8JkpQPkD-JJ5GmtL0hi14W9iM" >> .env
           nohup npm run dev > vite-frontend.log 2>&1 &
           echo "React Frontend đang khởi chạy ngầm..."
 
