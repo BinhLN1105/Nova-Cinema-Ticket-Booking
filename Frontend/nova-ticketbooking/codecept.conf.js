@@ -49,7 +49,7 @@ export const config = {
       url: process.env.BASE_URL || 'https://localhost:5173',
       show: process.env.HEADLESS !== 'true',
       browser: 'chromium',
-      waitForNavigation: 'load',
+      waitForNavigation: 'networkidle',
       waitForTimeout: 15000,
       windowSize: '1600x1200',
       ignoreHTTPSErrors: true
