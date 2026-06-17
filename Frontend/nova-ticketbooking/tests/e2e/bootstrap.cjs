@@ -64,10 +64,10 @@ module.exports = async function() {
       reporters: 'cli',
       exportEnvironment: envOutputPath,
       envVar: [
-        { key: 'vnpay_hash_secret', value: process.env.VNPAY_HASH_SECRET || '' },
-        { key: 'admin_password', value: process.env.APP_TEST_ADMIN_PASSWORD || '' },
-        { key: 'staff_password', value: process.env.APP_TEST_STAFF_PASSWORD || '' },
-        { key: 'customer_password', value: process.env.APP_TEST_CUSTOMER_PASSWORD || '' }
+        { key: 'vnpay_hash_secret', value: process.env.VNPAY_HASH_SECRET || 'test' },
+        { key: 'admin_password', value: process.env.APP_TEST_ADMIN_PASSWORD || 'AdminPassword123!' },
+        { key: 'staff_password', value: process.env.APP_TEST_STAFF_PASSWORD || 'StaffPassword123!' },
+        { key: 'customer_password', value: process.env.APP_TEST_CUSTOMER_PASSWORD || 'CustomerPassword123!' }
       ]
     }, function (err) {
       if (err) {

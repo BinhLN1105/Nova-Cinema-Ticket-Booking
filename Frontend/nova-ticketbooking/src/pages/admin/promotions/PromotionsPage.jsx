@@ -157,7 +157,7 @@ function VouchersTab() {
   // API Queries
   const { data: voucherList, isLoading } = useQuery({
     queryKey: ['admin', 'vouchers'],
-    queryFn: adminVoucherApi.getAll
+    queryFn: () => adminVoucherApi.getAll({ size: 100, sort: 'createdAt,desc' })
   })
 
   const vouchers = (voucherList?.content ?? []).filter(v =>
@@ -339,7 +339,10 @@ function VouchersTab() {
           <div className="grid grid-cols-2 gap-4">
             <Field label="Mã Voucher" required error={errors.code?.message}>
               <Input {...register('code')}
-                onChange={e => e.target.value = e.target.value.toUpperCase()}
+                onChange={e => {
+                  e.target.value = e.target.value.toUpperCase();
+                  register('code').onChange(e);
+                }}
                 error={!!errors.code} placeholder="VD: NOVA20" className="uppercase font-mono tracking-wider" />
             </Field>
             <Field label="Áp dụng cho" required error={errors.applicableTo?.message}>

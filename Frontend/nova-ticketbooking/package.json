@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint .",
-    "start": "vite --host"
+    "start": "vite --host",
+    "db:clean": "mvn -f ../../Backend/ticket-booking/pom.xml test -Dtest=DatabaseCleanupTest"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
