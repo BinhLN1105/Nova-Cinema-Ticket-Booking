@@ -64,20 +64,14 @@ export const config = {
     I: './tests/e2e/steps_file.js'
   },
   mocha: {
-    reporter: 'mocha-multi-reporters',
+    reporter: 'mochawesome',
     reporterOptions: {
-      reporterEnabled: 'spec, mochawesome',
-      specReporterOptions: {
-        stdout: '-'
-      },
-      mochawesomeReporterOptions: {
-        reportDir: './tests/e2e/output',
-        reportFilename: 'e2e-report',
-        inlineAssets: true,
-        overwrite: true,
-        html: true,
-        json: true
-      }
+      reportDir: './tests/e2e/output',
+      reportFilename: 'e2e-report',
+      inlineAssets: true,
+      overwrite: true,
+      html: true,
+      json: true
     }
   },
   name: 'nova-ticketbooking',
