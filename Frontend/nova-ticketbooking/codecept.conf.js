@@ -66,13 +66,9 @@ export const config = {
   mocha: {
     reporter: 'mocha-multi-reporters',
     reporterOptions: {
-      reporterEnabled: 'codeceptjs-cli-reporter, mochawesome',
-      codeceptjsCliReporterReporterOptions: {
-        stdout: '-',
-        options: {
-          verbose: true,
-          steps: true
-        }
+      reporterEnabled: 'spec, mochawesome',
+      specReporterOptions: {
+        stdout: '-'
       },
       mochawesomeReporterOptions: {
         reportDir: './tests/e2e/output',
