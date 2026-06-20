@@ -162,12 +162,67 @@ jobs:
           cp spring.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
           cp Frontend/nova-ticketbooking/vite-frontend.log Frontend/nova-ticketbooking/tests/e2e/output/ || true
 
-      # ── UPLOAD KẾT QUẢ VÀ SCREENSHOTS NẾU THẤT BẠI ─────────────────
-      - name: 💾 Upload screenshot/logs lỗi
-        if: failure()
+      # ── UPLOAD BÁO CÁO E2E HTML ─────────────────────────────────────
+      - name: Upload E2E HTML Report
         uses: actions/upload-artifact@v4
+        if: always() # Luôn chạy kể cả khi bộ test UI bị FAILED hay SUCCESS
         with:
-          name: ui-test-failures
+          name: e2e-playwright-report
           path: Frontend/nova-ticketbooking/tests/e2e/output/
           retention-days: 5
+
+      # ── TRÍCH XUẤT JIRA KEY TỪ NHÁNH NGUỒN CỦA PULL REQUEST ──────────
+      - name: Extract Jira Issue Key from Branch Name
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          # Trích xuất dạng KAN-XX từ tên nhánh nguồn của PR (github.head_ref)
+          JIRA_KEY=$(echo "${{ github.head_ref }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
+          echo "JIRA_KEY=$JIRA_KEY" >> $GITHUB_ENV
+
+      # ── ĐÍNH KÈM FILE HTML BÁO CÁO LỖI & VIẾT COMMENT LÊN JIRA SUBTASK ─
+      - name: Comment and Attach Report to Jira Subtask
+        if: failure() && github.event_name == 'pull_request' && env.JIRA_KEY != ''
+        run: |
+          echo "Phát hiện lỗi kiểm thử động trên Ticket: ${{ env.JIRA_KEY }}"
+          
+          # 1. Gọi REST API tải trực tiếp file e2e-report.html lên phân hệ đính kèm của Subtask
+          curl --request POST \
+            --url "${{ secrets.JIRA_DOMAIN }}/rest/api/3/issue/${{ env.JIRA_KEY }}/attachments" \
+            --user "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            --header 'X-Atlassian-Token: no-check' \
+            --form "file=@Frontend/nova-ticketbooking/tests/e2e/output/e2e-report.html"
+
+          # 2. Sinh tệp JSON tạm thời bằng EOF để bọc thép toàn bộ dấu ngoặc kép và định dạng Document của Jira v3
+          cat << 'EOF' > jira_comment.json
+          {
+            "body": {
+              "type": "doc",
+              "version": 1,
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "type": "text",
+                      "text": "⚠️ CI/CD Cảnh báo: Playwright E2E UI Test hoặc Newman API Test đã bị FAILED trong lần build này. Vui lòng tải và kiểm tra file báo cáo HTML (e2e-report.html) đã được hệ thống đính kèm tự động ngay phía trên để xem chi tiết ảnh chụp màn hình screenshot lỗi.",
+                      "marks": [
+                        {
+                          "type": "strong"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+          EOF
+
+          # 3. Gửi Comment cảnh báo lỗi vào Subtask đọc từ file JSON sạch
+          curl --request POST \
+            --url "${{ secrets.JIRA_DOMAIN }}/rest/api/3/issue/${{ env.JIRA_KEY }}/comment" \
+            --user "${{ secrets.JIRA_USER_EMAIL }}:${{ secrets.JIRA_API_TOKEN }}" \
+            --header 'Accept: application/json' \
+            --header 'Content-Type: application/json' \
+            --data @jira_comment.json
 

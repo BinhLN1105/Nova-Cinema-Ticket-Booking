@@ -44,6 +44,7 @@ jobs:
         with:
           ref: ${{ needs.determine-branch.outputs.target_branch }}
 
+      # ── SETUP PYTHON CHO CÁC SCRIPT BÁO CÁO ───────────────────
       - name: 🐍 Setup Python 3.10
         uses: actions/setup-python@v5
         with:
@@ -53,11 +54,50 @@ jobs:
         run: |
           pip install openpyxl google-api-python-client google-auth httplib2 google-auth-httplib2 google-auth-oauthlib python-dotenv
 
-      - name: 📥 Tải kết quả test từ Artifact bộ nhớ tạm
+      # ── 1. TẢI KẾT QUẢ API TEST TỪ RUN HIỆN TẠI (Được chạy bởi call-core-api-test) ──
+      - name: 📥 Tải kết quả Newman API test từ run hiện tại
         uses: actions/download-artifact@v4
         with:
           name: postman-report
           path: baocaoLocal
+
+      # ── 2. TẢI KẾT QUẢ JAČOČO COVERAGE TỪ RUN GẦN NHẤT CỦA SONARCLOUD ──
+      - name: 📥 Tải JaCoCo Coverage từ workflow SonarCloud chạy gần nhất
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: sonarcloud.yml
+          name: jacoco-coverage-report
+          branch: ${{ needs.determine-branch.outputs.target_branch }}
+          check_artifacts: true
+          search_artifacts: true
+          if_no_artifact_found: warn
+          path: baocaoLocal/jacoco-report
+
+      # ── 3. TẢI KẾT QUẢ E2E UI PLAYWRIGHT TỪ RUN GẦN NHẤT CỦA FRONTEND TEST ──
+      - name: 📥 Tải E2E Playwright report từ workflow Frontend UI Test chạy gần nhất
+        uses: dawidd6/action-download-artifact@v6
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          workflow: frontend-ui-test.yml
+          name: e2e-playwright-report
+          branch: ${{ needs.determine-branch.outputs.target_branch }}
+          check_artifacts: true
+          search_artifacts: true
+          if_no_artifact_found: warn
+          path: temp-e2e-report
+
+      # ── CHUẨN BỊ THƯ MỤC BÁO CÁO CHUNG ──────────────────────
+      - name: 📂 Gom các báo cáo động về một mối
+        run: |
+          mkdir -p baocaoLocal
+          # Sao chép E2E HTML Report nếu tải về thành công
+          if [ -f temp-e2e-report/e2e-report.html ]; then
+            cp temp-e2e-report/e2e-report.html baocaoLocal/e2e-report.html
+            echo "✅ Đã gom báo cáo E2E HTML."
+          else
+            echo "⚠️ Không tìm thấy báo cáo E2E HTML từ artifact tải về."
+          fi
 
       - name: 📊 Xuất báo cáo Excel & Tự động đẩy lên Google Drive
         run: python scripts/generate_test_report.py
@@ -80,6 +120,15 @@ jobs:
 
       - name: 🎓 Xuất báo cáo (BVA & Security) & Tự động đẩy lên Google Drive
         run: python scripts/generate_bva-sec_report.py
+        env:
+          GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
+          GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
+          GDRIVE_CLIENT_SECRET: ${{ secrets.GDRIVE_CLIENT_SECRET }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+          GDRIVE_SERVICE_ACCOUNT_KEY_RAW: ${{ secrets.GDRIVE_SERVICE_ACCOUNT_KEY_RAW }}
+
+      - name: 🌐 Đẩy báo cáo E2E HTML & JaCoCo Coverage lên Google Drive
+        run: python scripts/upload_dynamic_reports.py
         env:
           GDRIVE_REFRESH_TOKEN: ${{ secrets.GDRIVE_REFRESH_TOKEN }}
           GDRIVE_CLIENT_ID: ${{ secrets.GDRIVE_CLIENT_ID }}
