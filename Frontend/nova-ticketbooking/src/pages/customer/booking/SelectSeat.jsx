@@ -1,8 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Monitor } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { showtimeApi } from '@/api/endpoints'
 import { useBookingStore } from '@/stores/bookingStore'
 import { formatCurrency, cn } from '@/utils'
@@ -27,7 +28,8 @@ function SeatButton({ seat, isSelected, onToggle }) {
   return (
     <button
       onClick={!isBooked ? onToggle : undefined}
-      title={`${seat.rowLabel}${seat.colNumber} — ${formatCurrency(seat.price)}`}
+      disabled={isBooked}
+      title={`${seat.rowLabel}${seat.colNumber} â€” ${formatCurrency(seat.price)}`}
       className={cn(
         'h-8 w-8 rounded-md border text-xs font-bold transition-all duration-150',
         'flex items-center justify-center',
@@ -53,6 +55,19 @@ export default function SelectSeatPage() {
   const { showtimeId } = useParams()
   const navigate = useNavigate()
   const { selectedSeats, toggleSeat, selectedShowtime, total, expiryTime, setExpiryTime } = useBookingStore()
+
+  const handleToggleSeat = (seat) => {
+    const isAlreadySelected = selectedSeats.some(
+      selectedSeat => selectedSeat.showtimeSeatId === seat.showtimeSeatId
+    )
+
+    if (!isAlreadySelected && selectedSeats.length >= 6) {
+      toast.error('Bạn chỉ được chọn tối đa 6 ghế')
+      return
+    }
+
+    toggleSeat(seat)
+  }
 
   const { data: seatMap, isLoading } = useQuery({
     queryKey: ['seatmap', showtimeId],
@@ -87,9 +102,9 @@ export default function SelectSeatPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Chọn ghế ngồi</h1>
+            <h1 className="font-display text-2xl font-bold text-white">Chá»n gháº¿ ngá»“i</h1>
             {selectedShowtime && (
-              <p className="text-cinema-300 text-sm">{selectedShowtime.cinemaName} • {selectedShowtime.screenName}</p>
+              <p className="text-cinema-300 text-sm">{selectedShowtime.cinemaName} â€¢ {selectedShowtime.screenName}</p>
             )}
           </div>
         </div>
@@ -103,7 +118,7 @@ export default function SelectSeatPage() {
         <div className="relative mb-10">
           <div className="h-1 rounded-full bg-gradient-to-r from-transparent via-brand-500/60 to-transparent mx-8 mb-2" />
           <div className="flex items-center justify-center gap-2 text-cinema-400 text-sm">
-            <Monitor className="w-4 h-4" /> Màn hình chiếu
+            <Monitor className="w-4 h-4" /> MÃ n hÃ¬nh chiáº¿u
           </div>
         </div>
 
@@ -115,24 +130,24 @@ export default function SelectSeatPage() {
               {Object.entries(rows).map(([rowLabel, seats]) => (
                 <div key={rowLabel} className="flex items-center gap-4">
                   <span className="w-6 text-cinema-500 text-sm font-bold text-right shrink-0">{rowLabel}</span>
-                  <div 
+                  <div
                     className="grid gap-2"
-                    style={{ 
+                    style={{
                       gridTemplateColumns: `repeat(${seatMap.totalCols}, 2.25rem)`,
                     }}
                   >
                     {seats.map(seat => (
-                      <div 
+                      <div
                         key={seat.showtimeSeatId}
-                        style={{ 
+                        style={{
                           gridColumnStart: seat.colNumber,
                           gridColumnEnd: seat.seatType === 'COUPLE' ? `span 2` : 'auto'
                         }}
                       >
-                        <SeatButton 
+                        <SeatButton
                           seat={seat}
                           isSelected={selectedSeats.some(s => s.showtimeSeatId === seat.showtimeSeatId)}
-                          onToggle={() => toggleSeat(seat)}
+                          onToggle={() => handleToggleSeat(seat)}
                         />
                       </div>
                     ))}
@@ -146,11 +161,11 @@ export default function SelectSeatPage() {
         {/* Legend */}
         <div className="flex flex-wrap gap-6 mt-8 justify-center text-xs text-cinema-300">
           {[
-            { color: 'bg-green-500/20 border border-green-500/40',   label: 'Ghế thường' },
-            { color: 'bg-purple-500/20 border border-purple-500/40', label: 'Ghế VIP' },
-            { color: 'bg-gold-400/20 border border-gold-400/40',     label: 'Ghế đôi' },
-            { color: 'bg-brand-500 border border-brand-400',         label: 'Đang chọn' },
-            { color: 'bg-cinema-700 border border-cinema-600 opacity-40', label: 'Đã đặt' },
+            { color: 'bg-green-500/20 border border-green-500/40',   label: 'Gháº¿ thÆ°á»ng' },
+            { color: 'bg-purple-500/20 border border-purple-500/40', label: 'Gháº¿ VIP' },
+            { color: 'bg-gold-400/20 border border-gold-400/40',     label: 'Gháº¿ Ä‘Ã´i' },
+            { color: 'bg-brand-500 border border-brand-400',         label: 'Äang chá»n' },
+            { color: 'bg-cinema-700 border border-cinema-600 opacity-40', label: 'ÄÃ£ Ä‘áº·t' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <div className={cn('w-6 h-5 rounded', color)} />
@@ -166,7 +181,7 @@ export default function SelectSeatPage() {
             <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <p className="text-cinema-300 text-sm">
-                  {selectedSeats.length} ghế đã chọn:
+                  {selectedSeats.length} gháº¿ Ä‘Ã£ chá»n:
                   <span className="text-white font-medium ml-1">
                     {selectedSeats.map(s => `${s.rowLabel}${s.colNumber}`).join(', ')}
                   </span>
@@ -179,7 +194,7 @@ export default function SelectSeatPage() {
                   navigate('/booking/combo')
                 }}
                 className="btn-primary px-8 py-3">
-                Tiếp theo <ArrowRight className="w-4 h-4" />
+                Tiáº¿p theo <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </motion.div>
