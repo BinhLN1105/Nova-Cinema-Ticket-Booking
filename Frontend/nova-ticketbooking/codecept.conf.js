@@ -64,21 +64,23 @@ export const config = {
     I: './tests/e2e/steps_file.js'
   },
   mocha: {
+    reporter: 'mocha-multi-reporters',
     reporterOptions: {
-      "codeceptjs-cli-reporter": {
-        stdout: "-",
-        options: { verbose: true }
-      },
-      mochawesome: {
-        stdout: "./tests/e2e/output/console.log",
+      reporterEnabled: 'codeceptjs-cli-reporter, mochawesome',
+      codeceptjsCliReporterReporterOptions: {
+        stdout: '-',
         options: {
-          reportDir: "./tests/e2e/output",
-          reportFilename: "e2e-report",
-          inlineAssets: true,
-          overwrite: true,
-          html: true,
-          json: true
+          verbose: true,
+          steps: true
         }
+      },
+      mochawesomeReporterOptions: {
+        reportDir: './tests/e2e/output',
+        reportFilename: 'e2e-report',
+        inlineAssets: true,
+        overwrite: true,
+        html: true,
+        json: true
       }
     }
   },
