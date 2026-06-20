@@ -14,7 +14,7 @@ Scenario('Test Customer Login Success', ({ I }) => {
   
   I.click('button[type="submit"]');
   
-  I.waitForNavigation();
+  I.waitInUrl('/', 15);
   I.seeCurrentUrlEquals('/');
 });
 
@@ -83,6 +83,6 @@ Scenario('Test Forgot Password and OTP Reset Flow', ({ I }) => {
   I.fillField('input[placeholder="Mật khẩu"]', customerPassword);
   I.click('button[type="submit"]');
   
-  I.waitForNavigation();
+  I.waitInUrl('/', 15);
   I.seeCurrentUrlEquals('/');
 });

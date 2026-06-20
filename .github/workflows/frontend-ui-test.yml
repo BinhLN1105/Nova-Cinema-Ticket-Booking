@@ -9,6 +9,7 @@ on:
   pull_request:
     branches:
       - 'main'
+      - 'dev'
 
 jobs:
   run-ui-tests:
@@ -171,17 +172,45 @@ jobs:
           path: Frontend/nova-ticketbooking/tests/e2e/output/
           retention-days: 5
 
-      # ── TRÍCH XUẤT JIRA KEY TỪ NHÁNH NGUỒN CỦA PULL REQUEST ──────────
-      - name: Extract Jira Issue Key from Branch Name
-        if: failure() && github.event_name == 'pull_request'
+      # ── TRÍCH XUẤT JIRA KEY TỪ NHÁNH HOẶC COMMIT MESSAGE ──────────────
+      - name: Extract Jira Issue Key
+        if: >-
+          failure() && (
+            (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main')) ||
+            (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main'))
+          )
         run: |
-          # Trích xuất dạng KAN-XX từ tên nhánh nguồn của PR (github.head_ref)
-          JIRA_KEY=$(echo "${{ github.head_ref }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
-          echo "JIRA_KEY=$JIRA_KEY" >> $GITHUB_ENV
+          JIRA_KEY=""
+
+          # 1. Thử trích xuất từ tên nhánh hiện tại (Ví dụ KAN-65)
+          JIRA_KEY=$(echo "${{ github.ref_name }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
+
+          # 2. Nếu trống (Trường hợp PR), thử trích xuất từ tên nhánh nguồn (github.head_ref)
+          if [ -z "$JIRA_KEY" ] && [ -n "${{ github.head_ref }}" ]; then
+            JIRA_KEY=$(echo "${{ github.head_ref }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
+          fi
+
+          # 3. Nếu vẫn trống (Trường hợp merge trực tiếp vào dev/main), thử trích xuất từ Commit Message
+          if [ -z "$JIRA_KEY" ]; then
+            COMMIT_MSG=$(git log -1 --pretty=%B || echo "${{ github.event.head_commit.message }}")
+            JIRA_KEY=$(echo "$COMMIT_MSG" | grep -oE 'KAN-[0-9]+' | head -n 1)
+          fi
+
+          if [ -n "$JIRA_KEY" ]; then
+            echo "🎯 Tìm thấy mã Jira Key: $JIRA_KEY"
+            echo "JIRA_KEY=$JIRA_KEY" >> $GITHUB_ENV
+          else
+            echo "⚠️ Không phát hiện mã ticket KAN-XX nào."
+          fi
 
       # ── ĐÍNH KÈM FILE HTML BÁO CÁO LỖI & VIẾT COMMENT LÊN JIRA SUBTASK ─
       - name: Comment and Attach Report to Jira Subtask
-        if: failure() && github.event_name == 'pull_request' && env.JIRA_KEY != ''
+        if: >-
+          failure() && 
+          env.JIRA_KEY != '' && (
+            (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main')) ||
+            (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main'))
+          )
         run: |
           echo "Phát hiện lỗi kiểm thử động trên Ticket: ${{ env.JIRA_KEY }}"
           
