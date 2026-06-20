@@ -63,6 +63,17 @@ export const config = {
   include: {
     I: './tests/e2e/steps_file.js'
   },
+  mocha: {
+    reporter: 'mochawesome',
+    reporterOptions: {
+      reportDir: './tests/e2e/output',
+      reportFilename: 'e2e-report',
+      inlineAssets: true,
+      overwrite: true,
+      html: true,
+      json: true
+    }
+  },
   name: 'nova-ticketbooking',
   plugins: {
     screenshotOnFail: {

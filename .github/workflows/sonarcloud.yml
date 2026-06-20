@@ -14,6 +14,29 @@ jobs:
   analyze-backend:
     name: ☕ Analyze Backend
     runs-on: ubuntu-latest
+
+    services:
+      # ── POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: nova_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # ── REDIS CACHING ────────────────────────────────────────
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -30,9 +53,24 @@ jobs:
       - name: Build & Scan Backend
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: admin
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+          JWT_SECRET: mySuperSecretKeyForJWTAuthToken2026PlaceholderSecretKeyJWT
+          QR_SECRET: myQrSecretKey2026PlaceholderSecretKeyQR
+          INTERNAL_API_KEY: internal_test_secret_key_2026
         run: |
           cd Backend/ticket-booking
-          mvn clean verify sonar:sonar -DskipTests
+          mvn clean verify sonar:sonar
+
+      - name: Upload JaCoCo Code Coverage Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: Backend/ticket-booking/target/site/jacoco/
 
       - name: Upload Sonar Report Artifact
         uses: actions/upload-artifact@v4
