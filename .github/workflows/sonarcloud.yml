@@ -105,7 +105,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
           cd App
-          ./gradlew assembleDebug sonar --no-daemon
+          ./gradlew compileDebugJavaWithJavac sonar --no-daemon
 
       - name: Upload Sonar Report Artifact
         uses: actions/upload-artifact@v4
