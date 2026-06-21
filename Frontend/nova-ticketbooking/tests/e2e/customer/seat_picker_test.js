@@ -8,9 +8,9 @@ const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:8080';
 const REDIS_HOST = process.env.REDIS_HOST || '127.0.0.1';
 const REDIS_PORT = Number(process.env.REDIS_PORT || 6379);
 
-// Local Docker dÃ¹ng máº­t kháº©u máº·c Ä‘á»‹nh nÃ y.
-// Redis service trÃªn GitHub Actions khÃ´ng cÃ³ máº­t kháº©u.
-// HÃ m bÃªn dÆ°á»›i há»— trá»£ Ä‘Æ°á»£c cáº£ hai trÆ°á»ng há»£p.
+// Local Docker dùng mật khẩu mặc định này.
+// Redis service trên GitHub Actions không có mật khẩu.
+// Hàm bên dưới hỗ trợ được cả hai trường hợp.
 const REDIS_PASSWORD = process.env.REDIS_PASSWORD || 'novaRedis2026';
 
 let testData;
@@ -33,13 +33,13 @@ async function getSeatMap(showtimeId) {
   assert.equal(
     response.ok,
     true,
-    `KhÃ´ng láº¥y Ä‘Æ°á»£c seat map. HTTP status: ${response.status}`,
+    `Không lấy được seat map. HTTP status: ${response.status}`,
   );
 
   const body = await response.json();
 
-  assert.equal(body.success, true, 'API seat map tráº£ success=false');
-  assert.ok(body.data?.seats?.length, 'Seat map khÃ´ng cÃ³ dá»¯ liá»‡u gháº¿');
+  assert.equal(body.success, true, 'API seat map trả success=false');
+  assert.ok(body.data?.seats?.length, 'Seat map không có dữ liệu ghế');
 
   return body.data;
 }
@@ -57,12 +57,12 @@ function encodeRedisCommand(parts) {
 }
 
 /**
- * Gá»­i lá»‡nh trá»±c tiáº¿p tá»›i Redis báº±ng RESP.
+ * Gửi lệnh trực tiếp tới Redis bằng RESP.
  *
- * Lá»‡nh AUTH luÃ´n Ä‘Æ°á»£c gá»­i trÆ°á»›c:
- * - Local: AUTH thÃ nh cÃ´ng vÃ¬ Redis cÃ³ máº­t kháº©u.
- * - CI: AUTH cÃ³ thá»ƒ tráº£ lá»—i vÃ¬ Redis khÃ´ng Ä‘áº·t máº­t kháº©u,
- *   nhÆ°ng lá»‡nh chÃ­nh phÃ­a sau váº«n Ä‘Æ°á»£c thá»±c thi.
+ * Lệnh AUTH luôn được gửi trước:
+ * - Local: AUTH thành công vì Redis có mật khẩu.
+ * - CI: AUTH có thể trả lỗi vì Redis không đặt mật khẩu,
+ *   nhưng lệnh chính phía sau vẫn được thực thi.
  */
 function executeRedisCommand(parts) {
   return new Promise((resolve, reject) => {
@@ -100,7 +100,7 @@ function executeRedisCommand(parts) {
       responseBuffer += chunk.toString('utf8');
 
       /*
-       * AUTH vÃ  lá»‡nh chÃ­nh Ä‘á»u tráº£ simple response:
+       * AUTH và lệnh chính đều trả simple response:
        * +OK
        * -ERR ...
        * :1
@@ -140,7 +140,7 @@ async function lockSeatInRedis(showtimeSeatId) {
     'KAN-63-SEAT-PICKER-TEST',
   ]);
 
-  assert.equal(result, '+OK', 'KhÃ´ng táº¡o Ä‘Æ°á»£c Redis seat lock');
+  assert.equal(result, '+OK', 'Không tạo được Redis seat lock');
 }
 
 async function releaseSeatInRedis(showtimeSeatId) {
@@ -182,7 +182,7 @@ Before(async ({ I, loginAs }) => {
 
   assert.ok(
     testData.showtime_id,
-    'test-data.json khÃ´ng cÃ³ showtime_id',
+    'test-data.json không có showtime_id',
   );
 
   await loginAs('customer');
@@ -197,7 +197,7 @@ After(async ({ I }) => {
 
   await clearBookingStore(I);
 
-  // ThoÃ¡t khá»i luá»“ng Ä‘áº·t vÃ© Ä‘á»ƒ trÃ¡nh giá»¯ tráº¡ng thÃ¡i cho test sau.
+  // Thoát khỏi luồng đặt vé để tránh giữ trạng thái cho test sau.
   await I.amOnPage('/');
 });
 
@@ -329,7 +329,7 @@ Scenario(
 );
 
 Scenario(
-  'LOCKED bá»‹ bÃ´i xÃ¡m vÃ  khÃ´ng tÆ°Æ¡ng tÃ¡c',
+  'LOCKED bị bôi xám và không tương tác',
   async ({ I }) => {
     const seatMapBeforeLock = await getSeatMap(
       testData.showtime_id,
@@ -341,7 +341,7 @@ Scenario(
 
     assert.ok(
       seatToLock,
-      'KhÃ´ng tÃ¬m tháº¥y gháº¿ AVAILABLE Ä‘á»ƒ táº¡o dá»¯ liá»‡u LOCKED',
+      'Không tìm thấy ghế AVAILABLE để tạo dữ liệu LOCKED',
     );
 
     temporaryLockedSeatId = seatToLock.showtimeSeatId;
@@ -360,7 +360,7 @@ Scenario(
 
     assert.ok(
       lockedSeat,
-      'API chÆ°a tráº£ gháº¿ vá»«a giá»¯ thÃ nh tráº¡ng thÃ¡i LOCKED',
+      'API chưa trả ghế vừa giữ thành trạng thái LOCKED',
     );
 
     I.amOnPage(
@@ -381,13 +381,13 @@ Scenario(
     assert.match(
       lockedClass,
       /opacity-40/,
-      'Gháº¿ LOCKED chÆ°a Ä‘Æ°á»£c lÃ m má»',
+      'Ghế LOCKED chưa được làm mờ',
     );
 
     assert.match(
       lockedClass,
       /cursor-not-allowed/,
-      'Gháº¿ LOCKED chÆ°a hiá»ƒn thá»‹ tráº¡ng thÃ¡i khÃ´ng Ä‘Æ°á»£c phÃ©p click',
+      'Ghế LOCKED chưa hiển thị trạng thái không được phép click',
     );
 
     I.seeElement(`${lockedSelector}:disabled`);
@@ -395,13 +395,13 @@ Scenario(
     assert.equal(
       await getSelectedSeatCount(I),
       0,
-      'Gháº¿ LOCKED váº«n cÃ³ thá»ƒ Ä‘Æ°á»£c chá»n',
+      'Ghế LOCKED vẫn có thể được chọn',
     );
   },
 );
 
 Scenario(
-  'BVA: chá»n Ä‘Æ°á»£c 6 gháº¿ vÃ  cháº·n gháº¿ thá»© 7 báº±ng Toast',
+  'BVA: chọn được 6 ghế và chặn ghế thứ 7 bằng Toast',
   async ({ I }) => {
     const seatMap = await getSeatMap(testData.showtime_id);
 
@@ -412,7 +412,7 @@ Scenario(
     assert.equal(
       availableSeats.length,
       7,
-      'Seed Data pháº£i cÃ³ Ã­t nháº¥t 7 gháº¿ AVAILABLE',
+      'Seed Data phải có ít nhất 7 ghế AVAILABLE',
     );
 
     I.amOnPage(
@@ -433,7 +433,7 @@ Scenario(
     assert.equal(
       await getSelectedSeatCount(I),
       6,
-      'UI khÃ´ng chá»n Ä‘Æ°á»£c Ä‘Ãºng 6 gháº¿ há»£p lá»‡',
+      'UI không chọn được đúng 6 ghế hợp lệ',
     );
 
     const seventhSeatSelector = seatButtonSelector(
@@ -443,14 +443,14 @@ Scenario(
     I.click(seventhSeatSelector);
     I.wait(1);
 
-    // Boundary vÆ°á»£t ngÆ°á»¡ng: sá»‘ gháº¿ váº«n pháº£i giá»¯ nguyÃªn lÃ  6.
+    // Boundary vượt ngưỡng: số ghế vẫn phải giữ nguyên là 6.
     assert.equal(
       await getSelectedSeatCount(I),
       6,
-      'UI váº«n cho chá»n gháº¿ thá»© 7, vÆ°á»£t giá»›i háº¡n 6 gháº¿',
+      'UI vẫn cho chọn ghế thứ 7, vượt giới hạn 6 ghế',
     );
 
-    // React Hot Toast thÆ°á»ng render thÃ´ng bÃ¡o trong role="status".
+    // React Hot Toast thường render thông báo trong role="status".
     I.waitForElement('[role="status"]', 5);
 
     const toastMessages = await I.grabTextFromAll(
@@ -458,12 +458,12 @@ Scenario(
     );
 
     const limitToast = toastMessages.find((message) =>
-      /6|tá»‘i Ä‘a|giá»›i háº¡n|háº¡n má»©c/i.test(message),
+      /6|tối đa|giới hạn|hạn mức/i.test(message),
     );
 
     assert.ok(
       limitToast,
-      `KhÃ´ng tÃ¬m tháº¥y Toast cáº£nh bÃ¡o giá»›i háº¡n 6 gháº¿. Toast nháº­n Ä‘Æ°á»£c: ${toastMessages.join(' | ')}`,
+      `Không tìm thấy Toast cảnh báo giới hạn 6 ghế. Toast nhận được: ${toastMessages.join(' | ')}`,
     );
   },
 );
