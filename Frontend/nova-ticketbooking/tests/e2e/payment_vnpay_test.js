@@ -13,34 +13,37 @@ function loadTestData() {
 async function startCheckout(I, testData) {
   await I.executeScript(() => localStorage.removeItem('booking-storage'));
   await I.usePlaywrightTo('choose the seeded showtime through the UI', async ({ page }) => {
-    const showtimesResponse = page.waitForResponse((response) =>
-      response.url().includes('/api/v1/showtimes') && response.request().method() === 'GET',
-    );
     await page.goto(`/booking/showtime/${testData.movie_id}`);
-    const payload = await (await showtimesResponse).json();
-    const showtimes = payload.data ?? payload;
-    const seededShowtime = showtimes.find((showtime) => showtime.id === testData.showtime_id);
-    if (!seededShowtime) throw new Error(`Không tìm thấy showtime seed ${testData.showtime_id}`);
-    const time = seededShowtime.startTime.slice(11, 16);
-    await page.getByRole('button', { name: new RegExp(`${time}\\s*Đặt vé`) }).first().click();
+    const detailResponse = await page.request.get(`/api/v1/showtimes/${testData.showtime_id}`);
+    if (!detailResponse.ok()) throw new Error(`Không đọc được showtime seed ${testData.showtime_id}.`);
+    const detailPayload = await detailResponse.json();
+    const seededShowtime = detailPayload.data ?? detailPayload;
+    const [year, month, day] = seededShowtime.startTime.slice(0, 10).split('-');
+    const dateButton = page.getByRole('button', { name: new RegExp(`${Number(day)}\\s*${month}/${year}`) });
+    const responsePromise = page.waitForResponse((res) =>
+      res.url().includes(`/api/v1/showtimes?movieId=${testData.movie_id}`) && res.request().method() === 'GET' && res.ok(),
+    );
+    await dateButton.click();
+    await responsePromise;
+    await page.getByRole('button', { name: new RegExp(`${seededShowtime.startTime.slice(11, 16)}.*Đặt vé`) }).first().click();
     await page.waitForURL(`**/booking/seats/${testData.showtime_id}`, { timeout: 20_000 });
   });
   I.waitForText('Chọn ghế ngồi', 20);
-  await I.usePlaywrightTo('select one available seat', async ({ page }) => {
+  await I.usePlaywrightTo('select an available seat', async ({ page }) => {
     await page.locator('button[title*="—"]:not([disabled])').first().click();
   });
   I.click('Tiếp theo');
   I.waitForText('Chọn Bắp nước', 15);
   I.click('Tiếp tục');
   I.waitForText('Xác nhận đặt vé', 20);
-  I.click(locate('button').withText(/Thanh toán/));
+  await I.usePlaywrightTo('create the booking from the confirmation UI', async ({ page }) => {
+    await page.getByRole('button', { name: /Thanh toán/ }).click();
+  });
   I.waitForText('Chọn phương thức thanh toán', 20);
 }
 
 async function interceptVnpay(I, responseCode) {
-  await I.usePlaywrightTo(`intercept VNPay callback ${responseCode}`, async ({ page }) => {
-    // No request reaches VNPay Sandbox.  The normal payment request returns a local
-    // callback URL, then Playwright redirects that callback to the UI result page.
+  await I.usePlaywrightTo(`intercept the VNPay ${responseCode} callback`, async ({ page }) => {
     await page.route('**/api/v1/payments', async (route) => {
       if (route.request().method() !== 'POST') return route.continue();
       await route.fulfill({
@@ -51,6 +54,7 @@ async function interceptVnpay(I, responseCode) {
         }),
       });
     });
+    // The real backend callback is GET and redirects to /booking/result.
     await page.route('**/api/v1/payments/vnpay/callback**', async (route) => {
       await route.fulfill({
         status: 302,
