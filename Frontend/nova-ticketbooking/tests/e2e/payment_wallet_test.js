@@ -62,3 +62,18 @@ Scenario('Customer pays a new booking with CinePoint and sees the correct point 
     const pointsUsed = Math.ceil(totalVnd / 1000);
     return { totalVnd, pointsUsed };
   });
+
+  if (Number(testData.customer_reward_points) < pointsUsed) {
+    throw new Error(`Seed chỉ có ${testData.customer_reward_points} CP, không đủ thanh toán ${totalVnd.toLocaleString('vi-VN')}đ.`);
+  }
+
+  I.see(`Dùng ${pointsUsed.toLocaleString('vi-VN')} CP`);
+  I.see('miễn phí');
+  await I.usePlaywrightTo('submit CinePoint payment', async ({ page }) => {
+    await page.getByRole('button', { name: /Thanh toán .*CP/ }).click();
+  });
+  I.waitForText('Đặt vé thành công!', 20);
+
+  I.amOnPage('/profile');
+  I.waitForText(`${(Number(testData.customer_reward_points) - pointsUsed).toLocaleString('vi-VN')} CP`, 15);
+});
