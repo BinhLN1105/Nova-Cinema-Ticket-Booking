@@ -36,3 +36,34 @@ async function startCheckout(I, testData) {
   I.click(locate('button').withText(/Thanh toán/));
   I.waitForText('Chọn phương thức thanh toán', 20);
 }
+
+async function interceptVnpay(I, responseCode) {
+  await I.usePlaywrightTo(`intercept VNPay callback ${responseCode}`, async ({ page }) => {
+    // No request reaches VNPay Sandbox.  The normal payment request returns a local
+    // callback URL, then Playwright redirects that callback to the UI result page.
+    await page.route('**/api/v1/payments', async (route) => {
+      if (route.request().method() !== 'POST') return route.continue();
+      await route.fulfill({
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: { paymentUrl: `/api/v1/payments/vnpay/callback?vnp_ResponseCode=${responseCode}&vnp_TxnRef=e2e-test` },
+        }),
+      });
+    });
+    await page.route('**/api/v1/payments/vnpay/callback**', async (route) => {
+      await route.fulfill({
+        status: 302,
+        headers: { location: `/booking/result?status=${responseCode === '00' ? 'success' : 'failed'}&vnp_ResponseCode=${responseCode}` },
+      });
+    });
+  });
+}
+
+async function payWithVnpay(I) {
+  await I.usePlaywrightTo('choose VNPay and proceed', async ({ page }) => {
+    await page.getByRole('button', { name: 'VNPay' }).click();
+    await page.getByRole('button', { name: 'Tiến hành thanh toán' }).click();
+  });
+}
+
