@@ -67,3 +67,24 @@ async function payWithVnpay(I) {
   });
 }
 
+Feature('Payment - VNPay callback interception');
+
+Scenario('VNPay success callback redirects to booking confirmation', async ({ I, loginAs }) => {
+  loginAs('customer');
+  await startCheckout(I, loadTestData());
+  await interceptVnpay(I, '00');
+  await payWithVnpay(I);
+  I.waitForText('Đặt vé thành công!', 20);
+  I.seeInCurrentUrl('status=success');
+  I.seeInCurrentUrl('vnp_ResponseCode=00');
+});
+
+Scenario('VNPay cancellation callback displays payment failure', async ({ I, loginAs }) => {
+  loginAs('customer');
+  await startCheckout(I, loadTestData());
+  await interceptVnpay(I, '24');
+  await payWithVnpay(I);
+  I.waitForText('Thanh toán thất bại', 20);
+  I.seeInCurrentUrl('status=failed');
+  I.seeInCurrentUrl('vnp_ResponseCode=24');
+});
