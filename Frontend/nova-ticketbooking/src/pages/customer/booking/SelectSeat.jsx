@@ -29,7 +29,7 @@ function SeatButton({ seat, isSelected, onToggle }) {
     <button
       onClick={!isBooked ? onToggle : undefined}
       disabled={isBooked}
-      title={`${seat.rowLabel}${seat.colNumber} â€” ${formatCurrency(seat.price)}`}
+      title={`${seat.rowLabel}${seat.colNumber} — ${formatCurrency(seat.price)}`}
       className={cn(
         'h-8 w-8 rounded-md border text-xs font-bold transition-all duration-150',
         'flex items-center justify-center',
@@ -102,9 +102,9 @@ export default function SelectSeatPage() {
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div>
-            <h1 className="font-display text-2xl font-bold text-white">Chá»n gháº¿ ngá»“i</h1>
+            <h1 className="font-display text-2xl font-bold text-white">Chọn ghế ngồi</h1>
             {selectedShowtime && (
-              <p className="text-cinema-300 text-sm">{selectedShowtime.cinemaName} â€¢ {selectedShowtime.screenName}</p>
+              <p className="text-cinema-300 text-sm">{selectedShowtime.cinemaName} • {selectedShowtime.screenName}</p>
             )}
           </div>
         </div>
@@ -118,7 +118,7 @@ export default function SelectSeatPage() {
         <div className="relative mb-10">
           <div className="h-1 rounded-full bg-gradient-to-r from-transparent via-brand-500/60 to-transparent mx-8 mb-2" />
           <div className="flex items-center justify-center gap-2 text-cinema-400 text-sm">
-            <Monitor className="w-4 h-4" /> MÃ n hÃ¬nh chiáº¿u
+            <Monitor className="w-4 h-4" /> Màn hình chiếu
           </div>
         </div>
 
@@ -161,11 +161,11 @@ export default function SelectSeatPage() {
         {/* Legend */}
         <div className="flex flex-wrap gap-6 mt-8 justify-center text-xs text-cinema-300">
           {[
-            { color: 'bg-green-500/20 border border-green-500/40',   label: 'Gháº¿ thÆ°á»ng' },
-            { color: 'bg-purple-500/20 border border-purple-500/40', label: 'Gháº¿ VIP' },
-            { color: 'bg-gold-400/20 border border-gold-400/40',     label: 'Gháº¿ Ä‘Ã´i' },
-            { color: 'bg-brand-500 border border-brand-400',         label: 'Äang chá»n' },
-            { color: 'bg-cinema-700 border border-cinema-600 opacity-40', label: 'ÄÃ£ Ä‘áº·t' },
+            { color: 'bg-green-500/20 border border-green-500/40',   label: 'Ghế thường' },
+            { color: 'bg-purple-500/20 border border-purple-500/40', label: 'Ghế VIP' },
+            { color: 'bg-gold-400/20 border border-gold-400/40',     label: 'Ghế đôi' },
+            { color: 'bg-brand-500 border border-brand-400',         label: 'Đang chọn' },
+            { color: 'bg-cinema-700 border border-cinema-600 opacity-40', label: 'Đã đặt' },
           ].map(({ color, label }) => (
             <div key={label} className="flex items-center gap-2">
               <div className={cn('w-6 h-5 rounded', color)} />
@@ -181,7 +181,7 @@ export default function SelectSeatPage() {
             <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
               <div>
                 <p className="text-cinema-300 text-sm">
-                  {selectedSeats.length} gháº¿ Ä‘Ã£ chá»n:
+                  {selectedSeats.length} ghế đã chọn:
                   <span className="text-white font-medium ml-1">
                     {selectedSeats.map(s => `${s.rowLabel}${s.colNumber}`).join(', ')}
                   </span>
@@ -194,7 +194,7 @@ export default function SelectSeatPage() {
                   navigate('/booking/combo')
                 }}
                 className="btn-primary px-8 py-3">
-                Tiáº¿p theo <ArrowRight className="w-4 h-4" />
+                Tiếp theo <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </motion.div>
