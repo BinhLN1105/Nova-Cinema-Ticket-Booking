@@ -47,3 +47,18 @@ async function startCheckout(I, testData) {
   I.waitForText('Chọn phương thức thanh toán', 20);
 }
 
+Feature('Payment - CinePoint wallet and loyalty reduction');
+
+Scenario('Customer pays a new booking with CinePoint and sees the correct point reduction', async ({ I, loginAs }) => {
+  const testData = loadTestData();
+  loginAs('customer');
+  await startCheckout(I, testData);
+
+  I.see('Ví CinePoint');
+  const { totalVnd, pointsUsed } = await I.usePlaywrightTo('verify the point conversion shown on checkout', async ({ page }) => {
+    await page.getByRole('button', { name: 'Ví CinePoint' }).click();
+    const totalText = await page.locator('div').filter({ hasText: /^Tổng tiền/ }).last().locator('span').last().innerText();
+    const totalVnd = toVnd(totalText);
+    const pointsUsed = Math.ceil(totalVnd / 1000);
+    return { totalVnd, pointsUsed };
+  });
