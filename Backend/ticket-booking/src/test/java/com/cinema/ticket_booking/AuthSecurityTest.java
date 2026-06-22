@@ -43,8 +43,6 @@ public class AuthSecurityTest {
     @Mock
     private RefreshTokenRepository refreshTokenRepository;
 
-    // Thay vì dùng @Mock hoàn toàn làm hụt Coverage, ta mock lỏng hoặc sử dụng trực tiếp logic thật 
-    // của JwtServiceImpl để đạt chỉ số >80% Line Coverage của JaCoCo
     @Mock
     private JwtServiceImpl jwtService; 
 
