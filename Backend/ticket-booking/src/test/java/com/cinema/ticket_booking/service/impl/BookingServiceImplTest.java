@@ -441,11 +441,223 @@ class BookingServiceImplTest {
         when(voucherService.validateForOrder(any(), anyString(), any(BigDecimal.class)))
                 .thenThrow(new BadRequestException("Voucher đã hết hạn"));
 
-        BookingResponse mockResponse = BookingResponse.builder().build();
-        when(bookingMapper.toResponse(any())).thenReturn(mockResponse);
-
         BookingResponse quote = bookingService.calculateQuote(user.getId(), request);
         assertNotNull(quote);
         assertEquals("Mã giảm giá không hợp lệ hoặc đã hết hạn: Voucher đã hết hạn", quote.getWarningMessage());
+    }
+
+    @Test
+    void testCreateBooking_AdminProcess_Success() {
+        user.setRole(UserRole.ADMIN);
+        when(userService.findById(any())).thenReturn(user);
+        when(showtimeService.findById(any())).thenReturn(showtime);
+
+        ShowtimeSeat seat = ShowtimeSeat.builder()
+                .id(UUID.randomUUID())
+                .status(SeatStatus.AVAILABLE)
+                .seat(Seat.builder().rowLabel('A').colNumber(5).seatType(SeatType.STANDARD).build())
+                .price(BigDecimal.valueOf(50000))
+                .build();
+        request.setShowtimeSeatIds(List.of(seat.getId().toString()));
+
+        when(showtimeSeatRepository.findByShowtimeAndIds(any(), anyList())).thenReturn(List.of(seat));
+        when(pricingEngineService.calculateFinalSeatPrice(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PricingResult(BigDecimal.valueOf(50000), BigDecimal.ZERO, null));
+        when(pricingEngineService.calculateBestOrderPromotion(any(), anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(new PricingResult(BigDecimal.ZERO, BigDecimal.ZERO, null));
+
+        when(systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10)).thenReturn(10);
+        when(seatLockService.lockSeat(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+
+        Booking mockSavedBooking = Booking.builder()
+                .id(UUID.randomUUID())
+                .user(user)
+                .showtime(showtime)
+                .totalAmount(BigDecimal.valueOf(50000))
+                .status(BookingStatus.PENDING)
+                .build();
+
+        when(bookingRepository.save(any(Booking.class))).thenReturn(mockSavedBooking);
+        when(bookingItemRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockSavedBooking));
+
+        BookingResponse mockResponse = BookingResponse.builder()
+                .id(mockSavedBooking.getId().toString())
+                .totalAmount(BigDecimal.valueOf(50000))
+                .build();
+        when(bookingMapper.toResponse(any(Booking.class))).thenReturn(mockResponse);
+
+        BookingResponse response = bookingService.createBooking(user.getId(), request);
+        assertNotNull(response);
+        assertEquals(mockSavedBooking.getId().toString(), response.getId());
+    }
+
+    @Test
+    void testCreateBooking_VoucherUsed_ThrowsBadRequestException() {
+        request.setVoucherCode("VOUCHER100");
+        when(userService.findById(any())).thenReturn(user);
+        when(showtimeService.findById(any())).thenReturn(showtime);
+
+        ShowtimeSeat seat = ShowtimeSeat.builder()
+                .id(UUID.randomUUID())
+                .status(SeatStatus.AVAILABLE)
+                .seat(Seat.builder().rowLabel('A').colNumber(5).seatType(SeatType.STANDARD).build())
+                .price(BigDecimal.valueOf(100000))
+                .build();
+        request.setShowtimeSeatIds(List.of(seat.getId().toString()));
+
+        when(showtimeSeatRepository.findByShowtimeAndIds(any(), anyList())).thenReturn(List.of(seat));
+        when(pricingEngineService.calculateFinalSeatPrice(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PricingResult(BigDecimal.valueOf(100000), BigDecimal.ZERO, null));
+        when(pricingEngineService.calculateBestOrderPromotion(any(), anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(new PricingResult(BigDecimal.ZERO, BigDecimal.ZERO, null));
+
+        Voucher voucher = Voucher.builder()
+                .id(UUID.randomUUID())
+                .code("VOUCHER100")
+                .discountValue(BigDecimal.valueOf(10000))
+                .minOrder(BigDecimal.valueOf(50000))
+                .build();
+
+        when(voucherService.validateForOrder(any(), anyString(), any(BigDecimal.class))).thenReturn(voucher);
+
+        UserVoucher userVoucher = UserVoucher.builder()
+                .user(user)
+                .voucher(voucher)
+                .status(UserVoucherStatus.USED)
+                .build();
+
+        when(userVoucherRepository.findByUserIdAndVoucherId(any(), any())).thenReturn(Optional.of(userVoucher));
+        when(systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10)).thenReturn(10);
+        when(seatLockService.lockSeat(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+
+        BookingResponse mockQuoteResponse = BookingResponse.builder()
+                .voucherCode("VOUCHER100")
+                .subtotal(BigDecimal.valueOf(100000))
+                .totalAmount(BigDecimal.valueOf(90000))
+                .build();
+        when(bookingMapper.toResponse(any(Booking.class))).thenReturn(mockQuoteResponse);
+
+        assertThrows(BadRequestException.class, () -> bookingService.createBooking(user.getId(), request));
+    }
+
+    @Test
+    void testCreateBooking_VoucherPending_Success() {
+        request.setVoucherCode("VOUCHER100");
+        when(userService.findById(any())).thenReturn(user);
+        when(showtimeService.findById(any())).thenReturn(showtime);
+
+        ShowtimeSeat seat = ShowtimeSeat.builder()
+                .id(UUID.randomUUID())
+                .status(SeatStatus.AVAILABLE)
+                .seat(Seat.builder().rowLabel('A').colNumber(5).seatType(SeatType.STANDARD).build())
+                .price(BigDecimal.valueOf(100000))
+                .build();
+        request.setShowtimeSeatIds(List.of(seat.getId().toString()));
+
+        when(showtimeSeatRepository.findByShowtimeAndIds(any(), anyList())).thenReturn(List.of(seat));
+        when(pricingEngineService.calculateFinalSeatPrice(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PricingResult(BigDecimal.valueOf(100000), BigDecimal.ZERO, null));
+        when(pricingEngineService.calculateBestOrderPromotion(any(), anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(new PricingResult(BigDecimal.ZERO, BigDecimal.ZERO, null));
+
+        Voucher voucher = Voucher.builder()
+                .id(UUID.randomUUID())
+                .code("VOUCHER100")
+                .discountValue(BigDecimal.valueOf(10000))
+                .minOrder(BigDecimal.valueOf(50000))
+                .build();
+
+        when(voucherService.validateForOrder(any(), anyString(), any(BigDecimal.class))).thenReturn(voucher);
+
+        UserVoucher userVoucher = UserVoucher.builder()
+                .user(user)
+                .voucher(voucher)
+                .status(UserVoucherStatus.AVAILABLE)
+                .build();
+
+        when(userVoucherRepository.findByUserIdAndVoucherId(any(), any())).thenReturn(Optional.of(userVoucher));
+        when(systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10)).thenReturn(10);
+        when(seatLockService.lockSeat(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+
+        Booking mockSavedBooking = Booking.builder()
+                .id(UUID.randomUUID())
+                .user(user)
+                .showtime(showtime)
+                .totalAmount(BigDecimal.valueOf(90000))
+                .status(BookingStatus.PENDING)
+                .build();
+
+        when(bookingRepository.save(any(Booking.class))).thenReturn(mockSavedBooking);
+        when(bookingItemRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockSavedBooking));
+
+        BookingResponse mockResponse = BookingResponse.builder()
+                .id(mockSavedBooking.getId().toString())
+                .voucherCode("VOUCHER100")
+                .subtotal(BigDecimal.valueOf(100000))
+                .totalAmount(BigDecimal.valueOf(90000))
+                .build();
+        when(bookingMapper.toResponse(any(Booking.class))).thenReturn(mockResponse);
+
+        BookingResponse response = bookingService.createBooking(user.getId(), request);
+        assertNotNull(response);
+        assertEquals(UserVoucherStatus.PENDING, userVoucher.getStatus());
+        verify(userVoucherRepository).save(userVoucher);
+    }
+
+    @Test
+    void testCreateBooking_CashPaymentByStaff_Success() {
+        user.setRole(UserRole.STAFF);
+        user.setMembershipTier(MembershipTier.GOLD);
+        user.setRankUsageThisMonth(0);
+
+        request.setPaymentMethod(PaymentMethod.CASH);
+        when(userService.findById(any())).thenReturn(user);
+        when(showtimeService.findById(any())).thenReturn(showtime);
+        when(staffProfileRepository.findByUserId(any())).thenReturn(Optional.empty());
+
+        ShowtimeSeat seat = ShowtimeSeat.builder()
+                .id(UUID.randomUUID())
+                .status(SeatStatus.AVAILABLE)
+                .seat(Seat.builder().rowLabel('A').colNumber(5).seatType(SeatType.STANDARD).build())
+                .price(BigDecimal.valueOf(100000))
+                .build();
+        request.setShowtimeSeatIds(List.of(seat.getId().toString()));
+
+        when(showtimeSeatRepository.findByShowtimeAndIds(any(), anyList())).thenReturn(List.of(seat));
+        when(pricingEngineService.calculateFinalSeatPrice(any(), any(), any(), any(), anyInt(), anyInt()))
+                .thenReturn(new PricingResult(BigDecimal.valueOf(100000), BigDecimal.ZERO, null));
+        when(pricingEngineService.calculateBestOrderPromotion(any(), anyInt(), anyInt(), any(), any(), any()))
+                .thenReturn(new PricingResult(BigDecimal.ZERO, BigDecimal.ZERO, null));
+
+        when(systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10)).thenReturn(10);
+        when(seatLockService.lockSeat(anyString(), anyString(), any(Duration.class))).thenReturn(true);
+        when(qrCodeService.generateQrContent(any())).thenReturn("MOCK_QR");
+
+        Booking mockSavedBooking = Booking.builder()
+                .id(UUID.randomUUID())
+                .user(user)
+                .showtime(showtime)
+                .rankDiscountAmount(BigDecimal.valueOf(10000))
+                .totalAmount(BigDecimal.valueOf(90000))
+                .status(BookingStatus.PAID)
+                .build();
+
+        // The save method is called multiple times: first for initial save, second for paid status update (setting QR code)
+        when(bookingRepository.save(any(Booking.class))).thenReturn(mockSavedBooking);
+        when(bookingItemRepository.saveAll(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(bookingRepository.findById(any(UUID.class))).thenReturn(Optional.of(mockSavedBooking));
+
+        BookingResponse mockResponse = BookingResponse.builder()
+                .id(mockSavedBooking.getId().toString())
+                .totalAmount(BigDecimal.valueOf(90000))
+                .build();
+        when(bookingMapper.toResponse(any(Booking.class))).thenReturn(mockResponse);
+
+        BookingResponse response = bookingService.createBooking(user.getId(), request);
+        assertNotNull(response);
+        assertEquals(1, user.getRankUsageThisMonth());
+        verify(userService).save(user);
     }
 }
