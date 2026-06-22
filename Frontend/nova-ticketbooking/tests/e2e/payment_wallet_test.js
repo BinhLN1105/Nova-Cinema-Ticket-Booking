@@ -17,20 +17,21 @@ function toVnd(text) {
 async function startCheckout(I, testData) {
   await I.executeScript(() => localStorage.removeItem('booking-storage'));
 
-  await I.usePlaywrightTo('choose the seeded showtime through the UI', async ({ page }) => {
-    const showtimesResponse = page.waitForResponse((response) =>
-      response.url().includes('/api/v1/showtimes') && response.request().method() === 'GET',
-    );
-    await page.goto(`/booking/showtime/${testData.movie_id}`);
-    const payload = await (await showtimesResponse).json();
-    const showtimes = payload.data ?? payload;
-    const seededShowtime = showtimes.find((showtime) => showtime.id === testData.showtime_id);
-    if (!seededShowtime) throw new Error(`Không tìm thấy showtime seed ${testData.showtime_id}`);
+  I.amOnPage(`/booking/showtime/${testData.movie_id}`);
 
-    // UI does not expose the UUID, so the start time is the stable visual identifier.
-    const time = seededShowtime.startTime.slice(11, 16);
-    const candidates = page.getByRole('button', { name: new RegExp(`${time}\\s*Đặt vé`) });
-    await candidates.first().click();
+  await I.usePlaywrightTo('choose the seeded showtime through the UI', async ({ page }) => {
+    const detailResponse = await page.request.get(new URL(`/api/v1/showtimes/${testData.showtime_id}`, page.url()).href);
+    if (!detailResponse.ok()) throw new Error(`Không đọc được showtime seed ${testData.showtime_id}.`);
+    const detailPayload = await detailResponse.json();
+    const seededShowtime = detailPayload.data ?? detailPayload;
+    const [year, month, day] = seededShowtime.startTime.slice(0, 10).split('-');
+    const dateButton = page.getByRole('button', { name: new RegExp(`${Number(day)}\\s*${month}/${year}`) });
+    const responsePromise = page.waitForResponse((res) =>
+      res.url().includes(`/api/v1/showtimes?movieId=${testData.movie_id}`) && res.request().method() === 'GET' && res.ok(),
+    );
+    await dateButton.click();
+    await responsePromise;
+    await page.getByRole('button', { name: new RegExp(`${seededShowtime.startTime.slice(11, 16)}.*Đặt vé`) }).first().click();
     await page.waitForURL(`**/booking/seats/${testData.showtime_id}`, { timeout: 20_000 });
   });
 
@@ -43,7 +44,9 @@ async function startCheckout(I, testData) {
   I.waitForText('Chọn Bắp nước', 15);
   I.click('Tiếp tục');
   I.waitForText('Xác nhận đặt vé', 20);
-  I.click(locate('button').withText(/Thanh toán/));
+  await I.usePlaywrightTo('create the booking from the confirmation UI', async ({ page }) => {
+    await page.getByRole('button', { name: /Thanh toán/ }).click();
+  });
   I.waitForText('Chọn phương thức thanh toán', 20);
 }
 
@@ -51,7 +54,14 @@ Feature('Payment - CinePoint wallet and loyalty reduction');
 
 Scenario('Customer pays a new booking with CinePoint and sees the correct point reduction', async ({ I, loginAs }) => {
   const testData = loadTestData();
-  loginAs('customer');
+  await loginAs('customer');
+
+  const initialPoints = await I.usePlaywrightTo('get initial reward points', async ({ page }) => {
+    const element = page.locator('span').filter({ hasText: /CP$/ }).first();
+    const text = await element.innerText();
+    return Number(text.replace(/[^0-9]/g, ''));
+  });
+
   await startCheckout(I, testData);
 
   I.see('Ví CinePoint');
@@ -63,8 +73,8 @@ Scenario('Customer pays a new booking with CinePoint and sees the correct point 
     return { totalVnd, pointsUsed };
   });
 
-  if (Number(testData.customer_reward_points) < pointsUsed) {
-    throw new Error(`Seed chỉ có ${testData.customer_reward_points} CP, không đủ thanh toán ${totalVnd.toLocaleString('vi-VN')}đ.`);
+  if (initialPoints < pointsUsed) {
+    throw new Error(`Tài khoản chỉ có ${initialPoints} CP, không đủ thanh toán ${totalVnd.toLocaleString('vi-VN')}đ.`);
   }
 
   I.see(`Dùng ${pointsUsed.toLocaleString('vi-VN')} CP`);
@@ -75,5 +85,6 @@ Scenario('Customer pays a new booking with CinePoint and sees the correct point 
   I.waitForText('Đặt vé thành công!', 20);
 
   I.amOnPage('/profile');
-  I.waitForText(`${(Number(testData.customer_reward_points) - pointsUsed).toLocaleString('vi-VN')} CP`, 15);
+  const expectedPoints = initialPoints - pointsUsed;
+  I.waitForText(`${expectedPoints.toLocaleString('vi-VN')} CP`, 15);
 });
