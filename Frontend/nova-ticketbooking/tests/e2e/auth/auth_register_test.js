@@ -16,7 +16,7 @@ Scenario('Test Register with dynamic valid data and 100 char fullName', ({ I }) 
   I.click('button[type="submit"]');
   
   // Successful registration auto-logins and redirects to home page '/'
-  I.waitForNavigation();
+  I.waitUrlEquals('/', 15);
   I.seeCurrentUrlEquals('/');
 });
 

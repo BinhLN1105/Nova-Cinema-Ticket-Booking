@@ -178,7 +178,7 @@ export default function MoviesPage() {
         {!isLoading && data?.content?.length === 0 && (
           <div className="text-center py-24">
             <div className="text-6xl mb-4">🎬</div>
-            <p className="text-cinema-300 text-lg">Không tìm thấy phim nào</p>
+            <p className="text-cinema-300 text-lg">Không tìm thấy phim phù hợp</p>
             <button onClick={() => { setSearch(''); setStatus('') }}
               className="btn-ghost mt-4 text-sm">Xóa bộ lọc</button>
           </div>

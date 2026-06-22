@@ -1,8 +1,9 @@
-import { useParams, useNavigate } from 'react-router-dom'
+﻿import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, ArrowRight, Monitor } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import toast from 'react-hot-toast'
 import { showtimeApi } from '@/api/endpoints'
 import { useBookingStore } from '@/stores/bookingStore'
 import { formatCurrency, cn } from '@/utils'
@@ -27,6 +28,7 @@ function SeatButton({ seat, isSelected, onToggle }) {
   return (
     <button
       onClick={!isBooked ? onToggle : undefined}
+      disabled={isBooked}
       title={`${seat.rowLabel}${seat.colNumber} — ${formatCurrency(seat.price)}`}
       className={cn(
         'h-8 w-8 rounded-md border text-xs font-bold transition-all duration-150',
@@ -53,6 +55,19 @@ export default function SelectSeatPage() {
   const { showtimeId } = useParams()
   const navigate = useNavigate()
   const { selectedSeats, toggleSeat, selectedShowtime, total, expiryTime, setExpiryTime } = useBookingStore()
+
+  const handleToggleSeat = (seat) => {
+    const isAlreadySelected = selectedSeats.some(
+      selectedSeat => selectedSeat.showtimeSeatId === seat.showtimeSeatId
+    )
+
+    if (!isAlreadySelected && selectedSeats.length >= 6) {
+      toast.error('Bạn chỉ được chọn tối đa 6 ghế')
+      return
+    }
+
+    toggleSeat(seat)
+  }
 
   const { data: seatMap, isLoading } = useQuery({
     queryKey: ['seatmap', showtimeId],
@@ -115,24 +130,24 @@ export default function SelectSeatPage() {
               {Object.entries(rows).map(([rowLabel, seats]) => (
                 <div key={rowLabel} className="flex items-center gap-4">
                   <span className="w-6 text-cinema-500 text-sm font-bold text-right shrink-0">{rowLabel}</span>
-                  <div 
+                  <div
                     className="grid gap-2"
-                    style={{ 
+                    style={{
                       gridTemplateColumns: `repeat(${seatMap.totalCols}, 2.25rem)`,
                     }}
                   >
                     {seats.map(seat => (
-                      <div 
+                      <div
                         key={seat.showtimeSeatId}
-                        style={{ 
+                        style={{
                           gridColumnStart: seat.colNumber,
                           gridColumnEnd: seat.seatType === 'COUPLE' ? `span 2` : 'auto'
                         }}
                       >
-                        <SeatButton 
+                        <SeatButton
                           seat={seat}
                           isSelected={selectedSeats.some(s => s.showtimeSeatId === seat.showtimeSeatId)}
-                          onToggle={() => toggleSeat(seat)}
+                          onToggle={() => handleToggleSeat(seat)}
                         />
                       </div>
                     ))}
