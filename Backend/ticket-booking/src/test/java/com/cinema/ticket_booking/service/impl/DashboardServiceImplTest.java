@@ -155,6 +155,39 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    void testGetStats_PrevRevenueAndBookingsZero() {
+        UUID cinemaId = UUID.randomUUID();
+
+        // 1st call for current, 2nd call for prev (which returns null/0)
+        when(bookingRepository.calculateNetRevenue(any(), any(), eq(cinemaId)))
+                .thenReturn(new BigDecimal("1000000"))
+                .thenReturn(BigDecimal.ZERO);
+        when(bookingRepository.calculateTotalDiscounts(any(), any(), eq(cinemaId))).thenReturn(BigDecimal.ZERO);
+        when(bookingRepository.countTotalBookingsByDateRange(any(), any(), eq(cinemaId)))
+                .thenReturn(15L)
+                .thenReturn(0L);
+
+        when(bookingRepository.getTicketRevenueBySeatType(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+        when(bookingRepository.getConcessionRevenueByCombo(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+
+        when(movieRepository.countByStatus(MovieStatus.NOW_SHOWING)).thenReturn(10L);
+        when(userRepository.count()).thenReturn(100L);
+
+        when(bookingRepository.getRevenueByDayInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+        when(bookingRepository.getDailyTicketRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+        when(bookingRepository.getDailyConcessionRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+
+        when(bookingRepository.getTop5MoviesInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+        when(bookingRepository.getRecentBookingsInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+
+        DashboardStatsResponse stats = dashboardService.getStats(startDate, endDate, cinemaId);
+
+        assertNotNull(stats);
+        assertEquals(100.0, stats.getRevenueChange());
+        assertEquals(100.0, stats.getBookingChange());
+    }
+
+    @Test
     void testGetStats_DatabaseException() {
         when(bookingRepository.calculateNetRevenue(any(), any(), any())).thenThrow(new RuntimeException("DB Connection down"));
 
