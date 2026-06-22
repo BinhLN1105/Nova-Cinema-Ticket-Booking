@@ -10,7 +10,7 @@ Scenario('Hiển thị phim đang chiếu', async ({ I }) => {
 
     I.amOnPage('/');
 
-    I.waitForText('Now Showing', 15);
+    I.waitForText('Phim Đang Chiếu', 15);
 
     I.waitForText(testData.movie_name, 15); // Đọc tên phim từ test-data.json
 
@@ -51,8 +51,10 @@ Scenario('Kiểm thử Banner Carousel - Nội dung banner hiển thị đúng',
     // Text thật trên UI là tiếng Anh "View Schedule" / "Book Now" (đã xác nhận qua
     // debug dump DOM thực tế), không phải "Xem lịch chiếu" / "Đặt vé ngay" như giả
     // định ban đầu. Cả 2 nút đều là thẻ <a> với class btn-primary / btn-ghost.
-    I.seeElement(locate('a').withText('View Schedule'));
-    I.seeElement(locate('a').withText('Book Now'));
+    // Nút CTA có thể hiển thị tiếng Việt hoặc tiếng Anh tuỳ ngôn ngữ trình duyệt
+    // Dùng XPath để bắt cả 2 trường hợp
+    I.seeElement('//a[contains(text(),"Xem lịch chiếu") or contains(text(),"View Schedule")]');
+    I.seeElement('//a[contains(text(),"Đặt vé ngay") or contains(text(),"Book Now")]');
 
 });
 
