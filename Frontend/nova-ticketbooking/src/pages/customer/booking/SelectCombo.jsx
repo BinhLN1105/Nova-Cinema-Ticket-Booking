@@ -13,6 +13,11 @@ export default function SelectComboPage() {
   const store = useBookingStore()
   const { selectedCombos, setComboQty, total } = store
 
+  const totalComboQuantity = Object.values(selectedCombos).reduce(
+    (sum, item) => sum + (item?.quantity || 0),
+    0
+  )
+
   useEffect(() => {
     window.scrollTo(0, 0)
     if (!store.selectedShowtime || store.selectedSeats.length === 0) {
@@ -71,44 +76,55 @@ export default function SelectComboPage() {
                   )}>
                   {/* Image */}
                   <div className="w-full sm:w-28 h-28 flex-shrink-0 bg-cinema-800 rounded-xl overflow-hidden">
-                    <img src={combo.imageUrl || 'https://placehold.co/200x200/png?text=Combo'} 
+                    <img src={combo.imageUrl || 'https://placehold.co/200x200/png?text=Combo'}
                       alt={combo.name} className="w-full h-full object-cover" />
                   </div>
-                  
+
                   {/* Info */}
                   <div className="flex-1 flex flex-col justify-between">
                     <div>
                       <h3 className="font-display font-bold text-white text-lg mb-1">{combo.name}</h3>
                       <p className="text-cinema-300 text-xs mb-3 line-clamp-2">{combo.description}</p>
                     </div>
-                    
+
                     <div className="flex items-center justify-between mt-auto">
                       <span className="font-bold text-brand-400">
                         {formatCurrency(combo.price)}
                       </span>
-                      
+
                       {/* Controls */}
                       <div className="flex items-center gap-3">
                         <button
+                          data-testid={`combo-minus-${combo.id}`}
+                          aria-label={`Giảm ${combo.name}`}
                           disabled={qty === 0}
                           onClick={() => setComboQty(combo.id, qty - 1, combo.price)}
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                            qty === 0 
-                              ? "bg-white/5 text-cinema-500 cursor-not-allowed" 
+                            qty === 0
+                              ? "bg-white/5 text-cinema-500 cursor-not-allowed"
                               : "bg-cinema-700 text-white hover:bg-brand-500 hover:text-white"
                           )}
                         >
                           <Minus className="w-4 h-4" />
                         </button>
-                        <span className="w-4 text-center font-bold text-white">{qty}</span>
+                        <span
+                          data-testid={`combo-quantity-${combo.id}`}
+                          className="w-4 text-center font-bold text-white"
+                        >{qty}</span>
                         <button
-                          disabled={qty >= 10}
-                          onClick={() => setComboQty(combo.id, qty + 1, combo.price)}
+                          aria-label={`Tăng ${combo.name}`}
+                          data-testid={`combo-plus-${combo.id}`}
+
+                          disabled={totalComboQuantity >= 10}
+                          onClick={() => {
+                            if (totalComboQuantity >= 10) return
+                            setComboQty(combo.id, qty + 1, combo.price)
+                          }}
                           className={cn(
                             "w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
-                            qty >= 10 
-                              ? "bg-white/5 text-cinema-500 cursor-not-allowed" 
+                            totalComboQuantity >= 10
+                              ? "bg-white/5 text-cinema-500 cursor-not-allowed"
                               : "bg-cinema-700 text-white hover:bg-brand-500 hover:text-white"
                           )}
                         >

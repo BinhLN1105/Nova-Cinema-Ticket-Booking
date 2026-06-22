@@ -122,8 +122,16 @@ sonar {
         property "sonar.projectName", "NovaTicket Android"
         property "sonar.sources", "src/main/java"
         property "sonar.tests", "src/test/java"
-        property "sonar.java.binaries", "build/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
+        property "sonar.java.binaries", "${layout.buildDirectory.get().asFile}/intermediates/javac/debug/compileDebugJavaWithJavac/classes"
         property "sonar.coverage.exclusions", "**/*"
-        property "sonar.coverage.jacoco.xmlReportPaths", "build/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
+        property "sonar.coverage.jacoco.xmlReportPaths", "${layout.buildDirectory.get().asFile}/reports/jacoco/jacocoTestReport/jacocoTestReport.xml"
     }
 }
+
+// Đảm bảo compile Java hoàn tất trước khi chạy phân tích Sonar để tránh lỗi thiếu binaries trên CI/CD
+tasks.configureEach { task ->
+    if (task.name == "sonar") {
+        task.dependsOn(tasks.matching { it.name.startsWith("compile") && it.name.endsWith("JavaWithJavac") })
+    }
+}
+
