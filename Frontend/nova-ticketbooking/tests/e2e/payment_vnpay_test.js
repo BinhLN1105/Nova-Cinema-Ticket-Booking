@@ -12,9 +12,9 @@ function loadTestData() {
 
 async function startCheckout(I, testData) {
   await I.executeScript(() => localStorage.removeItem('booking-storage'));
+  I.amOnPage(`/booking/showtime/${testData.movie_id}`);
   await I.usePlaywrightTo('choose the seeded showtime through the UI', async ({ page }) => {
-    await page.goto(`/booking/showtime/${testData.movie_id}`);
-    const detailResponse = await page.request.get(`/api/v1/showtimes/${testData.showtime_id}`);
+    const detailResponse = await page.request.get(new URL(`/api/v1/showtimes/${testData.showtime_id}`, page.url()).href);
     if (!detailResponse.ok()) throw new Error(`Không đọc được showtime seed ${testData.showtime_id}.`);
     const detailPayload = await detailResponse.json();
     const seededShowtime = detailPayload.data ?? detailPayload;
@@ -74,7 +74,7 @@ async function payWithVnpay(I) {
 Feature('Payment - VNPay callback interception');
 
 Scenario('VNPay success callback redirects to booking confirmation', async ({ I, loginAs }) => {
-  loginAs('customer');
+  await loginAs('customer');
   await startCheckout(I, loadTestData());
   await interceptVnpay(I, '00');
   await payWithVnpay(I);
@@ -84,7 +84,7 @@ Scenario('VNPay success callback redirects to booking confirmation', async ({ I,
 });
 
 Scenario('VNPay cancellation callback displays payment failure', async ({ I, loginAs }) => {
-  loginAs('customer');
+  await loginAs('customer');
   await startCheckout(I, loadTestData());
   await interceptVnpay(I, '24');
   await payWithVnpay(I);
