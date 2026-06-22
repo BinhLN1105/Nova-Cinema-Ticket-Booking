@@ -1,0 +1,112 @@
+name: 🚀 Deploy Backend to Azure Container Apps
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'Backend/ticket-booking/**'
+      - '.github/workflows/deploy-backend.yml'
+
+jobs:
+  # 🐳 STAGE 1: RUN TEST, BUILD JAR & PUSH DOCKER IMAGE
+  build-and-push:
+    name: 🐳 Build & Push Docker Image
+    runs-on: ubuntu-latest
+
+    services:
+      # ── KHỞI CHẠY POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
+      postgres:
+        image: pgvector/pgvector:pg15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: admin
+          POSTGRES_DB: nova_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      # ── KHỞI CHẠY REDIS ĐỂ CACHING ────────────────────────────────────────
+      redis:
+        image: redis:alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: 🧪 Run Unit Tests & Package JAR
+        run: |
+          cd Backend/ticket-booking
+          mvn clean package -DskipTests=false
+        env:
+          SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/nova_db
+          SPRING_DATASOURCE_USERNAME: postgres
+          SPRING_DATASOURCE_PASSWORD: admin
+          SPRING_DATA_REDIS_HOST: localhost
+          SPRING_DATA_REDIS_PORT: 6379
+          JWT_SECRET: mySuperSecretKeyForJWTAuthToken2026PlaceholderSecretKeyJWT
+          QR_SECRET: myQrSecretKey2026PlaceholderSecretKeyQR
+          INTERNAL_API_KEY: internal_test_secret_key_2026
+          VNPAY_TMN_CODE: placeholder_vnpay_code
+          VNPAY_HASH_SECRET: ${{ secrets.VNPAY_HASH_SECRET }}
+          VNPAY_RETURN_URL: http://localhost:8080/api/v1/payments/vnpay/callback
+          CLOUDINARY_NAME: placeholder_cloudinary
+          CLOUDINARY_API_KEY: placeholder_cloudinary_key
+          CLOUDINARY_API_SECRET: placeholder_cloudinary_secret
+          APP_TEST_ADMIN_PASSWORD: ${{ secrets.APP_TEST_ADMIN_PASSWORD }}
+          APP_TEST_STAFF_PASSWORD: ${{ secrets.APP_TEST_STAFF_PASSWORD }}
+
+      - name: 🛠️ Set up QEMU (Multi-platform support)
+        uses: docker/setup-qemu-action@v3
+
+      - name: 🛠️ Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔐 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 📦 Build and Push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: Backend/ticket-booking
+          file: Backend/ticket-booking/Dockerfile
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/novaticket-backend:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/novaticket-backend:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ☁️ STAGE 2: DEPLOY & VERIFY ON AZURE CONTAINER APPS
+  deploy-to-azure:
+    name: ☁️ Deploy & Verify on Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    steps:
+      - name: 🔐 Log in to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 🚀 Update Azure Container App
+        uses: azure/container-apps-deploy-action@v2
+        with:
+          imageToDeploy: ${{ secrets.DOCKERHUB_USERNAME }}/novaticket-backend:${{ github.sha }}
+          containerAppName: ${{ secrets.AZURE_CONTAINER_APP_NAME || 'novaticket-backend' }}
+          resourceGroup: ${{ secrets.AZURE_RESOURCE_GROUP || 'novaticket-rg' }}
