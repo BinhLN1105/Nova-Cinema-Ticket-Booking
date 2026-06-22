@@ -198,7 +198,7 @@ class ShowtimeServiceImplTest {
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(UUID.randomUUID().toString());
         request.setScreenId(UUID.randomUUID().toString());
-        request.setStartTime(LocalDateTime.now().plusHours(2));
+        request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
         request.setBasePrice(BigDecimal.valueOf(80));
 
         Movie movie = Movie.builder().duration(120).build();
@@ -224,7 +224,7 @@ class ShowtimeServiceImplTest {
     @Test
     void testCreate_StartTimeInvalid() {
         ShowtimeRequest request = new ShowtimeRequest();
-        request.setStartTime(LocalDateTime.now());
+        request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).minusMinutes(1));
 
         assertThrows(BadRequestException.class, () -> showtimeService.create(request));
     }
@@ -234,7 +234,7 @@ class ShowtimeServiceImplTest {
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(UUID.randomUUID().toString());
         request.setScreenId(UUID.randomUUID().toString());
-        request.setStartTime(LocalDateTime.now().plusHours(2));
+        request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
         request.setBasePrice(BigDecimal.valueOf(80));
 
         Movie movie = Movie.builder().duration(120).build();
