@@ -81,7 +81,7 @@ public class AuthSecurityTest {
     }
 
     // ==========================================
-    // 2. NGHIỆP VỤ: ĐĂNG KÝ LỖI -> TRÙNG EMAIL
+    // 2. NGHIỆP VỤ: ĐĂNG KÝ LỖI -> EMAIL ĐÃ TỒN TẠI
     // ==========================================
     @Test
     void register_Failed_DuplicateEmail_ShouldThrowException() {
@@ -96,7 +96,7 @@ public class AuthSecurityTest {
     }
 
     // ==========================================
-    // 3. NGHIỆP VỤ: ĐĂNG NHẬP THÀNH CÔNG -> SINH JWT
+    // 3. NGHIỆP VỤ: ĐĂNG NHẬP THÀNH CÔNG -> SINH CẶP JWT TOKEN
     // ==========================================
     @Test
     void login_Success_ShouldReturnJwtTokenPair() {
@@ -137,7 +137,7 @@ public class AuthSecurityTest {
     }
 
     // ==========================================
-    // 5. BỔ SUNG NGHIỆP VỤ: KHÓA TÀI KHOẢN KHI SAI QUÁ 5 LẦN (Yêu cầu Sub-task)
+    // 5. NGHIỆP VỤ: KHÓA TÀI KHOẢN KHI SAI QUÁ 5 LẦN 
     // ==========================================
     @Test
     void login_WrongPassword_ExceedLimit_ShouldLockAccount() {
@@ -171,11 +171,11 @@ public class AuthSecurityTest {
     }
 
     // ==========================================
-    // 6. NGHIỆP VỤ ĐỘC LẬP: KIỂM THỬ THỰC TẾ LỚP JWT SERVICE (Đảm bảo Line Coverage >80%)
+    // 6. NGHIỆP VỤ ĐỘC LẬP: KIỂM THỬ THỰC TẾ LỚP JWT SERVICE
     // ==========================================
     @Test
     void jwt_ActualService_Coverage_Verification() {
-        // Tạo thực thể thật thay vì mock để code luồng đi thẳng vào JwtServiceImpl.java khi JaCoCo đo đạc
+        
         JwtServiceImpl realJwtService = new JwtServiceImpl();
         
         // Kích hoạt bẫy lỗi token không hợp lệ/hết hạn trên nền chuỗi ngẫu nhiên để tăng độ bao phủ nhánh rẽ
@@ -185,7 +185,7 @@ public class AuthSecurityTest {
             boolean isValid = realJwtService.isTokenValid(invalidToken);
             assertFalse(isValid);
         } catch (Exception e) {
-            // Chấp nhận mọi lỗi ném ra (MalformedJwtException, v.v.), miễn là code thực tế được chạy qua
+           
             assertNotNull(e.getMessage());
         }
     }
