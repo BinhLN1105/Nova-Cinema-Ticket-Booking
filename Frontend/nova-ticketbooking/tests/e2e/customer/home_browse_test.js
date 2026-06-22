@@ -120,6 +120,6 @@ Scenario('Tìm kiếm không tìm thấy kết quả - hiển thị thông báo 
     I.wait(2); // Chờ debounce và UI cập nhật
 
     // UI phải hiển thị màn hình trống kèm đúng thông báo theo yêu cầu DoD
-    I.see('Không tìm thấy phim nào'); // Text thực tế trên UI
+    I.see('Không tìm thấy phim phù hợp'); // Text thực tế trên UI
 
 });

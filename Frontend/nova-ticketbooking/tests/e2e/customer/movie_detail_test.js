@@ -205,14 +205,14 @@ Scenario('Lọc theo cụm rạp - hiển thị đúng suất chiếu của rạ
     await goToBookingShowtime(I, testData.showtime_id);
 
     // Chờ nút lọc rạp xuất hiện
-    I.waitForElement('//button[contains(text(),"CINEMA Q12")]', 15);
+    I.waitForElement('//button[contains(text(),"NovaCinema Test UI")]', 15);
 
-    I.click('//button[contains(text(),"CINEMA Q12")]');
+    I.click('//button[contains(text(),"NovaCinema Test UI")]');
 
     I.wait(3);
 
-    // Xác minh rạp CINEMA Q12 được highlight (active)
-    I.seeElement('//button[contains(text(),"CINEMA Q12") and contains(@class,"bg-brand")]');
+    // Xác minh rạp NovaCinema Test UI được highlight (active)
+    I.seeElement('//button[contains(text(),"NovaCinema Test UI") and contains(@class,"bg-brand")]');
 
 });
 
