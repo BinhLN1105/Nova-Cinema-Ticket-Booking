@@ -18,6 +18,7 @@ import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ResourceNotFoundException;
 import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.exception.ConflictException;
+import com.cinema.ticket_booking.exception.SeatAlreadyLockedException;
 import com.cinema.ticket_booking.mapper.BookingMapper;
 import com.cinema.ticket_booking.repository.*;
 import com.cinema.ticket_booking.service.SeatLockService;
@@ -134,7 +135,11 @@ public class BookingServiceImpl implements BookingService {
         Showtime showtime = null;
         if (request.getShowtimeId() != null && !request.getShowtimeId().isBlank()) {
             showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
-            if (showtime.getStatus() != ShowtimeStatus.SCHEDULED) {
+            // RÀNG BUỘC NGHIỆP VỤ: Chỉ cho phép đặt vé đối với suất chiếu có trạng thái SCHEDULED (Đang lên lịch).
+            // Đồng thời, thời điểm bắt đầu chiếu phải lớn hơn thời gian hiện tại của máy chủ tại múi giờ Việt Nam (Asia/Ho_Chi_Minh).
+            // Nếu không thỏa mãn, ném BadRequestException ngăn chặn luồng đặt vé quá hạn/không hợp lệ.
+            if (showtime.getStatus() != ShowtimeStatus.SCHEDULED || 
+                showtime.getStartTime().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
                 throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
             }
         }
@@ -351,15 +356,20 @@ public class BookingServiceImpl implements BookingService {
                         throw new BadRequestException(
                                 "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
                     }
+                    // Thực hiện lock ghế nguyên tử qua Redis (qua seatLockService).
+                    // Nếu lockSeat trả về false, nghĩa là đã có một client khác nhanh tay lock trước trong thời gian chờ thanh toán.
+                    // Hệ thống ném ra SeatAlreadyLockedException (HTTP 409) để báo hiệu xung đột tranh chấp ghế.
                     boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
                             Duration.ofMinutes(pendingMins));
                     if (!locked) {
-                        throw new BadRequestException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
+                        throw new SeatAlreadyLockedException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
                                 + " đang được giữ bởi người khác");
                     }
                     lockedSoFar.add(ss.getId().toString());
                 }
             } catch (Exception e) {
+                // HOÀN TÁC LOCK: Nếu bất kỳ ghế nào trong danh sách yêu cầu không thể lock thành công (gây ra Exception),
+                // chúng ta phải giải phóng (release) toàn bộ những ghế đã lock thành công trước đó trong vòng lặp này.
                 seatLockService.releaseSeats(lockedSoFar);
                 throw e;
             }
