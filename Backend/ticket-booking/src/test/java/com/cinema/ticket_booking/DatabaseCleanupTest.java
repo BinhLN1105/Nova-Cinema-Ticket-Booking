@@ -11,7 +11,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @SpringBootTest
-@ActiveProfiles("dev")
+@ActiveProfiles("test")
 public class DatabaseCleanupTest {
 
     @Autowired
