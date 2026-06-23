@@ -188,13 +188,39 @@ Scenario('Chọn ngày khác - bộ lọc cập nhật theo ngày được chọ
 
     await goToBookingShowtime(I, testData.showtime_id);
 
-    // Click vào nút "Thứ 3" — dùng XPath để tìm button chứa span text "Thứ 3"
-    I.click('//button[contains(@class,"rounded-2xl")][.//span[contains(text(),"Thứ 3")]]');
+    // Lịch phụ thuộc ngày chạy CI, vì vậy không được hard-code thứ trong tuần.
+    // Chọn một ngày enabled khác ngày đang active và giữ lại nhãn để xác nhận UI đổi filter.
+    const previousDay = await I.executeScript(() => {
+        const active = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .find(button => button.classList.contains('bg-brand-500'));
+        return active?.innerText.trim() ?? null;
+    });
+
+    const selectedDay = await I.executeScript(() => {
+        const buttons = Array.from(document.querySelectorAll('button.rounded-2xl'));
+        const nextDay = buttons.find(button =>
+            !button.disabled &&
+            !button.hasAttribute('disabled') &&
+            !button.classList.contains('bg-brand-500')
+        );
+
+        if (!nextDay) return null;
+        nextDay.click();
+        return nextDay.innerText.trim();
+    });
+
+    assert.ok(selectedDay, 'Không có ngày khả dụng thứ hai để kiểm thử đổi bộ lọc');
 
     I.wait(2);
 
-    // Xác minh nút "Thứ 3" đã được active (có class bg-brand-500)
-    I.seeElement('//button[contains(@class,"bg-brand-500")][.//span[contains(text(),"Thứ 3")]]');
+    const activeDay = await I.executeScript(() => {
+        const active = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .find(button => button.classList.contains('bg-brand-500'));
+        return active?.innerText.trim() ?? null;
+    });
+
+    assert.strictEqual(activeDay, selectedDay, 'Ngày vừa chọn chưa trở thành ngày active');
+    assert.notStrictEqual(activeDay, previousDay, 'Bộ lọc ngày không thay đổi sau khi chọn ngày khác');
 
 });
 
