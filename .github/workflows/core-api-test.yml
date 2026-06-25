@@ -135,6 +135,16 @@ jobs:
             --reporters cli,json \
             --reporter-json-export baocaoLocal/bva-report.json
 
+      - name: 🔄 Chạy bộ kiểm thử Newman State Transition Test
+        if: always()
+        run: |
+          newman run qa-tests/postman/NOVATicket_StateTransition.postman_collection.json \
+            -e baocaoLocal/updated_env.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --reporters cli,json \
+            --reporter-json-export baocaoLocal/state-transition-report.json \
+            --export-environment baocaoLocal/updated_env.json
+
       # ── UPLOAD KẾT QUẢ TEST JSON LÊN ARTIFACT BỘ NHỚ TẠM ───────────────────
       - name: 💾 Lưu trữ kết quả test tạm thời (Artifact)
         if: always() # Luôn lưu trữ kết quả dù bất kỳ test nào PASS hay FAIL
@@ -145,4 +155,5 @@ jobs:
             baocaoLocal/postman-report.json
             baocaoLocal/security-report.json
             baocaoLocal/bva-report.json
+            baocaoLocal/state-transition-report.json
           retention-days: 2 # Chỉ giữ 2 ngày trên bộ nhớ tạm để tiết kiệm dung lượng
