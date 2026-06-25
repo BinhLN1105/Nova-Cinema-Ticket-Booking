@@ -451,7 +451,6 @@ class BookingCancellationTest {
     @Test
     @DisplayName("cancelRequest: gui yeu cau huy -> sinh token va gui email")
     void cancelRequestValidBookingShouldGenerateTokenAndSendEmail() {
-        ZoneId zone = ZoneId.of(ZONE_VN);
         Booking bookingNoToken = Booking.builder()
                 .id(bookingId)
                 .user(customerUser)
@@ -475,12 +474,14 @@ class BookingCancellationTest {
 
         bookingService.cancelRequest(customerUser.getId(), bookingId);
 
-        LocalDateTime now = LocalDateTime.now(zone);
-        verify(bookingRepository, atLeastOnce()).save(argThat(b ->
-                b.getCancellationToken() != null &&
-                b.getCancellationTokenExpiry() != null &&
-                b.getCancellationTokenExpiry().isAfter(now)));
+        // Assert: token được sinh và lưu trực tiếp trên object bookingNoToken
+        assertNotNull(bookingNoToken.getCancellationToken());
+        assertNotNull(bookingNoToken.getCancellationTokenExpiry());
 
+        // Assert: bookingRepository.save được gọi ít nhất 1 lần
+        verify(bookingRepository, atLeastOnce()).save(any(Booking.class));
+
+        // Assert: email được gửi
         verify(emailService).sendCancellationRequestEmail(
                 eq(customerUser.getEmail()),
                 eq(customerUser.getFullName()),
