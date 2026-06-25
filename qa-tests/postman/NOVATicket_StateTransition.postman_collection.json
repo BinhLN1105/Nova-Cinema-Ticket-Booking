@@ -138,11 +138,11 @@
 									"pm.test(\"Lấy danh sách ghế thành công\", function () {",
 									"    pm.response.to.have.status(200);",
 									"    const response = pm.response.json();",
-									"    const seats = response.data;",
+									"    const seats = response.data.seats;",
 									"    const availableSeats = seats.filter(s => s.status === 'AVAILABLE');",
 									"    pm.expect(availableSeats.length).to.be.at.least(2);",
-									"    pm.environment.set(\"state_seat_id_1\", availableSeats[0].id);",
-									"    pm.environment.set(\"state_seat_id_2\", availableSeats[1].id);",
+									"    pm.environment.set(\"state_seat_id_1\", availableSeats[0].showtimeSeatId);",
+									"    pm.environment.set(\"state_seat_id_2\", availableSeats[1].showtimeSeatId);",
 									"});"
 								],
 								"type": "text/javascript"
