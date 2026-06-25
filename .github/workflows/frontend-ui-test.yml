@@ -115,6 +115,13 @@ jobs:
         working-directory: Frontend/nova-ticketbooking
         run: npx playwright install chromium
 
+      # ── THIẾT LẬP THƯ VIỆN HỖ TRỢ HTTPS CHO LOCALHOST ──────────────
+      - name: 🔐 Cài đặt và cấu hình mkcert (HTTPS)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libnss3-tools mkcert
+          mkcert -install
+
       # ── CHẠY NGẦM FRONTEND ─────────────────────────────────────────
       - name: 🚀 Khởi chạy ngầm server React Frontend
         working-directory: Frontend/nova-ticketbooking
