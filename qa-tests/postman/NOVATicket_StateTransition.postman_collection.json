@@ -408,7 +408,7 @@
 								"exec": [
 									"pm.test(\"Check-in thành công - Status 200\", function () {",
 									"    pm.response.to.have.status(200);",
-									"    pm.expect(pm.response.json().data.status).to.eql(\"CHECKED_IN\");",
+									"    pm.expect(pm.response.json().data.allCheckedIn).to.eql(true);",
 									"});"
 								],
 								"type": "text/javascript"
