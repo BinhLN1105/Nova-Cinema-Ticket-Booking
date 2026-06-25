@@ -1,0 +1,936 @@
+{
+	"info": {
+		"_postman_id": "8c5da859-994b-4a5f-a36c-9bc7d853e8fb",
+		"name": "NOVA Ticket - State Transition Testing",
+		"description": "Collection kiểm thử Chuyển đổi trạng thái (State Machine) cho luồng Đặt vé của NovaTicket.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Happy Path: PENDING -> PAID -> CHECKED_IN",
+			"item": [
+				{
+					"name": "1.1 Customer Auth Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"{{registered_email}}\",\n    \"password\": \"Password123!\"\n}"
+						},
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/auth/login",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"if (!pm.environment.get(\"registered_email\")) {",
+									"    pm.environment.set(\"registered_email\", \"customer_test@novaticket.com\");",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login customer thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"customer_accessToken\", response.data.accessToken);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.2 Lấy thông tin ví và EXP ban đầu",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/users/me",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Lấy profile customer thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"prev_reward_points\", response.data.rewardPoints);",
+									"    pm.environment.set(\"prev_available_exp\", response.data.availableExp);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.3 Lấy ghế trống cho Suất chiếu",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/showtimes/{{test_showtime_id}}/seats",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"showtimes",
+								"{{test_showtime_id}}",
+								"seats"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Lấy danh sách ghế thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    const seats = response.data;",
+									"    const availableSeats = seats.filter(s => s.status === 'AVAILABLE');",
+									"    pm.expect(availableSeats.length).to.be.at.least(2);",
+									"    pm.environment.set(\"state_seat_id_1\", availableSeats[0].id);",
+									"    pm.environment.set(\"state_seat_id_2\", availableSeats[1].id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.4 Đặt ghế & Tạo đơn vé (PENDING)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"showtimeId\": \"{{test_showtime_id}}\",\n    \"showtimeSeatIds\": [\"{{state_seat_id_1}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tạo booking thành công - Status 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"state_booking_id_1\", response.data.id);",
+									"    pm.environment.set(\"state_booking_code_1\", response.data.bookingCode);",
+									"    pm.expect(response.data.status).to.eql(\"PENDING\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.5 Xác minh trạng thái vé là PENDING",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/{{state_booking_id_1}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"{{state_booking_id_1}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Trạng thái đơn vé là PENDING\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(pm.response.json().data.status).to.eql(\"PENDING\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.6 Thanh toán bằng ví CinePoint (PAID)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/payments/wallet/{{state_booking_id_1}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"wallet",
+								"{{state_booking_id_1}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Thanh toán qua ví thành công - Status 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.7 Xác minh ví CinePoint giảm tiền & EXP tăng",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/users/me",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Số dư ví CinePoint giảm sau thanh toán\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    const prevPoints = parseInt(pm.environment.get(\"prev_reward_points\"));",
+									"    const currentPoints = response.data.rewardPoints;",
+									"    pm.expect(currentPoints).to.be.below(prevPoints);",
+									"    pm.environment.set(\"paid_reward_points_1\", currentPoints);",
+									"});",
+									"pm.test(\"Điểm EXP tăng sau thanh toán\", function () {",
+									"    const response = pm.response.json();",
+									"    const prevExp = parseInt(pm.environment.get(\"prev_available_exp\"));",
+									"    const currentExp = response.data.availableExp;",
+									"    pm.expect(currentExp).to.be.above(prevExp);",
+									"    pm.environment.set(\"paid_available_exp_1\", currentExp);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.8 Admin Auth Login",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin_test@novaticket.com\",\n    \"password\": \"AdminPassword123!\"\n}"
+						},
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/auth/login",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"auth",
+								"login"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login admin thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"admin_accessToken\", response.data.accessToken);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.9 Admin soát vé check-in thành công (CHECKED_IN)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{state_booking_code_1}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"check-in"
+							],
+							"query": [
+								{
+									"key": "qrCode",
+									"value": "{{state_booking_code_1}}"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Check-in thành công - Status 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(pm.response.json().data.status).to.eql(\"CHECKED_IN\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "1.10 Xác minh trạng thái cuối cùng là CHECKED_IN",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/{{state_booking_id_1}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"{{state_booking_id_1}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Xác minh trạng thái cuối là CHECKED_IN\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    pm.expect(pm.response.json().data.status).to.eql(\"CHECKED_IN\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "2. Cancel Path & Guard Rails: PENDING -> PAID -> CANCELLED & Blocker Tests",
+			"item": [
+				{
+					"name": "2.1 Đặt ghế & Tạo đơn vé 2 (PENDING)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"showtimeId\": \"{{test_showtime_id}}\",\n    \"showtimeSeatIds\": [\"{{state_seat_id_2}}\"]\n}"
+						},
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Tạo booking 2 thành công - Status 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"state_booking_id_2\", response.data.id);",
+									"    pm.environment.set(\"state_booking_code_2\", response.data.bookingCode);",
+									"    pm.expect(response.data.status).to.eql(\"PENDING\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.2 Chặn check-in vé PENDING (Blocker Test)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{state_booking_code_2}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"check-in"
+							],
+							"query": [
+								{
+									"key": "qrCode",
+									"value": "{{state_booking_code_2}}"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Không thể soát vé chưa thanh toán - Status 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"    pm.expect(pm.response.json().message).to.include(\"chưa thanh toán\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.3 Lấy thông tin ví và EXP trước thanh toán đơn 2",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/users/me",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Lấy profile customer trước thanh toán 2 thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"prev_reward_points_2\", response.data.rewardPoints);",
+									"    pm.environment.set(\"prev_available_exp_2\", response.data.availableExp);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.4 Thanh toán bằng ví CinePoint đơn 2 (PAID)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/payments/wallet/{{state_booking_id_2}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"payments",
+								"wallet",
+								"{{state_booking_id_2}}"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Thanh toán đơn 2 qua ví thành công - Status 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.5 Lấy thông tin ví và EXP sau khi thanh toán đơn 2",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/users/me",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Lấy ví sau thanh toán 2 thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"paid_reward_points_2\", response.data.rewardPoints);",
+									"    pm.environment.set(\"paid_available_exp_2\", response.data.availableExp);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.6 Khách gửi yêu cầu hủy vé (cancel-request)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/{{state_booking_id_2}}/cancel-request",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"{{state_booking_id_2}}",
+								"cancel-request"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Gửi yêu cầu hủy thành công - Status 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.7 Lấy Token hủy vé (cancel-token)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/{{state_booking_id_2}}/cancel-token",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"{{state_booking_id_2}}",
+								"cancel-token"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Lấy cancel token thành công\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    pm.environment.set(\"state_cancel_token\", response.data);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.8 Xác nhận hủy vé bằng Token (CANCELLED)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/cancel-confirm?token={{state_cancel_token}}&bookingId={{state_booking_id_2}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"cancel-confirm"
+							],
+							"query": [
+								{
+									"key": "token",
+									"value": "{{state_cancel_token}}"
+								},
+								{
+									"key": "bookingId",
+									"value": "{{state_booking_id_2}}"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Xác nhận hủy thành công - Status 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.9 Xác minh ví được hoàn tiền & EXP bị thu hồi",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/users/me",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"users",
+								"me"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Số dư ví được hoàn trả (tăng lên)\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    const response = pm.response.json();",
+									"    const paidPoints = parseInt(pm.environment.get(\"paid_reward_points_2\"));",
+									"    const currentPoints = response.data.rewardPoints;",
+									"    pm.expect(currentPoints).to.be.above(paidPoints);",
+									"});",
+									"pm.test(\"Điểm EXP bị thu hồi (giảm đi)\", function () {",
+									"    const response = pm.response.json();",
+									"    const paidExp = parseInt(pm.environment.get(\"paid_available_exp_2\"));",
+									"    const currentExp = response.data.availableExp;",
+									"    pm.expect(currentExp).to.be.below(paidExp);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.10 Chặn check-in vé đã CANCELLED (Blocker Test)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{admin_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/check-in?qrCode={{state_booking_code_2}}",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"check-in"
+							],
+							"query": [
+								{
+									"key": "qrCode",
+									"value": "{{state_booking_code_2}}"
+								}
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Không thể soát vé đã hủy - Status 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"    pm.expect(pm.response.json().message).to.include(\"đã huỷ\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				},
+				{
+					"name": "2.11 Chặn yêu cầu hủy lại vé đã hủy (Blocker Test)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{customer_accessToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{BaseUrl}}/api/v1/bookings/{{state_booking_id_2}}/cancel-request",
+							"host": [
+								"{{BaseUrl}}"
+							],
+							"path": [
+								"api",
+								"v1",
+								"bookings",
+								"{{state_booking_id_2}}",
+								"cancel-request"
+							]
+						}
+					},
+					"response": [],
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Chặn hủy lại vé đã hủy - Status 400\", function () {",
+									"    pm.response.to.have.status(400);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					]
+				}
+			]
+		}
+	]
+}

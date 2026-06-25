@@ -19,9 +19,10 @@ if not exist node_modules\axios (
 node scripts/auto_log_jira_bug.js
 
 echo.
-echo [2/3] Dang chay kiem thu API Security & BVA qua Newman...
+echo [2/3] Dang chay kiem thu API Security, BVA & State Transition qua Newman...
 call newman run qa-tests/postman/NOVATicket_Security.postman_collection.json -e baocaoLocal/updated_env.json --reporters cli,json --reporter-json-export baocaoLocal/security-report.json
 call newman run qa-tests/postman/NOVATicket_BVA.postman_collection.json -e baocaoLocal/updated_env.json --reporters cli,json --reporter-json-export baocaoLocal/bva-report.json
+call newman run qa-tests/postman/NOVATicket_StateTransition.postman_collection.json -e baocaoLocal/updated_env.json --reporters cli,json --reporter-json-export baocaoLocal/state-transition-report.json --export-environment baocaoLocal/updated_env.json
 
 echo.
 echo [3/3] Dang doc ket qua test, ve Excel va dong bo len Google Drive...
