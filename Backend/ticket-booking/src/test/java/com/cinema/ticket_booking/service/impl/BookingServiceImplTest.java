@@ -792,7 +792,7 @@ class BookingServiceImplTest {
         assertEquals(UserVoucherStatus.AVAILABLE, userVoucher.getStatus());
         assertEquals(180L, bookingUser.getRewardPoints()); // 100 + (100000 * 80% / 100 / 1000) = 180
 
-        verify(bookingRepository, times(2)).save(booking);
+        verify(bookingRepository).save(booking);
         verify(userVoucherRepository).save(userVoucher);
         verify(userService).save(bookingUser);
         verify(transactionRepository).save(any(Transaction.class));
@@ -837,7 +837,7 @@ class BookingServiceImplTest {
         assertEquals(BookingStatus.CANCELLED, booking.getStatus());
         assertEquals(200L, customer.getRewardPoints()); // Staff cancel -> 100% refund -> 100 + 100 = 200
 
-        verify(bookingRepository, times(2)).save(booking);
+        verify(bookingRepository).save(booking);
         verify(userService).save(customer);
         verify(transactionRepository).save(any(Transaction.class));
     }

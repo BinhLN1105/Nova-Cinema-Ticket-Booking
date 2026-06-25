@@ -21,7 +21,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"email\": \"{{registered_email}}\",\n    \"password\": \"Password123!\"\n}"
+							"raw": "{\n    \"email\": \"{{registered_email}}\",\n    \"password\": \"{{customer_password}}\"\n}"
 						},
 						"url": {
 							"raw": "{{BaseUrl}}/api/v1/auth/login",
@@ -42,9 +42,8 @@
 							"listen": "prerequest",
 							"script": {
 								"exec": [
-									"if (!pm.environment.get(\"registered_email\")) {",
-									"    pm.environment.set(\"registered_email\", \"customer_test@novaticket.com\");",
-									"}"
+									"pm.environment.set(\"registered_email\", \"customer_test@novaticket.com\");",
+									"pm.environment.set(\"customer_password\", \"CustomerPassword123!\");"
 								],
 								"type": "text/javascript"
 							}

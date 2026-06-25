@@ -861,7 +861,6 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationToken(null);
         booking.setCancellationTokenExpiry(null);
-        bookingRepository.save(booking);
 
         // 4. Nhả ghế
         releaseSeats(bookingId);
