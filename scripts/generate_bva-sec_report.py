@@ -20,9 +20,11 @@ load_dotenv()
 def generate_academic_report():
     security_collection_path = "qa-tests/postman/NOVATicket_Security.postman_collection.json"
     bva_collection_path = "qa-tests/postman/NOVATicket_BVA.postman_collection.json"
+    state_collection_path = "qa-tests/postman/NOVATicket_StateTransition.postman_collection.json"
     
     security_results_path = "baocaoLocal/security-report.json"
     bva_results_path = "baocaoLocal/bva-report.json"
+    state_results_path = "baocaoLocal/state-transition-report.json"
     
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M")
     output_dir = "baocaoLocal"
@@ -60,6 +62,7 @@ def generate_academic_report():
 
     security_actual = load_actual_results(security_results_path)
     bva_actual = load_actual_results(bva_results_path)
+    state_actual = load_actual_results(state_results_path)
 
     # 2. Khởi tạo Workbook
     wb = openpyxl.Workbook()
@@ -417,6 +420,199 @@ def generate_academic_report():
     widths_sec = {"A": 8, "B": 24, "C": 22, "D": 32, "E": 20, "F": 35, "G": 12}
     for col, w in widths_sec.items():
         ws_sec.column_dimensions[col].width = w
+
+    # ==========================================
+    # SHEET 3: STATE TRANSITION REPORT
+    # ==========================================
+    ws_state = wb.create_sheet(title="State Transition Report")
+    ws_state.views.sheetView[0].showGridLines = True
+
+    # Title
+    ws_state.merge_cells("A1:H1")
+    ws_state["A1"] = f"BÁO CÁO KIỂM THỬ CHUYỂN TRẠNG THÁI (STATE TRANSITION) - NOVA TICKET"
+    ws_state["A1"].font = font_title
+    ws_state["A1"].alignment = Alignment(horizontal="center", vertical="center")
+    ws_state.row_dimensions[1].height = 35
+
+    # 1. MA TRẬN CHUYỂN TRẠNG THÁI (State Transition Matrix)
+    ws_state["A3"] = "1. MA TRẬN CHUYỂN TRẠNG THÁI (STATE TRANSITION MATRIX)"
+    ws_state["A3"].font = font_section
+    ws_state.row_dimensions[3].height = 20
+
+    headers_stm = ["Trạng thái hiện tại", "Sự kiện kích hoạt (Event)", "API kiểm thử tương ứng", "Trạng thái tiếp theo (Expected)", "Hành vi mong đợi / Guard Rails"]
+    ws_state.row_dimensions[4].height = 24
+    for col_num, h in enumerate(headers_stm, 1):
+        cell = ws_state.cell(row=4, column=col_num, value=h)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    stm_data = [
+        ["Chưa tồn tại", "Đặt vé & khóa ghế", "POST /api/v1/bookings", "PENDING", "Ghế chuyển từ AVAILABLE sang LOCKED. Tạo mã bookingCode."],
+        ["PENDING", "Thanh toán ví thành công", "POST /api/v1/payments/wallet/{id}", "PAID", "Trừ số dư ví CinePoint của user, tăng EXP, đổi trạng thái ghế sang BOOKED."],
+        ["PENDING", "Admin cố soát vé", "POST /api/v1/bookings/check-in", "PENDING", "Không đổi (Báo lỗi 400 Bad Request: Chưa thanh toán)."],
+        ["PAID", "Soát vé (Check-in)", "POST /api/v1/bookings/check-in", "CHECKED_IN", "Xác nhận vào rạp, đổi trạng thái ghế sang SOLD."],
+        ["PAID", "Yêu cầu & Xác nhận hủy", "POST .../cancel-request & cancel-confirm", "CANCELLED", "Mở khóa ghế về AVAILABLE, hoàn tiền ví CinePoint, thu hồi EXP tích lũy."],
+        ["CANCELLED", "Cố soát vé đã hủy", "POST /api/v1/bookings/check-in", "CANCELLED", "Không đổi (Báo lỗi 400 Bad Request: Vé đã hủy)."],
+        ["CANCELLED", "Cố hủy lại", "POST .../cancel-request", "CANCELLED", "Không đổi (Báo lỗi 400 Bad Request: Trạng thái không hợp lệ)."]
+    ]
+
+    curr_row = 5
+    for row in stm_data:
+        ws_state.row_dimensions[curr_row].height = 32
+        for col_idx, val in enumerate(row, 1):
+            cell = ws_state.cell(row=curr_row, column=col_idx, value=val)
+            cell.font = font_body
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+            if col_idx in [1, 2, 4]:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+        curr_row += 1
+
+    # 2. KẾT QUẢ CHẠY TEST CASE STATE TRANSITION THỰC TẾ
+    curr_row += 1
+    ws_state.cell(row=curr_row, column=1, value="2. BẢNG KẾT QUẢ CHẠY KIỂM THỬ THỰC TẾ (NEWMAN)").font = font_section
+    ws_state.row_dimensions[curr_row].height = 20
+    curr_row += 1
+
+    headers_state_run = ["STT", "Luồng & Kịch Bản API", "Yêu cầu HTTP / Endpoint", "Kết quả mong đợi (Expected)", "Kết quả thực tế (Newman)", "Trạng thái", "Tag bao phủ"]
+    ws_state.row_dimensions[curr_row].height = 28
+    for col_num, h in enumerate(headers_state_run, 1):
+        cell = ws_state.cell(row=4, column=col_num) # fallback safety
+        cell = ws_state.cell(row=curr_row, column=col_num, value=h)
+        cell.font = font_header
+        cell.fill = fill_header
+        cell.alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
+        cell.border = thin_border
+
+    # Parse collection State Transition
+    state_testcases = []
+    if os.path.exists(state_collection_path):
+        try:
+            with open(state_collection_path, "r", encoding="utf-8") as f:
+                coll = json.load(f)
+                idx = 1
+                for folder in coll.get("item", []):
+                    folder_name = folder.get("name")
+                    for req_item in folder.get("item", []):
+                        req = req_item.get("request", {})
+                        name = req_item.get("name", "")
+                        method = req.get("method", "POST")
+                        
+                        # Trích xuất URL path
+                        url_obj = req.get("url", {})
+                        if isinstance(url_obj, dict):
+                            path = "/".join(url_obj.get("path", []))
+                        else:
+                            path = str(url_obj)
+
+                        # Expected
+                        expected = "API phản hồi thành công."
+                        tag = "N/A"
+                        
+                        if "Auth Login" in name:
+                            expected = "Đăng nhập thành công, trả về JWT Token."
+                            tag = "ST-SETUP"
+                        elif "thông tin ví" in name.lower() or "profile" in name.lower():
+                            expected = "Lấy profile thành công, chứa rewardPoints & availableExp."
+                            tag = "ST-WALLET-GET"
+                        elif "ghế trống" in name.lower():
+                            expected = "Trả về danh sách ghế và chọn được 2 ghế trống AVAILABLE."
+                            tag = "ST-SEAT-GET"
+                        elif "Tạo đơn vé" in name or "Create Booking" in name:
+                            expected = "Tạo booking thành công ở trạng thái PENDING."
+                            tag = "ST-01 (Happy PENDING)"
+                        elif "Xác minh trạng thái vé là PENDING" in name:
+                            expected = "Vé đang ở trạng thái PENDING."
+                            tag = "ST-01 (Verify PENDING)"
+                        elif "Thanh toán bằng ví" in name:
+                            expected = "Thanh toán qua ví thành công, đổi trạng thái sang PAID."
+                            tag = "ST-02 (Happy PAID)"
+                        elif "giảm tiền & EXP tăng" in name:
+                            expected = "Xác minh tiền ví giảm đi, điểm EXP tăng lên."
+                            tag = "ST-02 (Verify Wallet/EXP)"
+                        elif "check-in thành công" in name:
+                            expected = "Admin soát vé thành công, đổi trạng thái sang CHECKED_IN."
+                            tag = "ST-03 (Happy CHECKED_IN)"
+                        elif "Xác minh trạng thái cuối cùng là CHECKED_IN" in name:
+                            expected = "Vé cuối cùng ở trạng thái CHECKED_IN."
+                            tag = "ST-03 (Verify CHECKED_IN)"
+                        elif "Chặn check-in vé PENDING" in name:
+                            expected = "Bị chặn, báo lỗi 400 Bad Request (Vé chưa thanh toán)."
+                            tag = "ST-04 (Blocker Unpaid Check-in)"
+                        elif "hủy vé (cancel-request)" in name:
+                            expected = "Yêu cầu hủy thành công, trả về 200 OK."
+                            tag = "ST-05 (Cancel Request)"
+                        elif "cancel-token" in name:
+                            expected = "Lấy token hủy vé thành công từ database."
+                            tag = "ST-05 (Get Cancel Token)"
+                        elif "Xác nhận hủy vé bằng Token" in name:
+                            expected = "Vé được hủy thành công sang trạng thái CANCELLED."
+                            tag = "ST-05 (Confirm CANCELLED)"
+                        elif "hoàn tiền & EXP bị thu hồi" in name:
+                            expected = "Xác minh tiền ví được hoàn lại, điểm EXP bị trừ ngược lại."
+                            tag = "ST-06 (Verify Rollback Wallet/EXP)"
+                        elif "Chặn check-in vé đã CANCELLED" in name:
+                            expected = "Bị chặn, báo lỗi 400 Bad Request (Vé đã hủy)."
+                            tag = "ST-07 (Blocker Cancelled Check-in)"
+                        elif "Chặn yêu cầu hủy lại" in name:
+                            expected = "Bị chặn, báo lỗi 400 Bad Request (Trạng thái vé không hợp lệ)."
+                            tag = "ST-08 (Blocker Double Cancel)"
+
+                        res_info = state_actual.get(name, {"status": "Untested", "log": "Chưa chạy kiểm thử"})
+
+                        state_testcases.append({
+                            "stt": idx,
+                            "name": f"[{folder_name}] {name}",
+                            "endpoint": f"[{method}] /{path}",
+                            "expected": expected,
+                            "actual": res_info["log"],
+                            "status": res_info["status"],
+                            "tag": tag
+                        })
+                        idx += 1
+        except Exception as e:
+            print(f"⚠️ Lỗi khi trích xuất collection State Transition: {e}")
+
+    curr_row += 1
+    for tc in state_testcases:
+        ws_state.row_dimensions[curr_row].height = 60
+        ws_state.cell(row=curr_row, column=1, value=tc["stt"])
+        ws_state.cell(row=curr_row, column=2, value=tc["name"])
+        ws_state.cell(row=curr_row, column=3, value=tc["endpoint"])
+        ws_state.cell(row=curr_row, column=4, value=tc["expected"])
+        ws_state.cell(row=curr_row, column=5, value=tc["actual"])
+        
+        status_cell = ws_state.cell(row=curr_row, column=6, value=tc["status"])
+        ws_state.cell(row=curr_row, column=7, value=tc["tag"])
+
+        # Format styles
+        for col_idx in range(1, 8):
+            cell = ws_state.cell(row=curr_row, column=col_idx)
+            cell.font = font_body
+            cell.border = thin_border
+            cell.alignment = Alignment(vertical="center", wrap_text=True)
+            if col_idx in [1, 3, 6, 7]:
+                cell.alignment = Alignment(horizontal="center", vertical="center")
+
+        # Color status
+        if tc["status"] == "Passed":
+            status_cell.fill = fill_passed
+            status_cell.font = font_passed
+        elif tc["status"] == "Failed":
+            status_cell.fill = fill_failed
+            status_cell.font = font_failed
+        else:
+            status_cell.fill = fill_untested
+            status_cell.font = font_untested
+
+        curr_row += 1
+
+    # Set column widths
+    widths_state = {"A": 8, "B": 32, "C": 24, "D": 30, "E": 35, "F": 12, "G": 18}
+    for col, w in widths_state.items():
+        ws_state.column_dimensions[col].width = w
 
     # Lưu Workbook Excel
     wb.save(excel_output)

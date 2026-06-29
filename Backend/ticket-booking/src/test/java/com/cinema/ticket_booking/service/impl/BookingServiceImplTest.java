@@ -787,12 +787,12 @@ class BookingServiceImplTest {
         assertEquals(BookingStatus.CANCELLED, booking.getStatus());
         assertNull(booking.getCancellationToken());
         assertFalse(booking.getExpAdded());
-        assertEquals(150L, bookingUser.getAvailableExp()); // Stays 150L because earnedExp is set to 0 in step 3 before revocation check in step 5
+        assertEquals(100L, bookingUser.getAvailableExp()); // Decreases to 100L because earnedExp (50L) is correctly revoked
         assertEquals(0, bookingUser.getRankUsageThisMonth());
         assertEquals(UserVoucherStatus.AVAILABLE, userVoucher.getStatus());
         assertEquals(180L, bookingUser.getRewardPoints()); // 100 + (100000 * 80% / 100 / 1000) = 180
 
-        verify(bookingRepository, times(2)).save(booking);
+        verify(bookingRepository).save(booking);
         verify(userVoucherRepository).save(userVoucher);
         verify(userService).save(bookingUser);
         verify(transactionRepository).save(any(Transaction.class));

@@ -135,11 +135,14 @@ public class BookingServiceImpl implements BookingService {
         Showtime showtime = null;
         if (request.getShowtimeId() != null && !request.getShowtimeId().isBlank()) {
             showtime = showtimeService.findById(UUID.fromString(request.getShowtimeId()));
-            // RÀNG BUỘC NGHIỆP VỤ: Chỉ cho phép đặt vé đối với suất chiếu có trạng thái SCHEDULED (Đang lên lịch).
-            // Đồng thời, thời điểm bắt đầu chiếu phải lớn hơn thời gian hiện tại của máy chủ tại múi giờ Việt Nam (Asia/Ho_Chi_Minh).
-            // Nếu không thỏa mãn, ném BadRequestException ngăn chặn luồng đặt vé quá hạn/không hợp lệ.
-            if (showtime.getStatus() != ShowtimeStatus.SCHEDULED || 
-                showtime.getStartTime().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
+            // RÀNG BUỘC NGHIỆP VỤ: Chỉ cho phép đặt vé đối với suất chiếu có trạng thái
+            // SCHEDULED (Đang lên lịch).
+            // Đồng thời, thời điểm bắt đầu chiếu phải lớn hơn thời gian hiện tại của máy
+            // chủ tại múi giờ Việt Nam (Asia/Ho_Chi_Minh).
+            // Nếu không thỏa mãn, ném BadRequestException ngăn chặn luồng đặt vé quá
+            // hạn/không hợp lệ.
+            if (showtime.getStatus() != ShowtimeStatus.SCHEDULED ||
+                    showtime.getStartTime().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
                 throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
             }
         }
@@ -357,19 +360,24 @@ public class BookingServiceImpl implements BookingService {
                                 "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber() + " đã được bán");
                     }
                     // Thực hiện lock ghế nguyên tử qua Redis (qua seatLockService).
-                    // Nếu lockSeat trả về false, nghĩa là đã có một client khác nhanh tay lock trước trong thời gian chờ thanh toán.
-                    // Hệ thống ném ra SeatAlreadyLockedException (HTTP 409) để báo hiệu xung đột tranh chấp ghế.
+                    // Nếu lockSeat trả về false, nghĩa là đã có một client khác nhanh tay lock
+                    // trước trong thời gian chờ thanh toán.
+                    // Hệ thống ném ra SeatAlreadyLockedException (HTTP 409) để báo hiệu xung đột
+                    // tranh chấp ghế.
                     boolean locked = seatLockService.lockSeat(ss.getId().toString(), tempBookingRef,
                             Duration.ofMinutes(pendingMins));
                     if (!locked) {
-                        throw new SeatAlreadyLockedException("Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
-                                + " đang được giữ bởi người khác");
+                        throw new SeatAlreadyLockedException(
+                                "Ghế " + ss.getSeat().getRowLabel() + ss.getSeat().getColNumber()
+                                        + " đang được giữ bởi người khác");
                     }
                     lockedSoFar.add(ss.getId().toString());
                 }
             } catch (Exception e) {
-                // HOÀN TÁC LOCK: Nếu bất kỳ ghế nào trong danh sách yêu cầu không thể lock thành công (gây ra Exception),
-                // chúng ta phải giải phóng (release) toàn bộ những ghế đã lock thành công trước đó trong vòng lặp này.
+                // HOÀN TÁC LOCK: Nếu bất kỳ ghế nào trong danh sách yêu cầu không thể lock
+                // thành công (gây ra Exception),
+                // chúng ta phải giải phóng (release) toàn bộ những ghế đã lock thành công trước
+                // đó trong vòng lặp này.
                 seatLockService.releaseSeats(lockedSoFar);
                 throw e;
             }
@@ -848,12 +856,11 @@ public class BookingServiceImpl implements BookingService {
         }
 
         // 3. Cập nhật trạng thái Booking trực tiếp trên thực thể managed
-        // Optimistic Locking (@Version) sẽ tự động bảo vệ chống double-click / race condition
+        // Optimistic Locking (@Version) sẽ tự động bảo vệ chống double-click / race
+        // condition
         booking.setStatus(BookingStatus.CANCELLED);
         booking.setCancellationToken(null);
         booking.setCancellationTokenExpiry(null);
-        booking.setEarnedExp(0L);
-        bookingRepository.save(booking);
 
         // 4. Nhả ghế
         releaseSeats(bookingId);
@@ -890,8 +897,9 @@ public class BookingServiceImpl implements BookingService {
             }
 
             booking.setExpAdded(false);
-            bookingRepository.save(booking);
         }
+        booking.setEarnedExp(0L);
+        bookingRepository.save(booking);
 
         // 6. Hoàn CP: Staff/Admin = 100%, Customer = SystemConfig %
         int refundPercent = isStaffOrAdmin ? 100
