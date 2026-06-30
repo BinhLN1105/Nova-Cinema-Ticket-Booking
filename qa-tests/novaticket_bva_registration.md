@@ -1,37 +1,36 @@
-# PHỤ LỤC A: BÁO CÁO PHÂN TÍCH GIÁ TRỊ BIÊN (BVA) - TÍNH NĂNG ĐĂNG KÝ
-**Module:** Authentication (Đăng ký tài khoản mới)
-**Người thực hiện:** Nguyễn Minh Thắng
-**Mục tiêu:** Kiểm thử các ràng buộc giới hạn đối với trường dữ liệu Password (độ dài 6-20 ký tự) và FullName (độ dài 2-50 ký tự).
+### Phụ lục A: Báo cáo chi tiết BVA - Đăng ký tài khoản
 
----
+#### 1. Mô tả bài toán
+Hệ thống NovaTicket cho phép người dùng đăng ký tài khoản mới. Một yêu cầu đăng ký được xem là hợp lệ khi các trường dữ liệu đầu vào thỏa mãn điều kiện:
 
-### 1. Phân hoạch lớp tương đương (Equivalence Partitioning)
-
-| Trường dữ liệu | Lớp hợp lệ (Valid) | Lớp không hợp lệ (Invalid) |
-| :--- | :--- | :--- |
-| **Password** | Độ dài từ 6 đến 20 ký tự | Dưới 6 ký tự <br> Trên 20 ký tự <br> Bỏ trống (Null) |
-| **FullName** | Độ dài từ 2 đến 50 ký tự | Dưới 2 ký tự <br> Trên 50 ký tự <br> Bỏ trống (Null/Ký tự đặc biệt) |
-
----
-
-### 2. Bảng phân tích giá trị biên (Boundary Value Analysis)
-
-| Trường dữ liệu | Biên dưới (Min) | Biên trên (Max) | Các giá trị biên cần test (Min-1, Min, Min+1, Max-1, Max, Max+1) |
+| Biến đầu vào | Ý nghĩa | Kiểu dữ liệu | Miền giá trị hợp lệ |
 | :--- | :--- | :--- | :--- |
-| **Password** | 6 | 20 | 5, 6, 7, 19, 20, 21 |
-| **FullName** | 2 | 50 | 1, 2, 3, 49, 50, 51 |
+| `password` | Mật khẩu tài khoản (yêu cầu chứa cả chữ cái và chữ số) | Chuỗi (String) | Từ 6 đến 32 ký tự |
+| `fullName` | Họ và tên người dùng | Chuỗi (String) | Từ 2 đến 100 ký tự |
 
----
+#### 2. Xác định lớp tương đương
+| Biến đầu vào | Lớp hợp lệ | Tag | Lớp không hợp lệ | Tag |
+| :--- | :--- | :--- | :--- | :--- |
+| Độ dài Mật khẩu | 6 <= password <= 32 | V1 | password < 6<br>password > 32<br>Chỉ có chữ / Chỉ có số | X1 |
+| Độ dài Họ tên | 2 <= fullName <= 100 | V2 | fullName < 2<br>fullName > 100 | X2 |
 
-### 3. Bảng Test Case chi tiết và Kết quả thực thi
-
-| Test Case ID | Tags | Mô tả Kịch bản | Dữ liệu đầu vào (Input) | Kết quả mong đợi (Expected) | Kết quả thực tế (Actual) | Trạng thái |
+#### 3. Bảng phân tích giá trị biên
+| Biến đầu vào | min | min+ | nominal | max- | max | Tag biên |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| `TC_AUTH_01` | `@BVA`, `@Min-1` | Đăng ký với Password dưới mức tối thiểu (5 ký tự) | `pass1` | Báo lỗi: "Mật khẩu phải từ 6-20 ký tự" | Báo lỗi: "Mật khẩu phải từ 6-20 ký tự" | **PASS** |
-| `TC_AUTH_02` | `@BVA`, `@Min` | Đăng ký với Password tại mốc tối thiểu (6 ký tự) | `pass12` | Đăng ký thành công | Trả về lỗi độ dài (Lỗi Backend cấu hình sai lớn hơn 6) | **FAIL** (Đang fix) |
-| `TC_AUTH_03` | `@BVA`, `@Max` | Đăng ký với Password tại mốc tối đa (20 ký tự) | `password123456789012` | Đăng ký thành công | Đăng ký thành công | **PASS** |
-| `TC_AUTH_04` | `@BVA`, `@Max+1` | Đăng ký với Password vượt mốc tối đa (21 ký tự) | `password1234567890123` | Báo lỗi: "Mật khẩu vượt quá 20 ký tự" | Báo lỗi: "Mật khẩu vượt quá 20 ký tự" | **PASS** |
-| `TC_AUTH_05` | `@BVA`, `@Min-1` | Đăng ký với FullName dưới mức tối thiểu (1 ký tự) | `A` | Báo lỗi: "Họ tên phải từ 2-50 ký tự" | Báo lỗi: "Họ tên phải từ 2-50 ký tự" | **PASS** |
-| `TC_AUTH_06` | `@BVA`, `@Min` | Đăng ký với FullName tại mốc tối thiểu (2 ký tự) | `An` | Đăng ký thành công | Đăng ký thành công | **PASS** |
-| `TC_AUTH_07` | `@BVA`, `@Max` | Đăng ký với FullName tại mốc tối đa (50 ký tự) | (Chuỗi ngẫu nhiên đúng 50 ký tự) | Đăng ký thành công | Đăng ký thành công | **PASS** |
-| `TC_AUTH_08` | `@BVA`, `@Max+1` | Đăng ký với FullName vượt mốc tối đa (51 ký tự) | (Chuỗi ngẫu nhiên đúng 51 ký tự) | Báo lỗi: "Họ tên vượt quá 50 ký tự" | Báo lỗi: "Họ tên vượt quá 50 ký tự" | **PASS** |
+| Mật khẩu (ký tự) | 6 | 7 | 12 | 31 | 32 | B1(min), B2(min+), B3(nominal), B4(max-), B5(max) |
+| Họ tên (ký tự) | 2 | 3 | 15 | 99 | 100 | B6(min), B7(min+), B8(nominal), B9(max-), B10(max) |
+
+#### 4. Bảng Test Case chi tiết và Kết quả thực thi
+| STT | Tên Test Case | Dữ liệu đầu vào (Input mô phỏng) | Kết quả mong đợi (Expected) | Kết quả thực tế (Actual) | Trạng thái | Tag bao phủ |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| 1 | BVA_PWD_01: Biên dưới mật khẩu không hợp lệ [5 ký tự] | `password: "abc12"` | Bị chặn lỗi 400 Bad Request. | ✅ Mật khẩu 5 ký tự bị chặn - Trả về 400 | PASS | X1 |
+| 2 | BVA_PWD_02: Biên dưới mật khẩu hợp lệ nhỏ nhất [6 ký tự] | `password: "abc123"` | API phản hồi hợp lệ. | ✅ Mật khẩu 6 ký tự được chấp nhận - Đăng ký thành công | PASS | V1, B1 |
+| 3 | BVA_PWD_03: Nominal - Vùng hợp lệ mật khẩu [12 ký tự] | `password: "novaTicket2026"` | API phản hồi hợp lệ. | ✅ Mật khẩu 12 ký tự hợp lệ - Đăng ký thành công | PASS | V1, B3 |
+| 4 | BVA_PWD_04: Biên trên mật khẩu hợp lệ lớn nhất [32 ký tự] | `password: "{{bva_pwd_32}}"` | API phản hồi hợp lệ. | ✅ Mật khẩu 32 ký tự hợp lệ - Đăng ký thành công | PASS | V1, B5 |
+| 5 | BVA_PWD_05: Biên trên mật khẩu không hợp lệ [33 ký tự] | `password: "{{bva_pwd_33}}"` | Bị chặn lỗi 400 Bad Request. | ✅ Mật khẩu 33 ký tự bị chặn - Trả về 400 | PASS | X1 |
+| 6 | BVA_PWD_06: Biên mật khẩu thiếu Số [chỉ chứa chữ] | `password: "abcdefgh"` | Bị chặn lỗi 400 Bad Request. | ✅ Mật khẩu chỉ chứa chữ bị chặn - Trả về 400 | PASS | X1 |
+| 7 | BVA_PWD_07: Biên mật khẩu thiếu Chữ [chỉ chứa số] | `password: "12345678"` | Bị chặn lỗi 400 Bad Request. | ✅ Mật khẩu chỉ chứa số bị chặn - Trả về 400 | PASS | X1 |
+| 8 | BVA_NAM_01: Biên dưới fullName không hợp lệ [1 ký tự] | `fullName: "A"` | Bị chặn lỗi 400 Bad Request. | ✅ fullName 1 ký tự bị chặn - Trả về 400 | PASS | X2 |
+| 9 | BVA_NAM_02: Biên dưới fullName hợp lệ nhỏ nhất [2 ký tự] | `fullName: "An"` | API phản hồi hợp lệ. | ✅ fullName 2 ký tự hợp lệ - Đăng ký thành công | PASS | V2, B6 |
+| 10 | BVA_NAM_03: Biên trên fullName hợp lệ lớn nhất [100 ký tự] | `fullName: "{{bva_long_name_100}}"`| API phản hồi hợp lệ. | ✅ fullName 100 ký tự hợp lệ - Đăng ký thành công | PASS | V2, B10 |
+| 11 | BVA_NAM_04: Biên trên fullName không hợp lệ [101 ký tự] | `fullName: "{{bva_long_name_101}}"`| Bị chặn lỗi 400 Bad Request. | ✅ fullName 101 ký tự bị chặn - Trả về 400 | PASS | X2 |
