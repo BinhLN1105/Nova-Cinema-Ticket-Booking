@@ -144,6 +144,8 @@ public class DatabaseCleanupTest {
             if (tableExists("transactions")) {
                 jdbcTemplate.execute("DELETE FROM transactions WHERE reference_id IN (" + bookingListStr + ")");
             }
+            // Xóa reviews trước để tránh lỗi foreign key (reviews.booking_id → bookings.id)
+            jdbcTemplate.execute("DELETE FROM reviews WHERE booking_id IN (" + bookingListStr + ")");
             jdbcTemplate.execute("DELETE FROM payments WHERE booking_id IN (" + bookingListStr + ")");
             jdbcTemplate.execute("DELETE FROM tickets WHERE booking_id IN (" + bookingListStr + ")");
             jdbcTemplate.execute("DELETE FROM booking_items WHERE booking_id IN (" + bookingListStr + ")");
