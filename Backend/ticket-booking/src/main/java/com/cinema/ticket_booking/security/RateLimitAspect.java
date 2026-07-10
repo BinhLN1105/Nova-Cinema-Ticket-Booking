@@ -32,9 +32,12 @@ public class RateLimitAspect {
     @Around("@annotation(rateLimit)")
     public Object limit(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
         // Bypass rate limiting in dev/test environment to prevent automated tests from failing with 429
+        // EXCEPT for login and social-login to allow local testing
         if (env != null && (Arrays.asList(env.getActiveProfiles()).contains("test") || 
                             Arrays.asList(env.getActiveProfiles()).contains("dev"))) {
-            return joinPoint.proceed();
+            if (!"login".equals(rateLimit.key()) && !"social-login".equals(rateLimit.key())) {
+                return joinPoint.proceed();
+            }
         }
 
         ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();

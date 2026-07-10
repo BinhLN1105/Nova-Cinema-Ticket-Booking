@@ -1,0 +1,127 @@
+version: '3.8'
+
+services:
+  # ── 1. DATABASE POSTGRESQL ──────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: novaticket-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: novaticket_prod
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - novaticket-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ── 2. REDIS CACHE ──────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: novaticket-redis
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - novaticket-network
+    restart: unless-stopped
+
+  # ── 3. GIẢ LẬP SMTP MAIL SERVER ─────────────────────────────────────
+  maildev:
+    image: maildev/maildev:2.1.0
+    container_name: novaticket-maildev
+    ports:
+      - "1080:1080" # Web UI xem mail tại http://localhost:1080
+      - "1025:1025" # SMTP Port
+    networks:
+      - novaticket-network
+    restart: unless-stopped
+
+  # ── 4. BACKEND SPRING BOOT ──────────────────────────────────────────
+  backend:
+    image: binhln1105/novaticket-backend:${BACKEND_VERSION}
+    container_name: novaticket-backend
+    command: ["--spring.profiles.active=${SPRING_PROFILES_ACTIVE}"]
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/novaticket_prod
+      - SPRING_DATASOURCE_USERNAME=postgres
+      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
+      
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      
+      # Mock MailDev integration
+      - SPRING_MAIL_HOST=maildev
+      - SPRING_MAIL_PORT=1025
+      - EMAIL_USERNAME=${EMAIL_USERNAME}
+      - EMAIL_PASSWORD=${EMAIL_PASSWORD}
+      
+      # Cloudinary Config
+      - CLOUDINARY_NAME=${CLOUDINARY_NAME}
+      - CLOUDINARY_API_KEY=${CLOUDINARY_API_KEY}
+      - CLOUDINARY_API_SECRECT=${CLOUDINARY_API_SECRECT}
+      
+      # OAuth2 Integration
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - FACEBOOK_APP_ID=${FACEBOOK_APP_ID}
+      - FACEBOOK_APP_SECRET=${FACEBOOK_APP_SECRET}
+      
+      # Security Keys
+      - JWT_SECRET=${JWT_SECRET}
+      - QR_SECRET=${QR_SECRET}
+      
+      # VNPay Config
+      - VNPAY_TMN_CODE=${VNPAY_TMN_CODE}
+      - VNPAY_HASH_SECRET=${VNPAY_HASH_SECRET}
+      - VNPAY_URL=${VNPAY_URL}
+      - VNPAY_RETURN_URL=${VNPAY_RETURN_URL}
+      
+      # Frontend URL config
+      - FRONTEND_URL=${FRONTEND_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    networks:
+      - novaticket-network
+    restart: unless-stopped
+
+  # ── 5. FRONTEND REACT (Nginx SPA + Reverse Proxy + HTTPS) ───────────
+  frontend:
+    # Thay thế 'binhln1105' bằng tài khoản Docker Hub thực tế của bạn nếu cần
+    image: binhln1105/novaticket-frontend:${FRONTEND_VERSION}
+    container_name: novaticket-frontend
+    ports:
+      - "80:80"   # HTTP Port (Auto-redirects to HTTPS)
+      - "443:443" # HTTPS Port
+    volumes:
+      - ./certs:/etc/nginx/certs:ro # Mount chứng chỉ SSL vào container
+    depends_on:
+      - backend
+    networks:
+      - novaticket-network
+    restart: unless-stopped
+
+volumes:
+  pg_data:
+  redis_data:
+
+networks:
+  novaticket-network:
+    driver: bridge

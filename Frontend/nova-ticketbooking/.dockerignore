@@ -1,0 +1,6 @@
+node_modules
+dist
+.git
+.scannerwork
+tests/e2e/output
+.env.local

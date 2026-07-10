@@ -77,6 +77,35 @@ class RateLimitAspectTest {
     }
 
     @Test
+    void testLimit_NoBypassForLoginInDevTestProfile() throws Throwable {
+        when(env.getActiveProfiles()).thenReturn(new String[]{"test"});
+        when(rateLimit.key()).thenReturn("login");
+
+        ServletRequestAttributes attributes = mock(ServletRequestAttributes.class);
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(attributes.getRequest()).thenReturn(request);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        mockedRequestContextHolder.when(RequestContextHolder::getRequestAttributes).thenReturn(attributes);
+
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(null);
+        mockedSecurityContextHolder.when(SecurityContextHolder::getContext).thenReturn(securityContext);
+
+        when(rateLimit.limit()).thenReturn(5);
+        when(rateLimit.period()).thenReturn(60);
+
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+        when(valueOperations.increment(anyString())).thenReturn(1L);
+        when(joinPoint.proceed()).thenReturn("proceeded");
+
+        Object result = rateLimitAspect.limit(joinPoint, rateLimit);
+
+        assertEquals("proceeded", result);
+        verify(redisTemplate).expire(eq("rate_limit:api:login:127.0.0.1"), any(Duration.class));
+        verify(joinPoint).proceed();
+    }
+
+    @Test
     void testLimit_RequestContextAttributesNull() throws Throwable {
         when(env.getActiveProfiles()).thenReturn(new String[]{"prod"});
         mockedRequestContextHolder.when(RequestContextHolder::getRequestAttributes).thenReturn(null);
