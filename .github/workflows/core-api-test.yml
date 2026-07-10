@@ -117,15 +117,6 @@ jobs:
             --reporters cli,json \
             --reporter-json-export baocaoLocal/postman-report.json
 
-      - name: 🛡️ Chạy bộ kiểm thử Newman Security Test
-        if: always()
-        run: |
-          newman run qa-tests/postman/NOVATicket_Security.postman_collection.json \
-            -e baocaoLocal/updated_env.json \
-            --env-var "BaseUrl=http://localhost:8080" \
-            --reporters cli,json \
-            --reporter-json-export baocaoLocal/security-report.json
-
       - name: 🧪 Chạy bộ kiểm thử Newman BVA Test
         if: always()
         run: |
@@ -144,6 +135,15 @@ jobs:
             --reporters cli,json \
             --reporter-json-export baocaoLocal/state-transition-report.json \
             --export-environment baocaoLocal/updated_env.json
+
+      - name: 🛡️ Chạy bộ kiểm thử Newman Security Test
+        if: always()
+        run: |
+          newman run qa-tests/postman/NOVATicket_Security.postman_collection.json \
+            -e baocaoLocal/updated_env.json \
+            --env-var "BaseUrl=http://localhost:8080" \
+            --reporters cli,json \
+            --reporter-json-export baocaoLocal/security-report.json
 
       # ── UPLOAD KẾT QUẢ TEST JSON LÊN ARTIFACT BỘ NHỚ TẠM ───────────────────
       - name: 💾 Lưu trữ kết quả test tạm thời (Artifact)

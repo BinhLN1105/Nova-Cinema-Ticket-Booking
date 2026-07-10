@@ -52,7 +52,7 @@ public class AuthController {
 
     // POST /api/v1/auth/login
     @PostMapping("/login")
-    @RateLimit(key = "login", limit = 5, period = 60)
+    @RateLimit(key = "login", limit = 10, period = 60)
     public ResponseEntity<ApiResponse<AuthResponse>> login(
             @Valid @RequestBody LoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.login(request), "Đăng nhập thành công"));
@@ -60,7 +60,7 @@ public class AuthController {
 
     // POST /api/v1/auth/social-login
     @PostMapping("/social-login")
-    @RateLimit(key = "social-login", limit = 5, period = 60)
+    @RateLimit(key = "social-login", limit = 10, period = 60)
     public ResponseEntity<ApiResponse<AuthResponse>> socialLogin(
             @Valid @RequestBody SocialLoginRequest request) {
         return ResponseEntity.ok(ApiResponse.success(authService.socialLogin(request), "Đăng nhập thành công"));

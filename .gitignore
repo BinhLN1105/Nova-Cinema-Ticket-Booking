@@ -106,3 +106,10 @@ Desktop.ini
 .scannerwork/
 .sonar/
 
+
+# ==============================
+# Docker & Deployment
+# ==============================
+Docker-compose/init.sql
+Docker-compose/supabase_backup.sql
+
