@@ -1,5 +1,7 @@
 [versions]
 agp                = "8.5.0"
+kotlin             = "1.9.24"
+ksp                = "1.9.24-1.0.20"
 hilt               = "2.51.1"
 googleServices     = "4.4.2"
 coreKtx            = "1.13.1"
@@ -63,6 +65,8 @@ androidx-core-splashscreen   = { group = "androidx.core",                  name 
 
 [plugins]
 android-application = { id = "com.android.application",       version.ref = "agp" }
+kotlin-android      = { id = "org.jetbrains.kotlin.android",      version.ref = "kotlin" }
+ksp                 = { id = "com.google.devtools.ksp",           version.ref = "ksp" }
 hilt                = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 google-services     = { id = "com.google.gms.google-services", version.ref = "googleServices" }
 navigation-safeargs = { id = "androidx.navigation.safeargs", version.ref = "navigation" }

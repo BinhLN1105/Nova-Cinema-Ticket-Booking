@@ -1,9 +1,12 @@
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     id 'com.google.gms.google-services'
     alias(libs.plugins.navigation.safeargs)
     alias(libs.plugins.sonar)
+    id 'kotlin-parcelize'
 }
 
 android {
@@ -42,6 +45,10 @@ android {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
 }
 
 dependencies {
@@ -65,7 +72,7 @@ dependencies {
 
     // Hilt — Dependency Injection
     implementation libs.hilt.android
-    annotationProcessor libs.hilt.compiler
+    ksp libs.hilt.compiler
 
     // Retrofit + OkHttp — Network
     implementation libs.retrofit
@@ -76,11 +83,11 @@ dependencies {
     // Room — Local cache
     implementation libs.room.runtime
     implementation libs.room.ktx
-    annotationProcessor libs.room.compiler
+    ksp libs.room.compiler
 
     // Glide — Image loading
     implementation libs.glide
-    annotationProcessor libs.glide.compiler
+    ksp libs.glide.compiler
 
     // Google Sign-In
     implementation libs.google.auth
