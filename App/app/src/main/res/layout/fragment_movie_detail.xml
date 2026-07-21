@@ -91,23 +91,12 @@
 
             <!-- Content Area -->
             <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                android:orientation="vertical" android:paddingHorizontal="24dp" android:layout_marginTop="32dp">
+                android:orientation="vertical" android:paddingHorizontal="24dp" android:layout_marginTop="28dp">
                 
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                    android:text="Nội dung phim" android:textColor="@color/on_surface"
-                    android:textStyle="bold" android:textSize="18sp"/>
-                    
-                <TextView android:id="@+id/tvReleaseDate" android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:textColor="@color/primary"
-                    android:layout_marginTop="4dp" android:textSize="12sp" android:textStyle="bold"/>
-                    
-                <TextView android:id="@+id/tvDescription" android:layout_width="match_parent"
-                    android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
-                    android:layout_marginTop="8dp" android:lineSpacingMultiplier="1.5" android:textSize="14sp"/>
-                    
+                <!-- 1. Ê-kíp section -->
                 <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
                     android:text="Ê-kíp" android:textColor="@color/on_surface"
-                    android:layout_marginTop="24dp" android:textSize="18sp" android:textStyle="bold"/>
+                    android:textSize="18sp" android:textStyle="bold"/>
                 <TextView android:id="@+id/tvDirector" android:layout_width="match_parent"
                     android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
                     android:layout_marginTop="4dp" android:textSize="14sp"/>
@@ -115,9 +104,36 @@
                     android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
                     android:layout_marginTop="4dp" android:textSize="14sp"/>
 
-                <!-- Reviews section identical logic -->
+                <!-- 2. Nội dung phim section -->
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                    android:text="Nội dung phim" android:textColor="@color/on_surface"
+                    android:layout_marginTop="24dp" android:textStyle="bold" android:textSize="18sp"/>
+                    
+                <TextView android:id="@+id/tvReleaseDate" android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" android:textColor="@color/primary"
+                    android:layout_marginTop="4dp" android:textSize="12sp" android:textStyle="bold"/>
+                    
+                <TextView android:id="@+id/tvDescription" android:layout_width="match_parent"
+                    android:layout_height="wrap_content" android:textColor="@color/on_surface_variant"
+                    android:layout_marginTop="8dp" android:lineSpacingMultiplier="1.4" android:textSize="14sp"
+                    android:maxLines="3" android:ellipsize="end"/>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnToggleDescription"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:layout_marginTop="2dp"
+                    android:text="Xem thêm ▾"
+                    android:textColor="@color/primary"
+                    android:textSize="13sp"
+                    android:paddingHorizontal="0dp"
+                    android:visibility="gone"/>
+
+                <!-- 3. Reviews section -->
                 <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
-                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="32dp">
+                    android:orientation="horizontal" android:gravity="center_vertical" android:layout_marginTop="28dp">
                     <TextView android:layout_width="0dp" android:layout_height="wrap_content"
                         android:layout_weight="1"
                         android:text="Đánh giá từ người xem" android:textColor="@color/on_surface"

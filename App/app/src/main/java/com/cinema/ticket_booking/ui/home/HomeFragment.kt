@@ -224,28 +224,19 @@ class HomeFragment : Fragment() {
             Navigation.findNavController(it).navigate(R.id.selectShowtimeFragment, args)
         }
 
-        // Xử lý logic tìm kiếm (Search) với Debounce để giảm tải cho Server
+        // Xử lý logic tìm kiếm (Search) chuyên nghiệp
         binding.etSearch.setOnFocusChangeListener { _, hasFocus ->
             if (hasFocus) {
+                setBottomNavAndFabVisible(false)
                 binding.viewSearchDim.visibility = View.VISIBLE
-            } else if (binding.etSearch.text.toString().isEmpty()) {
-                binding.viewSearchDim.visibility = View.GONE
-                binding.rvSearchResults.visibility = View.GONE
+            } else if (binding.etSearch.text.isNullOrEmpty()) {
+                closeSearchMode()
             }
         }
 
-        // Đóng vùng tìm kiếm khi bấm vào vùng mờ (Dim Background)
-        binding.viewSearchDim.setOnClickListener {
-            binding.etSearch.clearFocus()
-            binding.viewSearchDim.visibility = View.GONE
-            binding.rvSearchResults.visibility = View.GONE
-            // Ẩn bàn phím ảo
-            val view1 = requireActivity().currentFocus
-            if (view1 != null) {
-                val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
-                imm?.hideSoftInputFromWindow(view1.windowToken, 0)
-            }
-        }
+        binding.btnBackSearch.setOnClickListener { closeSearchMode() }
+        binding.btnCloseSearch.setOnClickListener { closeSearchMode() }
+        binding.viewSearchDim.setOnClickListener { closeSearchMode() }
 
         binding.etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence, start: Int, count: Int, after: Int) {}
@@ -254,32 +245,94 @@ class HomeFragment : Fragment() {
 
                 val query = s.toString().trim()
                 if (query.isEmpty()) {
+                    binding.layoutSearchContainer.visibility = View.GONE
+                    binding.progressBarSearch.visibility = View.GONE
+                    binding.tvSearchEmpty.visibility = View.GONE
                     binding.rvSearchResults.visibility = View.GONE
-                    if (!binding.etSearch.hasFocus()) {
-                        binding.viewSearchDim.visibility = View.GONE
-                    }
                     viewModel.clearSearch()
-                } else if (query.length >= 2) {
+                } else {
+                    setBottomNavAndFabVisible(false)
                     binding.viewSearchDim.visibility = View.VISIBLE
+                    binding.layoutSearchContainer.visibility = View.VISIBLE
+                    binding.progressBarSearch.visibility = View.VISIBLE
+                    binding.tvSearchEmpty.visibility = View.GONE
+                    binding.rvSearchResults.visibility = View.GONE
+                    binding.tvSearchResultHeader.text = "Đang tìm kiếm..."
+
                     searchRunnable = Runnable { viewModel.searchMovies(query) }
-                    searchHandler.postDelayed(searchRunnable!!, 500) // 500ms Debounce
+                    searchHandler.postDelayed(searchRunnable!!, 400)
                 }
             }
             override fun afterTextChanged(s: Editable) {}
         })
 
         viewModel.getSearchResults().observe(viewLifecycleOwner) { resource ->
-            if (resource == null || resource.status == Resource.Status.LOADING) {
-                return@observe
-            }
-            if (resource.isSuccess && resource.data != null && !resource.data.content.isNullOrEmpty()) {
-                binding.rvSearchResults.visibility = View.VISIBLE
-                binding.rvSearchResults.adapter = MovieAdapter(resource.data.content!!) { movieId ->
-                    navigateToDetail(view, movieId)
+            if (resource == null) return@observe
+
+            when (resource.status) {
+                Resource.Status.LOADING -> {
+                    binding.layoutSearchContainer.visibility = View.VISIBLE
+                    binding.progressBarSearch.visibility = View.VISIBLE
+                    binding.tvSearchEmpty.visibility = View.GONE
+                    binding.rvSearchResults.visibility = View.GONE
+                    binding.tvSearchResultHeader.text = "Đang tìm kiếm..."
                 }
-            } else {
-                binding.rvSearchResults.visibility = View.GONE
+                Resource.Status.SUCCESS -> {
+                    binding.progressBarSearch.visibility = View.GONE
+                    val movies = resource.data?.content
+                    if (!movies.isNullOrEmpty()) {
+                        binding.tvSearchEmpty.visibility = View.GONE
+                        binding.rvSearchResults.visibility = View.VISIBLE
+                        binding.tvSearchResultHeader.text = "Tìm thấy ${movies.size} kết quả"
+                        binding.rvSearchResults.adapter = MovieAdapter(movies) { movieId ->
+                            closeSearchMode()
+                            navigateToDetail(requireView(), movieId)
+                        }
+                    } else {
+                        binding.rvSearchResults.visibility = View.GONE
+                        binding.tvSearchEmpty.visibility = View.VISIBLE
+                        binding.tvSearchEmpty.text = "Không tìm thấy phim phù hợp với từ khóa."
+                        binding.tvSearchResultHeader.text = "Không có kết quả"
+                    }
+                }
+                Resource.Status.ERROR -> {
+                    binding.progressBarSearch.visibility = View.GONE
+                    binding.rvSearchResults.visibility = View.GONE
+                    binding.tvSearchEmpty.visibility = View.VISIBLE
+                    binding.tvSearchEmpty.text = resource.message ?: "Đã xảy ra lỗi khi tìm kiếm phim!"
+                    binding.tvSearchResultHeader.text = "Lỗi tìm kiếm"
+                }
             }
+        }
+    }
+
+    private fun setBottomNavAndFabVisible(visible: Boolean) {
+        activity?.let { act ->
+            val bottomAppBar = act.findViewById<View>(R.id.bottomAppBar)
+            val bottomNav = act.findViewById<View>(R.id.bottomNav)
+            val fabScanner = act.findViewById<com.google.android.material.floatingactionbutton.FloatingActionButton>(R.id.fabScanner)
+            val aiFab = act.findViewById<View>(R.id.aiFab)
+            val vis = if (visible) View.VISIBLE else View.GONE
+            bottomAppBar?.visibility = vis
+            bottomNav?.visibility = vis
+            if (visible) fabScanner?.show() else fabScanner?.hide()
+            aiFab?.visibility = vis
+        }
+    }
+
+    private fun closeSearchMode() {
+        binding.etSearch.setText("")
+        binding.etSearch.clearFocus()
+        binding.viewSearchDim.visibility = View.GONE
+        binding.layoutSearchContainer.visibility = View.GONE
+        binding.progressBarSearch.visibility = View.GONE
+        binding.tvSearchEmpty.visibility = View.GONE
+        binding.rvSearchResults.visibility = View.GONE
+        setBottomNavAndFabVisible(true)
+        val view1 = activity?.currentFocus
+        if (view1 != null) {
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as? InputMethodManager
+            imm?.hideSoftInputFromWindow(view1.windowToken, 0)
         }
     }
 

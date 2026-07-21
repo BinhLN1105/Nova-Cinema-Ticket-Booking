@@ -135,9 +135,8 @@ class MainActivity : AppCompatActivity() {
                 binding.bottomAppBar.visibility = View.VISIBLE
                 binding.bottomNav.visibility = View.VISIBLE
                 binding.fabScanner.show()
-                // Thêm padding ở dưới để nội dung không bị thanh Bottom Nav che mất
-                val paddingBottom = (80 * resources.displayMetrics.density).toInt()
-                binding.navHostFragment.setPadding(0, 0, 0, paddingBottom)
+                // Để nội dung cuộn tràn xuống dưới BottomAppBar (tạo hiệu ứng lơ lửng qua chỗ hõm QR)
+                binding.navHostFragment.setPadding(0, 0, 0, 0)
             }
 
             // Kiểm tra xem màn hình hiện tại có cần ẩn nút AI Assistant không

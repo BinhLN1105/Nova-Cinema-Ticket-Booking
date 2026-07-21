@@ -13,7 +13,9 @@ import com.cinema.ticket_booking.R
 import com.cinema.ticket_booking.databinding.FragmentReviewListBinding
 import com.cinema.ticket_booking.util.Resource
 import com.cinema.ticket_booking.util.SnackbarHelper
+import dagger.hilt.android.AndroidEntryPoint
 
+@AndroidEntryPoint
 class ReviewListFragment : Fragment() {
 
     private var _binding: FragmentReviewListBinding? = null
@@ -156,14 +158,21 @@ class ReviewListFragment : Fragment() {
         movieId?.let { id ->
             viewModel.checkReviewEligibility(id).observe(viewLifecycleOwner) { resource ->
                 if (resource.status == Resource.Status.SUCCESS && resource.data != null) {
-                    binding.fabWriteReview.visibility = View.VISIBLE
-                    binding.fabWriteReview.setOnClickListener {
-                        val args = Bundle().apply {
-                            putString("movieId", movieId)
-                            putString("bookingId", resource.data.bookingId)
+                    val data = resource.data
+                    if (data.canReview || data.alreadyReviewed) {
+                        binding.fabWriteReview.visibility = View.VISIBLE
+                        binding.fabWriteReview.setOnClickListener {
+                            val args = Bundle().apply {
+                                putString("movieId", movieId)
+                                putString("bookingId", data.bookingId)
+                            }
+                            Navigation.findNavController(requireView()).navigate(R.id.action_reviewList_to_writeReview, args)
                         }
-                        Navigation.findNavController(requireView()).navigate(R.id.action_reviewList_to_writeReview, args)
+                    } else {
+                        binding.fabWriteReview.visibility = View.GONE
                     }
+                } else {
+                    binding.fabWriteReview.visibility = View.GONE
                 }
             }
         }

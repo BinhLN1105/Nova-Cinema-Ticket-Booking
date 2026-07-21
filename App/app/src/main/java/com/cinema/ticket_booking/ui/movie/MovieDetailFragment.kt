@@ -28,6 +28,8 @@ class MovieDetailFragment : Fragment() {
     private lateinit var viewModel: MovieDetailViewModel
     private var movieId: String? = null
 
+    private var isDescriptionExpanded = false
+
     @Inject
     lateinit var tokenManager: TokenManager
 
@@ -64,15 +66,22 @@ class MovieDetailFragment : Fragment() {
             movieId?.let { id ->
                 viewModel.checkReviewEligibility(id).observe(viewLifecycleOwner) { resource ->
                     if (resource.status == Resource.Status.LOADING) return@observe
-                    binding.progressBar.setVisibility(View.GONE)
+                    binding.progressBar.visibility = View.GONE
                     if (resource.isSuccess && resource.data != null) {
                         val data = resource.data
-                        val args = Bundle().apply {
-                            putString("movieId", movieId)
-                            putString("movieTitle", binding.tvTitle.text.toString())
-                            putString("bookingId", data.bookingId)
+                        if (data.canReview || data.alreadyReviewed) {
+                            val args = Bundle().apply {
+                                putString("movieId", movieId)
+                                putString("movieTitle", binding.tvTitle.text.toString())
+                                putString("bookingId", data.bookingId)
+                            }
+                            Navigation.findNavController(requireView()).navigate(R.id.action_movieDetail_to_writeReview, args)
+                        } else {
+                            SnackbarHelper.showError(
+                                binding.root,
+                                "Bạn cần mua vé và xem phim trước khi đánh giá!"
+                            )
                         }
-                        Navigation.findNavController(requireView()).navigate(R.id.action_movieDetail_to_writeReview, args)
                     } else if (resource.isError) {
                         SnackbarHelper.showError(
                             binding.root,
@@ -100,6 +109,19 @@ class MovieDetailFragment : Fragment() {
                 android.widget.Toast.makeText(requireContext(), "Không thể mở đánh giá", android.widget.Toast.LENGTH_SHORT).show()
             }
         }
+
+        binding.btnToggleDescription.setOnClickListener {
+            isDescriptionExpanded = !isDescriptionExpanded
+            if (isDescriptionExpanded) {
+                binding.tvDescription.maxLines = Int.MAX_VALUE
+                binding.tvDescription.ellipsize = null
+                binding.btnToggleDescription.text = "Thu gọn ▴"
+            } else {
+                binding.tvDescription.maxLines = 3
+                binding.tvDescription.ellipsize = android.text.TextUtils.TruncateAt.END
+                binding.btnToggleDescription.text = "Xem thêm ▾"
+            }
+        }
     }
 
     private fun setupObservers(view: View) {
@@ -117,6 +139,15 @@ class MovieDetailFragment : Fragment() {
                     binding.tvRated.text = m.rated
                     binding.tvRating.text = String.format("%.1f", m.avgRating)
                     binding.tvReleaseDate.text = "Khởi chiếu: ${m.releaseDate}"
+
+                    binding.tvDescription.post {
+                        if (_binding == null) return@post
+                        if (binding.tvDescription.lineCount > 3 || (m.description?.length ?: 0) > 120) {
+                            binding.btnToggleDescription.visibility = View.VISIBLE
+                        } else {
+                            binding.btnToggleDescription.visibility = View.GONE
+                        }
+                    }
                     if (!m.genres.isNullOrEmpty()) {
                         val sb = StringBuilder()
                         for (g in m.genres) {
