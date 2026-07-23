@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     cohere_api_key:  str = ""
     llm_model:       str = "gemini-2.5-flash"
     llm_temperature: float = 0.1
+    use_mock_ai:     bool = True  # Ưu tiên chế độ phản hồi mẫu thông minh offline (tránh rate limit Gemini)
 
     # Vector DB (FAISS)
     vector_db_dir:     str = "./faiss_index"

@@ -53,27 +53,43 @@ class ChatRequest(BaseModel):
     user_message: str
 
 class ChatResponse(BaseModel):
-    reply:      str
-    session_id: str
+    reply:          str
+    session_id:     str
+    intent:         Optional[str] = "UNKNOWN"
+    used_fallback:  Optional[bool] = False
 
-@app.post("/api/v1/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
+@app.post("/api/v1/chat", response_model=ChatResponse, dependencies=[Depends(verify_internal_key)])
+async def chat_endpoint(
+    req: ChatRequest,
+    x_session_id: Optional[str] = Header(None),
+    x_user_id: Optional[str] = Header(None),
+    x_use_fallback: Optional[str] = Header("false")
+):
     """
-    Nhận câu hỏi từ Java → Agent xử lý → trả câu trả lời.
-    Java gọi endpoint này sau khi nhận tin nhắn từ frontend.
+    Nhận câu hỏi từ Java (chỉ Java gọi được với X-Internal-Key)
     """
     if not req.user_message.strip():
         raise HTTPException(status_code=400, detail="user_message không được để trống")
 
-    logger.info(f"[Chat] session={req.session_id} | msg={req.user_message[:80]}")
+    session_id = x_session_id or req.session_id
+    use_fallback = x_use_fallback == "true"
 
-    reply = agent_chat(
-        session_id=req.session_id,
-        user_message=req.user_message
+    logger.info(f"[Chat] session={session_id} | user={x_user_id} | fallback={use_fallback} | msg={req.user_message[:50]}")
+
+    chat_result = agent_chat(
+        session_id=session_id,
+        user_message=req.user_message,
+        user_id=x_user_id,
+        force_fallback=use_fallback
     )
 
-    logger.info(f"[Chat] session={req.session_id} | reply={reply[:80]}")
-    return ChatResponse(reply=reply, session_id=req.session_id)
+    logger.info(f"[Chat] session={session_id} | intent={chat_result.get('intent')} | reply={chat_result.get('reply')[:50]}")
+    return ChatResponse(
+        reply=chat_result.get("reply"),
+        session_id=session_id,
+        intent=chat_result.get("intent", "UNKNOWN"),
+        used_fallback=chat_result.get("used_fallback", False)
+    )
 
 
 # ════════════════════════════════════════════════════════════
