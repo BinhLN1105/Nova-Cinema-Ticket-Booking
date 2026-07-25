@@ -66,6 +66,12 @@ def chat(session_id: str, user_message: str, user_id: str = None, force_fallback
     try:
         classifier = IntentClassifier()
         intent = classifier.classify(user_message)
+        
+        # Override intent statefully nếu đang trong luồng đặt vé và tin nhắn chứa thông tin phụ
+        from .state import session_manager
+        state = session_manager.get_state(session_id)
+        if intent in ["KNOWLEDGE_RAG", "UNKNOWN"] and (state.get("showtime_id") is not None or state.get("awaiting_movie") is True):
+            intent = "BOOKING_DRAFT"
     except Exception:
         intent = "UNKNOWN"
 
@@ -90,6 +96,8 @@ def chat(session_id: str, user_message: str, user_id: str = None, force_fallback
                 engine = AgentFactory.get_engine(force_fallback=True)
                 reply_text = engine.process(user_message, session_id, user_id=user_id)
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         import logging
         logging.critical(f"Critical execution error in chatbot.chat: {e}")
         reply_text = "Xin lỗi anh/chị, hệ thống hỗ trợ AI đang gặp gián đoạn tạm thời. Vui lòng thử lại sau nhé!"

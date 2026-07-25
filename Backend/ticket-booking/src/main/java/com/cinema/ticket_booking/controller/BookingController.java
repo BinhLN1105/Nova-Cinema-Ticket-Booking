@@ -161,6 +161,31 @@ public class BookingController {
                 return ResponseEntity.ok(ApiResponse.success(policy));
         }
 
+        // GET /api/v1/bookings/draft/{draftId} — Lấy thông tin đặt vé nháp
+        @GetMapping("/draft/{draftId}")
+        @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")
+        public ResponseEntity<ApiResponse<DraftBookingCache>> getDraftBooking(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable String draftId) {
+                String draftKey = "ai_draft_booking:" + draftId;
+                String draftData = redisTemplate.opsForValue().get(draftKey);
+                if (draftData == null) {
+                        throw new AppException(HttpStatus.BAD_REQUEST,
+                                        "Đơn nháp không tồn tại hoặc đã hết hạn.");
+                }
+                DraftBookingCache draft;
+                try {
+                        draft = objectMapper.readValue(draftData, DraftBookingCache.class);
+                } catch (Exception e) {
+                        throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi đọc dữ liệu vé nháp");
+                }
+                if (!draft.getUserId().equals(currentUser.getId())) {
+                        throw new AppException(HttpStatus.FORBIDDEN,
+                                        "Bạn không có quyền truy cập thông tin vé nháp này.");
+                }
+                return ResponseEntity.ok(ApiResponse.success(draft, "Lấy thông tin vé nháp thành công"));
+        }
+
         // POST /api/v1/bookings/draft-confirm — Xác nhận đặt vé từ Draft ID
         @PostMapping("/draft-confirm")
         @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")

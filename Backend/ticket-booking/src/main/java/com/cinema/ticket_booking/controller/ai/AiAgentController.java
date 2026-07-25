@@ -221,10 +221,29 @@ public class AiAgentController {
 
         log.info("[AI User Tickets] Query tickets list for user={}", userId);
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(
+                        () -> new AppException(HttpStatus.NOT_FOUND, "Không tìm thấy thông tin cấu hình tài khoản"));
+
+        String rankVi = "Thành viên";
+        if (user.getMembershipTier() != null) {
+            switch (user.getMembershipTier()) {
+                case SILVER -> rankVi = "Bạc";
+                case GOLD -> rankVi = "Vàng";
+                case DIAMOND -> rankVi = "Kim cương";
+                default -> rankVi = "Thành viên";
+            }
+        }
+
         var pageable = PageRequest.of(0, 5, Sort.by("createdAt").descending());
         var ticketHistory = bookingService.getMyBookings(userId, pageable);
 
-        return ResponseEntity.ok(ApiResponse.success(ticketHistory, "Tra cứu lịch sử vé đặt thành công"));
+        Map<String, Object> payload = new HashMap<>();
+        payload.put("tickets", ticketHistory.getContent());
+        payload.put("cinePoints", user.getRewardPoints());
+        payload.put("rank", rankVi);
+
+        return ResponseEntity.ok(ApiResponse.success(payload, "Tra cứu lịch sử vé đặt thành công"));
     }
 
     // ── DTO Requests and Caches ─────────────────────────────

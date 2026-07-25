@@ -31,7 +31,10 @@ class CreateDraftBookingTool(BaseTool):
             with httpx.Client(timeout=10) as client:
                 resp = client.post(url, headers=_java_headers(session_id), json=payload)
                 resp.raise_for_status()
-                return resp.json()
+                res_body = resp.json()
+                if res_body.get("success") is True or res_body.get("status") == "success":
+                    return res_body.get("data", {})
+                return {"status": "error", "message": res_body.get("message", "unknown error")}
         except Exception as e:
             return {"status": "error", "message": f"Lỗi tạo vé nháp: {str(e)}"}
 
@@ -52,8 +55,13 @@ class GetSuggestedSeatsTool(BaseTool):
                     params={"showtimeId": showtime_id}
                 )
                 resp.raise_for_status()
-                data = resp.json()
+                res_body = resp.json()
                 
+            if res_body.get("success") is True or res_body.get("status") == "success":
+                data = res_body.get("data", {})
+            else:
+                data = {}
+
             return {
                 "status": "success",
                 "showtime_id": showtime_id,

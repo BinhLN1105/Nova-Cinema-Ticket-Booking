@@ -80,6 +80,7 @@ export const cinemaApi = {
 
 // ── Showtimes ─────────────────────────────────
 export const showtimeApi = {
+  getById: (id) => api.get(`/showtimes/${id}`),
   getByMovie: (movieId, cinemaId, date) =>
     api.get("/showtimes", { movieId, cinemaId, date }),
   getSeatMap: (showtimeId) => api.get(`/showtimes/${showtimeId}/seats`),
@@ -121,7 +122,11 @@ export const notificationApi = {
 export const bookingApi = {
   create: (data) => api.post("/bookings", data),
   getQuote: (data) => api.post("/bookings/quote", data),
+  draftConfirm: (draftId, paymentMethod = "CINEPOINT") => 
+    api.post(`/bookings/draft-confirm?draftId=${draftId}&paymentMethod=${paymentMethod}`),
+  getDraft: (draftId) => api.get(`/bookings/draft/${draftId}`),
   getMyAll: (page = 0, size = 10) => api.get("/bookings/me", { page, size }),
+
   getById: (id) => api.get(`/bookings/${id}`),
   cancelRequest: (id) => api.post(`/bookings/${id}/cancel-request`),
   cancelDirect: (id) => api.post(`/bookings/${id}/cancel`),
