@@ -57,16 +57,28 @@ class GetSuggestedSeatsTool(BaseTool):
                 resp.raise_for_status()
                 res_body = resp.json()
                 
-            if res_body.get("success") is True or res_body.get("status") == "success":
-                data = res_body.get("data", {})
-            else:
-                data = {}
+            # Endpoint /seats/available trả trực tiếp SeatMapResponse (flat JSON) chứa trường seats
+            seats = res_body.get("seats", [])
+            available_standard = 0
+            available_vip = 0
+            available_couple = 0
+
+            for seat in seats:
+                if seat.get("status") == "AVAILABLE":
+                    seat_type = seat.get("seatType")
+                    if seat_type == "STANDARD":
+                        available_standard += 1
+                    elif seat_type == "VIP":
+                        available_vip += 1
+                    elif seat_type == "COUPLE":
+                        available_couple += 1
 
             return {
                 "status": "success",
                 "showtime_id": showtime_id,
-                "available_vip": data.get("availableVipSeats", 0),
-                "available_standard": data.get("availableStandardSeats", 0),
+                "available_vip": available_vip,
+                "available_standard": available_standard,
+                "available_couple": available_couple,
                 "suggested_seats": ["G7", "G8", "H6", "H7"]  # Dãy ghế VIP trung tâm mẫu đề xuất
             }
         except Exception as e:

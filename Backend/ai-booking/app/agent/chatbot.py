@@ -67,11 +67,51 @@ def chat(session_id: str, user_message: str, user_id: str = None, force_fallback
         classifier = IntentClassifier()
         intent = classifier.classify(user_message)
         
-        # Override intent statefully nếu đang trong luồng đặt vé và tin nhắn chứa thông tin phụ
+        # Override intent statefully nếu đang trong luồng đặt vé và nhắc lịch
         from .state import session_manager
         state = session_manager.get_state(session_id)
-        if intent in ["KNOWLEDGE_RAG", "UNKNOWN"] and (state.get("showtime_id") is not None or state.get("awaiting_movie") is True):
+        from .intent_classifier import remove_vietnamese_accents
+        msg_clean = remove_vietnamese_accents(user_message.lower())
+        
+        # Danh sách các bước trong luồng nhắc lịch
+        reminder_steps = [
+            "select_reminder_type", 
+            "select_reminder_flow", 
+            "booking_flow_select_movie", 
+            "booking_flow_select_cinema", 
+            "showtime_flow_select_ticket"
+        ]
+        
+        # Nếu đang ở clarify_movie của luồng nhắc lịch
+        is_clarify_reminder = (
+            state.get("current_step") == "clarify_movie" and 
+            state.get("next_step") == "booking_flow_select_cinema"
+        )
+        
+        is_in_reminder_flow = (
+            state.get("current_step") in reminder_steps or 
+            state.get("awaiting_reminder_showtime") is True or
+            is_clarify_reminder
+        )
+        
+        # Nếu đang ở clarify_movie của luồng đặt vé
+        is_clarify_booking = (
+            state.get("current_step") == "clarify_movie" and 
+            state.get("next_step") == "booking_flow_search"
+        )
+        
+        if is_in_reminder_flow and not any(x in msg_clean for x in ["dat ve", "mua ve", "dat ghe", "giu ghe"]):
+            intent = "REMINDER_DRAFT"
+        elif is_clarify_booking:
             intent = "BOOKING_DRAFT"
+        elif intent in ["UNKNOWN", "KNOWLEDGE_RAG"] and (
+            state.get("showtime_id") is not None 
+            or state.get("awaiting_movie") is True
+            or state.get("showtime_list")
+        ):
+            has_rag_keywords = any(x in msg_clean for x in ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi", "lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the", "rank", "sao", "nhu nao", "huong dan", "quy dinh"])
+            if not has_rag_keywords:
+                intent = "BOOKING_DRAFT"
     except Exception:
         intent = "UNKNOWN"
 

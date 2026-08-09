@@ -2,9 +2,13 @@ import re
 from .base_engine import BaseChatEngine
 from .response_formatter import ResponseFormatter
 from ...tools import create_draft_booking, get_suggested_seats, create_draft_reminder, get_user_tickets
+from ...tools.reminder_tools import GetRemindersTool, DeleteReminderTool
 from ...agent.tools import search_knowledge_base, get_now_showing_movies, get_active_vouchers
 from ..intent_classifier import IntentClassifier
 from ..state import session_manager
+
+get_reminders_tool = GetRemindersTool()
+delete_reminder_tool = DeleteReminderTool()
 
 def extract_date(msg_lower: str) -> tuple[str, bool]:
     import re
@@ -70,6 +74,58 @@ def extract_date(msg_lower: str) -> tuple[str, bool]:
     # 5. Mặc định hôm nay
     return now.strftime("%Y-%m-%d"), False
 
+def normalize_title(title_str: str) -> str:
+    import re
+    from ..intent_classifier import remove_vietnamese_accents
+    s = remove_vietnamese_accents(title_str.lower())
+    s = re.sub(r"[^a-z0-9\s]", " ", s)
+    return " ".join(s.split())
+
+def resolve_movie_title(user_msg: str, movie_titles: list[str]) -> tuple[str | None, list[str]]:
+    import re
+    # Trích xuất candidate nếu có từ khóa "phim"
+    candidate = None
+    movie_match = re.search(r"phim\s+([a-zA-Z0-9\s_:\-\.,/\?!]+)", user_msg)
+    if movie_match:
+        candidate = movie_match.group(1).strip()
+    
+    # Nếu không tìm thấy candidate qua "phim", dùng chính user_msg
+    candidate_str = candidate if candidate else user_msg
+    # Lược bỏ các từ khóa phổ biến ở đầu
+    for kw in ["lich chieu phim", "lịch chiếu phim", "lich chieu", "lịch chiếu", "dat ve phim", "đặt vé phim", "dat ve", "đặt vé", "nhac lich phim", "nhắc lịch phim", "nhac lich", "nhắc lịch"]:
+        if candidate_str.startswith(kw):
+            candidate_str = candidate_str[len(kw):].strip()
+            
+    candidate_norm = normalize_title(candidate_str)
+    if not candidate_norm:
+        return None, []
+        
+    # 1. Exact Match Priority
+    for m in movie_titles:
+        if candidate_norm == normalize_title(m):
+            return m, []
+            
+    # 2. Substring Match Priority
+    matches = []
+    for m in movie_titles:
+        m_norm = normalize_title(m)
+        if candidate_norm in m_norm or m_norm in candidate_norm:
+            matches.append(m)
+            
+    # Loại bỏ trùng lặp
+    matches = list(set(matches))
+    
+    if len(matches) == 1:
+        return matches[0], []
+    elif len(matches) > 1:
+        # Ưu tiên exact match lần nữa trong matches
+        for m in matches:
+            if candidate_norm == normalize_title(m):
+                return m, []
+        return None, sorted(matches)
+    
+    return None, []
+
 class TemplateEngine(BaseChatEngine):
     def __init__(self):
         self.classifier = IntentClassifier()
@@ -79,17 +135,101 @@ class TemplateEngine(BaseChatEngine):
         msg_lower = user_message.lower().strip()
         state = session_manager.get_state(session_id)
 
-        # Nếu người dùng muốn tra cứu phim mới hoặc lịch chiếu phim mới, hãy reset trạng thái đặt vé hiện tại
-        if "phim" in msg_lower or "lịch chiếu" in msg_lower or "lich chieu" in msg_lower:
-            if not any(x in msg_lower for x in ["ghế", "ghe", "bắp", "bap", "nước", "nuoc"]):
-                state.pop("showtime_id", None)
-                state.pop("seats", None)
-                state.pop("combos", None)
-                state.pop("step", None)
-                state.pop("selected_showtime_info", None)
+        # Kiểm tra từ khóa hủy nếu đang trong một tiến trình dở dang
+        has_active_flow = (
+            state.get("current_step") is not None or 
+            state.get("awaiting_movie") is True or 
+            state.get("awaiting_reminder_showtime") is True or 
+            state.get("step") is not None
+        )
+        if has_active_flow:
+            from ..intent_classifier import remove_vietnamese_accents
+            msg_clean_cancel = remove_vietnamese_accents(msg_lower)
+            cancel_keywords = [
+                "huy", "huy bo", "cancel", "huy dat lich", "huy dat ve", 
+                "khong dat nua", "dung lai", "khong mua nua",
+                "huy nhac nho", "huy nhac lich", "huy nhac"
+            ]
+            if any(msg_clean_cancel == kw or msg_clean_cancel.startswith(kw + " ") for kw in cancel_keywords):
+                # Xác định luồng hiện tại để phản hồi phù hợp
+                curr_step = state.get("current_step")
+                _reminder_steps = {
+                    "select_reminder_flow", "booking_flow_select_movie", 
+                    "booking_flow_select_cinema", "showtime_flow_select_ticket",
+                    "showtime_flow_cancel_reminder_confirm", "showtime_flow_cancel_reminder_verify"
+                }
+                is_reminder = curr_step in _reminder_steps or state.get("awaiting_reminder_showtime") is True
+                
+                for key in ["showtime_id", "seats", "combos", "step", "selected_showtime_info", "awaiting_reminder_showtime", "reminder_showtime_id", "current_step", "movie_candidates", "selected_movie", "reminder_flow", "showtime_list", "awaiting_movie"]:
+                    state.pop(key, None)
                 session_manager.set_state(session_id, state)
+                
+                if is_reminder:
+                    return "Dạ, em đã hủy tiến trình cài đặt nhắc lịch hiện tại cho anh/chị rồi ạ. Anh/chị cần em hỗ trợ gì khác không?"
+                return "Dạ, em đã hủy tiến trình đặt vé dở dang hiện tại cho anh/chị rồi ạ. Anh/chị cần em hỗ trợ gì khác không?"
+
+        # Xử lý bước clarify_movie toàn cục
+        if state.get("current_step") == "clarify_movie":
+            candidates = state.get("movie_candidates", [])
+            next_step = state.get("next_step")
+            
+            # Validate input index
+            is_valid = False
+            idx = -1
+            if msg_lower.isdigit():
+                idx = int(msg_lower) - 1
+                if 0 <= idx < len(candidates):
+                    is_valid = True
+                    
+            if not is_valid:
+                return f"⚠️ Số thứ tự phim không hợp lệ. Vui lòng chọn một số từ 1 đến {len(candidates)} giúp em nhé."
+                
+            selected_movie = candidates[idx]
+            
+            if next_step == "booking_flow_search":
+                # Chuyển tiếp sang luồng đặt vé: thiết lập biến và xóa bước clarify
+                state.pop("current_step", None)
+                state.pop("movie_candidates", None)
+                state.pop("next_step", None)
+                session_manager.set_state(session_id, state)
+                # Thay đổi msg_lower và user_message thành tên phim để block rà quét tìm kiếm bình thường hoạt động
+                user_message = f"lịch chiếu phim {selected_movie}"
+                msg_lower = user_message.lower()
+                intent = "BOOKING_DRAFT"
+            elif next_step == "booking_flow_select_cinema":
+                state["selected_movie"] = selected_movie
+                state["current_step"] = "booking_flow_select_cinema"
+                state.pop("movie_candidates", None)
+                state.pop("next_step", None)
+                session_manager.set_state(session_id, state)
+                return (
+                    f"🎬 Đã ghi nhận phim: **{selected_movie}**.\n\n"
+                    f"Anh/chị có muốn giới hạn nhắc lịch ở một rạp cụ thể không? "
+                    f"Vui lòng nhập tên rạp (ví dụ: Nguyễn Trãi), hoặc gõ 'Không' để nhận thông báo từ tất cả các rạp nhé."
+                )
+
+        # Nếu người dùng muốn tra cứu phim mới hoặc lịch chiếu phim mới, hãy reset trạng thái cũ (booking & reminder)
+        # Tuy nhiên KHÔNG reset nếu đang ở giữa luồng nhắc lịch (reminder flow steps)
+        _reminder_steps = {"select_reminder_flow", "booking_flow_select_movie", "booking_flow_select_cinema", "showtime_flow_select_ticket"}
+        _is_in_reminder_step = state.get("current_step") in _reminder_steps or (
+            state.get("current_step") == "clarify_movie" and state.get("next_step") == "booking_flow_select_cinema"
+        )
+        if not _is_in_reminder_step:
+            if "phim" in msg_lower or "lịch chiếu" in msg_lower or "lich chieu" in msg_lower:
+                if not any(x in msg_lower for x in ["ghế", "ghe", "bắp", "bap", "nước", "nuoc"]):
+                    state.pop("showtime_id", None)
+                    state.pop("seats", None)
+                    state.pop("combos", None)
+                    state.pop("step", None)
+                    state.pop("selected_showtime_info", None)
+                    state.pop("awaiting_reminder_showtime", None)
+                    state.pop("reminder_showtime_id", None)
+                    state.pop("current_step", None)
+                    session_manager.set_state(session_id, state)
 
         # Override intent statefully
+        from ..intent_classifier import remove_vietnamese_accents
+        msg_clean = remove_vietnamese_accents(msg_lower)
         has_active_showtime = state.get("showtime_id") is not None
         is_awaiting_movie = state.get("awaiting_movie") is True
         has_showtime_list = bool(state.get("showtime_list"))
@@ -106,11 +246,19 @@ class TemplateEngine(BaseChatEngine):
                 if not any(x in msg_lower for x in ["hoàn vé", "hoan ve", "hủy vé", "huy ve", "chính sách", "chinh sach", "bắp nước", "bap nuoc", "combo"]):
                     is_selecting_showtime = True
 
-        if intent not in ["BOOKING_DRAFT", "REMINDER_DRAFT"]:
-            if has_active_showtime or is_awaiting_movie or is_selecting_showtime:
-                intent = "BOOKING_DRAFT"
+        # Hỗ trợ bảo toàn/ép định tuyến REMINDER_DRAFT khi đang ở luồng nhắc lịch
+        is_awaiting_reminder = state.get("awaiting_reminder_showtime") is True or state.get("current_step") == "select_reminder_type"
+        if is_awaiting_reminder:
+            if not any(x in msg_clean for x in ["dat ve", "mua ve", "dat ghe", "giu ghe"]):
+                intent = "REMINDER_DRAFT"
 
-        # ── INTENT 1: Chào hỏi ──────────────────────
+        if intent != "REMINDER_DRAFT":
+            if (intent not in ["BOOKING_DRAFT", "REMINDER_DRAFT", "KNOWLEDGE_RAG", "USER_QUERIES"] or intent == "KNOWLEDGE_RAG") or is_selecting_showtime:
+                has_rag_keywords = any(x in msg_clean for x in ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi", "lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the", "rank", "sao", "nhu nao", "huong dan", "quy dinh"])
+                if not has_rag_keywords or is_selecting_showtime:
+                    if has_active_showtime or is_awaiting_movie or is_selecting_showtime:
+                        intent = "BOOKING_DRAFT"
+
         if intent == "GREETING":
             return (
                 "Xin chào anh/chị! Em là Nova - Trợ lý ảo hỗ trợ đặt vé xem phim NovaTicket.\n\n"
@@ -124,7 +272,7 @@ class TemplateEngine(BaseChatEngine):
             )
 
         # ── INTENT 2: Đặt vé nháp / Suất chiếu ───────
-        elif intent == "BOOKING_DRAFT" or (session_manager.get_state(session_id).get("showtime_id") is not None):
+        elif intent == "BOOKING_DRAFT":
             state = session_manager.get_state(session_id)
 
             # 1. Trích xuất thông tin đầu vào
@@ -180,6 +328,7 @@ class TemplateEngine(BaseChatEngine):
             
             # Nếu chưa có suất chiếu và cũng không tra cứu được showtime_id trong state
             if not showtime_id:
+                movies = []
                 # 1. Lấy danh sách phim đang cưới tự động qua API Java
                 try:
                     import httpx
@@ -199,24 +348,51 @@ class TemplateEngine(BaseChatEngine):
                 except Exception:
                     movie_titles = ["Mai", "Kung Fu Panda 4"]
 
-                # 2. Trích xuất phim dựa trên từ khóa trong tin nhắn
-                movie_name = None
-                movie_match = re.search(r"phim\s+([a-zA-Z0-9\s_:\-]+)", msg_lower)
-                if movie_match:
-                    candidate = movie_match.group(1).strip().lower()
-                    for m in movie_titles:
-                        if candidate in m.lower() or m.lower() in candidate:
-                            movie_name = m
-                            break
+                # 2a. Phát hiện query hỏi "danh sách phim / phim đang chiếu" (không kèm tên cụ thể)
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean_for_list = remove_vietnamese_accents(msg_lower)
+                movie_list_patterns = [
+                    "phim dang chieu", "dang chieu gi", "co phim gi", "danh sach phim",
+                    "phim hien tai", "phim gi dang", "phim hien", "phim moi nhat",
+                    "co gi chieu", "xem phim gi", "phim sap chieu", "phim nao dang"
+                ]
+                is_listing_query = any(p in msg_clean_for_list for p in movie_list_patterns)
+                # Phân biệt "phim đang chiếu" (hỏi list) với "lịch chiếu phim X" (hỏi suất)
+                has_lich_chieu = ("lich chieu" in msg_clean_for_list or "lịch chiếu" in msg_lower)
+                
+                if is_listing_query and not has_lich_chieu:
+                    catalog_lines = "\n".join([f"• {m}" for m in movie_titles])
+                    return (
+                        f"🎬 Hiện tại NovaTicket đang chiếu các phim sau:\n\n{catalog_lines}\n\n"
+                        f"💡 Anh/chị gõ **'lịch chiếu phim [Tên Phim]'** để xem suất chiếu và đặt vé nhé!"
+                    )
 
-                if not movie_name:
-                    from ..intent_classifier import remove_vietnamese_accents
-                    msg_clean = remove_vietnamese_accents(msg_lower)
-                    for m in movie_titles:
-                        m_clean = remove_vietnamese_accents(m.lower())
-                        if m_clean in msg_clean:
-                            movie_name = m
-                            break
+                # 2b. Phân giải tên phim có ưu tiên so khớp (Exact -> Substring -> Clarify)
+                movie_name, candidates = resolve_movie_title(user_message, movie_titles)
+                
+                # Nếu có nhiều phim ứng viên cần làm rõ
+                if not movie_name and candidates:
+                    state["movie_candidates"] = candidates
+                    state["current_step"] = "clarify_movie"
+                    state["next_step"] = "booking_flow_search" # Lưu vết để sau đó đi tiếp đặt vé nháp
+                    session_manager.set_state(session_id, state)
+                    
+                    candidate_lines = []
+                    for i, cand in enumerate(candidates, 1):
+                        candidate_lines.append(f"[{i}] {cand}")
+                    return (
+                        f"🤔 Em tìm thấy một số phim khớp với mô tả của anh/chị. "
+                        f"Anh/chị vui lòng chọn số thứ tự phim mong muốn:\n" + "\n".join(candidate_lines)
+                    )
+                
+                # Nếu không tìm thấy phim nào khớp (0 kết quả)
+                if not movie_name and not candidates:
+                    catalog_movies = " / ".join([f"'{m}'" for m in movie_titles])
+                    return (
+                        f"Dạ, em không tìm thấy phim nào khớp với tên '[user_msg]'. "
+                        f"Hiện rạp đang chiếu các phim: {catalog_movies}. Anh/chị vui lòng gõ lại tên phim nhé!"
+                    ).replace("[user_msg]", user_message)
+
 
                 cinema_name = ""
                 if "nguyễn trãi" in msg_lower or "nguyen trai" in msg_lower:
@@ -345,7 +521,21 @@ class TemplateEngine(BaseChatEngine):
                     state["awaiting_movie"] = True
                     session_manager.set_state(session_id, state)
 
-                    if movie_titles:
+                    if movies:
+                        lines = [
+                            "🎬 Chào anh/chị, anh/chị muốn đặt vé cho phim nào ạ?",
+                            "Hiện tại rạp đang chiếu các phim cực kỳ hấp dẫn:"
+                        ]
+                        for m in movies[:7]:
+                            genres = ", ".join(g["name"] for g in m.get("genres", []))
+                            duration = f"{m.get('duration')} phút" if m.get("duration") else ""
+                            rated = f"Hạng {m.get('rated')}" if m.get("rated") else ""
+                            meta = " — ".join(filter(None, [duration, rated, genres]))
+                            lines.append(f"• **{m['title']}** ({meta})")
+                        
+                        lines.append(f"\n👉 Anh/chị vui lòng phản hồi tên phim (Ví dụ: 'phim {movie_titles[0]}') để em hiển thị lịch chiếu nhé!")
+                        return "\n".join(lines)
+                    elif movie_titles:
                         movies_str = ", ".join(f"**{m}**" for m in movie_titles)
                         return (
                             f"🎬 Chào anh/chị, anh/chị muốn đặt vé cho phim nào ạ?\n"
@@ -460,12 +650,12 @@ class TemplateEngine(BaseChatEngine):
                     import httpx as _httpx
                     from ...config import get_settings as _get_settings
                     _cfg = _get_settings()
-                    _seat_resp = _httpx.get(
-                        f"{_cfg.java_api_base}/internal/api/seats/available",
-                        headers={"X-Internal-Key": _cfg.internal_api_key},
-                        params={"showtimeId": showtime_id},
-                        timeout=5
-                    )
+                    with _httpx.Client(timeout=5) as _client:
+                        _seat_resp = _client.get(
+                            f"{_cfg.java_api_base}/internal/api/seats/available",
+                            headers={"X-Internal-Key": _cfg.internal_api_key},
+                            params={"showtimeId": showtime_id}
+                        )
                     _seat_resp.raise_for_status()
                     _seat_map_data = _seat_resp.json()
                     _seat_items = _seat_map_data.get("seats", [])
@@ -533,54 +723,364 @@ class TemplateEngine(BaseChatEngine):
 
         # ── INTENT 3: Nhắc nhở lịch chiếu ───────────
         elif intent == "REMINDER_DRAFT":
-            showtime_match = re.search(r"(?:suất|suat|mã|ma)\s*([a-zA-Z0-9\-]+)", msg_lower)
-            showtime_input = showtime_match.group(1) if showtime_match else None
-            
-            showtime_id = None
-            if showtime_input:
-                showtime_list = state.get("showtime_list", [])
-                if showtime_input.isdigit():
-                    if showtime_list:
-                        idx = int(showtime_input) - 1
-                        if 0 <= idx < len(showtime_list):
-                            item = showtime_list[idx]
-                            if isinstance(item, dict):
-                                showtime_id = item["id"]
-                                state["selected_showtime_info"] = item
-                            else:
-                                showtime_id = item
-                        else:
-                            return (
-                                f"❌ Số thứ tự suất chiếu [{showtime_input}] không tồn tại trong danh sách đã hiển thị.\n"
-                                f"Vui lòng chọn số từ 1 đến {len(showtime_list)} nhé."
-                            )
-                    else:
-                        return (
-                            "⏰ Hiện tại hệ thống chưa lưu bộ nhớ lịch chiếu phim gần nhất.\n"
-                            "Anh/chị vui lòng nhập 'lịch chiếu phim [Tên Phim]' trước để có danh sách suất chiếu nhé!"
-                        )
-                else:
-                    showtime_id = showtime_input
-            
-            if not showtime_id:
+            # Tránh xung đột chéo: xóa sạch trạng thái đặt vé nháp dở dang
+            state.pop("awaiting_movie", None)
+            state.pop("showtime_id", None)
+            state.pop("seats", None)
+            state.pop("combos", None)
+
+            current_step = state.get("current_step")
+
+            # BƯỚC 1: Người dùng bắt đầu luồng nhắc nhở chưa chọn Option
+            if not current_step:
+                state["current_step"] = "select_reminder_flow"
+                state["awaiting_reminder_showtime"] = True
+                session_manager.set_state(session_id, state)
                 return (
-                    "⏰ Dạ, anh/chị muốn đặt nhắc hẹn cho suất chiếu nào ạ?\n"
-                    "Anh/chị vui lòng nhập dạng: 'nhắc lịch suất 1' (1 là số thứ tự suất chiếu từ danh sách)."
+                    "⏰ Anh/chị vui lòng chọn loại hình nhắc lịch bằng cách nhắn **1**, **2** hoặc **3**:\n"
+                    "1. Nhắc lịch đặt vé (Khi phim có lịch chiếu mới tại rạp)\n"
+                    "2. Nhắc trước giờ chiếu (Thông báo trước giờ chiếu 1 tiếng cho vé đã mua)\n"
+                    "3. Xem & Hủy nhắc lịch (Hiển thị danh sách và cho phép hủy có xác nhận)"
                 )
 
-            selected_info = state.get("selected_showtime_info")
-            movie_str = ""
-            if selected_info:
-                movie_str = f" phim {selected_info['movieTitle']}"
-            msg = f"Đến giờ xem{movie_str} của suất chiếu rồi anh/chị ơi!"
-            res = create_draft_reminder.execute(showtime_id, msg, session_id)
-            if res.get("status") != "error":
-                if selected_info:
-                    start_time_clean = selected_info["startTime"].split('T')[-1][:5]
-                    res["reminderTime"] = f"{selected_info['movieTitle']} ({start_time_clean})"
+            # BƯỚC 2: Người dùng chọn giữa Option 1, Option 2 và Option 3
+            elif current_step == "select_reminder_flow":
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean = remove_vietnamese_accents(msg_lower)
+
+                if msg_clean == "1" or any(x in msg_clean for x in ["dat ve", "nhac dat", "mo ban", "giu cho", "dat truoc"]):
+                    state["reminder_flow"] = "BOOKING"
+                    state["current_step"] = "booking_flow_select_movie"
+                    session_manager.set_state(session_id, state)
+                    return "Dạ, anh/chị muốn đặt nhắc lịch đặt vé cho phim nào sắp tới ạ?"
+                elif msg_clean == "2" or any(x in msg_clean for x in ["truoc gio", "gio chieu", "xem phim", "nhac xem", "xem"]):
+                    state["reminder_flow"] = "SHOWTIME"
+                    # Tìm vé xem phim sắp diễn ra để nhắc lịch
+                    booked_list = []
+                    try:
+                        res = get_user_tickets.execute(session_id)
+                        tickets = res.get("tickets", []) if isinstance(res, dict) else []
+                        from datetime import datetime
+                        now_dt = datetime.now()
+                        for t in tickets:
+                            status = t.get("status")
+                            start_time_str = t.get("startTime", "")
+                            
+                            is_future = True
+                            if start_time_str:
+                                try:
+                                    dt = datetime.fromisoformat(start_time_str.replace("Z", ""))
+                                    if dt < now_dt:
+                                        is_future = False
+                                except Exception:
+                                    pass
+                            
+                            # Chỉ lấy các vé đã thanh toán/giữ ghế sắp tới
+                            if is_future and status in ["PAID", "CONFIRMED", "PENDING"]:
+                                booked_list.append(t)
+                    except Exception:
+                        pass
+                    
+                    if booked_list:
+                        from datetime import datetime
+                        lines = [
+                            "⏰ Dạ, anh/chị muốn đặt nhắc hẹn cho vé xem phim nào sắp tới ạ?",
+                            "Dưới đây là danh sách vé chuẩn bị chiếu của anh/chị:"
+                        ]
+                        showtime_list = []
+                        for i, t in enumerate(booked_list, 1):
+                            showtime_list.append({
+                                "id": t.get("showtimeId"),
+                                "movieTitle": t.get("movieTitle"),
+                                "cinemaName": t.get("cinemaName"),
+                                "startTime": t.get("startTime")
+                            })
+                            
+                            raw_time = t.get("startTime", "")
+                            time_str = ""
+                            if "T" in raw_time:
+                                parts = raw_time.split("T")
+                                try:
+                                    dt = datetime.strptime(parts[0], "%Y-%m-%d")
+                                    time_str = f"lúc {parts[1][:5]} ngày {dt.strftime('%d/%m')}"
+                                except Exception:
+                                    time_str = f"lúc {parts[1][:5]} ngày {parts[0]}"
+                            else:
+                                time_str = raw_time[:16]
+                                
+                            lines.append(f"• **[{i}]** {t.get('movieTitle')} — {t.get('cinemaName')} ({time_str})")
+                            
+                        lines.append(f"\n👉 Anh/chị vui lòng phản hồi số thứ tự (từ 1 đến {len(booked_list)}) để đặt nhắc lịch nhé!")
+                        
+                        state["showtime_list"] = showtime_list
+                        state["current_step"] = "showtime_flow_select_ticket"
+                        session_manager.set_state(session_id, state)
+                        return "\n".join(lines)
+                    else:
+                        # Reset state nhắc lịch
+                        for key in ["current_step", "reminder_flow", "showtime_list", "awaiting_reminder_showtime"]:
+                            state.pop(key, None)
+                        session_manager.set_state(session_id, state)
+                        return "🎫 Anh/chị hiện chưa có giao dịch mua vé nào gần đây để đặt nhắc lịch chiếu."
+                        
+                elif msg_clean == "3" or any(x in msg_clean for x in ["huy nhac", "xem nhac", "danh sach nhac", "quan ly nhac", "xoa nhac"]):
+                    reminders = get_reminders_tool.execute(session_id)
+                    if not reminders:
+                        for key in ["current_step", "reminder_flow", "showtime_list", "awaiting_reminder_showtime"]:
+                            state.pop(key, None)
+                        session_manager.set_state(session_id, state)
+                        return "🎫 Anh/chị hiện chưa có lịch nhắc nào đang chờ."
+                        
+                    lines = [
+                        "⏰ Dưới đây là danh sách nhắc lịch đang chờ của anh/chị:",
+                    ]
+                    reminder_list_ids = []
+                    for i, r in enumerate(reminders, 1):
+                        reminder_list_ids.append({
+                            "id": r.get("id"),
+                            "title": r.get("title")
+                        })
+                        lines.append(f"• **[{i}]** {r.get('title')} — {r.get('body')}")
+                        
+                    lines.append(f"\n👉 Anh/chị vui lòng phản hồi số thứ tự (từ 1 đến {len(reminders)}) để chọn nhắc lịch muốn hủy, hoặc gõ **'Tất cả'** để hủy toàn bộ nhắc lịch nhé!")
+                    
+                    state["reminder_list_ids"] = reminder_list_ids
+                    state["current_step"] = "showtime_flow_cancel_reminder_confirm"
+                    session_manager.set_state(session_id, state)
+                    return "\n".join(lines)
+                    
                 else:
-                    res["reminderTime"] = f"Suất #{showtime_id}"
-            return ResponseFormatter.format_draft_reminder(res)
+                    return (
+                        "⚠️ Anh/chị chỉ cần chọn 1 (Nhắc đặt vé), 2 (Nhắc trước giờ chiếu) hoặc 3 (Xem & Hủy nhắc lịch) giúp em nhé.\n\n"
+                        "Anh/chị vui lòng nhập số tương ứng hoặc gõ từ khóa như 'đặt vé', 'giờ chiếu' hay 'hủy nhắc'."
+                    )
+
+            # BƯỚC 3 (Option 1): Chọn phim
+            elif current_step == "booking_flow_select_movie":
+                movies = []
+                try:
+                    import httpx
+                    from ...config import get_settings
+                    cfg = get_settings()
+                    headers = {"X-Internal-Key": cfg.internal_api_key}
+                    with httpx.Client(timeout=10) as client:
+                        resp = client.get(
+                            f"{cfg.java_api_base}/internal/api/movies/now-showing",
+                            headers=headers
+                        )
+                        resp.raise_for_status()
+                        movies = resp.json()
+                    movie_titles = [m["title"] for m in movies if m.get("title")]
+                    if not movie_titles:
+                        movie_titles = ["Mai", "Kung Fu Panda 4"]
+                except Exception:
+                    movie_titles = ["Mai", "Kung Fu Panda 4"]
+
+                # Phân giải phim
+                movie_name, candidates = resolve_movie_title(user_message, movie_titles)
+
+                if not movie_name and candidates:
+                    state["movie_candidates"] = candidates
+                    state["current_step"] = "clarify_movie"
+                    state["next_step"] = "booking_flow_select_cinema"
+                    session_manager.set_state(session_id, state)
+                    
+                    candidate_lines = []
+                    for i, cand in enumerate(candidates, 1):
+                        candidate_lines.append(f"[{i}] {cand}")
+                    return (
+                        f"🤔 Em tìm thấy một số phim khớp với mô tả của anh/chị. "
+                        f"Anh/chị vui lòng chọn số thứ tự phim mong muốn:\n" + "\n".join(candidate_lines)
+                    )
+                
+                if not movie_name and not candidates:
+                    catalog_movies = " / ".join([f"'{m}'" for m in movie_titles])
+                    return (
+                        f"Dạ, em không tìm thấy phim nào khớp với tên '[user_msg]'. "
+                        f"Hiện rạp đang chiếu các phim: {catalog_movies}. Anh/chị vui lòng nhập lại tên phim nhé!"
+                    ).replace("[user_msg]", user_message)
+
+                # Chọn thành công phim
+                state["selected_movie"] = movie_name
+                state["current_step"] = "booking_flow_select_cinema"
+                session_manager.set_state(session_id, state)
+                return (
+                    f"🎬 Đã ghi nhận phim: **{movie_name}**.\n\n"
+                    f"Anh/chị có muốn giới hạn nhắc lịch ở một rạp cụ thể không? "
+                    f"Vui lòng nhập tên rạp (ví dụ: Nguyễn Trãi), hoặc gõ 'Không' để nhận thông báo từ tất cả các rạp nhé."
+                )
+
+            # BƯỚC 4 (Option 1): Chọn rạp & So khớp showtime để tạo
+            elif current_step == "booking_flow_select_cinema":
+                movie_name = state.get("selected_movie")
+                cinema_filter = None
+                
+                # Tìm rạp
+                if "nguyễn trãi" in msg_lower or "nguyen trai" in msg_lower:
+                    cinema_filter = "Nguyễn Trãi"
+                elif "trần hưng đạo" in msg_lower or "tran hung dao" in msg_lower:
+                    cinema_filter = "Trần Hưng Đạo"
+
+                # Truy vấn showtimes của phim
+                import httpx
+                from ...config import get_settings
+                cfg = get_settings()
+                headers = {"X-Internal-Key": cfg.internal_api_key}
+                
+                showtimes = []
+                try:
+                    with httpx.Client(timeout=10) as client:
+                        resp = client.get(
+                            f"{cfg.java_api_base}/internal/api/showtimes",
+                            headers=headers
+                        )
+                        resp.raise_for_status()
+                        showtimes = resp.json()
+                except Exception:
+                    pass
+
+                # Lọc showtimes khớp phim (và rạp nếu có)
+                matching_showtimes = []
+                for st in showtimes:
+                    if normalize_title(st.get("movieTitle", "")) == normalize_title(movie_name):
+                        if not cinema_filter or normalize_title(st.get("cinemaName", "")) == normalize_title(cinema_filter):
+                            matching_showtimes.append(st)
+
+                # Nếu lọc theo rạp không ra, thử tìm rạp bất kỳ cho phim đó
+                if not matching_showtimes and cinema_filter:
+                    for st in showtimes:
+                        if normalize_title(st.get("movieTitle", "")) == normalize_title(movie_name):
+                            matching_showtimes.append(st)
+
+                if matching_showtimes:
+                    # Lấy showtime đầu tiên
+                    target_st = matching_showtimes[0]
+                    showtime_id = target_st["id"]
+                    
+                    msg = f"Đến thời gian đặt vé phim {target_st.get('movieTitle')} của suất chiếu rồi anh/chị ơi!"
+                    res = create_draft_reminder.execute(showtime_id, msg, session_id, "BOOKING")
+                    
+                    # Dọn dẹp trạng thái
+                    for key in ["current_step", "selected_movie", "reminder_flow", "showtime_list", "awaiting_reminder_showtime"]:
+                        state.pop(key, None)
+                    session_manager.set_state(session_id, state)
+                    
+                    if res.get("status") != "error":
+                        res["reminderType"] = "BOOKING"
+                        start_time_clean = target_st.get("startTime", "").split('T')[-1][:5]
+                        res["reminderTime"] = f"{target_st.get('movieTitle')} ({start_time_clean})"
+                        res["message"] = f"Nhắc lịch đặt vé phim {target_st.get('movieTitle')}"
+                        
+                    return ResponseFormatter.format_draft_reminder(res)
+                else:
+                    # Trả thông báo lỗi rạp chưa xếp lịch
+                    for key in ["current_step", "selected_movie", "reminder_flow", "showtime_list", "awaiting_reminder_showtime"]:
+                        state.pop(key, None)
+                    session_manager.set_state(session_id, state)
+                    cinema_text = f" tại rạp '{cinema_filter}'" if cinema_filter else ""
+                    return f"❌ Hiện tại phim '{movie_name}' chưa được xếp lịch chiếu nào{cinema_text} để liên kết nhắc nhở. Vui lòng thử lại sau nhé!"
+
+            # BƯỚC 3 (Option 2): Xác thực & Tạo nhắc nhở trước giờ chiếu
+            elif current_step == "showtime_flow_select_ticket":
+                showtime_list = state.get("showtime_list", [])
+                
+                is_valid = False
+                idx = -1
+                if msg_lower.isdigit():
+                    idx = int(msg_lower) - 1
+                    if 0 <= idx < len(showtime_list):
+                        is_valid = True
+                        
+                if not is_valid:
+                    return f"⚠️ Số thứ tự vé không hợp lệ. Vui lòng chọn một số từ 1 đến {len(showtime_list)} giúp em nhé."
+                    
+                selected_st = showtime_list[idx]
+                showtime_id = selected_st["id"]
+                
+                msg = f"Đến giờ xem phim {selected_st.get('movieTitle')} của suất chiếu rồi anh/chị ơi!"
+                res = create_draft_reminder.execute(showtime_id, msg, session_id, "SHOWTIME")
+                
+                # Dọn dẹp trạng thái
+                for key in ["current_step", "reminder_flow", "showtime_list", "awaiting_reminder_showtime"]:
+                    state.pop(key, None)
+                session_manager.set_state(session_id, state)
+                
+                if res.get("status") != "error":
+                    res["reminderType"] = "SHOWTIME"
+                    start_time_clean = selected_st.get("startTime", "").split('T')[-1][:5]
+                    res["reminderTime"] = f"{selected_st.get('movieTitle')} ({start_time_clean})"
+                    res["message"] = f"Nhắc lịch xem phim {selected_st.get('movieTitle')}"
+                    
+                return ResponseFormatter.format_draft_reminder(res)
+
+            # BƯỚC 3.5 (Option 3): Chọn nhắc lịch để hủy hoặc gõ "Tất cả"
+            elif current_step == "showtime_flow_cancel_reminder_confirm":
+                reminder_list_ids = state.get("reminder_list_ids", [])
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean = remove_vietnamese_accents(msg_lower)
+                
+                # Check nếu muốn xóa tất cả
+                if msg_clean in ["tat ca", "all", "tất cả"]:
+                    state["reminder_to_delete"] = "all"
+                    state["reminder_to_delete_title"] = "tất cả các nhắc lịch"
+                    state["current_step"] = "showtime_flow_cancel_reminder_verify"
+                    session_manager.set_state(session_id, state)
+                    return "⚠️ Anh/chị có chắc chắn muốn hủy TOÀN BỘ nhắc lịch đang chờ không ạ? Vui lòng gõ **'Có'** hoặc **'Không'** để xác nhận."
+                
+                # Check nếu chọn index số
+                is_valid = False
+                idx = -1
+                if msg_lower.isdigit():
+                    idx = int(msg_lower) - 1
+                    if 0 <= idx < len(reminder_list_ids):
+                        is_valid = True
+                
+                if not is_valid:
+                    return f"⚠️ Số thứ tự không hợp lệ. Vui lòng chọn một số từ 1 đến {len(reminder_list_ids)} hoặc gõ 'Tất cả' giúp em nhé."
+                
+                selected_rem = reminder_list_ids[idx]
+                state["reminder_to_delete"] = selected_rem["id"]
+                state["reminder_to_delete_title"] = selected_rem["title"]
+                state["current_step"] = "showtime_flow_cancel_reminder_verify"
+                session_manager.set_state(session_id, state)
+                return f"⚠️ Anh/chị có chắc chắn muốn hủy nhắc lịch **'{selected_rem['title']}'** không ạ? Vui lòng gõ **'Có'** hoặc **'Không'** để xác nhận."
+                
+            # BƯỚC 4.5 (Option 3): Xác nhận hủy Có / Không
+            elif current_step == "showtime_flow_cancel_reminder_verify":
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean = remove_vietnamese_accents(msg_lower)
+                
+                if msg_clean in ["co", "yes", "dong y", "dong y ", "chac chan", "dung vay", "xoa", "huy"]:
+                    target_id = state.get("reminder_to_delete")
+                    target_title = state.get("reminder_to_delete_title")
+                    
+                    # Gọi API xóa nhắc lịch
+                    del_res = delete_reminder_tool.execute(target_id, session_id)
+                    
+                    # Dọn dẹp trạng thái
+                    for key in ["current_step", "reminder_flow", "showtime_list", "awaiting_reminder_showtime", "reminder_list_ids", "reminder_to_delete", "reminder_to_delete_title"]:
+                        state.pop(key, None)
+                    session_manager.set_state(session_id, state)
+                    
+                    if del_res.get("status") == "error":
+                        if del_res.get("code") == 404:
+                            return "Dạ, nhắc lịch này đã được xử lý hoặc không còn tồn tại trên hệ thống từ trước. Anh/chị cần em hỗ trợ gì khác không?"
+                        return f"❌ Lỗi khi thực hiện xóa nhắc lịch: {del_res.get('message', 'Lỗi không xác định')}. Anh/chị vui lòng thử lại sau."
+                    
+                    if target_id == "all":
+                        return "⏰ Đã hủy toàn bộ nhắc lịch đang chờ thành công! Anh/chị cần em hỗ trợ gì khác không?"
+                    return f"⏰ Đã hủy nhắc lịch **'{target_title}'** thành công! Anh/chị cần em hỗ trợ gì khác không?"
+                    
+                elif msg_clean in ["khong", "no", "tu choi", "giu nguyen", "thoi", "huy bo"]:
+                    # Dọn dẹp trạng thái
+                    for key in ["current_step", "reminder_flow", "showtime_list", "awaiting_reminder_showtime", "reminder_list_ids", "reminder_to_delete", "reminder_to_delete_title"]:
+                        state.pop(key, None)
+                    session_manager.set_state(session_id, state)
+                    return "Dạ em đã giữ nguyên nhắc lịch của anh/chị rồi ạ. Anh/chị cần em hỗ trợ gì khác không?"
+                
+                else:
+                    # Fallback Input Loop cho branch không khớp
+                    return "Dạ, anh/chị vui lòng gõ **'Có'** hoặc **'Không'** để xác nhận giúp em nhé."
 
         # ── INTENT 4: Tra cứu lịch sử / CinePoint ───
         elif intent == "USER_QUERIES":
@@ -593,7 +1093,31 @@ class TemplateEngine(BaseChatEngine):
             try:
                 rag_info = search_knowledge_base.invoke(user_message)
                 if rag_info and "Không tìm thấy" not in rag_info and "Lỗi" not in rag_info:
-                    return rag_info.replace("[Nguồn ", "📍 [Thông tin Rạp ").replace(" --- ", "\n\n").replace("*", "")
+                    def clean_source_header(match):
+                        import os
+                        idx = match.group(1)
+                        path = match.group(2)
+                        section = match.group(3) or ""
+                        
+                        path_lower = path.lower()
+                        doc_type = "Tài liệu"
+                        if "cinema_info" in path_lower or "cinemas" in path_lower:
+                            doc_type = "Thông tin Rạp"
+                        elif "policy" in path_lower or "policies" in path_lower:
+                            doc_type = "Chính sách & Quy định"
+                        elif "faq" in path_lower:
+                            doc_type = "Hỏi đáp FAQ"
+                            
+                        fname = os.path.basename(path)
+                        return f"📍 [{doc_type} {idx}: {fname}{section}]"
+                    
+                    import re as _re
+                    formatted_info = _re.sub(
+                        r"\[Nguồn (\d+):\s*([^\s\]]+)([^\]]*)\]",
+                        clean_source_header,
+                        rag_info
+                    )
+                    return formatted_info.replace(" --- ", "\n\n").replace("*", "")
             except Exception:
                 pass
 

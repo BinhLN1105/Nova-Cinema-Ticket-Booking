@@ -18,10 +18,10 @@ class IntentClassifier:
         # Bộ từ khóa đại diện cho từng Intent sau khi đã xóa dấu
         self.keywords = {
             "GREETING": ["chao", "xin chao", "hi", "hello", "helo", "ban la ai", "tro ly", "bot", "advertiser"],
-            "BOOKING_DRAFT": ["dat ve", "suat chieu", "lich chieu", "suat", "suat ", "ghe ", "dat ghe", "mua ve", "giu ghe", "dat cho"],
-            "REMINDER_DRAFT": ["nhac nho", "nhac lich", "hen gio", "dat hen", "bao gio chieu", "nhac nho lich"],
             "USER_QUERIES": ["lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the", "rank"],
-            "KNOWLEDGE_RAG": ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi"]
+            "KNOWLEDGE_RAG": ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi"],
+            "REMINDER_DRAFT": ["nhac nho", "nhac lich", "hen gio", "dat hen", "bao gio chieu", "nhac nho lich"],
+            "BOOKING_DRAFT": ["dat ve", "suat chieu", "lich chieu", "suat", "suat ", "ghe ", "dat ghe", "mua ve", "giu ghe", "dat cho", "phim", "chieu", "dang chieu", "sap chieu"]
         }
 
     def classify(self, text: str) -> str:

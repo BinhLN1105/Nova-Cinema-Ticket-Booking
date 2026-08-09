@@ -42,7 +42,8 @@ class ResponseFormatter:
         return (
             f"💺 Em đã kiểm tra sơ đồ ghế của suất chiếu #{data.get('showtime_id')}.\n"
             f"- Ghế thường trống: {data.get('available_standard', 0)} ghế\n"
-            f"- Ghế VIP trống: {data.get('available_vip', 0)} ghế\n\n"
+            f"- Ghế VIP trống: {data.get('available_vip', 0)} ghế\n"
+            f"- Ghế Couple trống: {data.get('available_couple', 0)} ghế\n\n"
             f"💡 Đề xuất cho anh/chị các vị trí đẹp nhất (giữa rạp): **{seats}**.\n"
             f"Anh/chị có muốn tiến hành đặt các ghế đẹp này không?"
         )
@@ -53,13 +54,28 @@ class ResponseFormatter:
             return f"❌ Lỗi khi đặt nhắc nhở: {data.get('message')}"
             
         reminder_id = data.get("reminderId") or "N/A"
+        
+        # Ẩn Mã nhắc nhở nếu là UUID 36 ký tự hoặc rỗng/N/A
+        show_reminder_id = True
+        if not reminder_id or reminder_id == "N/A" or len(str(reminder_id)) == 36:
+            show_reminder_id = False
+            
+        id_line = f"- Mã nhắc nhở: #{reminder_id}\n" if show_reminder_id else ""
+        
+        reminder_type = data.get("reminderType") or "SHOWTIME"
         time = data.get("reminderTime") or "Suất chiếu"
+        
+        if reminder_type == "BOOKING":
+            time_line = f"- Thời gian: Khi suất chiếu chuẩn bị mở bán/giữ chỗ ({time})"
+        else:
+            time_line = f"- Thời gian: 1 tiếng trước suất chiếu ({time})"
+            
         return (
             f"⏰ Đã tạo nhắc nhở lịch chiếu nháp thành công!\n\n"
-            f"- Mã nhắc nhở: #{reminder_id}\n"
+            f"{id_line}"
             f"- Nội dung: {data.get('message', 'Theo dõi lịch chiếu phim')}\n"
-            f"- Thời gian: 15 phút trước suất chiếu ({time})\n\n"
-            f"👉 Em sẽ gửi thông báo đẩy (push notification) tới ứng dụng của anh/chị khi suất chiếu chuẩn bị bắt đầu."
+            f"{time_line}\n\n"
+            f"👉 Em sẽ gửi thông báo đẩy (push notification) tới ứng dụng của anh/chị khi có thông tin cập nhật."
         )
 
     @staticmethod
@@ -78,8 +94,13 @@ class ResponseFormatter:
             
         lines = [header + "🎫 Lịch sử đặt vé gần nhất của anh/chị:"]
         for t in tickets[:3]:
-            seats = ", ".join(t.get("seats", []))
+            seats_data = t.get("seats")
+            if isinstance(seats_data, list):
+                seats = ", ".join(seats_data)
+            else:
+                seats = str(seats_data or "")
+            booking_id = t.get("bookingCode") or t.get("id") or "None"
             lines.append(
-                f"• [{t.get('bookingId')}] {t.get('movieTitle')} — {t.get('cinemaName')} — Suất {t.get('startTime')} — Ghế {seats} ({t.get('status')})"
+                f"• [{booking_id}] {t.get('movieTitle')} — {t.get('cinemaName')} — Suất {t.get('startTime')} — Ghế {seats} ({t.get('status')})"
             )
         return "\n".join(lines)

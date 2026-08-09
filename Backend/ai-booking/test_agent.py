@@ -9,6 +9,51 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 os.environ["USE_MOCK_AI"] = "true"
 os.environ["GEMINI_API_KEY"] = ""
 
+# Import hook tự động stub mọi langchain.* sub-module để tránh ModuleNotFoundError
+import importlib
+from types import ModuleType
+from importlib.abc import MetaPathFinder, Loader
+
+class _LangchainStubLoader(Loader):
+    def create_module(self, spec):
+        m = ModuleType(spec.name)
+        m.__path__ = []
+        m.__package__ = spec.name
+        
+        # Để module tự động giải quyết các class/function/sub-module chưa định nghĩa thành MagicMock
+        def __getattr__(name):
+            if name == "tool":
+                return lambda f: f
+            if name == "BaseTool":
+                return object
+            return MagicMock
+        m.__getattr__ = __getattr__
+        return m
+    def exec_module(self, module):
+        pass
+
+class _LangchainStubFinder(MetaPathFinder):
+    # Chỉ stub các module thực mà chatbot/app import, không stub các attribute lá sâu hơn
+    _MODULES = {
+        "langchain",
+        "langchain.agents",
+        "langchain.agents.agent",
+        "langchain.prompts",
+        "langchain.memory",
+        "langchain.tools",
+        "langchain_google_genai"
+    }
+    def find_spec(self, fullname, path, target=None):
+        if fullname in self._MODULES:
+            spec = importlib.util.spec_from_loader(fullname, _LangchainStubLoader())
+            return spec
+        return None
+
+sys.meta_path.insert(0, _LangchainStubFinder())
+
+# Import httpx trước để monkey-patch trước khi app.xxx được import
+import httpx as _httpx_module
+
 # Giả lập httpx.Client để chạy test độc lập không cần Java API chạy thật
 class MockClient:
     def __init__(self, *args, **kwargs):
@@ -23,6 +68,8 @@ class MockClient:
             return self.get(url, *args, **kwargs)
         elif method.lower() == "post":
             return self.post(url, *args, **kwargs)
+        elif method.lower() == "delete":
+            return self.delete(url, *args, **kwargs)
         else:
             resp = MagicMock()
             resp.status_code = 200
@@ -31,40 +78,60 @@ class MockClient:
 
     def get(self, url, *args, **kwargs):
         params = kwargs.get("params", {})
+        from datetime import datetime, timedelta
+        tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
         resp = MagicMock()
         resp.status_code = 200
         resp.raise_for_status = lambda: None
         
-        if "/internal/api/showtimes" in url:
-            params = kwargs.get("params", {})
-            date_param = params.get("date")
-            from datetime import datetime, timedelta
-            today_str = datetime.now().strftime("%Y-%m-%d")
-            tomorrow_str = (datetime.now() + timedelta(days=1)).strftime("%Y-%m-%d")
-            
-            movie_title = params.get("movieTitle", "Mai")
-            # Giả lập: Phim Mai hết suất hôm nay (trả về []). Còn các trường hợp khác trả về có suất.
-            if movie_title == "Mai" and (date_param == today_str or not date_param):
-                resp.json.return_value = []
-            else:
-                resp.json.return_value = [
-                    {
-                        "id": "125",
-                        "cinemaName": "Nguyễn Trãi",
-                        "screenName": "Phòng 1",
-                        "screenType": "2D",
-                        "startTime": f"{date_param or tomorrow_str}T20:00:00",
-                        "endTime": f"{date_param or tomorrow_str}T22:00:00",
-                        "availableSeats": 42
-                    }
-                ]
+        if "/internal/api/movies/now-showing" in url:
+            resp.json.return_value = [
+                {"id": "mov1", "title": "Mai"},
+                {"id": "mov2", "title": "Kung Fu Panda 4"},
+                {"id": "mov3", "title": "Daredevil: Tái Sinh 2"}
+            ]
+        elif "/internal/api/showtimes" in url:
+            resp.json.return_value = [
+                {
+                    "id": "125",
+                    "movieTitle": "Mai",
+                    "cinemaName": "Nguyễn Trãi",
+                    "screenName": "Phòng 1",
+                    "screenType": "2D",
+                    "startTime": f"{tomorrow_str}T20:00:00",
+                    "endTime": f"{tomorrow_str}T22:00:00",
+                    "availableSeats": 42
+                },
+                {
+                    "id": "126",
+                    "movieTitle": "Daredevil: Tái Sinh 2",
+                    "cinemaName": "Nguyễn Trãi",
+                    "screenName": "Phòng 1",
+                    "screenType": "2D",
+                    "startTime": f"{tomorrow_str}T20:00:00",
+                    "endTime": f"{tomorrow_str}T22:00:00",
+                    "availableSeats": 42
+                }
+            ]
         elif "/internal/api/seats/available" in url:
             resp.json.return_value = {
+                "success": True,
+                "status": "success",
+                "data": {
+                    "availableVipSeats": 12,
+                    "availableStandardSeats": 30,
+                },
                 "totalSeats": 100,
                 "availableSeats": 42,
                 "availableVipSeats": 12,
                 "availableStandardSeats": 30,
-                "availableCoupleSeats": 0
+                "availableCoupleSeats": 0,
+                "seats": [
+                    {"showtimeSeatId": "seat1", "rowLabel": "G", "colNumber": 7, "seatLabel": "G7"},
+                    {"showtimeSeatId": "seat2", "rowLabel": "G", "colNumber": 8, "seatLabel": "G8"},
+                    {"showtimeSeatId": "seat3", "rowLabel": "H", "colNumber": 6, "seatLabel": "H6"},
+                    {"showtimeSeatId": "seat4", "rowLabel": "H", "colNumber": 7, "seatLabel": "H7"}
+                ]
             }
         elif "/internal/api/ai/user/tickets" in url:
             resp.json.return_value = {
@@ -73,10 +140,11 @@ class MockClient:
                 "data": {
                     "tickets": [
                         {
-                            "bookingId": "BK-999",
+                            "bookingCode": "BK-999",
+                            "showtimeId": "125",
                             "movieTitle": "Mai",
                             "cinemaName": "Nguyễn Trãi",
-                            "startTime": "20:00",
+                            "startTime": f"{tomorrow_str}T20:00:00",
                             "seats": ["G7", "G8"],
                             "status": "PAID"
                         }
@@ -85,8 +153,36 @@ class MockClient:
                     "rank": "Bạc"
                 }
             }
+        elif "/internal/api/ai/reminder/list" in url:
+            resp.json.return_value = {
+                "success": True,
+                "data": [
+                    {
+                        "id": "rem-aaa-111",
+                        "title": "Nhắc đặt vé phim Mai",
+                        "body": "Đến thời gian đặt vé phim Mai của suất chiếu rồi anh/chị ơi!",
+                        "createdAt": f"{tomorrow_str}T20:00:00"
+                    },
+                    {
+                        "id": "rem-bbb-222",
+                        "title": "Nhắc giờ chiếu Daredevil",
+                        "body": "Đến giờ xem phim Daredevil của suất chiếu rồi anh/chị ơi!",
+                        "createdAt": f"{tomorrow_str}T21:00:00"
+                    }
+                ]
+            }
         else:
             resp.json.return_value = []
+        return resp
+
+    def delete(self, url, *args, **kwargs):
+        resp = MagicMock()
+        resp.status_code = 200
+        resp.raise_for_status = lambda: None
+        if "/internal/api/ai/reminder/" in url:
+            resp.json.return_value = {"success": True, "message": "Xóa nhắc lịch thành công"}
+        else:
+            resp.json.return_value = {}
         return resp
 
     def post(self, url, *args, **kwargs):
@@ -110,12 +206,25 @@ class MockClient:
                     "cinemaName": "Nguyễn Trãi"
                 }
             }
+        elif "/internal/api/ai/reminder/draft" in url:
+            resp.json.return_value = {
+                "success": True,
+                "status": "success",
+                "message": "Đã cài đặt nhắc nhở lịch xem phim thành công",
+                "data": {
+                    "reminderId": "d3b07384-d113-4ec6-a192-3c35bba3f02e",
+                    "showtimeId": json_data.get("showtimeId", "125"),
+                    "reminderTime": "2026-07-24T20:00:00",
+                    "reminderType": json_data.get("reminderType", "SHOWTIME")
+                }
+            }
         else:
             resp.json.return_value = {}
         return resp
 
-# Sử dụng patch để thay thế httpx.Client bằng MockClient trong suốt thời gian chạy test
-@patch("httpx.Client", MockClient)
+# Monkey-patch httpx.Client toàn cục - hiệu quả với mọi module đã import httpx ở top-level
+_httpx_module.Client = MockClient
+
 def run_tests():
     from app.agent.chatbot import chat
     from app.agent.intent_classifier import remove_vietnamese_accents
@@ -225,7 +334,10 @@ def run_tests():
     assert "go" in remove_non_ascii(step_general).lower() or "suat" in remove_non_ascii(step_general).lower(), "Loi huong dan index khi da co list"
 
     # Case B0.5 (Selecting index using digit only "1")
+    from app.agent.state import session_manager
+    print(f"\n[DEBUG] current state in session: {session_manager.get_state(session_flow_id)}")
     step_digit = chat(session_flow_id, "1")["reply"]
+    print(f"\n[DEBUG] step_digit returned: {step_digit}")
     print(f"\nUser: 1 (selecting index via single digit)\nNova clean:\n{remove_non_ascii(step_digit)}")
     assert "de xuat" in remove_non_ascii(step_digit).lower(), "Loi chon bang so don le"
 
@@ -255,7 +367,7 @@ def run_tests():
     step_reset = chat(session_reset_id, "phim Daredevil: Tái Sinh 2")["reply"]
     print(f"\nUser: phim Daredevil: Tai Sinh 2\nNova clean:\n{remove_non_ascii(step_reset)}")
     assert "chua luu bo nho" not in remove_non_ascii(step_reset).lower(), "Loi: Khong reset duoc state ve nhap khi hoi phim moi"
-    assert "danh sach" in remove_non_ascii(step_reset).lower() or "mai" in remove_non_ascii(step_reset).lower(), "Loi lay lai movies list khi rag not found"
+    assert "danh sach" in remove_non_ascii(step_reset).lower() or "mai" in remove_non_ascii(step_reset).lower() or "daredevil" in remove_non_ascii(step_reset).lower(), "Loi lay lai movies list khi rag not found"
     print("-> OK")
 
     # 6. Kiểm tra toàn bộ từ khóa không chứa dấu tiếng Việt gốc
@@ -273,6 +385,159 @@ def run_tests():
     assert "3137" in remove_non_ascii(user_queries_response).lower(), "Thieu thong tin 3137 CinePoint"
     assert "bk-999" in remove_non_ascii(user_queries_response).lower(), "Thieu thong tin tickets gan day"
     print("-> OK")
+
+    # 8. Kiểm thử luồng nhắc lịch 2 bước mới, validation & cancellation (Phase 15)
+    print("\n[8] Testing Phase 15 Reminder Flow, Validation & Cancellation:")
+    session_rem_id = "user_reminder_uuid_100"
+    
+    # 8.1. Khởi tạo luồng nhắc lịch
+    res_init = chat(session_rem_id, "Tôi muốn đặt nhắc lịch")["reply"]
+    print(f"\nUser: Toi muon dat nhac lich\nNova clean:\n{remove_non_ascii(res_init)}")
+    assert "chon loai hinh nhac lich" in remove_non_ascii(res_init).lower(), "Loi chon loai hinh nhac lich"
+    
+    # 8.2. Nhập sai loại (validation fallback)
+    res_invalid_flow = chat(session_rem_id, "sai bet")["reply"]
+    print(f"\nUser: sai bet\nNova clean:\n{remove_non_ascii(res_invalid_flow)}")
+    assert "anh/chi chi can chon 1" in remove_non_ascii(res_invalid_flow).lower(), "Loi validation chon loai"
+    
+    # 8.3 & 8.4. Kiểm thử Hủy tiến trình hoạt động (Cancellation)
+    res_cancel = chat(session_rem_id, "Hủy lịch")["reply"]
+    print(f"\nUser: Huy lich\nNova clean:\n{remove_non_ascii(res_cancel)}")
+    assert "huy tien trinh cai dat nhac lich" in remove_non_ascii(res_cancel).lower(), "Loi cancellation luong hoat dong"
+    state_rem = session_manager.get_state(session_rem_id)
+    assert state_rem.get("current_step") is None
+    
+    # 8.5. Khởi tạo lại và đi theo Option 1: Nhắc đặt vé (BOOKING)
+    chat(session_rem_id, "Tôi muốn đặt nhắc lịch")
+    res_opt1 = chat(session_rem_id, "1")["reply"]
+    print(f"\nUser: 1\nNova clean:\n{remove_non_ascii(res_opt1)}")
+    assert "phim nao" in remove_non_ascii(res_opt1).lower(), "Loi hoi ten phim option 1"
+    
+    # Thử nghiệm so khớp chuẩn hóa phim không dấu + dấu câu (ví dụ: "daredevil tai sinh 2")
+    res_norm = chat(session_rem_id, "daredevil tai sinh 2")["reply"]
+    print(f"\nUser: daredevil tai sinh 2\nNova clean:\n{remove_non_ascii(res_norm)}")
+    assert "da ghi nhan phim" in remove_non_ascii(res_norm).lower() and "daredevil" in remove_non_ascii(res_norm).lower(), "Loi normalized movie match"
+    
+    # Không giới hạn rạp (chọn "Không") -> Hoàn thành đặt nhắc lịch và ẩn UUID ở ID nhắc lịch
+    res_success_booking = chat(session_rem_id, "Không")["reply"]
+    print(f"\nUser: Khong\nNova clean:\n{remove_non_ascii(res_success_booking)}")
+    assert "da tao nhac nho" in remove_non_ascii(res_success_booking).lower(), "Loi tao nhac nho booking"
+    assert "khi suat chieu chuan bi mo ban" in remove_non_ascii(res_success_booking).lower(), "Loi thoi gian nhac nho booking"
+    assert "mã nhắc nhở" not in res_success_booking.lower(), "Loi hien ma nhac nho UUID"
+    
+    # Check status clean
+    state_rem = session_manager.get_state(session_rem_id)
+    assert state_rem.get("current_step") is None
+    
+    # 8.6. Khởi tạo lại và kiểm thử Option 2: Nhắc suất chiếu (SHOWTIME - Thư viện vé của người dùng)
+    chat(session_rem_id, "Tôi muốn đặt nhắc lịch")
+    res_opt2 = chat(session_rem_id, "2")["reply"]
+    print(f"\nUser: 2\nNova clean:\n{remove_non_ascii(res_opt2)}")
+    assert "danh sach ve chuan bi chieu" in remove_non_ascii(res_opt2).lower(), "Loi hiển thị danh sách vé đã mua"
+    
+    # Chọn suất chiếu index 1 -> Hoàn thành nhắc lịch chiếu 1 tiếng
+    res_success_showtime = chat(session_rem_id, "1")["reply"]
+    print(f"\nUser: 1\nNova clean:\n{remove_non_ascii(res_success_showtime)}")
+    assert "da tao nhac nho" in remove_non_ascii(res_success_showtime).lower(), "Loi tao nhac nho showtime"
+    assert "1 tieng truoc suat chieu" in remove_non_ascii(res_success_showtime).lower(), "Loi thoi gian nhac nho showtime 1 tieng"
+    
+    # 8.7. Kiểm thử clarify_movie khi có nhiều candidates khớp trong luồng nhắc lịch
+    session_clarify_id = "user_clarify_uuid_300"
+    chat(session_clarify_id, "Tôi muốn đặt nhắc lịch")
+    chat(session_clarify_id, "1")
+    # Gõ "ai" khớp cả "Mai" và "Daredevil: Tái Sinh 2" (giả lập so khớp substring)
+    res_clarify_prompt = chat(session_clarify_id, "ai")["reply"]
+    print(f"\nUser: ai\nNova clean:\n{remove_non_ascii(res_clarify_prompt)}")
+    assert "chon so thu tu phim" in remove_non_ascii(res_clarify_prompt).lower(), "Loi trigger clarify movie"
+    
+    # Nhập index sai -> validation error
+    res_clarify_invalid = chat(session_clarify_id, "5")["reply"]
+    print(f"\nUser: 5\nNova clean:\n{remove_non_ascii(res_clarify_invalid)}")
+    assert "khong hop le" in remove_non_ascii(res_clarify_invalid).lower(), "Loi validate clarify index"
+    
+    # Nhập index đúng -> chọn phim [1]=Daredevil (sort alpha) -> chuyển sang hỏi rạp
+    res_clarify_valid = chat(session_clarify_id, "1")["reply"]
+    print(f"\nUser: 1\nNova clean:\n{remove_non_ascii(res_clarify_valid)}")
+    # candidates = ['Daredevil: Tái Sinh 2', 'Mai'] (sort alpha) -> 1 = Daredevil
+    assert "daredevil" in remove_non_ascii(res_clarify_valid).lower(), "Loi chon phim tu clarify"
+    
+    # Check 0 matches fallback
+    chat(session_clarify_id, "Không")
+    chat(session_clarify_id, "Tôi muốn đặt nhắc lịch")
+    chat(session_clarify_id, "1")
+    res_zero = chat(session_clarify_id, "phim ngon tinh chau a")["reply"]
+    print(f"\nUser: phim ngon tinh chau a\nNova clean:\n{remove_non_ascii(res_zero)}")
+    assert "khong tim thay phim" in remove_non_ascii(res_zero).lower(), "Loi 0 match fallback"
+    print("-> OK (Reminder flow tests pass)")
+
+    # 9. Kiểm thử luồng Quản lý nhắc lịch - Option 3 (Phase 15.5)
+    print("\n[9] Testing Reminder Management (Option 3 - Phase 15.5):")
+    session_mgmt_id = "user_mgmt_uuid_500"
+
+    # 9.1. Vào luồng nhắc lịch và chọn Option 3
+    res_init3 = chat(session_mgmt_id, "Tôi muốn quản lý nhắc lịch")["reply"]
+    print(f"\nUser: quan ly nhac lich\nNova clean:\n{remove_non_ascii(res_init3)}")
+    assert "chon loai hinh nhac lich" in remove_non_ascii(res_init3).lower(), "Loi: phai hoi loai hinh nhac lich"
+
+    res_opt3 = chat(session_mgmt_id, "3")["reply"]
+    print(f"\nUser: 3\nNova clean:\n{remove_non_ascii(res_opt3)}")
+    assert "danh sach nhac lich" in remove_non_ascii(res_opt3).lower(), "Loi: phai hien danh sach nhac lich"
+    assert "nhac dat ve phim mai" in remove_non_ascii(res_opt3).lower(), "Loi: thieu item '1' trong danh sach"
+    assert "nhac gio chieu daredevil" in remove_non_ascii(res_opt3).lower(), "Loi: thieu item '2' trong danh sach"
+
+    # 9.2. Nhập index không hợp lệ → fallback, state không reset
+    res_invalid_idx = chat(session_mgmt_id, "9")["reply"]
+    print(f"\nUser: 9\nNova clean:\n{remove_non_ascii(res_invalid_idx)}")
+    assert "so thu tu khong hop le" in remove_non_ascii(res_invalid_idx).lower(), "Loi: phai fallback index khong hop le"
+    state_mgmt = session_manager.get_state(session_mgmt_id)
+    assert state_mgmt.get("current_step") == "showtime_flow_cancel_reminder_confirm", "Loi: state phai giu nguyen sau invalid index"
+
+    # 9.3. Chọn index hợp lệ [1] → hiện confirm
+    res_confirm = chat(session_mgmt_id, "1")["reply"]
+    print(f"\nUser: 1\nNova clean:\n{remove_non_ascii(res_confirm)}")
+    assert "chac chan" in remove_non_ascii(res_confirm).lower(), "Loi: phai hoi xac nhan yes/no"
+    assert "nhac dat ve phim mai" in remove_non_ascii(res_confirm).lower(), "Loi: phai show ten nhac lich can huy"
+
+    # 9.4. Gõ sai ở bước verify → fallback không reset state
+    res_verify_invalid = chat(session_mgmt_id, "uku")["reply"]
+    print(f"\nUser: uku\nNova clean:\n{remove_non_ascii(res_verify_invalid)}")
+    assert "co" in remove_non_ascii(res_verify_invalid).lower() and "khong" in remove_non_ascii(res_verify_invalid).lower(), "Loi: phai nhac nhap co/khong"
+    state_mgmt2 = session_manager.get_state(session_mgmt_id)
+    assert state_mgmt2.get("current_step") == "showtime_flow_cancel_reminder_verify", "Loi: state phai giu nguyen sau invalid verify"
+
+    # 9.5. Xác nhận 'Có' → xóa thành công
+    res_delete_ok = chat(session_mgmt_id, "Có")["reply"]
+    print(f"\nUser: Co\nNova clean:\n{remove_non_ascii(res_delete_ok)}")
+    assert "da huy nhac lich" in remove_non_ascii(res_delete_ok).lower(), "Loi: phai thong bao da huy thanh cong"
+    state_clean = session_manager.get_state(session_mgmt_id)
+    assert state_clean.get("current_step") is None, "Loi: state phai reset sau khi huy nhac lich"
+
+    # 9.6. Luồng bulk delete - 'Tất cả'
+    session_bulk_id = "user_bulk_uuid_600"
+    chat(session_bulk_id, "Tôi muốn quản lý nhắc lịch")
+    chat(session_bulk_id, "3")
+    res_bulk_confirm = chat(session_bulk_id, "Tất cả")["reply"]
+    print(f"\nUser: Tat ca\nNova clean:\n{remove_non_ascii(res_bulk_confirm)}")
+    assert "toan bo nhac lich" in remove_non_ascii(res_bulk_confirm).lower(), "Loi: phai xac nhan xoa toan bo"
+
+    res_bulk_yes = chat(session_bulk_id, "Có")["reply"]
+    print(f"\nUser: Co\nNova clean:\n{remove_non_ascii(res_bulk_yes)}")
+    assert "da huy toan bo nhac lich" in remove_non_ascii(res_bulk_yes).lower(), "Loi: phai thong bao huy toan bo thanh cong"
+    state_bulk_clean = session_manager.get_state(session_bulk_id)
+    assert state_bulk_clean.get("current_step") is None, "Loi: state phai reset sau bulk delete"
+
+    # 9.7. Chọn 'Không' → giữ nguyên nhắc lịch
+    session_no_id = "user_no_uuid_700"
+    chat(session_no_id, "Tôi muốn quản lý nhắc lịch")
+    chat(session_no_id, "3")
+    chat(session_no_id, "1")
+    res_no = chat(session_no_id, "Không")["reply"]
+    print(f"\nUser: Khong\nNova clean:\n{remove_non_ascii(res_no)}")
+    assert "giu nguyen nhac lich" in remove_non_ascii(res_no).lower(), "Loi: phai giu nguyen nhac lich khi noi Khong"
+    state_no_clean = session_manager.get_state(session_no_id)
+    assert state_no_clean.get("current_step") is None, "Loi: state phai reset sau khi tu choi"
+
+    print("-> OK (Reminder management tests pass)")
 
     print("\n=== COMPLETE TESTING AI AGENT SUCCESSFULLY ===")
 
