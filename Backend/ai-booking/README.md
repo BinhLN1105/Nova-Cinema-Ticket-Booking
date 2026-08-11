@@ -15,20 +15,20 @@ Python AI Service (server này)
     ├── Tool 1: FAISS Vector DB (chính sách, FAQ, thông tin rạp)
     |             └── Embedding bởi Cohere API (embed-multilingual-v3.0)
     └── Tool 2: Java Internal API (lịch chiếu, ghế, voucher)
-    
+  
     LLM Response: Google Gemini API (gemini-2.5-flash)
 ```
 
 ## Tech Stack
 
-| Thành phần | Công nghệ |
-|---|---|
-| Framework | FastAPI + Uvicorn |
-| LLM | Google Gemini API (`gemini-2.5-flash`) |
-| Embedding | Cohere API (`embed-multilingual-v3.0`) — Cloud, không cần GPU |
-| Vector DB | FAISS (`faiss-cpu`) — Lưu local, không cần server |
-| Agent | LangChain (Tool-based Agent + Conversation Memory) |
-| Language | Python 3.10+ |
+| Thành phần | Công nghệ                                                        |
+| ------------ | ------------------------------------------------------------------ |
+| Framework    | FastAPI + Uvicorn                                                  |
+| LLM          | Google Gemini API (`gemini-2.5-flash`)                           |
+| Embedding    | Cohere API (`embed-multilingual-v3.0`) — Cloud, không cần GPU |
+| Vector DB    | FAISS (`faiss-cpu`) — Lưu local, không cần server            |
+| Agent        | LangChain (Tool-based Agent + Conversation Memory)                 |
+| Language     | Python 3.10+                                                       |
 
 > ✅ **Không cần GPU, không cần Docker, không tốn hàng GB dung lượng.**
 > Kiến trúc dùng Cohere API để embedding và Gemini API để generate, giảm kích thước deploy từ ~7GB xuống còn **< 100MB**.
@@ -122,6 +122,7 @@ python scripts/ingest.py
 ```
 
 Kết quả mong đợi:
+
 ```
 =======================================================
   NovaTicket RAG — Data Ingestion
@@ -145,11 +146,13 @@ Kết quả mong đợi:
 ### Bước 4: Khởi động Python server
 
 #### 1. Chạy trực tiếp (Development)
+
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
 #### 2. Dùng Docker (Khuyên dùng cho Production)
+
 ```bash
 docker build --build-arg COHERE_API_KEY="your-cohere-key" -t novaticket-ai .
 
@@ -160,7 +163,7 @@ docker run -p 8000:8000 \
 ```
 
 > 💡 **Trên Azure/Render:** Điền `GEMINI_API_KEY` và `COHERE_API_KEY` vào phần **Environment Variables** trong bảng điều khiển.
-hoạt động tại: `http://localhost:8000`
+> hoạt động tại: `http://localhost:8000`
 
 ---
 
@@ -213,26 +216,30 @@ curl -X POST http://localhost:8000/api/v1/sync \
 
 ## Xử lý sự cố thường gặp
 
-| Lỗi | Nguyên nhân | Cách xử lý |
-|---|---|---|
-| `FAISS index not found` | Chưa chạy ingest | `python scripts/ingest.py` |
-| `ResourceExhausted (429) Gemini` | Hết quota LLM | Chờ 1 phút hoặc Nova sang **Safe Mode** |
-| `Cohere 401 Unauthorized` | API key sai | Kiểm tra `COHERE_API_KEY` trong `.env` |
-| `Connection refused: localhost:8080` | Java chưa chạy | Start Java server trước |
-| `Invalid internal API key` | Key không khớp | Kiểm tra `.env` và `application.properties` |
+| Lỗi                                   | Nguyên nhân      | Cách xử lý                                    |
+| -------------------------------------- | ------------------ | ------------------------------------------------ |
+| `FAISS index not found`              | Chưa chạy ingest | `python scripts/ingest.py`                     |
+| `ResourceExhausted (429) Gemini`     | Hết quota LLM     | Chờ 1 phút hoặc Nova sang**Safe Mode**  |
+| `Cohere 401 Unauthorized`            | API key sai        | Kiểm tra`COHERE_API_KEY` trong `.env`       |
+| `Connection refused: localhost:8080` | Java chưa chạy   | Start Java server trước                        |
+| `Invalid internal API key`           | Key không khớp   | Kiểm tra`.env` và `application.properties` |
 
 ---
 
 ## Tính năng nâng cao
 
 ### 🛡️ Chế độ Fallback (Safe Mode)
+
 Khi Gemini API đạt giới hạn (429), Nova tự động chuyển sang Safe Mode:
+
 - Truy vấn trực tiếp từ FAISS (RAG thô, không qua LLM).
 - Lấy danh sách phim đang chiếu từ Java API.
 - Phản hồi nhanh kèm ghi chú tình trạng hệ thống.
 
 ### 💬 Conversation Memory
+
 Agent giữ lịch sử hội thoại theo `session_id`, cho phép người dùng hỏi tiếp các câu liên quan mà không cần lặp lại ngữ cảnh.
 
 ### ✨ Rich Format Response
+
 Phản hồi hỗ trợ đầy đủ Markdown: bảng giá, danh sách, chữ đậm — hiển thị đẹp trên giao diện chat của app.

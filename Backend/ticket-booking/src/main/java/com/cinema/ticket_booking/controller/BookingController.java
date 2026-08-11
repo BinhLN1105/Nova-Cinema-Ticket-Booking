@@ -10,6 +10,9 @@ import com.cinema.ticket_booking.service.BookingService;
 import com.cinema.ticket_booking.service.SystemConfigService;
 import com.cinema.ticket_booking.service.impl.ScanLogServiceImpl;
 import com.cinema.ticket_booking.security.RateLimit;
+import com.cinema.ticket_booking.enums.PaymentMethod;
+import com.cinema.ticket_booking.enums.MembershipTier;
+import com.cinema.ticket_booking.exception.AppException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +24,16 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import com.cinema.ticket_booking.repository.UserRepository;
+
 import java.util.UUID;
 import java.util.Map;
+import java.util.List;
+
+import com.cinema.ticket_booking.controller.ai.AiAgentController.DraftBookingCache;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import java.time.Duration;
 
 @RestController
 @RequestMapping("/api/v1/bookings")
@@ -32,6 +43,9 @@ public class BookingController {
         private final BookingService bookingService;
         private final ScanLogServiceImpl scanLogService;
         private final SystemConfigService systemConfigService;
+        private final StringRedisTemplate redisTemplate;
+        private final ObjectMapper objectMapper;
+        private final UserRepository userRepository;
 
         // POST /api/v1/bookings — tạo đơn đặt vé
         @PostMapping
@@ -145,5 +159,123 @@ public class BookingController {
                 policy.put("refundPercent", systemConfigService.getIntConfig("REFUND_PERCENT_CINEPOINT", 100));
                 policy.put("minHoursBefore", systemConfigService.getIntConfig("CANCEL_MIN_HOURS_BEFORE", 2));
                 return ResponseEntity.ok(ApiResponse.success(policy));
+        }
+
+        // GET /api/v1/bookings/draft/{draftId} — Lấy thông tin đặt vé nháp
+        @GetMapping("/draft/{draftId}")
+        @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")
+        public ResponseEntity<ApiResponse<DraftBookingCache>> getDraftBooking(
+                        @AuthenticationPrincipal User currentUser,
+                        @PathVariable String draftId) {
+                String draftKey = "ai_draft_booking:" + draftId;
+                String draftData = redisTemplate.opsForValue().get(draftKey);
+                if (draftData == null) {
+                        throw new AppException(HttpStatus.BAD_REQUEST,
+                                        "Đơn nháp không tồn tại hoặc đã hết hạn.");
+                }
+                DraftBookingCache draft;
+                try {
+                        draft = objectMapper.readValue(draftData, DraftBookingCache.class);
+                } catch (Exception e) {
+                        throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi đọc dữ liệu vé nháp");
+                }
+                if (!draft.getUserId().equals(currentUser.getId())) {
+                        throw new AppException(HttpStatus.FORBIDDEN,
+                                        "Bạn không có quyền truy cập thông tin vé nháp này.");
+                }
+                return ResponseEntity.ok(ApiResponse.success(draft, "Lấy thông tin vé nháp thành công"));
+        }
+
+        // POST /api/v1/bookings/draft-confirm — Xác nhận đặt vé từ Draft ID
+        @PostMapping("/draft-confirm")
+        @PreAuthorize("hasAnyRole('CUSTOMER','STAFF','ADMIN')")
+        public ResponseEntity<ApiResponse<BookingResponse>> draftConfirm(
+                        @AuthenticationPrincipal User currentUser,
+                        @RequestParam String draftId,
+                        @RequestParam(required = false, defaultValue = "CINEPOINT") String paymentMethod) {
+
+                String draftKey = "ai_draft_booking:" + draftId;
+                String draftData = redisTemplate.opsForValue().get(draftKey);
+                if (draftData == null) {
+                        throw new AppException(HttpStatus.BAD_REQUEST,
+                                        "Đơn nháp không tồn tại hoặc đã hết hạn (tối đa 10 phút).");
+                }
+
+                DraftBookingCache draft;
+                try {
+                        draft = objectMapper.readValue(draftData, DraftBookingCache.class);
+                } catch (Exception e) {
+                        throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi đọc dữ liệu vé nháp");
+                }
+
+                if (!draft.getUserId().equals(currentUser.getId())) {
+                        throw new AppException(HttpStatus.FORBIDDEN,
+                                        "Bạn không có quyền thực hiện xác nhận giao dịch này.");
+                }
+
+                // Kiểm tra hạn mức đặt vé qua AI dựa trên hạng tài khoản
+                User userEntity = userRepository.findById(currentUser.getId())
+                                .orElseThrow(() -> new AppException(HttpStatus.NOT_FOUND,
+                                                "Không tìm thấy cấu hình người dùng."));
+
+                MembershipTier tier = userEntity.getMembershipTier();
+                int maxMonthly = 2; // Bronze
+                if (tier == MembershipTier.SILVER) {
+                        maxMonthly = 5;
+                } else if (tier == MembershipTier.GOLD) {
+                        maxMonthly = 10;
+                } else if (tier == MembershipTier.DIAMOND) {
+                        maxMonthly = 20;
+                }
+
+                if (userEntity.getRankUsageThisMonth() != null && userEntity.getRankUsageThisMonth() >= maxMonthly) {
+                        throw new AppException(HttpStatus.BAD_REQUEST,
+                                        "Hạng thành viên " + tier + " của bạn chỉ được đặt tối đa " + maxMonthly
+                                                        + " vé qua AI mỗi tháng.");
+                }
+
+                String lockKey = "lock:booking_confirm:" + draftId;
+                Boolean acquired = redisTemplate.opsForValue().setIfAbsent(lockKey, "locked", Duration.ofSeconds(30));
+                if (acquired == null || !acquired) {
+                        throw new AppException(HttpStatus.CONFLICT,
+                                        "Giao dịch đang được xử lý, vui lòng không gửi yêu cầu liên tục.");
+                }
+
+                try {
+                        BookingRequest bookingRequest = new BookingRequest();
+                        bookingRequest.setShowtimeId(draft.getShowtimeId());
+                        bookingRequest.setShowtimeSeatIds(draft.getShowtimeSeatIds());
+                        if (draft.getCombos() != null) {
+                                List<BookingRequest.ComboItem> bookingCombos = draft.getCombos().stream()
+                                                .map(c -> {
+                                                        BookingRequest.ComboItem item = new BookingRequest.ComboItem();
+                                                        item.setComboId(c.getComboId());
+                                                        item.setQuantity(c.getQuantity());
+                                                        return item;
+                                                }).toList();
+                                bookingRequest.setCombos(bookingCombos);
+                        }
+                        try {
+                                bookingRequest.setPaymentMethod(PaymentMethod
+                                                .valueOf(paymentMethod.toUpperCase()));
+                        } catch (IllegalArgumentException e) {
+                                bookingRequest.setPaymentMethod(
+                                                PaymentMethod.VNPAY);
+                        }
+
+                        BookingResponse result = bookingService.createBooking(currentUser.getId(), bookingRequest);
+
+                        // Tăng số lượt dùng trong tháng
+                        userEntity.setRankUsageThisMonth(userEntity.getRankUsageThisMonth() == null ? 1
+                                        : userEntity.getRankUsageThisMonth() + 1);
+                        userRepository.save(userEntity);
+
+                        redisTemplate.delete(draftKey);
+
+                        return ResponseEntity.status(HttpStatus.CREATED)
+                                        .body(ApiResponse.success(result, "Xác nhận đặt vé thành công từ đơn nháp"));
+                } finally {
+                        redisTemplate.delete(lockKey);
+                }
         }
 }

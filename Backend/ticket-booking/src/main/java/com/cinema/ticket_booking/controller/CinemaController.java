@@ -10,7 +10,8 @@ import com.cinema.ticket_booking.model.Seat;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.ScreenService;
 import jakarta.validation.Valid;
-import lombok.RequiredArgsConstructor;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -195,5 +196,27 @@ public class CinemaController {
         request.setScreenId(screenId.toString());
         screenService.saveCustomLayout(request);
         return ResponseEntity.ok(ApiResponse.success(null, "Đã lưu bố trí ghế thành công"));
+    }
+
+    // ── Coordinates (Admin Settings) ──────────────────────────────────────
+
+    // PUT /api/v1/cinemas/{id}/coordinates [ADMIN]
+    @PutMapping("/{id}/coordinates")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<ApiResponse<Void>> updateCoordinates(
+            @PathVariable UUID id,
+            @Valid @RequestBody CinemaCoordinatesRequest request) {
+        cinemaService.updateCoordinates(id, request.getLatitude(), request.getLongitude());
+        return ResponseEntity.ok(ApiResponse.success(null, "Cập nhật tọa độ rạp thành công"));
+    }
+
+    @Getter
+    @Setter
+    public static class CinemaCoordinatesRequest {
+        @NotNull(message = "Vĩ độ không được để trống")
+        private Double latitude;
+
+        @NotNull(message = "Kinh độ không được để trống")
+        private Double longitude;
     }
 }
