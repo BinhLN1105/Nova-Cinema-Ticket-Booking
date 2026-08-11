@@ -14,4 +14,6 @@ public class CinemaResponse {
     private String phone;
     private String imageUrl;
     private Boolean isActive;
+    private Double latitude;
+    private Double longitude;
 }

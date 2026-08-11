@@ -59,6 +59,7 @@ export const cinemaApi = {
   // Admin
   create: (data) => api.post("/cinemas", data),
   update: (id, data) => api.put(`/cinemas/${id}`, data),
+  updateCoordinates: (id, data) => api.put(`/cinemas/${id}/coordinates`, data),
   toggleStatus: (id) => api.patch(`/cinemas/${id}/status`),
   delete: (id) => api.delete(`/cinemas/${id}`),
   createScreen: (cinemaId, data) => api.post(`/cinemas/${cinemaId}/screens`, data),

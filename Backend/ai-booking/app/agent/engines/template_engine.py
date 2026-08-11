@@ -493,9 +493,21 @@ class TemplateEngine(BaseChatEngine):
                             else:
                                 time_str = raw_time[:5]
 
+                            # Gọi tool lấy thông tin thời tiết phục vụ cảnh báo ngầm (Implicit Warning)
+                            weather_text = ""
+                            try:
+                                from ...tools.weather_tools import GetShowtimeWeatherTool
+                                weather_tool = GetShowtimeWeatherTool()
+                                weather_info = weather_tool.execute(s.get("id"))
+                                if weather_info and weather_info.get("isBadWeather") is True:
+                                    cond = weather_info.get("condition") or "thời tiết xấu"
+                                    weather_text = f" 🌧️ [Cảnh báo: Dự báo {cond.lower()}]"
+                            except Exception:
+                                pass
+
                             lines.append(
                                 f"• **[{i}]** {s.get('cinemaName', 'Hệ thống rạp')} — Phòng {s.get('screenName', '?')}"
-                                f" — Suất {time_str}{date_part}{available_text} (Mã suất: **{i}**)"
+                                f" — Suất {time_str}{date_part}{available_text}{weather_text} (Mã suất: **{i}**)"
                             )
 
                         state["showtime_list"] = showtime_list
@@ -615,10 +627,10 @@ class TemplateEngine(BaseChatEngine):
                             import httpx as _httpx
                             from ...config import get_settings as _get_settings
                             _cfg = _get_settings()
-                            _combo_resp = _httpx.get(
-                                f"{_cfg.java_api_base}/api/v1/combos",
-                                timeout=5
-                            )
+                            with _httpx.Client(timeout=5) as _client:
+                                _combo_resp = _client.get(
+                                    f"{_cfg.java_api_base}/api/v1/combos"
+                                )
                             _combo_resp.raise_for_status()
                             _combo_list = _combo_resp.json().get("data", [])
                             _matched_combo = next(
@@ -1081,6 +1093,37 @@ class TemplateEngine(BaseChatEngine):
                 else:
                     # Fallback Input Loop cho branch không khớp
                     return "Dạ, anh/chị vui lòng gõ **'Có'** hoặc **'Không'** để xác nhận giúp em nhé."
+
+        # ── INTENT 3.5: Tra cứu thời tiết (Explicit Query)
+        elif intent == "WEATHER_QUERY":
+            # Tra cứu thời tiết phim/suất đang chọn
+            showtime_id = state.get("showtime_id")
+            
+            # Nếu chưa có showtime_id được lưu nhưng có showtime_list trong state, dùng showtime đầu tiên
+            if not showtime_id and state.get("showtime_list"):
+                showtime_id = state.get("showtime_list")[0].get("id")
+                
+            if not showtime_id:
+                return (
+                    "🌦️ Dạ, hiện tại em chưa rõ anh/chị đang muốn xem thời tiết cho suất chiếu nào.\n"
+                    "Anh/chị vui lòng tìm kiếm suất chiếu trước bằng cách gõ 'lịch chiếu phim [Tên Phim]' rồi đặt câu hỏi về thời tiết của suất chiếu đó để em giải đáp nhé!"
+                )
+                
+            try:
+                from ...tools.weather_tools import GetShowtimeWeatherTool
+                weather_tool = GetShowtimeWeatherTool()
+                weather_info = weather_tool.execute(showtime_id)
+                
+                # Biểu thị các mốc out của forecast ngoài phạm vi lưu trữ
+                if weather_info.get("outOfForecastRange") is True:
+                    return "Dạ, suất chiếu này còn khá xa nên hiện tại em chưa có dự báo thời tiết chính xác. Gần ngày chiếu anh/chị xem lại giúp em nhé! 🌦️"
+                    
+                warn = weather_info.get("warningMessage")
+                if warn:
+                    return warn
+                return "🌦️ Hiện tại hệ thống không thể lấy thông tin thời tiết lúc chiếu phim cho rạp này. Anh/chị lưu ý kiểm tra trước khi đi nhé. Chúc anh/chị xem phim vui vẻ!"
+            except Exception as e:
+                return "🌦️ Đang gặp lỗi kết nối với trung tâm dự báo thời tiết tại rạp. Anh/chị lưu ý kiểm tra trước giờ chiếu nhé!"
 
         # ── INTENT 4: Tra cứu lịch sử / CinePoint ───
         elif intent == "USER_QUERIES":

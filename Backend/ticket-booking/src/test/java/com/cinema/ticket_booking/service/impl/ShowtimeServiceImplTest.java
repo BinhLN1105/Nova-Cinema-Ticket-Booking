@@ -85,7 +85,9 @@ class ShowtimeServiceImplTest {
         when(systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10)).thenReturn(10);
         when(showtimeRepository.findAll()).thenReturn(List.of(s1));
 
-        List<ShowtimeSyncResponse> list = showtimeService.getShowtimesForSync("Avenger", movie.getId(), "Cinema 1", LocalDate.now());
+        LocalDate testDate = s1.getStartTime().toLocalDate();
+        List<ShowtimeSyncResponse> list = showtimeService.getShowtimesForSync("Avenger", movie.getId(), "Cinema 1",
+                testDate);
         assertEquals(1, list.size());
     }
 
@@ -161,11 +163,12 @@ class ShowtimeServiceImplTest {
     void testGetSeatMap_Success() {
         UUID showtimeId = UUID.randomUUID();
         Screen screen = Screen.builder().totalRows(10).totalCols(10).build();
-        Showtime showtime = Showtime.builder().id(showtimeId).screen(screen).basePrice(BigDecimal.valueOf(100)).startTime(LocalDateTime.now().plusHours(1)).build();
-        
+        Showtime showtime = Showtime.builder().id(showtimeId).screen(screen).basePrice(BigDecimal.valueOf(100))
+                .startTime(LocalDateTime.now().plusHours(1)).build();
+
         Seat seat1 = Seat.builder().id(UUID.randomUUID()).build();
         ShowtimeSeat ss1 = ShowtimeSeat.builder().id(UUID.randomUUID()).seat(seat1).build();
-        
+
         PricingRule rule = new PricingRule();
         PricingResult result = new PricingResult(BigDecimal.valueOf(120), BigDecimal.valueOf(0), "");
 
@@ -173,7 +176,7 @@ class ShowtimeServiceImplTest {
         when(showtimeSeatRepository.findByShowtimeIdWithSeat(showtimeId)).thenReturn(List.of(ss1));
         when(pricingRuleRepository.findByIsActiveTrueOrderByPriorityAsc()).thenReturn(List.of(rule));
         when(seatLockService.getLockedSeats(anyList())).thenReturn(List.of());
-        
+
         SeatMapResponse.SeatItem seatItem = SeatMapResponse.SeatItem.builder()
                 .status(SeatStatus.AVAILABLE)
                 .rowLabel('A')
@@ -181,10 +184,11 @@ class ShowtimeServiceImplTest {
                 .gridRow(0)
                 .gridCol(0)
                 .build();
-        
+
         when(seatMapper.toSeatItem(ss1)).thenReturn(seatItem);
-        when(pricingEngineService.calculateFinalSeatPrice(eq(showtime), eq(seat1), any(BigDecimal.class), anyList(), eq(1), eq(0))).thenReturn(result);
-        
+        when(pricingEngineService.calculateFinalSeatPrice(eq(showtime), eq(seat1), any(BigDecimal.class), anyList(),
+                eq(1), eq(0))).thenReturn(result);
+
         when(systemConfigService.getIntConfig("DEFAULT_SEAT_HOLD_TIME", 10)).thenReturn(10);
 
         SeatMapResponse response = showtimeService.getSeatMap(showtimeId);
@@ -208,9 +212,11 @@ class ShowtimeServiceImplTest {
         when(movieService.findById(any(UUID.class))).thenReturn(movie);
         when(screenRepository.findById(any(UUID.class))).thenReturn(Optional.of(screen));
         when(systemConfigService.getIntConfig("CLEANUP_TIME_MINUTES", 15)).thenReturn(15);
-        when(showtimeRepository.existsConflict(eq(screen.getId()), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(false);
-        when(seatRepository.findByScreenIdAndIsActiveTrueOrderByRowLabelAscColNumberAsc(screen.getId())).thenReturn(List.of(seat));
-        
+        when(showtimeRepository.existsConflict(eq(screen.getId()), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(false);
+        when(seatRepository.findByScreenIdAndIsActiveTrueOrderByRowLabelAscColNumberAsc(screen.getId()))
+                .thenReturn(List.of(seat));
+
         PricingResult pr = new PricingResult(BigDecimal.valueOf(80), BigDecimal.ZERO, "");
         when(pricingEngineService.calculateFinalSeatPrice(any(), eq(seat), any(), any(), eq(1), eq(0))).thenReturn(pr);
 
@@ -243,7 +249,8 @@ class ShowtimeServiceImplTest {
         when(movieService.findById(any(UUID.class))).thenReturn(movie);
         when(screenRepository.findById(any(UUID.class))).thenReturn(Optional.of(screen));
         when(systemConfigService.getIntConfig("CLEANUP_TIME_MINUTES", 15)).thenReturn(15);
-        when(showtimeRepository.existsConflict(eq(screen.getId()), any(LocalDateTime.class), any(LocalDateTime.class))).thenReturn(true);
+        when(showtimeRepository.existsConflict(eq(screen.getId()), any(LocalDateTime.class), any(LocalDateTime.class)))
+                .thenReturn(true);
 
         assertThrows(BadRequestException.class, () -> showtimeService.create(request));
     }

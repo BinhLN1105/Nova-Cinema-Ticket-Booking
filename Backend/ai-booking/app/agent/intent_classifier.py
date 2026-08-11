@@ -18,7 +18,8 @@ class IntentClassifier:
         # Bộ từ khóa đại diện cho từng Intent sau khi đã xóa dấu
         self.keywords = {
             "GREETING": ["chao", "xin chao", "hi", "hello", "helo", "ban la ai", "tro ly", "bot", "advertiser"],
-            "USER_QUERIES": ["lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the", "rank"],
+            "USER_QUERIES": ["lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the thanh vien", "the cinepoint", "the vip", "rank"],
+            "WEATHER_QUERY": ["thoi tiet", "troi mua", "co mua khong", "mua to", "bao bung", "nang cuc do", "khi hau", "mua giong", "nhiet do", "thoi tiet the nao", "thoi tiet ra sao"],
             "KNOWLEDGE_RAG": ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi"],
             "REMINDER_DRAFT": ["nhac nho", "nhac lich", "hen gio", "dat hen", "bao gio chieu", "nhac nho lich"],
             "BOOKING_DRAFT": ["dat ve", "suat chieu", "lich chieu", "suat", "suat ", "ghe ", "dat ghe", "mua ve", "giu ghe", "dat cho", "phim", "chieu", "dang chieu", "sap chieu"]
@@ -37,7 +38,7 @@ class IntentClassifier:
                 if len(kw) <= 4:
                     pattern = rf"\b{re.escape(kw)}\b"
                 else:
-                    pattern = re.escape(kw)
+                    pattern = re.escape(kw).replace(r"\ ", " ")
                 
                 if re.search(pattern, clean_text):
                     # Đặc thù: Nếu có từ "lịch sử" hoặc "điểm" thì ưu tiên USER_QUERIES trước

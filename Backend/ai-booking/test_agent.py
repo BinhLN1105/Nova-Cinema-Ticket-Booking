@@ -36,17 +36,16 @@ class _LangchainStubFinder(MetaPathFinder):
     # Chỉ stub các module thực mà chatbot/app import, không stub các attribute lá sâu hơn
     _MODULES = {
         "langchain",
-        "langchain.agents",
-        "langchain.agents.agent",
-        "langchain.prompts",
-        "langchain.memory",
-        "langchain.tools",
-        "langchain_google_genai"
+        "langchain_google_genai",
+        "langchain_cohere",
+        "langchain_community",
+        "cohere"
     }
     def find_spec(self, fullname, path, target=None):
-        if fullname in self._MODULES:
-            spec = importlib.util.spec_from_loader(fullname, _LangchainStubLoader())
-            return spec
+        for m in self._MODULES:
+            if fullname == m or fullname.startswith(m + "."):
+                spec = importlib.util.spec_from_loader(fullname, _LangchainStubLoader())
+                return spec
         return None
 
 sys.meta_path.insert(0, _LangchainStubFinder())
@@ -169,6 +168,71 @@ class MockClient:
                         "body": "Đến giờ xem phim Daredevil của suất chiếu rồi anh/chị ơi!",
                         "createdAt": f"{tomorrow_str}T21:00:00"
                     }
+                ]
+            }
+        elif "/internal/api/ai/weather/showtime" in url:
+            showtime_id = url.split("/")[-1]
+            if showtime_id == "125":
+                resp.json.return_value = {
+                    "success": True,
+                    "status": "success",
+                    "data": {
+                        "condition": "Mưa giông lớn",
+                        "temperature": 26.5,
+                        "isBadWeather": True,
+                        "outOfForecastRange": False,
+                        "warningMessage": "Dự báo thời tiết lúc 20:00 tại rạp Nguyễn Trãi sẽ có mưa giông lớn 🌧️. Anh/chị nên mang theo áo mưa hoặc đi sớm chút để tránh tắc đường nhé!"
+                    }
+                }
+            elif showtime_id == "126":
+                resp.json.return_value = {
+                    "success": True,
+                    "status": "success",
+                    "data": {
+                        "condition": "Nhiều mây",
+                        "temperature": 29.0,
+                        "isBadWeather": False,
+                        "outOfForecastRange": False,
+                        "warningMessage": ""
+                    }
+                }
+            elif showtime_id == "999":
+                resp.json.return_value = {
+                    "success": True,
+                    "status": "success",
+                    "data": {
+                        "condition": None,
+                        "temperature": None,
+                        "isBadWeather": False,
+                        "outOfForecastRange": True,
+                        "warningMessage": ""
+                    }
+                }
+            elif showtime_id == "777":
+                resp.json.return_value = {
+                    "success": True,
+                    "status": "success",
+                    "data": {
+                        "condition": None,
+                        "temperature": None,
+                        "isBadWeather": False,
+                        "outOfForecastRange": False,
+                        "warningMessage": ""
+                    }
+                }
+            else: # 888 hoặc mặc định API error
+                resp.status_code = 500
+                resp.json.return_value = {
+                    "success": False,
+                    "status": "error",
+                    "message": "Weather API failed"
+                }
+        elif "/api/v1/combos" in url:
+            resp.json.return_value = {
+                "status": "success",
+                "data": [
+                    {"id": "combo-solo-uuid-111", "name": "Solo Combo", "price": 65000},
+                    {"id": "combo-couple-uuid-222", "name": "Couple Combo", "price": 90000}
                 ]
             }
         else:
@@ -538,6 +602,55 @@ def run_tests():
     assert state_no_clean.get("current_step") is None, "Loi: state phai reset sau khi tu choi"
 
     print("-> OK (Reminder management tests pass)")
+
+    # 10. Kiểm thử luồng Thời tiết suất chiếu (Phase 16)
+    print("\n[10] Testing Weather Integration (Phase 16):")
+    session_weather_id = "user_weather_uuid_800"
+
+    # F1: Hỏi thời tiết khi chưa chọn suất chiếu
+    res_w_none = chat(session_weather_id, "Thời tiết lúc chiếu phim thế nào?")["reply"]
+    print(f"\nUser: Thoi tiet luc chieu phim the nao?\nNova clean:\n{remove_non_ascii(res_w_none)}")
+    assert "chua ro" in remove_non_ascii(res_w_none).lower() or "tim kiem" in remove_non_ascii(res_w_none).lower(), "Loi: phai nhac nho chon suat chieu truoc"
+
+    # F2: Tìm kiếm lịch chiếu (ghi nhận showtime_list có suất 125 rạp Nguyễn Trãi có mưa giông)
+    res_showtimes = chat(session_weather_id, "lịch chiếu phim Mai ở rạp Nguyễn Trãi")["reply"]
+    print(f"\nUser: lich chieu phim Mai o rap Nguyen Trai\nNova clean:\n{remove_non_ascii(res_showtimes)}")
+    # Cảnh báo ngầm 🌧️ tự động in ra danh sách lịch chiếu
+    assert "mua giong" in remove_non_ascii(res_showtimes).lower() or "🌧️" in res_showtimes, "Loi: khong tu dong hien canh bao thoi tiet xau"
+
+    # F3: Hỏi thời tiết cho suất chiếu vừa tìm (suất 125 mặc định ở đầu list)
+    res_w_explicit = chat(session_weather_id, "thời tiết hôm đó mưa không?")["reply"]
+    print(f"\nUser: thoi tiet hom do mua khong?\nNova clean:\n{remove_non_ascii(res_w_explicit)}")
+    assert "mua giong lon" in remove_non_ascii(res_w_explicit).lower() and "🌧️" in res_w_explicit, "Loi: phai tra loi canh bao thoi tiet mua giong lon cho suat 125"
+
+    # F4: Gọi tool lay thoi tiet cho suat 777 (chưa set toa do / ko coordinates coords)
+    from app.tools.weather_tools import GetShowtimeWeatherTool
+    weather_tool = GetShowtimeWeatherTool()
+    res_w_tool_777 = weather_tool.execute("777")
+    assert res_w_tool_777.get("isBadWeather") is False
+    assert res_w_tool_777.get("condition") is None
+
+    # F5: Gọi tool lay thoi tiet cho suat 999 (out of range forecast)
+    res_w_tool_999 = weather_tool.execute("999")
+    assert res_w_tool_999.get("outOfForecastRange") is True
+    # Kiểm tra chatbot response khi out of forecast range
+    # Set showtime_list với một item id 999
+    state_weather = session_manager.get_state(session_weather_id)
+    state_weather["showtime_list"] = [{"id": "999", "movieTitle": "Phim Xa Xôi", "cinemaName": "Rạp Nguyễn Trãi"}]
+    session_manager.set_state(session_weather_id, state_weather)
+    res_w_out_range = chat(session_weather_id, "thời tiết hôm đó thế nào?")["reply"]
+    print(f"\nUser: thoi tiet hom do the nao (out of range)?\nNova clean:\n{remove_non_ascii(res_w_out_range)}")
+    assert "chua co du bao" in remove_non_ascii(res_w_out_range).lower(), "Loi: phai bao out of forecast range"
+
+    # F6: Khi bot gap API error (suat 888) -> fallback an toan
+    state_weather = session_manager.get_state(session_weather_id)
+    state_weather["showtime_list"] = [{"id": "888", "movieTitle": "Phim Lỗi", "cinemaName": "Rạp Nguyễn Trãi"}]
+    session_manager.set_state(session_weather_id, state_weather)
+    res_w_err = chat(session_weather_id, "thời tiết hôm đó có giông bão không?")["reply"]
+    print(f"\nUser: thoi tiet hom do co giong bao khong (API error)?\nNova clean:\n{remove_non_ascii(res_w_err)}")
+    assert "loi ket noi" in remove_non_ascii(res_w_err).lower() or "khong the lay" in remove_non_ascii(res_w_err).lower(), "Loi fallback khi API thoi tiet loi"
+
+    print("-> OK (Weather integration tests pass)")
 
     print("\n=== COMPLETE TESTING AI AGENT SUCCESSFULLY ===")
 

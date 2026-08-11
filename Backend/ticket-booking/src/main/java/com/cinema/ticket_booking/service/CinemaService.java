@@ -17,14 +17,13 @@ public interface CinemaService {
     // Lấy tất cả rạp (Dành cho Admin)
     List<CinemaResponse> getAllForAdmin();
 
-
     CinemaResponse getById(UUID id);
 
     CinemaResponse create(CinemaRequest request);
 
     CinemaResponse update(UUID id, CinemaRequest request);
 
-     CinemaResponse updateImage(UUID id, MultipartFile file) throws IOException;
+    CinemaResponse updateImage(UUID id, MultipartFile file) throws IOException;
 
     CinemaResponse updateImageFromUrl(UUID id, String url) throws IOException;
 
@@ -32,8 +31,9 @@ public interface CinemaService {
 
     void delete(UUID id);
 
-
     Cinema findById(UUID id); // Dùng cho nội bộ hoặc các service khác gọi sang
 
     List<CinemaSyncResponse> getAllForSync();
+
+    void updateCoordinates(UUID cinemaId, Double latitude, Double longitude);
 }

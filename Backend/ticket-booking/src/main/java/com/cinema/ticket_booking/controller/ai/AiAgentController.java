@@ -11,8 +11,10 @@ import com.cinema.ticket_booking.model.Notification;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.repository.NotificationRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
+import com.cinema.ticket_booking.dto.response.WeatherShowtimeResponse;
 import com.cinema.ticket_booking.service.BookingService;
 import com.cinema.ticket_booking.service.ShowtimeService;
+import com.cinema.ticket_booking.service.WeatherIntegrationService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.*;
@@ -53,6 +55,7 @@ public class AiAgentController {
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
     private final ShowtimeService showtimeService;
+    private final WeatherIntegrationService weatherIntegrationService;
 
     // ── Security & Authentication ──────────────────────────
     private void validateKey(String key) {
@@ -296,6 +299,26 @@ public class AiAgentController {
         notificationRepository.deleteByUserIdAndType(userId, NotificationType.REMINDER);
 
         return ResponseEntity.ok(ApiResponse.success(null, "Xóa toàn bộ nhắc lịch thành công"));
+    }
+
+    /**
+     * GET /internal/api/ai/weather/showtime/{showtimeId}
+     * Lấy thông tin thời tiết dự báo tại rạp cho suất chiếu.
+     */
+    @GetMapping("/weather/showtime/{showtimeId}")
+    public ResponseEntity<ApiResponse<WeatherShowtimeResponse>> getWeatherForShowtime(
+            @RequestHeader("X-Internal-Key") String key,
+            @PathVariable("showtimeId") String showtimeIdStr) {
+        validateKey(key);
+        UUID showtimeId;
+        try {
+            showtimeId = UUID.fromString(showtimeIdStr);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "ID suất chiếu không đúng định dạng UUID");
+        }
+
+        WeatherShowtimeResponse response = weatherIntegrationService.getWeatherForShowtime(showtimeId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin thời tiết thành công"));
     }
 
     /**
