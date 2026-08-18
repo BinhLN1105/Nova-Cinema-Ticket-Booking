@@ -14,7 +14,7 @@ from fastapi import FastAPI, HTTPException, Header, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Optional
-import logging, subprocess, sys
+import logging, sys, asyncio
 
 from .config import get_settings
 from .agent.chatbot import chat as agent_chat, clear_session
@@ -103,25 +103,21 @@ class SyncResponse(BaseModel):
           dependencies=[Depends(verify_internal_key)])
 async def sync_endpoint():
     """
-    Admin/Java trigger để re-ingest toàn bộ file tĩnh vào ChromaDB.
+    Admin/Java trigger để re-ingest toàn bộ file tĩnh vào Vector DB.
     Dùng khi team cập nhật chính sách, FAQ.
     Bảo vệ bằng X-Internal-Key header.
     """
     try:
         logger.info("[Sync] Starting re-ingestion...")
-        # Chạy ingest script trong subprocess để không block server
-        result = subprocess.run(
-            [sys.executable, "scripts/ingest.py"],
-            capture_output=True, text=True, timeout=300
-        )
-        if result.returncode == 0:
-            logger.info("[Sync] Done.")
-            return SyncResponse(status="success",
-                                message="Đã nạp lại toàn bộ dữ liệu vào Vector DB")
-        else:
-            logger.error(f"[Sync] Error: {result.stderr}")
-            return SyncResponse(status="error", message=result.stderr[:200])
+        # Chạy trực tiếp qua module thay vì gọi subprocess để tránh cảnh báo bảo mật OS Command
+        from scripts.ingest import run_ingestion
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, run_ingestion)
+        logger.info("[Sync] Done.")
+        return SyncResponse(status="success",
+                            message="Đã nạp lại toàn bộ dữ liệu vào Vector DB")
     except Exception as e:
+        logger.error(f"[Sync] Error: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

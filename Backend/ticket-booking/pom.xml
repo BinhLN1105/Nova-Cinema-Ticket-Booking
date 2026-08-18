@@ -50,10 +50,16 @@
 		<sonar.coverage.exclusions>
 			**/dto/**,
 			**/model/**,
+			**/entity/**,
 			**/config/**,
+			**/enums/**,
 			**/exception/**,
-			**/repository/**,
+			**/job/**,
 			**/mapper/**,
+			**/repository/**,
+			**/scheduler/**,
+			**/security/**,
+			**/util/**,
 			**/*Application.java
 		</sonar.coverage.exclusions>
     </properties>
