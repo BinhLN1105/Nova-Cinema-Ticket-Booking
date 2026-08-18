@@ -1,10 +1,13 @@
 """
 app/agent/chatbot.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-AI Agent được trang bị tools.
-Sử dụng LangChain + Gemini (hoặc GPT) với ReAct agent pattern.
+AI Agent & Smart Template Engine cho NovaTicket Chatbot.
 
-Mỗi session_id có conversation history riêng (lưu trong RAM).
+Hỗ trợ 2 chế độ:
+  1. Smart Template + Local RAG Engine (mặc định / USE_MOCK_AI=true):
+     Trả lời cực nhanh, không tốn API key, không sợ rate limit Gemini (429),
+     vẫn hỗ trợ tra cứu RAG (FAISS index) và gọi các Tool nội bộ khi có Java server.
+  2. Gemini/LangChain ReAct Agent (khi USE_MOCK_AI=false và có API Key).
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -13,187 +16,144 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain.memory import ConversationBufferWindowMemory
-from langchain.schema import HumanMessage, AIMessage
 
 from ..config import get_settings
-from .tools import ALL_TOOLS, search_knowledge_base, get_now_showing_movies
+from .tools import ALL_TOOLS, search_knowledge_base, get_now_showing_movies, get_active_vouchers, get_showtimes, get_available_seats
 
 cfg = get_settings()
 
-# ── System prompt — định nghĩa nhân cách và giới hạn của chatbot ─
 SYSTEM_PROMPT = """Bạn là Nova — trợ lý AI thông minh của NovaTicket, ứng dụng đặt vé xem phim hàng đầu Việt Nam.
 
 ## Nhiệm vụ của bạn
 Hỗ trợ khách hàng tra cứu và đặt vé xem phim một cách nhanh chóng, chính xác và thân thiện.
 
 ## Nguyên tắc bắt buộc
-1. **Chỉ dùng tool để lấy thông tin** — KHÔNG bao giờ bịa ra số liệu về ghế, giờ chiếu, giá vé.
-2. **Dùng đúng tool**:
-   - Câu hỏi về chính sách, quy định, ưu đãi cố định → `search_knowledge_base`
-   - Hỏi phim đang chiếu → `get_now_showing_movies`
-   - Hỏi lịch chiếu cụ thể → `get_showtimes`
-   - Hỏi ghế trống → `get_available_seats` (cần có showtime_id từ `get_showtimes`)
-   - Hỏi voucher/khuyến mãi → `get_active_vouchers`
-3. **Trả lời ngắn gọn, đúng trọng tâm** — không dài dòng, không lặp lại câu hỏi.
-4. YÊU CẦU ĐỊNH DẠNG TUYỆT ĐỐI (PLAIN TEXT CHUẨN): Ứng dụng di động không hỗ trợ Markdown. Trong câu trả lời của bạn:
-   - TUYỆT ĐỐI KHÔNG dùng dấu sao (*) để in đậm, in nghiêng hay làm gạch đầu dòng. Ví dụ: KHÔNG dùng **Tên Phim**.
+1. Chỉ dùng tool để lấy thông tin — KHÔNG bao giờ bịa ra số liệu về ghế, giờ chiếu, giá vé.
+2. Dùng đúng tool:
+   - Câu hỏi về chính sách, quy định, ưu đãi cố định → search_knowledge_base
+   - Hỏi phim đang chiếu → get_now_showing_movies
+   - Hỏi lịch chiếu cụ thể → get_showtimes
+   - Hỏi ghế trống → get_available_seats (cần có showtime_id từ get_showtimes)
+   - Hỏi voucher/khuyến mãi → get_active_vouchers
+3. Trả lời ngắn gọn, đúng trọng tâm — không dài dòng, không lặp lại câu hỏi.
+4. YÊU CẦU ĐỊNH DẠNG TUYỆT ĐỐI (PLAIN TEXT CHUẨN): Ứng dụng di động không hỗ trợ Markdown.
+   - TUYỆT ĐỐI KHÔNG dùng dấu sao (*) để in đậm, in nghiêng hay làm gạch đầu dòng.
    - TUYỆT ĐỐI KHÔNG dùng dấu thăng (#) cho tiêu đề.
    - Hãy dùng dấu gạch ngang (-) hoặc đánh số (1, 2, 3) để liệt kê.
-   - Trả lời là văn bản trơn hoàn toàn (plain text). Nếu vi phạm, ứng dụng sẽ bị lỗi hiển thị.
-5. **Thân thiện, tự nhiên** — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
-6. **Thừa nhận giới hạn** — nếu không tìm được thông tin, nói thật thay vì đoán mò.
-
-## Ví dụ cách dùng tool kết hợp
-Khi khách hỏi "Phim Mai 8h tối nay rạp Landmark còn ghế không?":
-1. Gọi `get_showtimes(movie_title="Mai", cinema_name="Landmark 81", date="hôm nay")` để lấy showtime_id
-2. Gọi `get_available_seats(showtime_id=...)` để lấy số ghế trống
-3. Tổng hợp và trả lời
-
-## Giới hạn của bạn
-- Bạn KHÔNG thể đặt vé giúp khách (chỉ tra cứu thông tin, việc đặt vé làm trên app/web)
-- Bạn KHÔNG biết thông tin cá nhân của khách (lịch sử đặt vé, điểm tích lũy cụ thể)
-- Với câu hỏi ngoài phạm vi điện ảnh, lịch sự từ chối và hướng về chủ đề chính
+5. Thân thiện, tự nhiên — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
 """
 
-# ── Session Memory — mỗi session_id có history riêng ─────────
-_session_memories: dict[str, ConversationBufferWindowMemory] = {}
+import datetime
+from ..config import get_settings
+from .agent_factory import AgentFactory
 
-def _get_memory(session_id: str) -> ConversationBufferWindowMemory:
-    if session_id not in _session_memories:
-        _session_memories[session_id] = ConversationBufferWindowMemory(
-            memory_key="chat_history",
-            return_messages=True,
-            k=6            # Giữ 6 lượt cuối (3 hỏi + 3 đáp) để không spam token
-        )
-    return _session_memories[session_id]
+cfg = get_settings()
 
 def clear_session(session_id: str):
-    """Xóa lịch sử chat của 1 session"""
-    _session_memories.pop(session_id, None)
-
-
-# ── Build LLM + Agent ─────────────────────────────────────────
-def _build_llm():
-    if cfg.gemini_api_key:
-        return ChatGoogleGenerativeAI(
-            model=cfg.llm_model,
-            google_api_key=cfg.gemini_api_key,
-            temperature=cfg.llm_temperature,
-            # convert_system_message_to_human=True   # Gemini quirk
-        )
-    elif cfg.openai_api_key:
-        from langchain_openai import ChatOpenAI
-        return ChatOpenAI(
-            model=cfg.llm_model,
-            openai_api_key=cfg.openai_api_key,
-            temperature=cfg.llm_temperature,
-            streaming=True
-        )
-    else:
-        raise ValueError("Cần cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY trong .env")
-
-
-def _build_agent_executor(memory: ConversationBufferWindowMemory) -> AgentExecutor:
-    llm = _build_llm()
-
-    now = datetime.datetime.now()
-    today_str = now.strftime('%d/%m/%Y')
-    tomorrow_str = (now + datetime.timedelta(days=1)).strftime('%d/%m/%Y')
-    time_str = now.strftime('%H:%M:%S')
-
-    dynamic_system_prompt = SYSTEM_PROMPT + f"""
-
-## Ngữ cảnh thời gian thực
-- Hôm nay là ngày: {today_str}
-- Ngày mai là ngày: {tomorrow_str}
-- Giờ hiện tại: {time_str}
-- Khi khách hỏi "hôm nay", "ngày mai" hoặc các ngày trong tuần, HÃY SỬ DỤNG thông tin trên để truyền đúng định dạng DD/MM/YYYY vào công cụ (tool) nhé.
-"""
-
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", dynamic_system_prompt),
-        MessagesPlaceholder(variable_name="chat_history"),
-        ("human", "{input}"),
-        MessagesPlaceholder(variable_name="agent_scratchpad"),
-    ])
-
-    agent = create_tool_calling_agent(llm, ALL_TOOLS, prompt)
-
-    return AgentExecutor(
-        agent=agent,
-        tools=ALL_TOOLS,
-        memory=memory,
-        verbose=True,           # Bật để xem agent suy nghĩ trong log
-        max_iterations=5,       # Tối đa 5 bước tool calling / câu hỏi
-        handle_parsing_errors=True,
-        return_intermediate_steps=False,
-    )
-
+    """Xóa bộ nhớ đệm trạng thái của session trong memory/Redis"""
+    from .state import session_manager
+    session_manager.clear(session_id)
 
 # ── Public interface ──────────────────────────────────────────
-def chat(session_id: str, user_message: str) -> str:
+def chat(session_id: str, user_message: str, user_id: str = None, force_fallback: bool = False) -> dict:
     """
-    Điểm vào duy nhất — nhận câu hỏi, trả về câu trả lời.
-    Agent tự quyết định dùng tool nào dựa vào nội dung câu hỏi.
+    Điểm vào duy nhất cho Chatbot.
+    Hỗ trợ 2-way fallback và phân loại intent.
     """
-    memory   = _get_memory(session_id)
-    executor = _build_agent_executor(memory)
-
+    from .intent_classifier import IntentClassifier
+    
+    # 1. Phân loại ý định trước để trả về Java lưu vào database kiểm toán
     try:
-        result = executor.invoke({"input": user_message})
-        return result["output"]
-    except Exception as e:
-        error_str = str(e)
-        import logging
-        logging.error(f"Agent error (session={session_id}): {e}")
-
-        # Kiểm tra nếu là lỗi giới hạn Quota (429 / ResourceExhausted)
-        if any(exc in error_str for exc in ["429", "Quota exceeded", "ResourceExhausted", "ResourceExhausted"]):
-            return _handle_quota_exhausted_fallback(user_message)
-
-        # Fallback an toàn cho các lỗi khác
-        return (
-            "Em xin lỗi anh/chị, hiện em đang gặp sự cố kỹ thuật. "
-            "Anh/chị vui lòng thử lại sau hoặc liên hệ hotline 1900 6789 để được hỗ trợ ạ."
+        classifier = IntentClassifier()
+        intent = classifier.classify(user_message)
+        
+        # Override intent statefully nếu đang trong luồng đặt vé và nhắc lịch
+        from .state import session_manager
+        state = session_manager.get_state(session_id)
+        from .intent_classifier import remove_vietnamese_accents
+        msg_clean = remove_vietnamese_accents(user_message.lower())
+        
+        # Danh sách các bước trong luồng nhắc lịch
+        reminder_steps = [
+            "select_reminder_type", 
+            "select_reminder_flow", 
+            "booking_flow_select_movie", 
+            "booking_flow_select_cinema", 
+            "showtime_flow_select_ticket"
+        ]
+        
+        # Nếu đang ở clarify_movie của luồng nhắc lịch
+        is_clarify_reminder = (
+            state.get("current_step") == "clarify_movie" and 
+            state.get("next_step") == "booking_flow_select_cinema"
         )
-
-def _handle_quota_exhausted_fallback(user_message: str) -> str:
-    """
-    Xử lý khi LLM hết quota: Tự gọi tool RAG thô để trả về thông tin cho khách.
-    """
-    
-    parts = [
-        "⚠️ Hệ thống AI đang tạm thời quá tải (Quota Limit)",
-        "Em xin lỗi vì sự bất tiện này. Dưới đây là thông tin em tìm được trực tiếp từ cơ sở dữ liệu cho anh/chị:",
-    ]
-    
-    # 1. Tra cứu Knowledge Base (RAG)
-    try:
-        # invoke tool thủ công
-        rag_info = search_knowledge_base.invoke(user_message)
-        if "Không tìm thấy" not in rag_info and "Lỗi" not in rag_info:
-            parts.append("\n📍 Thông tin từ cơ sở kiến thức:\n" + rag_info)
+        
+        is_in_reminder_flow = (
+            state.get("current_step") in reminder_steps or 
+            state.get("awaiting_reminder_showtime") is True or
+            is_clarify_reminder
+        )
+        
+        # Nếu đang ở clarify_movie của luồng đặt vé
+        is_clarify_booking = (
+            state.get("current_step") == "clarify_movie" and 
+            state.get("next_step") == "booking_flow_search"
+        )
+        
+        if is_in_reminder_flow and not any(x in msg_clean for x in ["dat ve", "mua ve", "dat ghe", "giu ghe"]):
+            intent = "REMINDER_DRAFT"
+        elif is_clarify_booking:
+            intent = "BOOKING_DRAFT"
+        elif intent in ["UNKNOWN", "KNOWLEDGE_RAG"] and (
+            state.get("showtime_id") is not None 
+            or state.get("awaiting_movie") is True
+            or state.get("showtime_list")
+        ):
+            has_rag_keywords = any(x in msg_clean for x in ["hoan ve", "huy ve", "chinh sach", "gia ve", "bap nuoc", "combo", "vnpay", "thanh toan", "lien he", "dia chi", "lich su", "diem", "point", "cinepoint", "ve da mua", "da dat", "ve cua toi", "the", "rank", "sao", "nhu nao", "huong dan", "quy dinh"])
+            if not has_rag_keywords:
+                intent = "BOOKING_DRAFT"
     except Exception:
-        pass
-    
-    # 2. Nếu hỏi về phim đang chiếu thì lấy list phim
-    msg_lower = user_message.lower()
-    movie_keywords = ["phim", "chiếu", "xem", "lịch", "phim gì", "đang chiếu"]
-    if any(k in msg_lower for k in movie_keywords):
-        try:
-            movies = get_now_showing_movies.invoke("")
-            if "Lỗi" not in movies:
-                parts.append("\n🎬 Danh sách phim đang chiếu tại rạp:\n" + movies)
-        except Exception:
-            pass
+        intent = "UNKNOWN"
 
-    # Nếu không tìm thấy gì cả
-    if len(parts) <= 2:
-        return (
-            "Em xin lỗi, hiện tại hệ thống AI đang quá tải và em cũng không tìm thấy thông tin khớp trực tiếp với yêu cầu của anh/chị. "
-            "Anh/chị vui lòng thử lại sau ít phút hoặc truy cập website [novaticket.com](https://novaticket.com) để tra cứu nhé!"
-        )
+    used_fallback = False
+    reply_text = ""
+    use_mock = getattr(cfg, 'use_mock_ai', True)
 
-    parts.append("\n_Vì AI đang quá tải, câu trả lời này được trích xuất tự động và chưa qua xử lý ngôn ngữ. Mong anh/chị thông cảm!_")
-    return "\n".join(parts)
+    try:
+        # Nếu Java chỉ định hạ cấp (do quá quota) hoặc config bắt buộc mock
+        if force_fallback or use_mock:
+            used_fallback = True
+            engine = AgentFactory.get_engine(force_fallback=True)
+            reply_text = engine.process(user_message, session_id, user_id=user_id)
+        else:
+            try:
+                engine = AgentFactory.get_engine(force_fallback=False)
+                reply_text = engine.process(user_message, session_id, user_id=user_id)
+            except Exception as e:
+                import logging
+                logging.error(f"[Chatbot LLM Fallback] Lỗi API LLM: {str(e)}. Tự động hạ xuống Offline Template.")
+                used_fallback = True
+                engine = AgentFactory.get_engine(force_fallback=True)
+                reply_text = engine.process(user_message, session_id, user_id=user_id)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        import logging
+        logging.critical(f"Critical execution error in chatbot.chat: {e}")
+        reply_text = "Xin lỗi anh/chị, hệ thống hỗ trợ AI đang gặp gián đoạn tạm thời. Vui lòng thử lại sau nhé!"
+        used_fallback = True
+
+    return {
+        "reply": reply_text,
+        "intent": intent,
+        "used_fallback": used_fallback
+    }
+
+def get_smart_template_response(user_message: str) -> str:
+    """Chức năng tương thích ngược cho template phản hồi"""
+    from .engines import TemplateEngine
+    try:
+        return TemplateEngine().process(user_message, "default_session", None)
+    except Exception:
+        return "Dạ, em chưa tìm thấy thông tin cần thiết. Anh/chị vui lòng gõ câu hỏi khác nhé!"
 

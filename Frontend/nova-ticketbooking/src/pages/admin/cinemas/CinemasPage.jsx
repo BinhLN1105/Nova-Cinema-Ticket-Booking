@@ -19,7 +19,7 @@ const CITIES = [
   { value: 'OTHER',       label: '+ Thêm thành phố khác...' },
 ]
 
-const EMPTY_FORM = { name: '', address: '', city: '', phone: '', imageUrl: '' }
+const EMPTY_FORM = { name: '', address: '', city: '', phone: '', imageUrl: '', latitude: '', longitude: '' }
 
 export default function CinemasPage() {
   const [search, setSearch]       = useState('')
@@ -32,7 +32,7 @@ export default function CinemasPage() {
   const [toggleTarget, setToggleTarget] = useState(null)
   
   const [isOtherCity, setIsOtherCity] = useState(false)
-
+  
   // Screens modal state
   const [screensCinema, setScreensCinema] = useState(null)
   const qc = useQueryClient()
@@ -51,9 +51,36 @@ export default function CinemasPage() {
 
   // Create / Update
   const saveMutation = useMutation({
-    mutationFn: () => editing
-      ? cinemaApi.update(editing.id, form)
-      : cinemaApi.create(form),
+    mutationFn: async () => {
+      // Split basic info for target request (keeps backward compatibility & saves testcases)
+      const basicForm = {
+        name: form.name,
+        address: form.address,
+        city: form.city,
+        phone: form.phone,
+        imageUrl: form.imageUrl,
+      }
+      
+      let res;
+      if (editing) {
+        res = await cinemaApi.update(editing.id, basicForm)
+        if (form.latitude !== '' || form.longitude !== '') {
+          await cinemaApi.updateCoordinates(editing.id, {
+            latitude: parseFloat(form.latitude) || 0.0,
+            longitude: parseFloat(form.longitude) || 0.0,
+          })
+        }
+      } else {
+        res = await cinemaApi.create(basicForm)
+        if (form.latitude !== '' || form.longitude !== '') {
+          await cinemaApi.updateCoordinates(res.id, {
+            latitude: parseFloat(form.latitude) || 0.0,
+            longitude: parseFloat(form.longitude) || 0.0,
+          })
+        }
+      }
+      return res;
+    },
     onSuccess: () => {
       toast.success(editing ? 'Cập nhật rạp thành công' : 'Thêm rạp thành công')
       qc.invalidateQueries({ queryKey: ['admin', 'cinemas'] })
@@ -103,6 +130,8 @@ export default function CinemasPage() {
       city: cinema.city ?? '',
       phone: cinema.phone ?? '',
       imageUrl: cinema.imageUrl ?? '',
+      latitude: cinema.latitude ?? '',
+      longitude: cinema.longitude ?? '',
     })
     setIsOtherCity(!!currentCity && !isStandardCity)
     setFormOpen(true)
@@ -287,6 +316,31 @@ export default function CinemasPage() {
                 <Input value={form.phone} onChange={e => set('phone', e.target.value)}
                   placeholder="VD: 0281234567" type="tel" />
               </Field>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
+              <Field label="Vĩ độ (Latitude)">
+                <Input value={form.latitude} onChange={e => set('latitude', e.target.value)}
+                  placeholder="VD: 10.7583" type="number" step="any" />
+              </Field>
+              <Field label="Kinh độ (Longitude)">
+                <Input value={form.longitude} onChange={e => set('longitude', e.target.value)}
+                  placeholder="VD: 106.7118" type="number" step="any" />
+              </Field>
+            </div>
+            
+            <div className="text-xs text-gray-400 flex items-center justify-between -mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+              <span>
+                💡 Để lấy toạ độ, nhấp chuột phải điểm bất kỳ trên Google Maps và copy vĩ độ/kinh độ.
+              </span>
+              <a 
+                href="https://www.google.com/maps" 
+                target="_blank" 
+                rel="noopener noreferrer" 
+                className="text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1 font-medium shrink-0 ml-4"
+              >
+                <MapPin className="w-3.5 h-3.5" /> Mở Google Maps
+              </a>
             </div>
           </div>
 

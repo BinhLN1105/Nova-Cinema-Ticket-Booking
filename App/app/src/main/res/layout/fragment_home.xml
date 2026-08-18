@@ -32,12 +32,14 @@
                 <com.google.android.material.textfield.TextInputLayout
                     android:id="@+id/layoutSearch"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="44dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     app:hintEnabled="false"
                     app:startIconDrawable="@drawable/ic_search"
-                    app:startIconTint="@color/on_surface_variant"
+                    app:startIconTint="@color/on_surface"
+                    app:endIconMode="clear_text"
+                    app:endIconTint="@color/on_surface_variant"
                     app:boxStrokeWidth="0dp"
                     app:boxStrokeWidthFocused="0dp"
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox.Dense">
@@ -46,8 +48,10 @@
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:padding="0dp"
-                        android:hint="Tìm phim..."
-                        android:textSize="12sp"
+                        android:hint="Nhập tên phim..."
+                        android:textSize="15sp"
+                        android:textColor="@color/on_surface"
+                        android:textColorHint="@color/on_surface_variant"
                         android:background="@drawable/bg_search_box"
                         android:imeOptions="actionSearch"
                         android:inputType="text"/>
@@ -316,25 +320,101 @@
         android:visibility="gone" android:indeterminateTint="@color/primary"
         android:layout_gravity="center"/>
 
-    <!-- Kết quả tìm kiếm (Search Results) -->
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/rvSearchResults"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize"
-        android:background="@color/background"
-        android:visibility="gone"
-        android:elevation="11dp"
-        android:padding="12dp"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior"/>
-
-    <!-- Lớp phủ mờ khi đang tìm kiếm (Search Dim Background) -->
+    <!-- Lớp phủ mờ khi đang tập trung ô tìm kiếm (Search Dim Background) -->
     <View
         android:id="@+id/viewSearchDim"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="#80000000"
+        android:background="#A0000000"
         android:visibility="gone"
         android:elevation="10dp"/>
+
+    <!-- Vùng hiển thị kết quả tìm kiếm nâng cao (Search Container Overlay) -->
+    <LinearLayout
+        android:id="@+id/layoutSearchContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="?attr/actionBarSize"
+        android:orientation="vertical"
+        android:background="@color/background"
+        android:elevation="11dp"
+        android:visibility="gone">
+
+        <!-- Thanh tiêu đề kết quả tìm kiếm với nút Quay lại & nút Đóng -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp"
+            android:background="@color/surface_container">
+
+            <ImageView
+                android:id="@+id/btnBackSearch"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:padding="4dp"
+                android:src="@drawable/ic_back"
+                app:tint="@color/on_surface"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:contentDescription="Quay lại"/>
+
+            <TextView
+                android:id="@+id/tvSearchResultHeader"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="12dp"
+                android:text="Kết quả tìm kiếm"
+                android:textColor="@color/on_surface"
+                android:textSize="16sp"
+                android:textStyle="bold"/>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnCloseSearch"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Đóng"
+                android:textColor="@color/primary"
+                android:textStyle="bold"
+                android:textSize="14sp"/>
+        </LinearLayout>
+
+        <!-- Màn hình Loading khi tìm kiếm -->
+        <ProgressBar
+            android:id="@+id/progressBarSearch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="48dp"
+            android:indeterminateTint="@color/primary"
+            android:visibility="gone"/>
+
+        <!-- Thông báo khi không tìm thấy kết quả -->
+        <TextView
+            android:id="@+id/tvSearchEmpty"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Không tìm thấy phim phù hợp."
+            android:textColor="@color/on_surface_variant"
+            android:gravity="center"
+            android:textSize="15sp"
+            android:padding="32dp"
+            android:visibility="gone"/>
+
+        <!-- Lưới danh sách phim tìm kiếm -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSearchResults"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="12dp"
+            android:clipToPadding="false"
+            app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
+            app:spanCount="2"/>
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

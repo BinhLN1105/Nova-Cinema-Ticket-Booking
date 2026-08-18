@@ -8,6 +8,7 @@ import com.cinema.ticket_booking.service.SeatMapService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import com.cinema.ticket_booking.service.SystemConfigService;
 
 import java.time.Duration;
@@ -25,6 +26,7 @@ public class SeatMapServiceImpl implements SeatMapService {
     private final SystemConfigService systemConfigService;
 
     @Override
+    @Transactional(readOnly = true)
     public SeatMapResponse getSeatMap(UUID showtimeId) {
         Showtime showtime = showtimeService.findById(showtimeId);
 

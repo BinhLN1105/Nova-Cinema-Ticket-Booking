@@ -5,7 +5,9 @@ import com.cinema.ticket_booking.service.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -69,7 +71,7 @@ public class DataSyncController {
             @RequestParam(required = false) String cinemaName,
             @RequestParam(required = false) String date) {
         validateKey(key);
-        LocalDate targetDate = LocalDate.now();
+        LocalDate targetDate = null;
         if (date != null && !date.trim().isEmpty()) {
             if (date.contains("/")) {
                 targetDate = LocalDate.parse(date, DateTimeFormatter.ofPattern("dd/MM/yyyy"));
@@ -88,10 +90,18 @@ public class DataSyncController {
     @GetMapping("/seats/available")
     public ResponseEntity<SeatMapResponse> getAvailableSeats(
             @RequestHeader("X-Internal-Key") String key,
-            @RequestParam UUID showtimeId) {
+            @RequestParam String showtimeId) {
         validateKey(key);
+        UUID showtimeUuid;
+        try {
+            showtimeUuid = UUID.fromString(showtimeId);
+        } catch (IllegalArgumentException e) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Mã suất chiếu không đúng định dạng UUID: " + showtimeId);
+        }
         // Ưu tiên lấy từ Redis cache trước, fallback sang DB
-        return ResponseEntity.ok(seatMapService.getSeatMap(showtimeId));
+        return ResponseEntity.ok(seatMapService.getSeatMap(showtimeUuid));
     }
 
     // ════════════════════════════════════════════════════════

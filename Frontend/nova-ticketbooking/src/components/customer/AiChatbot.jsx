@@ -10,9 +10,12 @@ import {
   ChevronDown,
   RefreshCw
 } from "lucide-react";
-import { chatbotApi } from "@/api/endpoints";
+import { useNavigate } from "react-router-dom";
+import { chatbotApi, bookingApi, showtimeApi, movieApi } from "@/api/endpoints";
 import { useAuthStore } from "@/stores/authStore";
+import { useBookingStore } from "@/stores/bookingStore";
 import { cn } from "@/utils";
+
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -24,15 +27,90 @@ const WELCOME_MESSAGE = {
   time: new Date()
 };
 
+const SUGGESTED_PROMPTS = [
+  { icon: "🎫", label: "Đặt vé nhanh", text: "Đặt vé", autoSend: true },
+  { icon: "⏰", label: "Đặt nhắc lịch", text: "Đặt nhắc lịch", autoSend: true },
+  { icon: "👤", label: "CinePoint & Vé", text: "Lịch sử đặt vé và điểm CinePoint", autoSend: true },
+  { icon: "🎬", label: "Phim đang chiếu", text: "Phim đang chiếu", autoSend: true },
+  { icon: "🎁", label: "Ưu đãi voucher", text: "Voucher khuyến mãi", autoSend: true },
+  { icon: "❓", label: "Chính sách hoàn vé", text: "Chính sách hoàn vé", autoSend: true }
+];
+
 export function AiChatbot() {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([WELCOME_MESSAGE]);
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isConfirming, setIsConfirming] = useState(false);
   const { isAuthenticated } = useAuthStore();
   
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+
+  const handleConfirmBooking = async (draftId) => {
+    if (isConfirming) return;
+    setIsConfirming(true);
+    const loadingToast = toast.loading("Đang nạp thông tin vé đặt...");
+    try {
+      // 1. Fetch draft information
+      const draft = await bookingApi.getDraft(draftId);
+
+      // 2. Fetch dependencies in parallel
+      const [showtime, seatMap, allCombos] = await Promise.all([
+        showtimeApi.getById(draft.showtimeId),
+        showtimeApi.getSeatMap(draft.showtimeId),
+        showtimeApi.getCombos()
+      ]);
+
+      // 3. Fetch movie details
+      const movie = await movieApi.getById(showtime.movieId);
+
+      // 4. Update Zustand Booking Store State
+      const bookingStore = useBookingStore.getState();
+      bookingStore.reset(); // clear any previous wizard state
+      
+      bookingStore.setMovie(movie);
+      bookingStore.setShowtime(showtime);
+      bookingStore.setDate(showtime.startTime.split("T")[0]);
+
+      // Map draft showtimeSeatIds to detailed seat objects
+      const selectedSeats = seatMap.seats.filter(s => 
+        draft.showtimeSeatIds.includes(s.showtimeSeatId)
+      );
+      
+      // Update store selected seats
+      selectedSeats.forEach(seat => {
+        bookingStore.toggleSeat(seat);
+      });
+
+      // Map draft combos
+      if (draft.combos && draft.combos.length > 0) {
+        draft.combos.forEach(item => {
+          const comboObj = allCombos.find(c => c.id === item.comboId);
+          if (comboObj) {
+            bookingStore.setComboQty(item.comboId, item.quantity, comboObj.price);
+          }
+        });
+      }
+
+      // 5. Fetch server-side quote to ensure pricing is correct
+      await bookingStore.fetchServerQuote();
+
+      toast.dismiss(loadingToast);
+      toast.success("Nạp thông tin vé thành công!");
+      setIsOpen(false); // Close chatbot
+      navigate("/booking/confirm");
+    } catch (error) {
+      toast.dismiss(loadingToast);
+      console.error(error);
+      const errMsg = error.response?.data?.message || "Không thể nạp thông tin đặt vé nháp. Thử lại sau nhé!";
+      toast.error(errMsg);
+    } finally {
+      setIsConfirming(false);
+    }
+  };
+
 
   // Auto scroll to bottom
   useEffect(() => {
@@ -48,10 +126,7 @@ export function AiChatbot() {
     }
   }, [isOpen]);
 
-  const handleSend = async (e) => {
-    if (e) e.preventDefault();
-    if (!inputValue.trim() || isLoading) return;
-
+  const sendDirectQuery = async (queryText) => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để trò chuyện với AI");
       return;
@@ -59,13 +134,12 @@ export function AiChatbot() {
 
     const userMsg = {
       id: Date.now().toString(),
-      text: inputValue.trim(),
+      text: queryText,
       sender: "user",
       time: new Date()
     };
 
     setMessages(prev => [...prev, userMsg]);
-    setInputValue("");
     setIsLoading(true);
 
     try {
@@ -81,9 +155,28 @@ export function AiChatbot() {
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
       console.error("Chatbot API error:", error);
-      // toast.error sẽ được handle bởi apiClient interceptor nếu status != 401
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleSend = async (e) => {
+    if (e) e.preventDefault();
+    if (!inputValue.trim() || isLoading) return;
+
+    const query = inputValue.trim();
+    setInputValue("");
+    await sendDirectQuery(query);
+  };
+
+  const handleSuggestionClick = (prompt) => {
+    if (prompt.autoSend) {
+      sendDirectQuery(prompt.text);
+    } else {
+      setInputValue(prompt.text);
+      if (inputRef.current) {
+        setTimeout(() => inputRef.current.focus(), 50);
+      }
     }
   };
 
@@ -97,6 +190,10 @@ export function AiChatbot() {
       console.error("Clear session error:", error);
     }
   };
+
+  // Kiếm tra hiển thị Helper Text hướng dẫn nhập mã suất chiếu
+  const normalizedInput = inputValue.toLowerCase();
+  const showHelperText = normalizedInput.startsWith("đặt vé suất ") || normalizedInput.startsWith("nhắc lịch suất ");
 
   return (
     <div className="fixed bottom-6 right-6 z-[60] font-sans">
@@ -161,26 +258,57 @@ export function AiChatbot() {
                       : "bg-white/8 text-cinema-100 rounded-tl-none border border-white/5"
                   )}>
                     {msg.sender === "bot" ? (
-                      <ReactMarkdown 
-                        remarkPlugins={[remarkGfm]}
-                        components={{
-                          table: ({node, ...props}) => (
-                            <div className="overflow-x-auto my-3 -mx-1">
-                              <table className="border-collapse border border-white/10 w-full text-xs" {...props} />
-                            </div>
-                          ),
-                          th: ({node, ...props}) => <th className="border border-white/10 px-2 py-1.5 bg-white/5 text-left font-bold" {...props} />,
-                          td: ({node, ...props}) => <td className="border border-white/10 px-2 py-1.5 text-cinema-300" {...props} />,
-                          ul: ({node, ...props}) => <ul className="list-disc ml-4 my-2 space-y-1" {...props} />,
-                          ol: ({node, ...props}) => <ol className="list-decimal ml-4 my-2 space-y-1" {...props} />,
-                          p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
-                          a: ({node, ...props}) => <a className="text-brand-400 hover:underline" {...props} />,
-                          code: ({node, ...props}) => <code className="bg-white/10 px-1 rounded text-xs" {...props} />,
-                          strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />
-                        }}
-                      >
-                        {msg.text}
-                      </ReactMarkdown>
+                      <>
+                        <ReactMarkdown 
+                          remarkPlugins={[remarkGfm]}
+                          components={{
+                            table: ({node, ...props}) => (
+                              <div className="overflow-x-auto my-3 -mx-1">
+                                <table className="border-collapse border border-white/10 w-full text-xs" {...props} />
+                              </div>
+                            ),
+                            th: ({node, ...props}) => <th className="border border-white/10 px-2 py-1.5 bg-white/5 text-left font-bold" {...props} />,
+                            td: ({node, ...props}) => <td className="border border-white/10 px-2 py-1.5 text-cinema-300" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc ml-4 my-2 space-y-1" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal ml-4 my-2 space-y-1" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                            a: ({node, ...props}) => <a className="text-brand-400 hover:underline" {...props} />,
+                            code: ({node, ...props}) => <code className="bg-white/10 px-1 rounded text-xs" {...props} />,
+                            strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />
+                          }}
+                        >
+                          {msg.text}
+                        </ReactMarkdown>
+
+                        {(() => {
+                          const draftMatch = msg.text.match(/Mã đặt vé tạm:\s*#([a-f0-9\-]+)/i);
+                          const draftId = draftMatch ? draftMatch[1] : null;
+                          if (draftId) {
+                            return (
+                              <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2 w-full">
+                                <button
+                                  type="button"
+                                  onClick={() => handleConfirmBooking(draftId)}
+                                  disabled={isConfirming}
+                                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-600 active:scale-[0.98] text-white font-semibold text-xs shadow-glow-red transition-all cursor-pointer"
+                                >
+                                  {isConfirming ? (
+                                    <>
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                      Đang xác nhận...
+                                    </>
+                                  ) : (
+                                    <>
+                                      💳 Xác nhận thanh toán
+                                    </>
+                                  )}
+                                </button>
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
                     ) : (
                       msg.text
                     )}
@@ -216,8 +344,41 @@ export function AiChatbot() {
               )}
             </div>
 
+            {/* Suggestion Chips (Always Visible Horizontal Scrollable Row) */}
+            {!isLoading && (
+              <div className="relative border-t border-white/5 bg-white/[0.01]">
+                {/* Horizontal Fade Indicators */}
+                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0d1b2a]/90 to-transparent pointer-events-none z-10" />
+                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0d1b2a]/90 to-transparent pointer-events-none z-10" />
+                
+                <div className="px-6 py-2.5 flex gap-2 overflow-x-auto scrollbar-none scroll-smooth items-center">
+                  {SUGGESTED_PROMPTS.map((prompt, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => handleSuggestionClick(prompt)}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/5 
+                        rounded-full text-xs text-cinema-300 hover:text-white hover:bg-brand-500/20 hover:border-brand-500/30
+                        transition-all duration-200 whitespace-nowrap shrink-0"
+                    >
+                      <span>{prompt.icon}</span>
+                      <span>{prompt.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             {/* Footer / Input */}
             <div className="p-4 bg-white/[0.02] border-t border-white/5">
+              {/* Helper text display for template completions */}
+              {showHelperText && (
+                <div className="text-[11px] text-brand-400 mb-2 px-1 flex items-center gap-1.5 animate-pulse">
+                  <span>💡</span>
+                  <span>Ví dụ nhập tiếp số: <strong>125</strong> (Ví dụ: {inputValue}125) để thực thi.</span>
+                </div>
+              )}
+              
               <form 
                 onSubmit={handleSend}
                 className="relative flex items-center gap-2"
