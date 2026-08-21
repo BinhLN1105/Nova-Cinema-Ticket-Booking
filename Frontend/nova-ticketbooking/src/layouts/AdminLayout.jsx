@@ -26,6 +26,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
 import { cn } from "@/utils";
+import Logo from "@/components/common/ui/Logo";
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -86,26 +87,11 @@ export function AdminLayout() {
         {/* Logo */}
         <div
           className={cn(
-            "flex items-center gap-3 px-5 py-5 border-b border-white/5",
-            collapsed && "justify-center px-0",
+            "flex items-center px-5 py-5 border-b border-white/5",
+            collapsed ? "justify-center px-0" : "",
           )}
         >
-          <div
-            className="w-9 h-9 flex-shrink-0 rounded-xl bg-brand-500
-            flex items-center justify-center shadow-glow-red"
-          >
-            <FilmIcon className="w-5 h-5 text-white" />
-          </div>
-          <motion.span
-            animate={{
-              opacity: collapsed ? 0 : 1,
-              width: collapsed ? 0 : "auto",
-            }}
-            transition={{ duration: 0.2 }}
-            className="font-display text-lg font-bold text-white overflow-hidden whitespace-nowrap"
-          >
-            Nova<span className="text-brand-500">Admin</span>
-          </motion.span>
+          <Logo to="/admin/dashboard" badge="Admin" collapsed={collapsed} />
         </div>
 
         {/* Nav */}

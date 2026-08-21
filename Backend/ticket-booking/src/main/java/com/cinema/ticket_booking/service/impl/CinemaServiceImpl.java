@@ -185,7 +185,6 @@ public class CinemaServiceImpl implements CinemaService {
         if (cache == null) {
             cache = CinemaWeatherCache.builder()
                     .cinemaId(cinemaId)
-                    .cinema(cinema)
                     .latitude(latitude)
                     .longitude(longitude)
                     .provider("WeatherAPI")

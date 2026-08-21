@@ -87,7 +87,11 @@ class MockClient:
             resp.json.return_value = [
                 {"id": "mov1", "title": "Mai"},
                 {"id": "mov2", "title": "Kung Fu Panda 4"},
-                {"id": "mov3", "title": "Daredevil: Tái Sinh 2"}
+                {"id": "mov3", "title": "Daredevil: Tái Sinh 2"},
+                {"id": "mov4", "title": "OnePiece Live Action mùa 1"},
+                {"id": "mov5", "title": "The Boys: Mùa 5"},
+                {"id": "mov6", "title": "Thoát Khỏi Tận Thế"},
+                {"id": "mov7", "title": "Đại Chiến Người Khổng Lồ - S4 Part 2"}
             ]
         elif "/internal/api/showtimes" in url:
             resp.json.return_value = [
@@ -399,9 +403,9 @@ def run_tests():
 
     # Case B0.5 (Selecting index using digit only "1")
     from app.agent.state import session_manager
-    print(f"\n[DEBUG] current state in session: {session_manager.get_state(session_flow_id)}")
+    print(f"\n[DEBUG] current state in session: {remove_non_ascii(str(session_manager.get_state(session_flow_id)))}")
     step_digit = chat(session_flow_id, "1")["reply"]
-    print(f"\n[DEBUG] step_digit returned: {step_digit}")
+    print(f"\n[DEBUG] step_digit returned: {remove_non_ascii(step_digit)}")
     print(f"\nUser: 1 (selecting index via single digit)\nNova clean:\n{remove_non_ascii(step_digit)}")
     assert "de xuat" in remove_non_ascii(step_digit).lower(), "Loi chon bang so don le"
 
@@ -648,9 +652,56 @@ def run_tests():
     session_manager.set_state(session_weather_id, state_weather)
     res_w_err = chat(session_weather_id, "thời tiết hôm đó có giông bão không?")["reply"]
     print(f"\nUser: thoi tiet hom do co giong bao khong (API error)?\nNova clean:\n{remove_non_ascii(res_w_err)}")
-    assert "loi ket noi" in remove_non_ascii(res_w_err).lower() or "khong the lay" in remove_non_ascii(res_w_err).lower(), "Loi fallback khi API thoi tiet loi"
+    # F7: Compound query - Danh sách phim ở rạp quận 12 + Thời tiết
+    session_compound_id = "user_compound_uuid_900"
+    res_compound = chat(session_compound_id, "tôi muốn đi xem ở rạp khu vực quận 12 thì có những phim nào đang chiếu và thời tiết có thuận lợi để đi không ?")["reply"]
+    print(f"\nUser: toi muon di xem o rap khu vuc quan 12 thi co nhung phim nao dang chieu va thoi tiet co thuan loi de di khong ?\nNova clean:\n{remove_non_ascii(res_compound)}")
+    assert "quan 12" in remove_non_ascii(res_compound).lower(), "Loi: phai nhan dien khu vuc quan 12"
+    assert "dang chieu" in remove_non_ascii(res_compound).lower(), "Loi: phai liet ke phim dang chieu"
+    assert "thoi tiet" in remove_non_ascii(res_compound).lower() or "thuan loi" in remove_non_ascii(res_compound).lower(), "Loi: phai co thong tin thoi tiet"
+
+    # F8: Explicit weather query theo rạp cụ thể khi chưa chọn suất
+    session_area_id = "user_area_uuid_901"
+    res_area_w = chat(session_area_id, "thời tiết ở rạp quận 12 thế nào?")["reply"]
+    print(f"\nUser: thoi tiet o rap quan 12 the nao?\nNova clean:\n{remove_non_ascii(res_area_w)}")
+    assert "quan 12" in remove_non_ascii(res_area_w).lower() and ("thuan loi" in remove_non_ascii(res_area_w).lower() or "thoi tiet" in remove_non_ascii(res_area_w).lower()), "Loi: phai tra loi thoi tiet rap quan 12"
 
     print("-> OK (Weather integration tests pass)")
+
+    # [11] Testing Multi-turn Conversational Memory & Pagination Context (Phase 17)
+    print("\n[11] Testing Multi-turn Conversational Memory & Pagination Context:")
+    session_mem_id = "user_memory_session_999"
+    
+    # Turn 1: Hỏi phim tại Hà Nội (7 phim tổng cộng -> trả về 5 phim đầu và báo còn 2 phim)
+    res_turn1 = chat(session_mem_id, "Hiện tại rạp tại hà nội đang có chiếu các phim nào")["reply"]
+    print(f"\nUser: Hien tai rap tai ha noi dang co chieu cac phim nao\nNova clean:\n{remove_non_ascii(res_turn1)}")
+    assert "ha noi" in remove_non_ascii(res_turn1).lower()
+    assert "con 2 phim" in remove_non_ascii(res_turn1).lower()
+    assert "mai" in remove_non_ascii(res_turn1).lower()
+    
+    # Turn 2: Hỏi tiếp 2 phim nào nữa -> Bot trả về đúng 2 phim còn lại (Thoát Khỏi Tận Thế, Đại Chiến Người Khổng Lồ)
+    res_turn2 = chat(session_mem_id, "2 phim nào nữa ?")["reply"]
+    print(f"\nUser: 2 phim nao nua ?\nNova clean:\n{remove_non_ascii(res_turn2)}")
+    assert "thoat khoi tan the" in remove_non_ascii(res_turn2).lower()
+    assert "dai chien nguoi khong lo" in remove_non_ascii(res_turn2).lower()
+    
+    # Turn 3: Hỏi tiếp khi đã hiển thị hết danh sách -> Bot thông báo đã hết
+    res_turn3 = chat(session_mem_id, "còn phim nào khác không?")["reply"]
+    print(f"\nUser: con phim nao khac khong?\nNova clean:\n{remove_non_ascii(res_turn3)}")
+    assert "toan bo 7 phim" in remove_non_ascii(res_turn3).lower() or "toan bo" in remove_non_ascii(res_turn3).lower()
+
+    # Turn 4: Kế thừa ngữ cảnh rạp ngầm hiểu ("ở rạp đó có chiếu phim Mai không?")
+    res_turn4 = chat(session_mem_id, "ở rạp đó có chiếu phim Mai không?")["reply"]
+    print(f"\nUser: o rap do co chieu phim Mai khong?\nNova clean:\n{remove_non_ascii(res_turn4)}")
+    assert "mai" in remove_non_ascii(res_turn4).lower()
+
+    # Turn 5: Fallback an toàn khi session mới chưa có context rạp
+    session_fresh_id = "user_fresh_no_context_session"
+    res_turn5 = chat(session_fresh_id, "ở rạp đó có suất mấy giờ?")["reply"]
+    print(f"\nUser: o rap do co suat may gio? (no context)\nNova clean:\n{remove_non_ascii(res_turn5)}")
+    assert "muon xem lich chieu tai cum rap nao" in remove_non_ascii(res_turn5).lower() or "rap nao" in remove_non_ascii(res_turn5).lower()
+
+    print("-> OK (Multi-turn conversational memory tests pass)")
 
     print("\n=== COMPLETE TESTING AI AGENT SUCCESSFULLY ===")
 

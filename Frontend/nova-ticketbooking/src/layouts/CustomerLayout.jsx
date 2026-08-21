@@ -1,4 +1,4 @@
-import { Outlet, Link, useLocation, useNavigate } from "react-router-dom";
+import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useEffect } from "react";
 import {
@@ -25,6 +25,16 @@ export function CustomerLayout() {
   const location = useLocation();
   const { isAuthenticated, user } = useAuthStore();
   const { logout } = useAuth();
+
+  // Tự động chuyển hướng Admin / Staff sang đúng Portal chuyên biệt khi vào Customer Portal
+  if (isAuthenticated) {
+    if (user?.role === "ADMIN") {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (user?.role === "STAFF") {
+      return <Navigate to="/staff/dashboard" replace />;
+    }
+  }
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);

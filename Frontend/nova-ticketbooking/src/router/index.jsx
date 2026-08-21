@@ -13,7 +13,11 @@ import { AuthLayout } from "@/layouts/AuthLayout";
 function RequireAuth({ role }) {
   const { isAuthenticated, user } = useAuthStore();
   if (!isAuthenticated) return <Navigate to="/auth/login" replace />;
-  if (role && user?.role !== role) return <Navigate to="/" replace />;
+  if (role && user?.role !== role) {
+    if (user?.role === "ADMIN") return <Navigate to="/admin/dashboard" replace />;
+    if (user?.role === "STAFF") return <Navigate to="/staff/dashboard" replace />;
+    return <Navigate to="/" replace />;
+  }
   return <Outlet />;
 }
 

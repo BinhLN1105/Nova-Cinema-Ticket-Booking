@@ -322,6 +322,26 @@ public class AiAgentController {
     }
 
     /**
+     * GET /internal/api/ai/weather/cinema/{cinemaId}
+     * Lấy thông tin thời tiết dự báo hiện tại/trong ngày tại rạp.
+     */
+    @GetMapping("/weather/cinema/{cinemaId}")
+    public ResponseEntity<ApiResponse<WeatherShowtimeResponse>> getWeatherForCinema(
+            @RequestHeader("X-Internal-Key") String key,
+            @PathVariable("cinemaId") String cinemaIdStr) {
+        validateKey(key);
+        UUID cinemaId;
+        try {
+            cinemaId = UUID.fromString(cinemaIdStr);
+        } catch (IllegalArgumentException e) {
+            throw new AppException(HttpStatus.BAD_REQUEST, "ID rạp không đúng định dạng UUID");
+        }
+
+        WeatherShowtimeResponse response = weatherIntegrationService.getWeatherForCinema(cinemaId);
+        return ResponseEntity.ok(ApiResponse.success(response, "Lấy thông tin thời tiết rạp thành công"));
+    }
+
+    /**
      * GET /internal/api/ai/user/tickets
      * Tra cứu xem vé đã mua của user dựa trên session ID.
      */

@@ -13,4 +13,12 @@ public interface WeatherIntegrationService {
      * @return DTO chứa thông tin thời tiết chi tiết phục vụ AI/Client.
      */
     WeatherShowtimeResponse getWeatherForShowtime(UUID showtimeId);
+
+    /**
+     * Lấy dự báo thời tiết hiện tại/trong ngày tại rạp chiếu phim.
+     * 
+     * @param cinemaId ID của rạp chiếu.
+     * @return DTO chứa thông tin thời tiết chi tiết phục vụ AI/Client.
+     */
+    WeatherShowtimeResponse getWeatherForCinema(UUID cinemaId);
 }
