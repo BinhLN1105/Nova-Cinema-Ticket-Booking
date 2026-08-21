@@ -12,6 +12,7 @@ import {
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
 import { cn } from "@/utils";
+import Logo from "@/components/common/ui/Logo";
 
 const NAV_ITEMS = [
   { href: "/staff/dashboard", icon: LayoutDashboard, label: "Dashboard" },
@@ -38,13 +39,8 @@ export function StaffLayout() {
       data-portal="staff"
     >
       <aside className="w-60 flex-shrink-0 bg-slate-900 flex flex-col">
-        <div className="flex items-center gap-3 px-5 py-5 border-b border-white/5">
-          <div className="w-9 h-9 rounded-xl bg-blue-500 flex items-center justify-center">
-            <Film className="w-5 h-5 text-white" />
-          </div>
-          <span className="font-display text-lg font-bold text-white">
-            Nova<span className="text-blue-400">Staff</span>
-          </span>
+        <div className="flex items-center px-5 py-5 border-b border-white/5">
+          <Logo to="/staff/dashboard" badge="Staff" />
         </div>
         <nav className="flex-1 py-4 px-3 space-y-1">
           {NAV_ITEMS.map(({ href, icon: Icon, label }) => {

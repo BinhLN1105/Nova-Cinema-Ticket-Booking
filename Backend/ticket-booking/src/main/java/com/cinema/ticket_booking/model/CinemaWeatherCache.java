@@ -19,8 +19,7 @@ public class CinemaWeatherCache {
     private UUID cinemaId;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "cinema_id")
+    @JoinColumn(name = "cinema_id", insertable = false, updatable = false)
     private Cinema cinema;
 
     @Column(name = "latitude")

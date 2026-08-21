@@ -1,8 +1,9 @@
 # NovaTicket — Antigravity IDE Configuration
 
-## Agent Mode
-- Dùng **Planning Mode** cho: VNPay flow, Auth/Security, thay đổi DB schema, refactor nhiều file
-- Dùng **Fast Mode** cho: sửa typo, thêm comment, rename, format code
+## Agent Mode & Planning Rules
+- **Skill bắt buộc:** Sử dụng skill `plan-first` tại `.agents/skills/plan-first/SKILL.md` cho mọi task phức tạp.
+- Dùng **Planning Mode (Bắt buộc Plan + User Confirm trước khi làm)** cho: VNPay flow, Auth/Security, thay đổi DB schema, refactor >= 2 file, tính năng mới, hoặc logic phức tạp.
+- Dùng **Fast Mode** cho: sửa typo, thêm comment, rename, format code, sửa 1 dòng lỗi đơn giản.
 
 ## Turbo Auto-run (chạy KHÔNG hỏi)
 # ── Backend ──────────────────────────────
@@ -19,6 +20,7 @@ pip install -r requirements.txt
 uvicorn main:app --reload
 
 # ── Frontend ─────────────────────────────
+npm install --legacy-peer-deps
 npm install
 npm run dev
 npm run build

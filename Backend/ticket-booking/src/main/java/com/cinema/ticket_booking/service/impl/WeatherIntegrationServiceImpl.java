@@ -20,6 +20,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.UUID;
 
+import com.cinema.ticket_booking.repository.CinemaRepository;
+
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -28,11 +30,89 @@ public class WeatherIntegrationServiceImpl implements WeatherIntegrationService 
 
     private final CinemaWeatherCacheRepository weatherCacheRepository;
     private final ShowtimeRepository showtimeRepository;
+    private final CinemaRepository cinemaRepository;
     private final ObjectMapper objectMapper;
     private final RestTemplate restTemplate = new RestTemplate();
 
     @Value("${app.weather.api-key:mock_key}")
     private String apiKey;
+
+    @Override
+    @Transactional
+    public WeatherShowtimeResponse getWeatherForCinema(UUID cinemaId) {
+        log.info("[WeatherService] Bắt đầu tra cứu thời tiết cho rạp: {}", cinemaId);
+
+        Cinema cinema = cinemaRepository.findById(cinemaId).orElse(null);
+        if (cinema == null) {
+            log.warn("[WeatherService] Không tìm thấy rạp chiếu với ID: {}", cinemaId);
+            return createEmptyResponse(true, "Không tìm thấy thông tin rạp chiếu.");
+        }
+
+        CinemaWeatherCache cache = weatherCacheRepository.findById(cinemaId).orElse(null);
+        if (cache == null || cache.getLatitude() == null || cache.getLongitude() == null) {
+            log.warn(
+                    "[WeatherService] Rạp '{}' ({}) chưa cấu hình tọa độ. Bỏ qua tra cứu thời tiết.",
+                    cinema.getName(), cinemaId);
+            return createEmptyResponse(true, "Rạp hiện chưa được cấu hình tọa độ thời tiết.");
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        if ("mock_key".equalsIgnoreCase(apiKey) || apiKey.contains("mock")) {
+            log.info("[WeatherService] Trả về dữ liệu thời tiết mock cho rạp '{}'.", cinema.getName());
+            return buildMockResponse(now, cinema.getName());
+        }
+
+        String jsonWeatherData = null;
+        boolean needUpdate = false;
+
+        if (cache.getLastWeatherData() == null || cache.getLastFetchedAt() == null ||
+                cache.getLastFetchedAt().plusHours(4).isBefore(LocalDateTime.now())) {
+            needUpdate = true;
+        } else {
+            jsonWeatherData = cache.getLastWeatherData();
+        }
+
+        if (needUpdate) {
+            try {
+                log.info(
+                        "[WeatherService] Cache rạp '{}' hết hạn hoặc rỗng. Thực hiện gọi Weather API cho tọa độ: {}, {}",
+                        cinema.getName(), cache.getLatitude(), cache.getLongitude());
+
+                String url = String.format(
+                        "http://api.weatherapi.com/v1/forecast.json?key=%s&q=%f,%f&days=3&aqi=no&alerts=no",
+                        apiKey, cache.getLatitude(), cache.getLongitude());
+
+                String rawResponse = restTemplate.getForObject(url, String.class);
+                if (rawResponse != null && !rawResponse.isBlank()) {
+                    cache.setLastWeatherData(rawResponse);
+                    cache.setLastFetchedAt(LocalDateTime.now());
+                    cache.setProvider("WeatherAPI");
+                    weatherCacheRepository.save(cache);
+                    jsonWeatherData = rawResponse;
+                    log.info("[WeatherService] Đã cập nhật cache thời tiết rạp '{}' thành công.", cinema.getName());
+                }
+            } catch (Exception e) {
+                log.error("[WeatherService] Lỗi khi kết nối Weather API rạp '{}': {}. Sử dụng stale cache nếu có...",
+                        cinema.getName(), e.getMessage());
+                if (cache.getLastWeatherData() != null) {
+                    jsonWeatherData = cache.getLastWeatherData();
+                } else {
+                    return createEmptyResponse(false, "Không thể kết nối và không có dữ liệu thời tiết cũ.");
+                }
+            }
+        }
+
+        if (jsonWeatherData != null) {
+            try {
+                return parseWeatherFromJson(jsonWeatherData, now, cinema.getName());
+            } catch (Exception e) {
+                log.error("[WeatherService] Lỗi parse JSON thời tiết rạp '{}': {}", cinema.getName(), e.getMessage());
+            }
+        }
+
+        return createEmptyResponse(false, "Có lỗi xảy ra khi xử lý dữ liệu thời tiết.");
+    }
 
     @Override
     @Transactional
