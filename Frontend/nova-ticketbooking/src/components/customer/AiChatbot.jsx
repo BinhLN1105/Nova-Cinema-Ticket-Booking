@@ -204,20 +204,20 @@ export function AiChatbot() {
             initial={{ opacity: 0, scale: 0.9, y: 20, transformOrigin: "bottom right" }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-            className="absolute bottom-20 right-0 w-[380px] max-w-[calc(100vw-48px)] h-[550px] max-h-[calc(100vh-120px)]
-              glass-dark border border-white/10 rounded-3xl shadow-card-float overflow-hidden flex flex-col"
+            className="absolute bottom-20 right-0 w-[360px] sm:w-[380px] max-w-[calc(100vw-32px)] h-[500px] sm:h-[530px] max-h-[calc(100vh-110px)]
+              bg-[#0d1b2a]/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-card-float overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="px-6 py-4 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+            <div className="px-5 py-3.5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
-                  <Bot className="w-6 h-6 text-brand-400" />
+                <div className="w-9 h-9 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
+                  <Bot className="w-5 h-5 text-brand-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-base text-white leading-tight">Nova Assistant</h3>
+                  <h3 className="font-bold text-sm text-white leading-tight">Nova Assistant</h3>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[11px] text-cinema-400 uppercase font-bold tracking-wider">Trực tuyến</span>
+                    <span className="text-[10px] text-cinema-400 uppercase font-bold tracking-wider">Trực tuyến</span>
                   </div>
                 </div>
               </div>
@@ -225,13 +225,13 @@ export function AiChatbot() {
                 <button 
                   onClick={handleClearChat}
                   title="Xóa hội thoại"
-                  className="p-2 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all"
+                  className="p-1.5 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-2 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all"
+                  className="p-1.5 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -241,7 +241,7 @@ export function AiChatbot() {
             {/* Messages Body */}
             <div 
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-6 space-y-6 scrollbar-hide"
+              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-hide"
             >
               {messages.map((msg) => (
                 <div 
@@ -252,10 +252,10 @@ export function AiChatbot() {
                   )}
                 >
                   <div className={cn(
-                    "px-4 py-3 rounded-2xl text-sm leading-relaxed",
+                    "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
                     msg.sender === "user" 
-                      ? "bg-brand-500 text-white rounded-tr-none shadow-glow-red" 
-                      : "bg-white/8 text-cinema-100 rounded-tl-none border border-white/5"
+                      ? "bg-gradient-to-br from-cinema-800 to-[#1b2a41] text-cinema-50 border border-brand-500/30 rounded-tr-none shadow-md shadow-black/20" 
+                      : "bg-white/[0.06] text-cinema-100 rounded-tl-none border border-white/5"
                   )}>
                     {msg.sender === "bot" ? (
                       <>
@@ -269,9 +269,10 @@ export function AiChatbot() {
                             ),
                             th: ({node, ...props}) => <th className="border border-white/10 px-2 py-1.5 bg-white/5 text-left font-bold" {...props} />,
                             td: ({node, ...props}) => <td className="border border-white/10 px-2 py-1.5 text-cinema-300" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc ml-4 my-2 space-y-1" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal ml-4 my-2 space-y-1" {...props} />,
-                            p: ({node, ...props}) => <p className="mb-2 last:mb-0" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc ml-5 my-2 space-y-1 text-cinema-100" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal ml-5 my-2 space-y-1 text-cinema-100" {...props} />,
+                            li: ({node, ...props}) => <li className="text-cinema-100 my-0.5 leading-relaxed" {...props} />,
+                            p: ({node, ...props}) => <p className="mb-2 last:mb-0 whitespace-pre-line leading-relaxed" {...props} />,
                             a: ({node, ...props}) => <a className="text-brand-400 hover:underline" {...props} />,
                             code: ({node, ...props}) => <code className="bg-white/10 px-1 rounded text-xs" {...props} />,
                             strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />

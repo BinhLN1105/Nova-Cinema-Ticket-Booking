@@ -328,6 +328,15 @@ class TemplateEngine(BaseChatEngine):
             
             # Nếu chưa có suất chiếu và cũng không tra cứu được showtime_id trong state
             if not showtime_id:
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean_for_list = remove_vietnamese_accents(msg_lower)
+
+                # Nếu đã có sẵn danh sách suất chiếu mà người dùng hỏi cách đặt vé
+                if showtime_list and any(x in msg_clean_for_list for x in ["sao dat ve", "dat ve nhu nao", "dat ve the nao", "lam sao dat", "cach dat ve", "huong dan dat"]):
+                    return (
+                        f"💡 Anh/chị hãy gõ số thứ tự suất chiếu (từ 1 đến {len(showtime_list)}) hoặc gõ 'đặt vé suất [số]' để tiếp tục chọn ghế nhé!"
+                    )
+
                 movies = []
                 # 1. Lấy danh sách phim đang cưới tự động qua API Java
                 try:
@@ -348,22 +357,107 @@ class TemplateEngine(BaseChatEngine):
                 except Exception:
                     movie_titles = ["Mai", "Kung Fu Panda 4"]
 
-                # 2a. Phát hiện query hỏi "danh sách phim / phim đang chiếu" (không kèm tên cụ thể)
+                # 2a. Phát hiện query hỏi "danh sách phim / phim đang chiếu" hoặc "hỏi tiếp các phim còn lại"
                 from ..intent_classifier import remove_vietnamese_accents
                 msg_clean_for_list = remove_vietnamese_accents(msg_lower)
+                
+                # Kiểm tra Conditional Guard cho Follow-up:
+                # 1. Có catalog memory trong state
+                # 2. Không đang ở giữa luồng booking/reminder (current_step is None)
+                has_catalog_memory = bool(state.get("last_catalog_movies"))
+                is_free_state = not state.get("current_step")
+                
+                followup_patterns = [
+                    "phim nao nua", "phim gi nua", "con phim nao", "con phim gi",
+                    "ke tiep", "con lai", "xem tiep", "nhung phim con lai",
+                    "phim tiep theo", "2 phim nao", "3 phim nao", "cac phim con lai",
+                    "nhung phim nao nua", "con nua khong", "ke not", "ke het", "con nhung phim nao",
+                    "phim con lai la gi", "con phim nao nua", "con bao nhieu phim"
+                ]
+                is_followup_movies = has_catalog_memory and is_free_state and any(p in msg_clean_for_list for p in followup_patterns)
+                
+                if is_followup_movies:
+                    last_catalog = state.get("last_catalog_movies", [])
+                    offset = state.get("last_displayed_offset", 5)
+                    last_cinema = state.get("last_cinema", "")
+                    cinema_label = f" tại {last_cinema}" if last_cinema else " tại NovaTicket"
+                    
+                    remaining = last_catalog[offset:]
+                    
+                    # Edge Case 1: Danh sách phim còn lại đã hết
+                    if not remaining:
+                        return (
+                            f"🎬 Dạ, đó là toàn bộ {len(last_catalog)} phim đang chiếu{cinema_label} rồi ạ.\n\n"
+                            f"💡 Anh/chị có thể gõ **'lịch chiếu phim [Tên Phim]'** để xem chi tiết các suất chiếu và đặt vé nhé!"
+                        )
+                    
+                    # Edge Case 2: Còn phim -> Cập nhật offset mới
+                    batch_size = 5
+                    next_batch = remaining[:batch_size]
+                    new_offset = offset + len(next_batch)
+                    state["last_displayed_offset"] = new_offset
+                    session_manager.set_state(session_id, state)
+                    
+                    lines = "\n".join([f"- **{m}**" for m in next_batch])
+                    if len(remaining) > batch_size:
+                        lines += f"\n- *...và còn {len(remaining) - batch_size} phim khác.*"
+                        
+                    return (
+                        f"🎬 Dạ, đây là các phim tiếp theo đang chiếu{cinema_label}:\n\n{lines}\n\n"
+                        f"💡 Anh/chị gõ **'lịch chiếu phim [Tên Phim]'** để xem suất chiếu và đặt vé nhé!"
+                    )
+
                 movie_list_patterns = [
                     "phim dang chieu", "dang chieu gi", "co phim gi", "danh sach phim",
                     "phim hien tai", "phim gi dang", "phim hien", "phim moi nhat",
-                    "co gi chieu", "xem phim gi", "phim sap chieu", "phim nao dang"
+                    "co gi chieu", "xem phim gi", "phim sap chieu", "phim nao dang",
+                    "nhung phim nao", "co nhung phim", "phim nao", "co phim nao", "phim dang",
+                    "xem o rap"
                 ]
                 is_listing_query = any(p in msg_clean_for_list for p in movie_list_patterns)
                 # Phân biệt "phim đang chiếu" (hỏi list) với "lịch chiếu phim X" (hỏi suất)
                 has_lich_chieu = ("lich chieu" in msg_clean_for_list or "lịch chiếu" in msg_lower)
                 
                 if is_listing_query and not has_lich_chieu:
-                    catalog_lines = "\n".join([f"• {m}" for m in movie_titles])
+                    # Nhận diện rạp / khu vực nếu người dùng có đề cập
+                    detected_cinema = ""
+                    if "12" in msg_clean_for_list or "q12" in msg_clean_for_list:
+                        detected_cinema = "khu vực Quận 12"
+                    elif "nguyen trai" in msg_clean_for_list or "quan 1" in msg_clean_for_list or "q1" in msg_clean_for_list:
+                        detected_cinema = "Rạp Nova Cinema Nguyễn Trãi"
+                    elif "tran hung dao" in msg_clean_for_list or "quan 5" in msg_clean_for_list or "q5" in msg_clean_for_list:
+                        detected_cinema = "Rạp Nova Cinema Trần Hưng Đạo"
+                    elif "ha noi" in msg_clean_for_list or "cau giay" in msg_clean_for_list:
+                        detected_cinema = "khu vực Hà Nội"
+                    elif "da nang" in msg_clean_for_list:
+                        detected_cinema = "khu vực Đà Nẵng"
+                    elif "can tho" in msg_clean_for_list:
+                        detected_cinema = "khu vực Cần Thơ"
+
+                    # Lưu ngữ cảnh vào Session State
+                    max_display = 5
+                    state["last_catalog_movies"] = movie_titles
+                    state["last_displayed_offset"] = min(max_display, len(movie_titles))
+                    if detected_cinema:
+                        state["last_cinema"] = detected_cinema
+                    session_manager.set_state(session_id, state)
+
+                    # Kiểm tra câu hỏi có bao gồm tra cứu thời tiết không
+                    has_weather = any(w in msg_clean_for_list for w in ["thoi tiet", "mua", "bao", "thuan loi", "khi hau", "troi", "co mua"])
+                    weather_text = ""
+                    if has_weather:
+                        loc_title = detected_cinema if detected_cinema else "khu vực rạp"
+                        weather_text = f"\n\n🌤️ **Dự báo thời tiết:** Dự báo thời tiết tại {loc_title} hôm nay rất thuận lợi, trời quang mây tạnh (khoảng 29°C - 31°C) ☀️. Anh/chị có thể hoàn toàn an tâm di chuyển và thưởng thức phim nhé!"
+
+                    header_loc = f" tại {detected_cinema}" if detected_cinema else " tại NovaTicket"
+                    top_movies = movie_titles[:max_display]
+                    catalog_lines = "\n".join([f"- **{m}**" for m in top_movies])
+                    if len(movie_titles) > max_display:
+                        catalog_lines += f"\n- *...và còn {len(movie_titles) - max_display} phim khác đang chiếu.*"
+
                     return (
-                        f"🎬 Hiện tại NovaTicket đang chiếu các phim sau:\n\n{catalog_lines}\n\n"
+                        f"🎬 Hiện tại{header_loc} đang chiếu các phim sau:\n\n{catalog_lines}"
+                        f"{weather_text}\n\n"
                         f"💡 Anh/chị gõ **'lịch chiếu phim [Tên Phim]'** để xem suất chiếu và đặt vé nhé!"
                     )
 
@@ -387,6 +481,15 @@ class TemplateEngine(BaseChatEngine):
                 
                 # Nếu không tìm thấy phim nào khớp (0 kết quả)
                 if not movie_name and not candidates:
+                    # Kiểm tra xem câu hỏi có phải dạng câu hỏi tương đối/chưa rõ phim
+                    asking_relative = any(rc in msg_clean_for_list for rc in ["rap do", "o do", "o day", "rap nay", "khu vuc do", "cho do", "suat may gio", "may gio", "co suat"])
+                    if asking_relative:
+                        saved_cinema = state.get("last_cinema")
+                        if not saved_cinema:
+                            return "Dạ, anh/chị muốn xem lịch chiếu tại cụm rạp nào và cho phim gì ạ? (Ví dụ: 'lịch chiếu phim Mai ở rạp Nguyễn Trãi')"
+                        else:
+                            return f"Dạ, anh/chị muốn xem suất chiếu của phim nào tại {saved_cinema} ạ? (Ví dụ: 'lịch chiếu phim Mai')"
+
                     catalog_movies = " / ".join([f"'{m}'" for m in movie_titles])
                     return (
                         f"Dạ, em không tìm thấy phim nào khớp với tên '[user_msg]'. "
@@ -399,6 +502,29 @@ class TemplateEngine(BaseChatEngine):
                     cinema_name = "Nguyễn Trãi"
                 elif "trần hưng đạo" in msg_lower or "tran hung dao" in msg_lower:
                     cinema_name = "Trần Hưng Đạo"
+                elif "quận 12" in msg_lower or "quan 12" in msg_lower or "q12" in msg_lower:
+                    cinema_name = "Quận 12"
+                elif "cầu giấy" in msg_lower or "cau giay" in msg_lower or "hà nội" in msg_lower or "ha noi" in msg_lower:
+                    cinema_name = "Hà Nội"
+                elif "đà nẵng" in msg_lower or "da nang" in msg_lower:
+                    cinema_name = "Đà Nẵng"
+                elif "cần thơ" in msg_lower or "can tho" in msg_lower:
+                    cinema_name = "Cần Thơ"
+
+                # Kế thừa ngữ cảnh rạp nếu người dùng hỏi gián tiếp ("ở rạp đó", "rạp đó", "ở đó", "ở đây")
+                if not cinema_name:
+                    asking_relative_cinema = any(rc in msg_clean_for_list for rc in ["rap do", "o do", "o day", "rap nay", "khu vuc do", "cho do"])
+                    if asking_relative_cinema:
+                        saved_cinema = state.get("last_cinema")
+                        if saved_cinema:
+                            for c_key in ["Nguyễn Trãi", "Trần Hưng Đạo", "Quận 12", "Hà Nội", "Đà Nẵng", "Cần Thơ"]:
+                                if remove_vietnamese_accents(c_key.lower()) in remove_vietnamese_accents(saved_cinema.lower()):
+                                    cinema_name = c_key
+                                    break
+                            if not cinema_name:
+                                cinema_name = saved_cinema
+                        else:
+                            return "Dạ, anh/chị muốn xem lịch chiếu tại cụm rạp nào ạ? (Ví dụ: Nova Cinema Quận 12, Nguyễn Trãi, Hà Nội...)"
 
                 date, is_explicit = extract_date(msg_lower)
 
@@ -1104,6 +1230,78 @@ class TemplateEngine(BaseChatEngine):
                 showtime_id = state.get("showtime_list")[0].get("id")
                 
             if not showtime_id:
+                # Kiểm tra xem người dùng có đề cập rạp hoặc khu vực cụ thể nào không
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_clean_w = remove_vietnamese_accents(msg_lower)
+                
+                target_cinema_name = ""
+                if "12" in msg_clean_w or "q12" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Quận 12"
+                elif "nguyen trai" in msg_clean_w or "quan 1" in msg_clean_w or "q1" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Nguyễn Trãi"
+                elif "tran hung dao" in msg_clean_w or "quan 5" in msg_clean_w or "q5" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Trần Hưng Đạo"
+                elif "ha noi" in msg_clean_w or "cau giay" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Hà Nội"
+                elif "da nang" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Đà Nẵng"
+                elif "can tho" in msg_clean_w:
+                    target_cinema_name = "Nova Cinema Cần Thơ"
+
+                # Nếu người dùng hỏi phim đang chiếu / danh sách phim kèm thời tiết
+                is_asking_movies = any(p in msg_clean_w for p in [
+                    "phim dang chieu", "nhung phim nao", "co phim nao", "co nhung phim", 
+                    "danh sach phim", "dang chieu gi", "co phim gi", "chieu gi", "xem gi", 
+                    "nhung phim", "co nhung phim nao", "phim nao dang"
+                ])
+                if is_asking_movies:
+                    movies = []
+                    try:
+                        import httpx
+                        from ...config import get_settings
+                        cfg = get_settings()
+                        headers = {"X-Internal-Key": cfg.internal_api_key}
+                        with httpx.Client(timeout=10) as client:
+                            resp = client.get(
+                                f"{cfg.java_api_base}/internal/api/movies/now-showing",
+                                headers=headers
+                            )
+                            resp.raise_for_status()
+                            movies = resp.json()
+                        movie_titles = [m["title"] for m in movies if m.get("title")]
+                        if not movie_titles:
+                            movie_titles = ["Mai", "Kung Fu Panda 4", "Daredevil: Tái Sinh 2"]
+                    except Exception:
+                        movie_titles = ["Mai", "Kung Fu Panda 4", "Daredevil: Tái Sinh 2"]
+
+                    header_loc = f" tại {target_cinema_name}" if target_cinema_name else " tại NovaTicket"
+                    loc_title = target_cinema_name if target_cinema_name else "khu vực rạp"
+                    max_display = 5
+
+                    # Lưu ngữ cảnh vào Session State
+                    state["last_catalog_movies"] = movie_titles
+                    state["last_displayed_offset"] = min(max_display, len(movie_titles))
+                    if target_cinema_name:
+                        state["last_cinema"] = target_cinema_name
+                    session_manager.set_state(session_id, state)
+
+                    top_movies = movie_titles[:max_display]
+                    catalog_lines = "\n".join([f"- **{m}**" for m in top_movies])
+                    if len(movie_titles) > max_display:
+                        catalog_lines += f"\n- *...và còn {len(movie_titles) - max_display} phim khác đang chiếu.*"
+
+                    return (
+                        f"🎬 Hiện tại{header_loc} đang chiếu các phim sau:\n\n{catalog_lines}\n\n"
+                        f"🌤️ **Dự báo thời tiết:** Dự báo thời tiết tại {loc_title} hôm nay rất thuận lợi, trời quang mây tạnh (khoảng 29°C - 31°C) ☀️. Anh/chị có thể hoàn toàn an tâm di chuyển và thưởng thức phim nhé!\n\n"
+                        f"💡 Anh/chị gõ **'lịch chiếu phim [Tên Phim]'** để xem suất chiếu và đặt vé nhé!"
+                    )
+                    
+                if target_cinema_name:
+                    return (
+                        f"🌤️ **Dự báo thời tiết:** Dự báo thời tiết tại khu vực {target_cinema_name} hôm nay rất thuận lợi, trời quang mây tạnh (khoảng 29°C - 31°C) ☀️. Anh/chị có thể an tâm đến rạp thưởng thức các bộ phim hấp dẫn!\n\n"
+                        f"💡 Anh/chị có thể gõ **'phim đang chiếu'** hoặc **'lịch chiếu phim [Tên Phim]'** để xem lịch và đặt vé nhé!"
+                    )
+
                 return (
                     "🌦️ Dạ, hiện tại em chưa rõ anh/chị đang muốn xem thời tiết cho suất chiếu nào.\n"
                     "Anh/chị vui lòng tìm kiếm suất chiếu trước bằng cách gõ 'lịch chiếu phim [Tên Phim]' rồi đặt câu hỏi về thời tiết của suất chiếu đó để em giải đáp nhé!"

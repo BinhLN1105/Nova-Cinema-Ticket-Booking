@@ -5,7 +5,7 @@ import { ruleApi } from '@/api/endpoints'
 import { formatCurrency, formatDate, cn } from '@/utils'
 import { AdminCard, PageHeader, Table, StatusBadge } from '@/components/common/ui/AdminTable'
 import { Button } from '@/components/common/ui/FormElements'
-import { Modal } from '@/components/common/ui/Modal'
+import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
 import toast from 'react-hot-toast'
 import RuleModal from './PricingRuleModal'
 
@@ -27,6 +27,8 @@ export default function PricingRulesPage() {
   const queryClient = useQueryClient()
   const [modalData, setModalData] = useState({ isOpen: false, rule: null })
   const [showInfoModal, setShowInfoModal] = useState(false)
+  const [toggleTarget, setToggleTarget] = useState(null)
+  const [deleteTarget, setDeleteTarget] = useState(null)
 
   const { data: rulesData, isLoading } = useQuery({
     queryKey: ['admin-pricing-rules'],
@@ -38,9 +40,15 @@ export default function PricingRulesPage() {
   // Toggle Active
   const toggleMutation = useMutation({
     mutationFn: (id) => ruleApi.toggleActive(id),
-    onSuccess: () => {
-      toast.success('Đổi trạng thái thành công')
+    onSuccess: (res) => {
+      const isNowActive = res?.isActive ?? !toggleTarget?.isActive
+      toast.success(isNowActive ? 'Đã kích hoạt quy tắc giá' : 'Đã vô hiệu hóa quy tắc giá')
       queryClient.invalidateQueries(['admin-pricing-rules'])
+      setToggleTarget(null)
+    },
+    onError: () => {
+      toast.error('Không thể thay đổi trạng thái quy tắc giá')
+      setToggleTarget(null)
     }
   })
 
@@ -48,8 +56,13 @@ export default function PricingRulesPage() {
   const deleteMutation = useMutation({
     mutationFn: (id) => ruleApi.delete(id),
     onSuccess: () => {
-      toast.success('Đã xoá quy tắc')
+      toast.success('Đã xoá quy tắc thành công')
       queryClient.invalidateQueries(['admin-pricing-rules'])
+      setDeleteTarget(null)
+    },
+    onError: () => {
+      toast.error('Không thể xóa quy tắc giá')
+      setDeleteTarget(null)
     }
   })
 
@@ -139,13 +152,15 @@ export default function PricingRulesPage() {
       header: 'Trạng thái',
       render: (r) => (
         <div className="flex justify-center">
-          <button onClick={() => toggleMutation.mutate(r.id)}
+          <button 
+            onClick={() => setToggleTarget(r)}
             disabled={toggleMutation.isPending}
+            title={r.isActive ? "Bấm để vô hiệu hóa quy tắc này" : "Bấm để kích hoạt quy tắc này"}
             className={cn(
-              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all shadow-sm",
+              "flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all shadow-sm cursor-pointer",
               r.isActive 
-                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' 
-                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
+                ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 hover:border-green-300' 
+                : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100 hover:border-gray-300'
             )}>
             {r.isActive ? <Power className="w-3.5 h-3.5" /> : <PowerOff className="w-3.5 h-3.5" />}
             {r.isActive ? 'BẬT' : 'TẮT'}
@@ -159,11 +174,11 @@ export default function PricingRulesPage() {
       render: (r) => (
         <div className="flex items-center justify-center gap-1">
           <button onClick={() => setModalData({ isOpen: true, rule: r })}
-            className="p-2 rounded-xl text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all">
+            className="p-2 rounded-xl text-gray-400 hover:text-brand-500 hover:bg-brand-50 transition-all cursor-pointer" title="Chỉnh sửa">
             <Edit2 className="w-4 h-4" />
           </button>
-          <button onClick={() => { if(confirm('Xoá quy tắc này?')) deleteMutation.mutate(r.id) }}
-            className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all">
+          <button onClick={() => setDeleteTarget(r)}
+            className="p-2 rounded-xl text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer" title="Xoá vĩnh viễn">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -178,7 +193,7 @@ export default function PricingRulesPage() {
           <div className="flex items-center gap-2">
             <span>Cấu hình giá (Dynamic Pricing)</span>
             <button 
-              className="p-1 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all"
+              className="p-1 rounded-lg text-blue-600 hover:bg-blue-50 hover:text-blue-700 transition-all cursor-pointer"
               onClick={() => setShowInfoModal(true)}
             >
               <Info className="h-5 w-5" />
@@ -251,6 +266,34 @@ export default function PricingRulesPage() {
           }}
         />
       )}
+
+      {/* Toggle Status Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={() => toggleMutation.mutate(toggleTarget?.id)}
+        loading={toggleMutation.isPending}
+        confirmVariant={toggleTarget?.isActive ? "danger" : "primary"}
+        title={toggleTarget?.isActive ? "Vô hiệu hoá quy tắc giá?" : "Kích hoạt quy tắc giá?"}
+        confirmLabel={toggleTarget?.isActive ? "Vô hiệu hoá" : "Kích hoạt"}
+        message={
+          toggleTarget?.isActive
+            ? `Quy tắc giá "${toggleTarget?.name}" sẽ tạm ngưng áp dụng vào giá vé và đơn hàng khi khách hàng đặt vé.`
+            : `Quy tắc giá "${toggleTarget?.name}" sẽ được áp dụng ngay lập tức vào giá vé và đơn hàng theo điều kiện đã cấu hình.`
+        }
+      />
+
+      {/* Delete Rule Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={() => deleteMutation.mutate(deleteTarget?.id)}
+        loading={deleteMutation.isPending}
+        confirmVariant="danger"
+        title="Xoá quy tắc giá vĩnh viễn?"
+        confirmLabel="Xoá ngay"
+        message={`Bạn có chắc chắn muốn xoá vĩnh viễn quy tắc giá "${deleteTarget?.name}"? Thao tác này không thể hoàn tác.`}
+      />
     </div>
   )
 }

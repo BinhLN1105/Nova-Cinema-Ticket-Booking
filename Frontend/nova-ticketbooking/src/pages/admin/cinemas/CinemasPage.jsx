@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { Plus, Edit2, Trash2, MapPin, Phone, Building2, ImageIcon, MonitorPlay } from 'lucide-react'
+import { Plus, Edit2, Trash2, MapPin, Phone, Building2, MonitorPlay, Map, Sparkles, Loader2 } from 'lucide-react'
 import { cinemaApi } from '@/api/endpoints'
 import { AdminCard, PageHeader, Table, StatusBadge } from '@/components/common/ui/AdminTable'
-import { SearchInput, Button, Field, Input, Select } from '@/components/common/ui/FormElements'
+import { SearchInput, Button, Field, Input, Select, Label } from '@/components/common/ui/FormElements'
 import { Modal, ConfirmDialog } from '@/components/common/ui/Modal'
 import { cn } from '@/utils'
 import toast from 'react-hot-toast'
 import ScreensModal from './ScreensModal'
 import ImageUploader from '@/components/admin/ImageUploader'
+import MapLocationPickerModal from '@/components/admin/MapLocationPickerModal'
+import MiniMapPreview from '@/components/admin/MiniMapPreview'
 
 const CITIES = [
   { value: 'Ho Chi Minh', label: 'TP. Hồ Chí Minh' },
@@ -32,6 +34,8 @@ export default function CinemasPage() {
   const [toggleTarget, setToggleTarget] = useState(null)
   
   const [isOtherCity, setIsOtherCity] = useState(false)
+  const [mapPickerOpen, setMapPickerOpen] = useState(false)
+  const [isAutoGeocoding, setIsAutoGeocoding] = useState(false)
   
   // Screens modal state
   const [screensCinema, setScreensCinema] = useState(null)
@@ -142,6 +146,7 @@ export default function CinemasPage() {
     setEditing(null)
     setForm(EMPTY_FORM)
     setIsOtherCity(false)
+    setMapPickerOpen(false)
   }
 
   const handleSave = () => {
@@ -174,6 +179,45 @@ export default function CinemasPage() {
 
   const set = (key, value) => setForm(f => ({ ...f, [key]: value }))
 
+  // Auto geocode coordinates from address
+  const handleAutoGeocodeFromAddress = async () => {
+    const query = (form.address + (form.city ? `, ${form.city}` : '')).trim()
+    if (!query) {
+      toast.error('Vui lòng nhập địa chỉ trước khi tìm tọa độ')
+      return
+    }
+    setIsAutoGeocoding(true)
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1&countrycodes=vn`)
+      const data = await res.json()
+      if (data && data.length > 0) {
+        const lat = parseFloat(parseFloat(data[0].lat).toFixed(7))
+        const lng = parseFloat(parseFloat(data[0].lon).toFixed(7))
+        setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
+        toast.success(`Đã tìm thấy và tự động điền tọa độ: ${lat}, ${lng}`)
+      } else {
+        toast.error('Không tìm thấy tọa độ tự động. Vui lòng bấm "Chọn trên bản đồ" để ghim trực quan.')
+      }
+    } catch {
+      toast.error('Lỗi kết nối khi tìm tọa độ tự động')
+    } finally {
+      setIsAutoGeocoding(false)
+    }
+  }
+
+  // Handle smart paste: e.g. "10.86513906366627, 106.61717311425997"
+  const handleCoordinateInput = (key, value) => {
+    const match = String(value).trim().match(/^(-?\d+(\.\d+)?)[,\s]+(-?\d+(\.\d+)?)$/)
+    if (match) {
+      const lat = match[1]
+      const lng = match[3]
+      setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
+      toast.success(`Đã tự động tách và điền tọa độ: ${lat}, ${lng}`)
+      return
+    }
+    set(key, value)
+  }
+
   const columns = [
     {
       key: 'name', header: 'Tên rạp',
@@ -197,8 +241,22 @@ export default function CinemasPage() {
       ),
     },
     {
-      key: 'address', header: 'Địa chỉ',
-      render: (c) => <span className="text-gray-600 text-sm line-clamp-1 max-w-xs">{c.address}</span>,
+      key: 'address', header: 'Địa chỉ & Vị trí',
+      render: (c) => (
+        <div>
+          <span className="text-gray-600 text-sm line-clamp-1 max-w-xs">{c.address}</span>
+          {c.latitude && c.longitude ? (
+            <span className="text-[11px] text-amber-600 font-mono flex items-center gap-1 mt-0.5" title="Đã có tọa độ GPS cho AI dự báo thời tiết">
+              <MapPin className="w-3 h-3 text-amber-500" />
+              {Number(c.latitude).toFixed(4)}, {Number(c.longitude).toFixed(4)}
+            </span>
+          ) : (
+            <span className="text-[11px] text-gray-400 italic block mt-0.5">
+              Chưa ghim tọa độ GPS
+            </span>
+          )}
+        </div>
+      ),
     },
     {
       key: 'phone', header: 'SĐT',
@@ -230,15 +288,15 @@ export default function CinemasPage() {
       render: (c) => (
         <div className="flex items-center justify-end gap-1">
           <button onClick={() => openEdit(c)}
-            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Chỉnh sửa">
+            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all cursor-pointer" title="Chỉnh sửa">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setScreensCinema(c)}
-            className="p-2 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-500 transition-all" title="Quản lý phòng chiếu">
+            className="p-2 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-emerald-500 transition-all cursor-pointer" title="Quản lý phòng chiếu">
             <MonitorPlay className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteTarget(c)}
-            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xoá vĩnh viễn">
+            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all cursor-pointer" title="Xoá vĩnh viễn">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -272,7 +330,7 @@ export default function CinemasPage() {
       {/* Create / Edit Modal */}
       <Modal open={formOpen} onClose={closeForm}
         title={editing ? 'Cập nhật rạp' : 'Thêm rạp mới'} size="lg">
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 max-h-[82vh] overflow-y-auto">
           <div className="space-y-4">
             <Field label="Tên rạp" required>
               <Input value={form.name} onChange={e => set('name', e.target.value)}
@@ -318,29 +376,86 @@ export default function CinemasPage() {
               </Field>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-2">
-              <Field label="Vĩ độ (Latitude)">
-                <Input value={form.latitude} onChange={e => set('latitude', e.target.value)}
-                  placeholder="VD: 10.7583" type="number" step="any" />
-              </Field>
-              <Field label="Kinh độ (Longitude)">
-                <Input value={form.longitude} onChange={e => set('longitude', e.target.value)}
-                  placeholder="VD: 106.7118" type="number" step="any" />
-              </Field>
-            </div>
-            
-            <div className="text-xs text-gray-400 flex items-center justify-between -mt-2 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-              <span>
-                💡 Để lấy toạ độ, nhấp chuột phải điểm bất kỳ trên Google Maps và copy vĩ độ/kinh độ.
-              </span>
-              <a 
-                href="https://www.google.com/maps" 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="text-blue-500 hover:text-blue-600 hover:underline flex items-center gap-1 font-medium shrink-0 ml-4"
-              >
-                <MapPin className="w-3.5 h-3.5" /> Mở Google Maps
-              </a>
+            {/* Coordinates & Interactive Map Box */}
+            <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200/80">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <Label className="text-gray-900 font-semibold flex items-center gap-1.5 mb-0">
+                    <MapPin className="w-4 h-4 text-amber-500" />
+                    Vị trí tọa độ GPS (Dành cho AI dự báo thời tiết)
+                  </Label>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Nhập tọa độ hoặc chọn trên bản đồ để tự động ghim vị trí
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {form.address && (
+                    <button
+                      type="button"
+                      onClick={handleAutoGeocodeFromAddress}
+                      disabled={isAutoGeocoding}
+                      className="px-3 py-1.5 bg-white hover:bg-amber-50 text-amber-700 border border-amber-200 rounded-xl text-xs font-semibold flex items-center gap-1.5 shadow-sm transition-all cursor-pointer hover:border-amber-300 disabled:opacity-50"
+                      title="Tự động tìm kiếm tọa độ dựa theo địa chỉ và thành phố"
+                    >
+                      {isAutoGeocoding ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                      ) : (
+                        <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                      )}
+                      <span>Tìm theo địa chỉ</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setMapPickerOpen(true)}
+                    className="px-3.5 py-1.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm shadow-amber-500/20 active:scale-95 transition-all cursor-pointer"
+                  >
+                    <Map className="w-3.5 h-3.5" />
+                    <span>Chọn trên bản đồ</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <Field label="Vĩ độ (Latitude)">
+                  <Input 
+                    value={form.latitude} 
+                    onChange={e => handleCoordinateInput('latitude', e.target.value)}
+                    placeholder="VD: 10.8651 (hoặc dán cả cặp tọa độ)" 
+                    type="text" 
+                  />
+                </Field>
+                <Field label="Kinh độ (Longitude)">
+                  <Input 
+                    value={form.longitude} 
+                    onChange={e => handleCoordinateInput('longitude', e.target.value)}
+                    placeholder="VD: 106.6171" 
+                    type="text" 
+                  />
+                </Field>
+              </div>
+
+              {/* Live Interactive Mini Map Preview (Automatically shown below when both valid coordinates are present) */}
+              {form.latitude && form.longitude && !isNaN(parseFloat(form.latitude)) && !isNaN(parseFloat(form.longitude)) ? (
+                <MiniMapPreview
+                  lat={form.latitude}
+                  lng={form.longitude}
+                  onLocationChange={({ lat, lng }) => {
+                    setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
+                  }}
+                  onOpenFullMap={() => setMapPickerOpen(true)}
+                  onClear={() => {
+                    setForm(prev => ({ ...prev, latitude: '', longitude: '' }))
+                    toast.success('Đã xóa tọa độ')
+                  }}
+                />
+              ) : (
+                <div className="text-[11px] text-gray-500 flex items-center justify-between px-3 py-2 bg-gray-100/70 rounded-xl border border-gray-200/60 mt-2">
+                  <span>💡 Khi nhập đủ Vĩ độ và Kinh độ hợp lệ, bản đồ và vị trí ghim sẽ <strong>tự động hiển thị ngay bên dưới</strong>.</span>
+                </div>
+              )}
             </div>
           </div>
 
@@ -369,6 +484,23 @@ export default function CinemasPage() {
         </div>
       </Modal>
 
+      {/* Interactive Map Location Picker Modal */}
+      <MapLocationPickerModal
+        open={mapPickerOpen}
+        onClose={() => setMapPickerOpen(false)}
+        initialLat={form.latitude}
+        initialLng={form.longitude}
+        initialAddress={form.address}
+        initialCity={form.city}
+        cinemaName={form.name}
+        onSelectLocation={({ latitude, longitude }) => {
+          setForm(prev => ({
+            ...prev,
+            latitude,
+            longitude,
+          }))
+        }}
+      />
 
       {/* Delete confirm (Hard delete logic) */}
       <ConfirmDialog
@@ -404,3 +536,5 @@ export default function CinemasPage() {
     </div>
   )
 }
+
+

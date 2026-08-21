@@ -1,18 +1,35 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { cn } from '@/utils';
 
-export default function Logo() {
+export default function Logo({ 
+  to = "/", 
+  badge, 
+  collapsed = false, 
+  className,
+  size = "md",
+  onClick 
+}) {
+  const iconSizes = {
+    sm: "w-7 h-7",
+    md: "w-9 h-9",
+    lg: "w-11 h-11",
+  };
+
   return (
     <Link 
-      to="/" 
-      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-      className="flex items-center gap-2.5 group select-none cursor-pointer"
+      to={to} 
+      onClick={onClick || (() => window.scrollTo({ top: 0, behavior: 'smooth' }))}
+      className={cn("flex items-center gap-2.5 group select-none cursor-pointer", className)}
     >
       {/* 🎬 BIỂU TƯỢNG LOGO SVG ĐỘC QUYỀN - MÀU VÀNG GOLD & GRADIENT ĐỎ CAO CẤP */}
       <svg 
         xmlns="http://www.w3.org/2000/svg" 
         viewBox="0 0 100 100" 
-        className="w-9 h-9 transform group-hover:scale-110 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(245,197,24,0.3)]"
+        className={cn(
+          iconSizes[size] || "w-9 h-9",
+          "transform group-hover:scale-105 transition-transform duration-300 drop-shadow-[0_0_8px_rgba(245,197,24,0.3)] flex-shrink-0"
+        )}
       >
         <defs>
           <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -36,9 +53,18 @@ export default function Logo() {
       </svg>
 
       {/* ✍️ PHẦN TEXT THƯƠNG HIỆU */}
-      <span className="font-display text-xl font-bold tracking-wider transition-colors duration-200 text-white">
-        Nova<span className="text-[#F5C518]">Ticket</span>
-      </span>
+      {!collapsed && (
+        <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
+          <span className="font-display text-xl font-bold tracking-wider transition-colors duration-200 text-white">
+            Nova<span className="text-[#F5C518]">Ticket</span>
+          </span>
+          {badge && (
+            <span className="text-[10px] uppercase tracking-wider font-extrabold px-1.5 py-0.5 rounded-md bg-amber-500/10 text-[#F5C518] border border-[#F5C518]/30">
+              {badge}
+            </span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }
