@@ -2,54 +2,154 @@
 <androidx.constraintlayout.widget.ConstraintLayout 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/rootSplash"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/splash_bg">
+    android:background="@color/bg_dark">
 
+    <!-- Ambient Projector Halo Background behind Logo -->
+    <View
+        android:id="@+id/viewHalo"
+        android:layout_width="280dp"
+        android:layout_height="280dp"
+        android:background="@drawable/bg_splash_halo"
+        android:alpha="0"
+        app:layout_constraintTop_toTopOf="@+id/ivLogo"
+        app:layout_constraintBottom_toBottomOf="@+id/ivLogo"
+        app:layout_constraintStart_toStartOf="@+id/ivLogo"
+        app:layout_constraintEnd_toEndOf="@+id/ivLogo" />
+
+    <!-- Hero Cinema Logo -->
     <ImageView
         android:id="@+id/ivLogo"
-        android:layout_width="160dp"
-        android:layout_height="160dp"
-        android:src="@drawable/ic_splash_logo" 
-        app:layout_constraintBottom_toTopOf="@+id/tvSlogan"
+        android:layout_width="128dp"
+        android:layout_height="128dp"
+        android:src="@drawable/ic_splash_logo"
+        android:alpha="0"
+        android:scaleX="0.85"
+        android:scaleY="0.85"
+        app:layout_constraintBottom_toTopOf="@+id/layoutTextGroup"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_chainStyle="packed" />
 
-    <TextView
-        android:id="@+id/tvSlogan"
+    <!-- Brand Name & Slogan Group -->
+    <LinearLayout
+        android:id="@+id/layoutTextGroup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="@string/slogan_main"
-        android:textColor="@color/splash_text_primary"
-        android:textSize="22sp"
-        android:textStyle="bold"
-        android:letterSpacing="0.05"
+        android:layout_marginTop="24dp"
+        android:orientation="vertical"
+        android:gravity="center"
+        android:alpha="0"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/ivLogo" />
+        app:layout_constraintTop_toBottomOf="@+id/ivLogo">
 
-    <TextView
-        android:id="@+id/tvSubSlogan"
+        <!-- Brand Name -->
+        <TextView
+            android:id="@+id/tvBrand"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="NOVATICKET"
+            android:textColor="@color/white"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.18" />
+
+        <!-- Main Slogan -->
+        <TextView
+            android:id="@+id/tvSlogan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/slogan_main"
+            android:textColor="#E2E8F0"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.08" />
+
+        <!-- Sub Slogan / Emotional Tagline in Accent Gold -->
+        <TextView
+            android:id="@+id/tvSubSlogan"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="@string/slogan_sub"
+            android:textColor="@color/accent_gold"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:textStyle="normal" />
+
+    </LinearLayout>
+
+    <!-- Film Sprocket Wave Loading Indicator (5 cinema reel perforations) -->
+    <LinearLayout
+        android:id="@+id/layoutFilmSprockets"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="@string/slogan_sub"
-        android:textColor="@color/splash_text_secondary"
-        android:textSize="14sp"
+        android:layout_marginBottom="48dp"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:alpha="0"
+        app:layout_constraintBottom_toTopOf="@+id/tvVersion"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/tvSlogan" />
+        app:layout_constraintStart_toStartOf="parent">
 
-    <ProgressBar
-        android:id="@+id/progressBar"
+        <View
+            android:id="@+id/sprocket1"
+            android:layout_width="12dp"
+            android:layout_height="6dp"
+            android:layout_marginHorizontal="3dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_film_sprocket" />
+
+        <View
+            android:id="@+id/sprocket2"
+            android:layout_width="12dp"
+            android:layout_height="6dp"
+            android:layout_marginHorizontal="3dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_film_sprocket" />
+
+        <View
+            android:id="@+id/sprocket3"
+            android:layout_width="12dp"
+            android:layout_height="6dp"
+            android:layout_marginHorizontal="3dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_film_sprocket" />
+
+        <View
+            android:id="@+id/sprocket4"
+            android:layout_width="12dp"
+            android:layout_height="6dp"
+            android:layout_marginHorizontal="3dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_film_sprocket" />
+
+        <View
+            android:id="@+id/sprocket5"
+            android:layout_width="12dp"
+            android:layout_height="6dp"
+            android:layout_marginHorizontal="3dp"
+            android:alpha="0.25"
+            android:background="@drawable/bg_film_sprocket" />
+
+    </LinearLayout>
+
+    <!-- App Edition / Version Footer -->
+    <TextView
+        android:id="@+id/tvVersion"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginBottom="64dp"
-        android:indeterminateTint="@color/nova_red"
+        android:layout_marginBottom="24dp"
+        android:text="CINEMA EXPERIENCE • V1.0"
+        android:textColor="#475569"
+        android:textSize="10sp"
+        android:letterSpacing="0.15"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

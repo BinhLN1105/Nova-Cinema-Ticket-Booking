@@ -39,13 +39,16 @@
 
     <!-- Native Splash screen API -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@color/background</item>
+        <item name="windowSplashScreenBackground">@color/bg_dark</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_splash_logo</item>
         <item name="postSplashScreenTheme">@style/Theme.CinemaApp</item>
+        <item name="android:windowBackground">@color/bg_dark</item>
+        <item name="android:statusBarColor">@color/bg_dark</item>
+        <item name="android:navigationBarColor">@color/bg_dark</item>
     </style>
 
     <style name="Theme.CinemaApp.Splash" parent="Theme.App.Starting">
-        <!-- Legacy style now inherits from current one if needed -->
+        <!-- Legacy style inherits from Theme.App.Starting -->
     </style>
 
     <!-- ════════════════════════════════

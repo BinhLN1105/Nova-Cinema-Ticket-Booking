@@ -58,4 +58,23 @@ class ShowtimeRepository @Inject constructor(
         })
         return r
     }
+
+    fun getShowtimeById(id: String): LiveData<Resource<ShowtimeResponse>> {
+        val r = MutableLiveData<Resource<ShowtimeResponse>>()
+        r.value = Resource.loading()
+        api.getShowtimeById(id).enqueue(object : Callback<ApiResponse<ShowtimeResponse>> {
+            override fun onResponse(c: Call<ApiResponse<ShowtimeResponse>>, res: Response<ApiResponse<ShowtimeResponse>>) {
+                if (res.isSuccessful && res.body() != null && res.body()!!.success) {
+                    r.value = Resource.success(res.body()!!.data)
+                } else {
+                    r.value = Resource.error("Không tìm thấy thông tin suất chiếu")
+                }
+            }
+
+            override fun onFailure(c: Call<ApiResponse<ShowtimeResponse>>, t: Throwable) {
+                r.value = Resource.error("Lỗi kết nối: ${t.message}")
+            }
+        })
+        return r
+    }
 }

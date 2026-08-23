@@ -1,20 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="end"
-    android:padding="8dp">
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="6dp">
 
-    <TextView
-        android:id="@+id/tvMessage"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:maxWidth="280dp"
-        android:padding="12dp"
-        android:background="@drawable/bg_chat_user"
-        android:textColor="#000000"
-        android:textSize="14sp"
-        android:elevation="2dp"
-        android:text="User message"/>
+        android:gravity="end"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvMessage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_chat_user"
+            android:paddingHorizontal="14dp"
+            android:paddingVertical="10dp"
+            android:textColor="@color/white"
+            android:textSize="13.5sp"
+            android:lineSpacingExtra="3dp"
+            android:elevation="1dp"
+            android:text="User message" />
+
+        <TextView
+            android:id="@+id/tvTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:layout_marginTop="3dp"
+            android:textColor="#64748B"
+            android:textSize="10sp"
+            android:text="12:00" />
+
+    </LinearLayout>
+
 </LinearLayout>
