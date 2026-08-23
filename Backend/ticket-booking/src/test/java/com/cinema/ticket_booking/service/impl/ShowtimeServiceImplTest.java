@@ -384,4 +384,105 @@ class ShowtimeServiceImplTest {
         assertEquals(BigDecimal.valueOf(150), seat.getPrice());
         verify(showtimeSeatRepository).saveAll(List.of(seat));
     }
+
+    @Test
+    void testCreate_StartTimeTooSoon_ThrowsBadRequest() {
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setStartTime(LocalDateTime.now().plusMinutes(2)); // < 5 mins
+
+        assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+    }
+
+    @Test
+    void testCreate_MovieComingSoon_ThrowsBadRequest() {
+        UUID movieId = UUID.randomUUID();
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(movieId.toString());
+        request.setStartTime(LocalDateTime.now().plusHours(2));
+
+        Movie movie = Movie.builder().id(movieId).title("Test").status(MovieStatus.COMING_SOON).build();
+        when(movieService.findById(movieId)).thenReturn(movie);
+
+        assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+    }
+
+    @Test
+    void testCreate_MovieEnded_ThrowsBadRequest() {
+        UUID movieId = UUID.randomUUID();
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(movieId.toString());
+        request.setStartTime(LocalDateTime.now().plusHours(2));
+
+        Movie movie = Movie.builder().id(movieId).title("Test").status(MovieStatus.ENDED).build();
+        when(movieService.findById(movieId)).thenReturn(movie);
+
+        assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+    }
+
+    @Test
+    void testCreate_ShowDateBeforeReleaseDate_ThrowsBadRequest() {
+        UUID movieId = UUID.randomUUID();
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(movieId.toString());
+        request.setStartTime(LocalDateTime.now().plusDays(1));
+
+        Movie movie = Movie.builder()
+                .id(movieId)
+                .title("Test")
+                .status(MovieStatus.NOW_SHOWING)
+                .releaseDate(LocalDate.now().plusDays(3))
+                .build();
+        when(movieService.findById(movieId)).thenReturn(movie);
+
+        assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+    }
+
+    @Test
+    void testCreate_ShowDateAfterEndDate_ThrowsBadRequest() {
+        UUID movieId = UUID.randomUUID();
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(movieId.toString());
+        request.setStartTime(LocalDateTime.now().plusDays(10));
+
+        Movie movie = Movie.builder()
+                .id(movieId)
+                .title("Test")
+                .status(MovieStatus.NOW_SHOWING)
+                .releaseDate(LocalDate.now().minusDays(5))
+                .endDate(LocalDate.now().plusDays(5))
+                .build();
+        when(movieService.findById(movieId)).thenReturn(movie);
+
+        assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+    }
+
+    @Test
+    void testGetShowtimesForSync_WithCinemaMatchingBranches() {
+        Movie movie = Movie.builder().id(UUID.randomUUID()).title("Batman").build();
+        Cinema cinema = Cinema.builder()
+                .id(UUID.randomUUID())
+                .name("Nova Cinema Thủ Đức")
+                .city("Hồ Chí Minh")
+                .address("123 Võ Văn Ngân")
+                .build();
+        Screen screen = Screen.builder().id(UUID.randomUUID()).name("Screen 1").cinema(cinema).build();
+        Showtime s = Showtime.builder()
+                .id(UUID.randomUUID())
+                .movie(movie)
+                .screen(screen)
+                .startTime(LocalDateTime.now().plusHours(3))
+                .endTime(LocalDateTime.now().plusHours(5))
+                .build();
+
+        when(systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10)).thenReturn(10);
+        when(showtimeRepository.findAll()).thenReturn(List.of(s));
+
+        // Match by city
+        List<ShowtimeSyncResponse> listCity = showtimeService.getShowtimesForSync("Batman", null, "Hồ Chí Minh", null);
+        assertEquals(1, listCity.size());
+
+        // Match by address
+        List<ShowtimeSyncResponse> listAddr = showtimeService.getShowtimesForSync(null, null, "Võ Văn Ngân", null);
+        assertEquals(1, listAddr.size());
+    }
 }

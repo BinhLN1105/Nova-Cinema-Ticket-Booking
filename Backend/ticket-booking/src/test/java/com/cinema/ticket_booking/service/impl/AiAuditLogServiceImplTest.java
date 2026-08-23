@@ -186,4 +186,39 @@ class AiAuditLogServiceImplTest {
         assertEquals(1, response.getContent().size());
         verify(aiAuditLogRepository, times(1)).findByUserIdOrderByCreatedAtDesc(eq(userId), any());
     }
+
+    @Test
+    @DisplayName("8. logInteractionAsync xử lý ngoại lệ an toàn khi repository lỗi")
+    void testLogInteractionAsyncExceptionHandled() {
+        doThrow(new RuntimeException("DB error")).when(aiAuditLogRepository).save(any(AiAuditLog.class));
+
+        assertDoesNotThrow(() ->
+                aiAuditLogService.logInteractionAsync(userId, "sess_123", "msg", "reply", "INTENT", false));
+    }
+
+    @Test
+    @DisplayName("9. searchCustomers xử lý ngoại lệ an toàn khi ghi CustomerSearchLog lỗi")
+    void testSearchCustomersLogExceptionHandled() {
+        User user = User.builder().id(userId).email("test@email.com").build();
+        Page<User> page = new PageImpl<>(List.of(user), PageRequest.of(0, 10), 1);
+        when(userRepository.searchCustomersByIdentifier(eq("0912345678"), any(Pageable.class))).thenReturn(page);
+        doThrow(new RuntimeException("DB error")).when(customerSearchLogRepository).save(any(CustomerSearchLog.class));
+
+        PageResponse<CustomerSearchResponse> response = assertDoesNotThrow(() ->
+                aiAuditLogService.searchCustomers("0912345678", staffId, UserRole.STAFF, "127.0.0.1", PageRequest.of(0, 10)));
+        assertNotNull(response);
+    }
+
+    @Test
+    @DisplayName("10. recordAccessHistory xử lý ngoại lệ an toàn khi ghi AiAuditLogAccess lỗi")
+    void testRecordAccessHistoryExceptionHandled() {
+        doThrow(new RuntimeException("DB error")).when(aiAuditLogAccessRepository).save(any(AiAuditLogAccess.class));
+        AiAuditLog logItem = AiAuditLog.builder().id(UUID.randomUUID()).userId(userId).sessionId("sess_123").build();
+        Page<AiAuditLog> page = new PageImpl<>(List.of(logItem), PageRequest.of(0, 20), 1);
+        when(aiAuditLogRepository.findBySessionIdOrderByCreatedAtAsc(eq("sess_123"), any(Pageable.class))).thenReturn(page);
+
+        PageResponse<AiAuditLogResponse> response = assertDoesNotThrow(() ->
+                aiAuditLogService.getLogsBySession("sess_123", adminId, UserRole.ADMIN, "Audit review", null, "127.0.0.1", PageRequest.of(0, 20)));
+        assertNotNull(response);
+    }
 }
