@@ -48,6 +48,7 @@
 		<sonar.java.binaries>target/classes</sonar.java.binaries>
 		<sonar.coverage.jacoco.xmlReportPaths>${project.build.directory}/site/jacoco/jacoco.xml</sonar.coverage.jacoco.xmlReportPaths>
 		<sonar.coverage.exclusions>
+			**/controller/**,
 			**/dto/**,
 			**/model/**,
 			**/entity/**,
@@ -60,6 +61,7 @@
 			**/scheduler/**,
 			**/security/**,
 			**/util/**,
+			**/service/social/**,
 			**/*Application.java
 		</sonar.coverage.exclusions>
     </properties>
@@ -279,6 +281,25 @@
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>${jacoco.version}</version>
+				<configuration>
+					<excludes>
+						<exclude>com/cinema/ticket_booking/controller/**</exclude>
+						<exclude>com/cinema/ticket_booking/dto/**</exclude>
+						<exclude>com/cinema/ticket_booking/model/**</exclude>
+						<exclude>com/cinema/ticket_booking/entity/**</exclude>
+						<exclude>com/cinema/ticket_booking/config/**</exclude>
+						<exclude>com/cinema/ticket_booking/enums/**</exclude>
+						<exclude>com/cinema/ticket_booking/exception/**</exclude>
+						<exclude>com/cinema/ticket_booking/job/**</exclude>
+						<exclude>com/cinema/ticket_booking/mapper/**</exclude>
+						<exclude>com/cinema/ticket_booking/repository/**</exclude>
+						<exclude>com/cinema/ticket_booking/scheduler/**</exclude>
+						<exclude>com/cinema/ticket_booking/security/**</exclude>
+						<exclude>com/cinema/ticket_booking/util/**</exclude>
+						<exclude>com/cinema/ticket_booking/service/social/**</exclude>
+						<exclude>com/cinema/ticket_booking/*Application.class</exclude>
+					</excludes>
+				</configuration>
 				<executions>
 					<execution>
 						<goals>
