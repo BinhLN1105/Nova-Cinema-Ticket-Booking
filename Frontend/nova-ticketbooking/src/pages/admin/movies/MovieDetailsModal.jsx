@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, PlayCircle, Star, Calendar, Clock, Loader2, Globe, Film, User, Users, Hash, CalendarCheck, CalendarX, Info, Tag, Play } from "lucide-react";
-import { formatDate, getRatedColor, cn } from "@/utils";
+import { formatDate, getRatedColor, getEmbedTrailerUrl, cn } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { movieApi } from "@/api/endpoints";
 
@@ -23,31 +23,6 @@ function formatDateValue(dateVal) {
     return `${String(dateVal[2]).padStart(2, "0")}/${String(dateVal[1]).padStart(2, "0")}/${dateVal[0]}`;
   }
   return formatDate(dateVal);
-}
-
-function getEmbedTrailerUrl(url) {
-  if (!url) return '';
-  try {
-    if (url.includes('youtube.com/embed/')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return url.includes('autoplay=1') ? url : `${url}${separator}autoplay=1&rel=0`;
-    }
-    const vMatch = url.match(/[?&]v=([^&#]+)/);
-    if (vMatch && vMatch[1]) {
-      return `https://www.youtube.com/embed/${vMatch[1]}?autoplay=1&rel=0`;
-    }
-    const shortMatch = url.match(/youtu\.be\/([^?&#]+)/);
-    if (shortMatch && shortMatch[1]) {
-      return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0`;
-    }
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&#]+)/);
-    if (shortsMatch && shortsMatch[1]) {
-      return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0`;
-    }
-    return url;
-  } catch {
-    return url;
-  }
 }
 
 function InfoRow({ icon: Icon, label, value, className = "" }) {

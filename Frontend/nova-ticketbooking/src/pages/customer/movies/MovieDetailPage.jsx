@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star, Clock, Play, Ticket, Calendar, Globe, Users, ChevronLeft, MessageSquare } from 'lucide-react'
 import { movieApi, reviewApi, bookingApi } from '@/api/endpoints'
-import { formatDate, getRatedColor, getImageUrl, cn } from '@/utils'
+import { formatDate, getRatedColor, getImageUrl, getEmbedTrailerUrl, cn } from '@/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { toast } from 'react-hot-toast'
 import { useState } from 'react'
@@ -54,31 +54,6 @@ export default function MovieDetailPage() {
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
-
-  const getEmbedTrailerUrl = (url) => {
-    if (!url) return '';
-    try {
-      if (url.includes('youtube.com/embed/')) {
-        const separator = url.includes('?') ? '&' : '?';
-        return url.includes('autoplay=1') ? url : `${url}${separator}autoplay=1&rel=0`;
-      }
-      const vMatch = url.match(/[?&]v=([^&#]+)/);
-      if (vMatch && vMatch[1]) {
-        return `https://www.youtube.com/embed/${vMatch[1]}?autoplay=1&rel=0`;
-      }
-      const shortMatch = url.match(/youtu\.be\/([^?&#]+)/);
-      if (shortMatch && shortMatch[1]) {
-        return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0`;
-      }
-      const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&#]+)/);
-      if (shortsMatch && shortsMatch[1]) {
-        return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0`;
-      }
-      return url;
-    } catch {
-      return url;
-    }
-  }
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()

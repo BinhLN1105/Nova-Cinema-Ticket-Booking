@@ -14,7 +14,8 @@ import java.util.UUID;
 @Repository
 public interface TransactionRepository extends JpaRepository<Transaction, UUID> {
     Page<Transaction> findByUserIdOrderByCreatedAtDesc(UUID userId, Pageable pageable);
-    List<Transaction> findByReferenceId(String referenceId);
+    Optional<Transaction> findByReferenceId(String referenceId);
+    List<Transaction> findAllByReferenceId(String referenceId);
     List<Transaction> findByReferenceIdAndType(String referenceId, TransactionType type);
     boolean existsByReferenceIdAndType(String referenceId, TransactionType type);
 }

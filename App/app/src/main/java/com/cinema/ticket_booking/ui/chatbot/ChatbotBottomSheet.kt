@@ -54,43 +54,28 @@ class ChatbotBottomSheet : BottomSheetDialogFragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = ChatAdapter { draftId, position ->
-            adapter.setDraftConfirmingState(position, true)
-            viewModel.prepareDraftBooking(draftId) { isSuccess, errorMessage, quote ->
-                if (_binding != null) {
-                    adapter.setDraftConfirmingState(position, false)
-                }
-                if (isSuccess && quote != null) {
-                    dismiss()
-                    val bundle = Bundle().apply {
-                        putParcelable("initialQuote", quote)
-                        putLong("expireTime", System.currentTimeMillis() + 10 * 60 * 1000)
+        adapter = ChatbotUiHelper.createChatAdapter(
+            viewModel = viewModel,
+            isViewActive = { _binding != null },
+            rootView = { binding.root },
+            onNavigateToConfirm = { bundle ->
+                dismiss()
+                try {
+                    findNavController().navigate(R.id.confirmBookingFragment, bundle)
+                } catch (e: Exception) {
+                    (activity as? MainActivity)?.let { act ->
+                        val navHost = act.supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
+                        navHost?.navController?.navigate(R.id.confirmBookingFragment, bundle)
                     }
-
-                    // Navigate smoothly to ConfirmBookingFragment
-                    try {
-                        findNavController().navigate(R.id.confirmBookingFragment, bundle)
-                    } catch (e: Exception) {
-                        (activity as? MainActivity)?.let { act ->
-                            val navHost = act.supportFragmentManager.findFragmentById(R.id.nav_host_fragment) as? NavHostFragment
-                            navHost?.navController?.navigate(R.id.confirmBookingFragment, bundle)
-                        }
-                    }
-                } else {
-                    val msg = errorMessage ?: "Đơn vé nháp không tồn tại hoặc đã hết hạn (tối đa 10 phút)."
-                    SnackbarHelper.showError(binding.root, msg)
                 }
             }
-        }
-
+        )
         binding.rvChat.layoutManager = LinearLayoutManager(requireContext())
         binding.rvChat.adapter = adapter
     }
 
     private fun setupSuggestionChips() {
-        suggestionAdapter = SuggestionChipAdapter(SuggestionChipAdapter.getDefaultPrompts()) { prompt ->
-            viewModel.sendMessage(prompt.queryText)
-        }
+        suggestionAdapter = ChatbotUiHelper.createSuggestionAdapter(viewModel)
         binding.rvSuggestions.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.rvSuggestions.adapter = suggestionAdapter
     }

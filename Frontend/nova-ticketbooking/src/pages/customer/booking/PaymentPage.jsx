@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import { Shield, CreditCard, Wallet, Building2, CheckCircle2, Coins, Loader2, MapPin, Clock, Monitor, Film } from 'lucide-react'
-import { useAuth } from '@/hooks'
+import { useAuth, useBookingCountdown } from '@/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { authApi, bookingApi } from '@/api/endpoints'
 import { formatCurrency, formatDateTime } from '@/utils'
@@ -33,40 +33,13 @@ export default function PaymentPage() {
   }, [id])
 
   // Đếm ngược thời gian hết hạn cho phiên thanh toán
-  const [timeLeft, setTimeLeft] = useState('')
-  const [isLowTime, setIsLowTime] = useState(false)
-  const [isExpired, setIsExpired] = useState(false)
-
-  useEffect(() => {
-    if (!booking?.expiresAt) return
-
-    const targetTime = new Date(booking.expiresAt).getTime()
-
-    const updateTimer = () => {
-      const diff = targetTime - Date.now()
-      if (diff <= 0) {
-        setTimeLeft('00:00')
-        setIsExpired(true)
-        setIsLowTime(true)
-        toast.error('Đơn đặt vé đã hết hạn thanh toán!', { icon: '⏳' })
-        setTimeout(() => navigate(`/tickets/${id}`), 1500)
-        return false
-      }
-      const mins = Math.floor(diff / (1000 * 60))
-      const secs = Math.floor((diff % (1000 * 60)) / 1000)
-      setIsLowTime(mins < 2)
-      setTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
-      return true
+  const { timeLeft, isExpired, isLowTime } = useBookingCountdown(
+    booking?.expiresAt,
+    () => {
+      toast.error('Đơn đặt vé đã hết hạn thanh toán!', { icon: '⏳' })
+      setTimeout(() => navigate(`/tickets/${id}`), 1500)
     }
-
-    if (!updateTimer()) return
-
-    const timer = setInterval(() => {
-      if (!updateTimer()) clearInterval(timer)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [booking?.expiresAt, id, navigate])
+  )
 
   const handlePayment = async () => {
     if (!id || isPaying) return

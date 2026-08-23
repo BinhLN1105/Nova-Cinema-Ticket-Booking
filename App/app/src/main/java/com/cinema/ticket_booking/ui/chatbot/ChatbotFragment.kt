@@ -42,25 +42,14 @@ class ChatbotFragment : Fragment() {
     }
 
     private fun setupRecyclerView() {
-        adapter = ChatAdapter { draftId, position ->
-            adapter.setDraftConfirmingState(position, true)
-            viewModel.prepareDraftBooking(draftId) { isSuccess, errorMessage, quote ->
-                if (_binding != null) {
-                    adapter.setDraftConfirmingState(position, false)
-                }
-                if (isSuccess && quote != null) {
-                    val bundle = Bundle().apply {
-                        putParcelable("initialQuote", quote)
-                        putLong("expireTime", System.currentTimeMillis() + 10 * 60 * 1000)
-                    }
-                    findNavController().navigate(R.id.confirmBookingFragment, bundle)
-                } else {
-                    val msg = errorMessage ?: "Đơn vé nháp không tồn tại hoặc đã hết hạn (tối đa 10 phút)."
-                    SnackbarHelper.showError(binding.root, msg)
-                }
+        adapter = ChatbotUiHelper.createChatAdapter(
+            viewModel = viewModel,
+            isViewActive = { _binding != null },
+            rootView = { binding.root },
+            onNavigateToConfirm = { bundle ->
+                findNavController().navigate(R.id.confirmBookingFragment, bundle)
             }
-        }
-
+        )
         val layoutManager = LinearLayoutManager(requireContext())
         layoutManager.stackFromEnd = true
         binding.rvChat.layoutManager = layoutManager
@@ -68,9 +57,7 @@ class ChatbotFragment : Fragment() {
     }
 
     private fun setupSuggestionChips() {
-        suggestionAdapter = SuggestionChipAdapter(SuggestionChipAdapter.getDefaultPrompts()) { prompt ->
-            viewModel.sendMessage(prompt.queryText)
-        }
+        suggestionAdapter = ChatbotUiHelper.createSuggestionAdapter(viewModel)
         binding.rvSuggestions.layoutManager = LinearLayoutManager(requireContext(), LinearLayoutManager.HORIZONTAL, false)
         binding.rvSuggestions.adapter = suggestionAdapter
     }

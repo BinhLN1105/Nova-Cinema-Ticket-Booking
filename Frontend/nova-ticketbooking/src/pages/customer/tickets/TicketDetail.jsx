@@ -10,6 +10,7 @@ import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import { Modal } from '@/components/common/ui/Modal'
 import { Button } from '@/components/common/ui/FormElements'
 import toast from 'react-hot-toast'
+import { useBookingCountdown } from '@/hooks'
 
 export default function TicketDetail() {
   const { id } = useParams()
@@ -19,11 +20,8 @@ export default function TicketDetail() {
 
   useEffect(() => {
     authApi.me().then(res => {
-      if (res?.data) {
-        useAuthStore.getState().setUser(res.data)
-      } else if (res) {
-        useAuthStore.getState().setUser(res)
-      }
+      const userData = res?.data || res
+      if (userData) useAuthStore.getState().setUser(userData)
     }).catch(() => {})
   }, [])
 
@@ -34,39 +32,10 @@ export default function TicketDetail() {
   })
 
   // Đếm ngược thời gian hết hạn cho đơn PENDING
-  const [timeLeft, setTimeLeft] = useState('')
-  const [isLowTime, setIsLowTime] = useState(false)
-  const [isExpired, setIsExpired] = useState(false)
-
-  useEffect(() => {
-    if (!booking?.expiresAt || booking?.status !== 'PENDING') return
-
-    const targetTime = new Date(booking.expiresAt).getTime()
-
-    const updateTimer = () => {
-      const diff = targetTime - Date.now()
-      if (diff <= 0) {
-        setTimeLeft('00:00')
-        setIsExpired(true)
-        setIsLowTime(true)
-        refetch() // Tự động refetch để chuyển status sang EXPIRED
-        return false
-      }
-      const mins = Math.floor(diff / (1000 * 60))
-      const secs = Math.floor((diff % (1000 * 60)) / 1000)
-      setIsLowTime(mins < 2)
-      setTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
-      return true
-    }
-
-    if (!updateTimer()) return
-
-    const timer = setInterval(() => {
-      if (!updateTimer()) clearInterval(timer)
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [booking?.expiresAt, booking?.status, refetch])
+  const { timeLeft, isExpired, isLowTime } = useBookingCountdown(
+    booking?.status === 'PENDING' ? booking?.expiresAt : null,
+    () => refetch()
+  )
 
   const cancelMutation = useMutation({
     mutationFn: () => bookingApi.cancelRequest(id),
