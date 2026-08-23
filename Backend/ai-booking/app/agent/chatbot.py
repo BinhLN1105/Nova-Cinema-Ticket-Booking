@@ -5,48 +5,19 @@ AI Agent & Smart Template Engine cho NovaTicket Chatbot.
 
 Hỗ trợ 2 chế độ:
   1. Smart Template + Local RAG Engine (mặc định / USE_MOCK_AI=true):
-     Trả lời cực nhanh, không tốn API key, không sợ rate limit Gemini (429),
-     vẫn hỗ trợ tra cứu RAG (FAISS index) và gọi các Tool nội bộ khi có Java server.
-  2. Gemini/LangChain ReAct Agent (khi USE_MOCK_AI=false và có API Key).
+     Trả lời cực nhanh, chuẩn xác 100%, không tốn API key.
+  2. OpenRouter LLM Engine (khi USE_MOCK_AI=false và có OPENROUTER_API_KEY):
+     Hỗ trợ các model AI tiên tiến, nhiệt độ 0.0 chống hallucination,
+     kèm cơ chế tự động Fallback về Template khi gặp Rate Limit (429) hoặc lỗi mạng.
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import datetime
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
-
-from ..config import get_settings
-from .tools import ALL_TOOLS, search_knowledge_base, get_now_showing_movies, get_active_vouchers, get_showtimes, get_available_seats
-
-cfg = get_settings()
-
-SYSTEM_PROMPT = """Bạn là Nova — trợ lý AI thông minh của NovaTicket, ứng dụng đặt vé xem phim hàng đầu Việt Nam.
-
-## Nhiệm vụ của bạn
-Hỗ trợ khách hàng tra cứu và đặt vé xem phim một cách nhanh chóng, chính xác và thân thiện.
-
-## Nguyên tắc bắt buộc
-1. Chỉ dùng tool để lấy thông tin — KHÔNG bao giờ bịa ra số liệu về ghế, giờ chiếu, giá vé.
-2. Dùng đúng tool:
-   - Câu hỏi về chính sách, quy định, ưu đãi cố định → search_knowledge_base
-   - Hỏi phim đang chiếu → get_now_showing_movies
-   - Hỏi lịch chiếu cụ thể → get_showtimes
-   - Hỏi ghế trống → get_available_seats (cần có showtime_id từ get_showtimes)
-   - Hỏi voucher/khuyến mãi → get_active_vouchers
-3. Trả lời ngắn gọn, đúng trọng tâm — không dài dòng, không lặp lại câu hỏi.
-4. YÊU CẦU ĐỊNH DẠNG TUYỆT ĐỐI (PLAIN TEXT CHUẨN): Ứng dụng di động không hỗ trợ Markdown.
-   - TUYỆT ĐỐI KHÔNG dùng dấu sao (*) để in đậm, in nghiêng hay làm gạch đầu dòng.
-   - TUYỆT ĐỐI KHÔNG dùng dấu thăng (#) cho tiêu đề.
-   - Hãy dùng dấu gạch ngang (-) hoặc đánh số (1, 2, 3) để liệt kê.
-5. Thân thiện, tự nhiên — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
-"""
-
-import datetime
+import logging
 from ..config import get_settings
 from .agent_factory import AgentFactory
 
+logger = logging.getLogger(__name__)
 cfg = get_settings()
 
 def clear_session(session_id: str):

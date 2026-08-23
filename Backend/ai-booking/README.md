@@ -1,245 +1,213 @@
-# NovaTicket AI Chatbot Service
+# 🤖 NovaTicket AI Assistant Service (Python RAG & Multi-Engine Agent)
 
-Server AI chatbot cho ứng dụng đặt vé xem phim NovaTicket, tích hợp với Java Spring Boot backend thông qua mô hình RAG (Retrieval-Augmented Generation).
-
-## Kiến trúc hệ thống
-
-```
-Frontend (React / Android App)
-    │  POST /api/v1/chatbot/chat
-    ▼
-Java Spring Boot (Backend chính)
-    │  POST /api/v1/chat  ← xác thực JWT rồi proxy sang Python
-    ▼
-Python AI Service (server này)
-    ├── Tool 1: FAISS Vector DB (chính sách, FAQ, thông tin rạp)
-    |             └── Embedding bởi Cohere API (embed-multilingual-v3.0)
-    └── Tool 2: Java Internal API (lịch chiếu, ghế, voucher)
-  
-    LLM Response: Google Gemini API (gemini-2.5-flash)
-```
-
-## Tech Stack
-
-| Thành phần | Công nghệ                                                        |
-| ------------ | ------------------------------------------------------------------ |
-| Framework    | FastAPI + Uvicorn                                                  |
-| LLM          | Google Gemini API (`gemini-2.5-flash`)                           |
-| Embedding    | Cohere API (`embed-multilingual-v3.0`) — Cloud, không cần GPU |
-| Vector DB    | FAISS (`faiss-cpu`) — Lưu local, không cần server            |
-| Agent        | LangChain (Tool-based Agent + Conversation Memory)                 |
-| Language     | Python 3.10+                                                       |
-
-> ✅ **Không cần GPU, không cần Docker, không tốn hàng GB dung lượng.**
-> Kiến trúc dùng Cohere API để embedding và Gemini API để generate, giảm kích thước deploy từ ~7GB xuống còn **< 100MB**.
+Microservice trợ lý ảo thông minh cho hệ thống rạp chiếu phim **NovaTicket**, tích hợp chặt chẽ với Java Spring Boot backend và Frontend React / Mobile Android thông qua kiến trúc **RAG (Retrieval-Augmented Generation)** và **Multi-Engine Intent Routing**.
 
 ---
 
-## Cấu trúc project
+## 🏛️ Kiến Trúc Tổng Thể
+
+```mermaid
+graph TD
+    Client[Client: React Web / Android App] -->|POST /api/v1/chatbot/chat| Java[Java Spring Boot Backend]
+    Java -->|JWT Verify + Session Context| Java
+    Java -->|Internal Secure Proxy| Py[Python AI Service: FastAPI]
+
+    subgraph Python AI Service
+        Router[Intent Classifier & Slot Filler] --> EngineRouter{Engine Decision}
+        
+        EngineRouter -->|Transactional Actions| TemplateEngine[Smart Offline Template Engine]
+        EngineRouter -->|Domain Q&A / Knowledge| LLMEngine[OpenRouter Multi-Model LLM Engine]
+        
+        LLMEngine -->|Vector Search| FAISS[FAISS Vector Store + Cohere Embeddings]
+        LLMEngine -->|Candidate Pool Fallback| OpenRouter[OpenRouter: Llama-3.3-70B -> Gemini -> DeepSeek]
+        
+        TemplateEngine -->|Live DB Queries| JavaAPI[Java Spring Boot Internal API]
+    end
+
+    Py -->|Response + Intent + Fallback Status| Java
+    Java -->|AES-256-GCM Transparent Encryption| DB[(PostgreSQL: ai_audit_logs)]
+    Java -->|Plaintext Response| Client
+```
+
+---
+
+## 🚀 Tính Năng Nổi Bật
+
+1. **Multi-Model LLM Candidate Pool & Tự Động Phục Hồi (Resilient Fallback)**:
+   - **Primary Model**: `meta-llama/llama-3.3-70b-instruct:free`
+   - **Fallback Pool**: `google/gemini-2.0-flash-exp:free`, `deepseek/deepseek-chat`, `mistralai/mistral-7b-instruct:free`, `qwen/qwen-2.5-72b-instruct:free`
+   - **Nhiệt độ**: `temperature=0.0` (Chuẩn Enterprise chống hallucination).
+   - **Timeout per Model**: `8.0s` với cơ chế thử model dự phòng tiếp theo nếu gặp lỗi kết nối hoặc Rate Limit (429).
+   - **Offline Fallback**: Tự động chuyển về `Smart Template Engine` nếu tất cả LLM đều bận/hết quota, đảm bảo trải nghiệm khách hàng không bao giờ bị gián đoạn.
+
+2. **Đặt Vé Nhanh Qua Hội Thoại (Draft Booking Assistant)**:
+   - Hỗ trợ chọn phim, chọn rạp, chọn suất chiếu, chọn ghế và giữ chỗ tạm thời (Draft Booking) ngay trong khung chat AI.
+
+3. **Hệ Thống Đặt & Quản Lý Nhắc Lịch Xem Phim (Reminder Scheduler)**:
+   - Nhắc lịch khi có suất chiếu mới hoặc nhắc trước giờ chiếu 1 tiếng qua Firebase Push Notification.
+   - Hỗ trợ xem, tra cứu và hủy nhắc lịch qua lệnh chat tự nhiên.
+
+4. **Tích Hợp Dự Báo Thời Tiết (Weather Intelligence)**:
+   - Tự động kiểm tra điều kiện thời tiết tại khu vực rạp vào thời điểm suất chiếu diễn ra để cảnh báo người dùng mang theo áo mưa hoặc xuất phát sớm.
+
+5. **Multi-turn Memory & Contextual Pagination**:
+   - Duy trì ngữ cảnh phiên trò chuyện nhiều lượt (Multi-turn), cho phép hỏi tiếp *"2 phim nào nữa?"*, *"ở rạp đó có suất mấy giờ?"* mượt mà.
+
+---
+
+## 🛠️ Tech Stack
+
+| Thành phần | Công nghệ | Mô tả |
+| :--- | :--- | :--- |
+| **Framework** | FastAPI + Uvicorn | Hiệu năng cao, async I/O non-blocking |
+| **LLM Gateway** | OpenRouter API | Cung cấp pool LLM mã nguồn mở & thương mại đa dạng |
+| **Embedding** | Cohere API (`embed-multilingual-v3.0`) | Hỗ trợ tiếng Việt xuất sắc, không cần GPU local |
+| **Vector Database** | FAISS (`faiss-cpu`) | Tìm kiếm tương đồng vector siêu tốc trên bộ nhớ đệm |
+| **Data Ingestion** | Python LangChain Chunkers | Tách văn bản policies/FAQs thông minh theo đoạn ngữ nghĩa |
+| **Python Version** | Python 3.10+ | |
+
+---
+
+## 📂 Cấu Trúc Thư Mục
 
 ```
-ai-booking/
+Backend/ai-booking/
 ├── app/
-│   ├── main.py                # FastAPI app, định nghĩa endpoints
-│   ├── config.py              # Settings (đọc từ .env)
-│   ├── ingestion/
-│   │   ├── loader.py          # Đọc file .md/.txt/.json/.csv
-│   │   ├── chunker.py         # Tách văn bản thành chunks
-│   │   ├── embedder.py        # Cohere Embedding API wrapper
-│   │   └── vector_store.py    # FAISS wrapper (save/load local)
-│   └── agent/
-│       ├── tools.py           # Tool 1 (RAG) + Tool 2 (Java API)
-│       └── chatbot.py         # LangChain Agent + Conversation Memory
+│   ├── main.py                # FastAPI app & REST endpoints (/api/v1/chat, /health)
+│   ├── config.py              # Quản lý biến môi trường bằng Pydantic BaseSettings
+│   ├── ingestion/             # Pipeline nạp dữ liệu Vector DB
+│   │   ├── loader.py          # Đọc tài liệu .md/.txt/.json
+│   │   ├── chunker.py         # Phân đoạn văn bản (chunk_size=400, overlap=50)
+│   │   ├── embedder.py        # Wrapper gọi Cohere Embedding API
+│   │   └── vector_store.py    # FAISS local vector store manager
+│   └── agent/                 # Lõi xử lý thông minh của Chatbot
+│       ├── agent_factory.py   # Factory khởi tạo và điều phối các engines
+│       ├── chatbot.py         # Controller trung tâm, lưu giữ Session State
+│       ├── engines/           # Các engine chuyên biệt
+│       │   ├── llm_engine.py      # OpenRouter Multi-Model Loop & RAG Prompting
+│       │   └── template_engine.py # Smart Offline Template Engine
+│       └── tools.py           # Java Spring Boot API Connectors
 ├── scripts/
-│   └── ingest.py              # Script nạp dữ liệu vào FAISS (chạy độc lập)
-├── data/                      # File tĩnh — commit vào git
-│   ├── policies/              # Chính sách thanh toán, hoàn vé
+│   └── ingest.py              # Script nạp dữ liệu vào FAISS index độc lập
+├── data/                      # Dữ liệu tri thức tĩnh (Knowledge Base)
+│   ├── policies/              # Chính sách hoàn vé, điểm thưởng, hội viên
 │   ├── faq/                   # Câu hỏi thường gặp
-│   └── cinema_info/           # Thông tin rạp, giá vé
-├── faiss_index/               # FAISS Vector DB (tự tạo, KHÔNG commit)
-├── .env                       # Biến môi trường (KHÔNG commit)
-├── .env.example               # Template môi trường
-├── requirements.txt
-└── Dockerfile
+│   └── cinema_info/           # Thông tin hệ thống rạp và bảng giá
+├── test_agent.py              # Bộ kiểm thử tự động toàn diện 12 Test Suites
+├── requirements.txt           # Danh mục dependencies Python
+├── .env                       # Biến môi trường local (Không commit lên Git)
+└── .env.example               # Template biến môi trường chuẩn
 ```
 
 ---
 
-## Setup từ đầu (step-by-step)
+## ⚡ Hướng Dẫn Cài Đặt & Chạy Môi Trường Local
 
-### Bước 1: Tạo môi trường ảo và cài dependencies
+### Bước 1: Tạo môi trường ảo (Virtualenv) & Cài thư viện
 
 ```bash
 cd Backend/ai-booking
+
+# Khởi tạo venv
 python -m venv venv
 
-# Windows:
-venv\Scripts\activate
-# Linux/macOS:
+# Kích hoạt venv
+# Trên Windows (PowerShell/CMD):
+.\venv\Scripts\activate
+# Trên Linux/macOS:
 source venv/bin/activate
 
+# Cài đặt thư viện
 pip install -r requirements.txt
 ```
 
 ---
 
-### Bước 2: Cấu hình .env
+### Bước 2: Thiết lập Biến Môi Trường (`.env`)
+
+Tạo file `.env` từ file mẫu `.env.example`:
 
 ```bash
 cp .env.example .env
 ```
 
-Mở `.env` và điền các giá trị bắt buộc:
+Điền các thông số cần thiết:
 
 ```env
-# ── LLM (Google Gemini) ──────────────────────────────
-GEMINI_API_KEY=your-key-here        # Lấy miễn phí tại: aistudio.google.com
-LLM_MODEL=gemini-2.5-flash
+# Server
+APP_HOST=0.0.0.0
+APP_PORT=8000
+APP_ENV=development
 
-# ── Embedding (Cohere) ───────────────────────────────
-COHERE_API_KEY=your-key-here        # Lấy miễn phí tại: cohere.com
-EMBEDDING_MODEL=embed-multilingual-v3.0
-
-# ── Vector DB ────────────────────────────────────────
-VECTOR_DB_DIR=./faiss_index
-
-# ── Java Backend ─────────────────────────────────────
+# Java Spring Boot Backend
 JAVA_API_BASE=http://localhost:8080
-INTERNAL_API_KEY=nova-secret-2026   # Tự đặt, phải trùng với Spring Boot
+INTERNAL_API_KEY=your_shared_internal_secret_key
 
-# ── Security ─────────────────────────────────────────
-JWT_SECRET=same-as-java-jwt-secret  # Copy từ application.properties Java
+# OpenRouter LLM Pool
+OPENROUTER_API_KEY=sk-or-v1-your-openrouter-key
+LLM_MODEL=meta-llama/llama-3.3-70b-instruct:free
+LLM_FALLBACK_MODELS=google/gemini-2.0-flash-exp:free,deepseek/deepseek-chat,mistralai/mistral-7b-instruct:free,qwen/qwen-2.5-72b-instruct:free
+LLM_TEMPERATURE=0.0
+LLM_TIMEOUT=8.0
+LLM_MAX_TOKENS=1024
+USE_MOCK_AI=false
+
+# Vector DB & Cohere Embeddings
+COHERE_API_KEY=your-cohere-api-key
+EMBEDDING_MODEL=embed-multilingual-v3.0
+VECTOR_DB_DIR=./faiss_index
+CHROMA_COLLECTION=nova_knowledge
+
+# Security & CORS
+JWT_SECRET=your_jwt_secret_matching_java_backend
+CORS_ORIGINS=http://localhost:8080,http://localhost:5173
 ```
 
 ---
 
-### Bước 3: Nạp dữ liệu vào Vector DB (FAISS)
+### Bước 3: Nạp Dữ Liệu Vào Vector Store (FAISS Ingestion)
 
-Chạy script này một lần trước khi khởi động server, hoặc mỗi khi cập nhật file trong `data/`:
+Chạy script sau mỗi lần cập nhật file chính sách hoặc FAQ trong thư mục `data/`:
 
 ```bash
 python scripts/ingest.py
 ```
 
-Kết quả mong đợi:
-
+*Output mẫu:*
 ```
 =======================================================
   NovaTicket RAG — Data Ingestion
 =======================================================
 📂 Đọc file từ: data
-   ✓ cinema_info\cinemas.md → 4 đoạn
-   ✓ faq\general_faq.md → 2 đoạn
-   ✓ policies\payment_policy.md → 4 đoạn
    ✓ Đọc được 10 tài liệu
-
-✂️  Chunking (size=400, overlap=50)
-   ✓ Tạo được 10 chunks
-
+✂️  Chunking (size=400, overlap=50) -> Tạo được 12 chunks
 🔢 Embedding với Cohere API: embed-multilingual-v3.0
 💾 Lưu vào FAISS index tại: ./faiss_index
-✅ Hoàn thành! Index đã được lưu tại: ./faiss_index
+✅ Hoàn thành!
 ```
 
 ---
 
-### Bước 4: Khởi động Python server
-
-#### 1. Chạy trực tiếp (Development)
+### Bước 4: Chạy Server AI
 
 ```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
-#### 2. Dùng Docker (Khuyên dùng cho Production)
+* Truy cập Swagger UI kiểm thử: `http://localhost:8000/docs`
+* Endpoint Health Check: `GET http://localhost:8000/health`
+
+---
+
+## 🧪 Chạy Bộ Kiểm Thử Tự Động (Test Suite)
+
+Chạy toàn bộ 12 kịch bản kiểm thử tích hợp (Bao gồm Multi-turn Memory, Weather, Reminder, Draft Booking, OpenRouter candidate fallback, Rate-limit 429 & 500 error resilience):
 
 ```bash
-docker build --build-arg COHERE_API_KEY="your-cohere-key" -t novaticket-ai .
-
-docker run -p 8000:8000 \
-  -e GEMINI_API_KEY="your-gemini-key" \
-  -e COHERE_API_KEY="your-cohere-key" \
-  novaticket-ai
+python test_agent.py
 ```
 
-> 💡 **Trên Azure/Render:** Điền `GEMINI_API_KEY` và `COHERE_API_KEY` vào phần **Environment Variables** trong bảng điều khiển.
-> hoạt động tại: `http://localhost:8000`
-
----
-
-### Bước 5: Kiểm tra hoạt động
-
-```bash
-# Health check
-curl http://localhost:8000/health
-
-# Test chat trực tiếp
-curl -X POST http://localhost:8000/api/v1/chat \
-  -H "Content-Type: application/json" \
-  -d '{"session_id": "test_1", "user_message": "Sinh viên có được giảm giá không?"}'
+*Kết quả chuẩn:*
 ```
-
----
-
-## Luồng hoạt động thực tế
-
+=== COMPLETE TESTING AI AGENT SUCCESSFULLY ===
 ```
-User: "Phim Lật Mặt 8h tối nay rạp CGV còn ghế không?"
-
-1. Frontend → POST /api/v1/chatbot/chat (Java)
-2. Java xác thực JWT, lấy userId → proxy sang Python
-3. Python Agent nhận câu hỏi, quyết định:
-   - "Đây là câu hỏi về lịch chiếu → dùng Tool 2 (Java API)"
-4. Agent gọi get_showtimes("Lật Mặt", "CGV", today)
-   → Java trả: [{id: 456, startTime: "20:00", availableSeats: 15}]
-5. Agent tổng hợp → Gemini API tạo câu trả lời tự nhiên
-6. Reply → Java → Frontend → User ✓
-```
-
----
-
-## Cập nhật dữ liệu kiến thức
-
-Khi cần thêm/sửa chính sách, FAQ hoặc thông tin rạp:
-
-```bash
-# 1. Sửa file trong thư mục data/
-# 2. Chạy lại ingest để cập nhật FAISS index
-python scripts/ingest.py
-
-# Hoặc gọi API sync từ Java admin panel
-curl -X POST http://localhost:8000/api/v1/sync \
-  -H "X-Internal-Key: nova-secret-2026"
-```
-
----
-
-## Xử lý sự cố thường gặp
-
-| Lỗi                                   | Nguyên nhân      | Cách xử lý                                    |
-| -------------------------------------- | ------------------ | ------------------------------------------------ |
-| `FAISS index not found`              | Chưa chạy ingest | `python scripts/ingest.py`                     |
-| `ResourceExhausted (429) Gemini`     | Hết quota LLM     | Chờ 1 phút hoặc Nova sang**Safe Mode**  |
-| `Cohere 401 Unauthorized`            | API key sai        | Kiểm tra`COHERE_API_KEY` trong `.env`       |
-| `Connection refused: localhost:8080` | Java chưa chạy   | Start Java server trước                        |
-| `Invalid internal API key`           | Key không khớp   | Kiểm tra`.env` và `application.properties` |
-
----
-
-## Tính năng nâng cao
-
-### 🛡️ Chế độ Fallback (Safe Mode)
-
-Khi Gemini API đạt giới hạn (429), Nova tự động chuyển sang Safe Mode:
-
-- Truy vấn trực tiếp từ FAISS (RAG thô, không qua LLM).
-- Lấy danh sách phim đang chiếu từ Java API.
-- Phản hồi nhanh kèm ghi chú tình trạng hệ thống.
-
-### 💬 Conversation Memory
-
-Agent giữ lịch sử hội thoại theo `session_id`, cho phép người dùng hỏi tiếp các câu liên quan mà không cần lặp lại ngữ cảnh.
-
-### ✨ Rich Format Response
-
-Phản hồi hỗ trợ đầy đủ Markdown: bảng giá, danh sách, chữ đậm — hiển thị đẹp trên giao diện chat của app.

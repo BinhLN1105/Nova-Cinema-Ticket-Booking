@@ -286,6 +286,45 @@ class MockClient:
                     "reminderType": json_data.get("reminderType", "SHOWTIME")
                 }
             }
+        elif "openrouter.ai" in url:
+            messages = json_data.get("messages", [])
+            last_msg = messages[-1].get("content", "") if messages else ""
+            model = json_data.get("model", "")
+            
+            if "trigger_model_fallback" in last_msg:
+                if "meta-llama" in model:
+                    resp.status_code = 429
+                    resp.text = f"Rate limit on primary model: {model}"
+                else:
+                    resp.status_code = 200
+                    resp.json.return_value = {
+                        "choices": [
+                            {
+                                "message": {
+                                    "role": "assistant",
+                                    "content": f"Dạ, em là Nova - trợ lý thông minh từ model dự phòng {model} ạ!"
+                                }
+                            }
+                        ]
+                    }
+            elif "trigger_ratelimit_429" in last_msg:
+                resp.status_code = 429
+                resp.text = "Rate limit exceeded (429)"
+            elif "trigger_server_error_500" in last_msg:
+                resp.status_code = 500
+                resp.text = "Internal Server Error"
+            else:
+                resp.status_code = 200
+                resp.json.return_value = {
+                    "choices": [
+                        {
+                            "message": {
+                                "role": "assistant",
+                                "content": "Dạ, em là Nova - trợ lý thông minh từ OpenRouter LLM ạ!"
+                            }
+                        }
+                    ]
+                }
         else:
             resp.json.return_value = {}
         return resp
@@ -702,6 +741,53 @@ def run_tests():
     assert "muon xem lich chieu tai cum rap nao" in remove_non_ascii(res_turn5).lower() or "rap nao" in remove_non_ascii(res_turn5).lower()
 
     print("-> OK (Multi-turn conversational memory tests pass)")
+
+    # [12] Testing OpenRouter LLM Integration & Resilient Rate-Limit Fallback (Phase 18)
+    print("\n[12] Testing OpenRouter LLM Integration & Resilient Rate-Limit Fallback:")
+    from app.config import get_settings
+    from app.agent.agent_factory import AgentFactory
+    cfg = get_settings()
+
+    # Lưu lại trạng thái config cũ
+    old_use_mock = cfg.use_mock_ai
+    old_key = cfg.openrouter_api_key
+    
+    try:
+        # Kích hoạt chế độ LLM OpenRouter
+        cfg.use_mock_ai = False
+        cfg.openrouter_api_key = "test_openrouter_secret_key"
+        AgentFactory._llm_instance = None # Reset singleton instance
+
+        # Case 1: OpenRouter thành công 200 OK -> Trả lời từ LLM OpenRouter
+        res_openrouter_success = chat("session_openrouter_1", "chào em, em có thể giúp gì?")
+        print(f"\nUser: chao em, em co the giup gi?\nNova OpenRouter:\n{remove_non_ascii(res_openrouter_success['reply'])}")
+        assert "openrouter" in remove_non_ascii(res_openrouter_success["reply"]).lower()
+        assert res_openrouter_success["used_fallback"] is False
+
+        # Case 1.5: Model chính bị Rate Limit (429) -> Tự động chuyển sang Model dự phòng tiếp theo thành công
+        res_model_fallback = chat("session_openrouter_fallback", "chào em trigger_model_fallback")
+        print(f"\nUser: chao em trigger_model_fallback\nNova Candidate Model Fallback:\n{remove_non_ascii(res_model_fallback['reply'])}")
+        assert "model du phong" in remove_non_ascii(res_model_fallback["reply"]).lower()
+        assert res_model_fallback["used_fallback"] is False
+
+        # Case 2: Toàn bộ Model trong Pool gặp Rate Limit (429) -> Tự động Fallback sang TemplateEngine không báo lỗi
+        res_openrouter_429 = chat("session_openrouter_2", "lịch chiếu phim Mai trigger_ratelimit_429")
+        print(f"\nUser: lich chieu phim Mai trigger_ratelimit_429\nNova Template Fallback (429):\n{remove_non_ascii(res_openrouter_429['reply'])}")
+        assert "mai" in remove_non_ascii(res_openrouter_429["reply"]).lower()
+        assert res_openrouter_429["used_fallback"] is True
+
+        # Case 3: OpenRouter gặp Server Error (500) -> Tự động Fallback sang TemplateEngine
+        res_openrouter_500 = chat("session_openrouter_3", "phim đang chiếu trigger_server_error_500")
+        print(f"\nUser: phim dang chieu trigger_server_error_500\nNova Fallback (500):\n{remove_non_ascii(res_openrouter_500['reply'])}")
+        assert "dang chieu" in remove_non_ascii(res_openrouter_500["reply"]).lower()
+        assert res_openrouter_500["used_fallback"] is True
+
+        print("-> OK (OpenRouter LLM & Resilient Fallback tests pass)")
+    finally:
+        # Khôi phục trạng thái config
+        cfg.use_mock_ai = old_use_mock
+        cfg.openrouter_api_key = old_key
+        AgentFactory._llm_instance = None
 
     print("\n=== COMPLETE TESTING AI AGENT SUCCESSFULLY ===")
 

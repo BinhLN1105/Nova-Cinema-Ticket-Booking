@@ -16,7 +16,7 @@ class AgentFactory:
         use_mock = getattr(cfg, 'use_mock_ai', True)
         
         # Bắt buộc phải có khóa nếu muốn dùng LLM
-        has_api_keys = bool(cfg.gemini_api_key or cfg.openai_api_key)
+        has_api_keys = bool(cfg.openrouter_api_key or cfg.openai_api_key or cfg.gemini_api_key)
 
         if force_fallback or use_mock or not has_api_keys:
             if cls._template_instance is None:

@@ -36,10 +36,25 @@ const SUGGESTED_PROMPTS = [
   { icon: "❓", label: "Chính sách hoàn vé", text: "Chính sách hoàn vé", autoSend: true }
 ];
 
+const CHAT_STORAGE_KEY = "novaticket_chat_messages";
+
 export function AiChatbot() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(CHAT_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load chat messages from sessionStorage:", e);
+    }
+    return [WELCOME_MESSAGE];
+  });
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -126,6 +141,23 @@ export function AiChatbot() {
     }
   }, [isOpen]);
 
+  // Lưu tin nhắn vào sessionStorage khi có thay đổi
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(messages));
+    } catch (e) {
+      console.error("Failed to save chat messages to sessionStorage:", e);
+    }
+  }, [messages]);
+
+  // Xóa session storage và reset khung chat khi user đăng xuất
+  useEffect(() => {
+    if (!isAuthenticated) {
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
+      setMessages([WELCOME_MESSAGE]);
+    }
+  }, [isAuthenticated]);
+
   const sendDirectQuery = async (queryText) => {
     if (!isAuthenticated) {
       toast.error("Vui lòng đăng nhập để trò chuyện với AI");
@@ -184,10 +216,15 @@ export function AiChatbot() {
     if (!isAuthenticated) return;
     try {
       await chatbotApi.clearSession();
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
       setMessages([WELCOME_MESSAGE]);
       toast.success("Đã làm mới cuộc hội thoại");
     } catch (error) {
       console.error("Clear session error:", error);
+      // Vẫn clear phía client nếu backend có sự cố nhỏ
+      sessionStorage.removeItem(CHAT_STORAGE_KEY);
+      setMessages([WELCOME_MESSAGE]);
+      toast.success("Đã làm mới cuộc hội thoại");
     }
   };
 
