@@ -9,6 +9,11 @@ import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
+import java.util.UUID;
+import java.util.List;
+import java.util.Map;
+import java.math.BigDecimal;
+
 /**
  * Cấu hình bảo trì Database và Cache khi khởi động.
  */
@@ -28,7 +33,7 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 1. ƯU TIÊN HÀNG ĐẦU: Dọn dẹp Cache và giải phóng ghế để có thể test ngay
         flushRedis();
         unlockAllSeats();
-        
+
         clearCache("movies_now_showing");
         clearCache("movies_coming_soon");
         clearCache("promotions");
@@ -56,7 +61,7 @@ public class SchemaFixConfig implements CommandLineRunner {
 
         // 5. Thêm các cột Bundle cho Pricing Rules (Dynamic Pricing Engine)
         ensurePricingRulesBundleColumns();
-        
+
         // 6. Thêm các cột Khuyến mãi cho Đơn hàng (Persistence Promotion)
         ensureBookingPromotionColumns();
 
@@ -93,6 +98,9 @@ public class SchemaFixConfig implements CommandLineRunner {
         // 16. Đảm bảo ràng buộc phương thức thanh toán cho phép WALLET
         updatePaymentMethodConstraint();
 
+        // 17. Tự động hoàn trả CinePoint cho các đơn PENDING bị hết hạn
+        refundExpiredPendingCinePoints();
+
         log.info("[SchemaFix] Hoàn tất kiểm tra và bảo trì hệ thống.");
     }
 
@@ -110,16 +118,19 @@ public class SchemaFixConfig implements CommandLineRunner {
     private void ensureUserVoucherColumns() {
         try {
             log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'user_vouchers'...");
-            jdbcTemplate.execute("ALTER TABLE user_vouchers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'AVAILABLE'");
+            jdbcTemplate.execute(
+                    "ALTER TABLE user_vouchers ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'AVAILABLE'");
             jdbcTemplate.execute("UPDATE user_vouchers SET status = 'AVAILABLE' WHERE status IS NULL");
             jdbcTemplate.execute("ALTER TABLE user_vouchers ALTER COLUMN status SET NOT NULL");
-            
-            // Xóa cột is_used cũ nếu còn tồn tại để không bị lỗi NOT NULL constraint khi insert
+
+            // Xóa cột is_used cũ nếu còn tồn tại để không bị lỗi NOT NULL constraint khi
+            // insert
             try {
                 jdbcTemplate.execute("ALTER TABLE user_vouchers DROP COLUMN IF EXISTS is_used");
                 log.info("[SchemaFix] Đã dọn dẹp cột 'is_used' cũ trong 'user_vouchers'.");
-            } catch (Exception ignore) {}
-            
+            } catch (Exception ignore) {
+            }
+
             log.info("[SchemaFix] Đã đảm bảo cột 'status' tồn tại trong 'user_vouchers'.");
         } catch (Exception e) {
             log.warn("[SchemaFix] Lỗi khi bảo trì bảng user_vouchers (status column): {}", e.getMessage());
@@ -130,20 +141,19 @@ public class SchemaFixConfig implements CommandLineRunner {
         try {
             log.info("[SchemaFix] Đảm bảo bảng 'notification_campaigns' tồn tại...");
             jdbcTemplate.execute(
-                "CREATE TABLE IF NOT EXISTS notification_campaigns (" +
-                "  id UUID PRIMARY KEY," +
-                "  title VARCHAR(150) NOT NULL," +
-                "  body TEXT NOT NULL," +
-                "  type VARCHAR(30) NOT NULL," +
-                "  target_id UUID," +
-                "  target_topic VARCHAR(50) NOT NULL," +
-                "  scheduled_at TIMESTAMP NOT NULL," +
-                "  status VARCHAR(20) NOT NULL DEFAULT 'PENDING'," +
-                "  created_by_id UUID REFERENCES users(id)," +
-                "  created_at TIMESTAMP," +
-                "  updated_at TIMESTAMP" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS notification_campaigns (" +
+                            "  id UUID PRIMARY KEY," +
+                            "  title VARCHAR(150) NOT NULL," +
+                            "  body TEXT NOT NULL," +
+                            "  type VARCHAR(30) NOT NULL," +
+                            "  target_id UUID," +
+                            "  target_topic VARCHAR(50) NOT NULL," +
+                            "  scheduled_at TIMESTAMP NOT NULL," +
+                            "  status VARCHAR(20) NOT NULL DEFAULT 'PENDING'," +
+                            "  created_by_id UUID REFERENCES users(id)," +
+                            "  created_at TIMESTAMP," +
+                            "  updated_at TIMESTAMP" +
+                            ")");
             log.info("[SchemaFix] Bảng 'notification_campaigns' đã sẵn sàng.");
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi khi tạo bảng notification_campaigns: {}", e.getMessage());
@@ -153,16 +163,21 @@ public class SchemaFixConfig implements CommandLineRunner {
     private void ensureUserNotificationColumns() {
         try {
             log.info("[SchemaFix] Đang kiểm tra cấu trúc bảng 'users' (Notification Settings)...");
-            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_marketing_notification BOOLEAN DEFAULT TRUE");
-            jdbcTemplate.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_transaction_notification BOOLEAN DEFAULT TRUE");
-            
-            // Cập nhật giá trị TRUE cho dữ liệu cũ nếu bị NULL (mặc dù JPA đã có @Builder.Default)
-            jdbcTemplate.execute("UPDATE users SET allow_marketing_notification = TRUE WHERE allow_marketing_notification IS NULL");
-            jdbcTemplate.execute("UPDATE users SET allow_transaction_notification = TRUE WHERE allow_transaction_notification IS NULL");
-            
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_marketing_notification BOOLEAN DEFAULT TRUE");
+            jdbcTemplate.execute(
+                    "ALTER TABLE users ADD COLUMN IF NOT EXISTS allow_transaction_notification BOOLEAN DEFAULT TRUE");
+
+            // Cập nhật giá trị TRUE cho dữ liệu cũ nếu bị NULL (mặc dù JPA đã có
+            // @Builder.Default)
+            jdbcTemplate.execute(
+                    "UPDATE users SET allow_marketing_notification = TRUE WHERE allow_marketing_notification IS NULL");
+            jdbcTemplate.execute(
+                    "UPDATE users SET allow_transaction_notification = TRUE WHERE allow_transaction_notification IS NULL");
+
             jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN allow_marketing_notification SET NOT NULL");
             jdbcTemplate.execute("ALTER TABLE users ALTER COLUMN allow_transaction_notification SET NOT NULL");
-            
+
             log.info("[SchemaFix] Đã đảm bảo các cột tùy chỉnh thông báo trong bảng 'users'.");
         } catch (Exception e) {
             log.warn("[SchemaFix] Lỗi khi bảo trì bảng users (Notification columns): {}", e.getMessage());
@@ -190,12 +205,13 @@ public class SchemaFixConfig implements CommandLineRunner {
 
             int migrated = jdbcTemplate.update(
                     "UPDATE seats SET " +
-                    "  grid_row = ASCII(row_label) - 65, " +
-                    "  grid_col = col_number - 1, " +
-                    "  seat_label = row_label || CAST(col_number AS TEXT) " +
-                    "WHERE grid_row IS NULL OR grid_col IS NULL OR (grid_row = 0 AND row_label != 'A') OR (grid_col = 0 AND col_number != 1)");
+                            "  grid_row = ASCII(row_label) - 65, " +
+                            "  grid_col = col_number - 1, " +
+                            "  seat_label = row_label || CAST(col_number AS TEXT) " +
+                            "WHERE grid_row IS NULL OR grid_col IS NULL OR (grid_row = 0 AND row_label != 'A') OR (grid_col = 0 AND col_number != 1)");
 
-            if (migrated > 0) log.info("[SchemaFix] Đã chuyển đổi {} ghế sang dạng grid", migrated);
+            if (migrated > 0)
+                log.info("[SchemaFix] Đã chuyển đổi {} ghế sang dạng grid", migrated);
 
             jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_row SET NOT NULL");
             jdbcTemplate.execute("ALTER TABLE seats ALTER COLUMN grid_col SET NOT NULL");
@@ -238,7 +254,7 @@ public class SchemaFixConfig implements CommandLineRunner {
     private void ensureBookingPromotionColumns() {
         try {
             log.info("[SchemaFix] Đang kiểm tra các cột Khuyến mãi cho 'bookings'...");
-            
+
             // Giảm timeout để không làm treo cả app nếu DB bận
             try {
                 jdbcTemplate.execute("SET statement_timeout = 5000"); // 5 giây cho mỗi lệnh DDL
@@ -247,23 +263,27 @@ public class SchemaFixConfig implements CommandLineRunner {
             }
 
             try {
-                jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS promotion_discount_amount NUMERIC(12,2) DEFAULT 0");
+                jdbcTemplate.execute(
+                        "ALTER TABLE bookings ADD COLUMN IF NOT EXISTS promotion_discount_amount NUMERIC(12,2) DEFAULT 0");
                 log.info("[SchemaFix] Đã đảm bảo cột 'promotion_discount_amount' tồn tại.");
             } catch (Exception e) {
-                log.warn("[SchemaFix] Bỏ qua lỗi thêm cột promotion_discount_amount (có thể do timeout): {}", e.getMessage());
+                log.warn("[SchemaFix] Bỏ qua lỗi thêm cột promotion_discount_amount (có thể do timeout): {}",
+                        e.getMessage());
             }
 
             try {
-                jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_promotion_name VARCHAR(255)");
+                jdbcTemplate
+                        .execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS applied_promotion_name VARCHAR(255)");
                 log.info("[SchemaFix] Đã đảm bảo cột 'applied_promotion_name' tồn tại.");
             } catch (Exception e) {
                 log.warn("[SchemaFix] Bỏ qua lỗi thêm cột applied_promotion_name: {}", e.getMessage());
             }
-            
+
             // Reset timeout về mặc định
             try {
                 jdbcTemplate.execute("SET statement_timeout = 0");
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
 
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi tổng quát khi bảo trì bookings: {}", e.getMessage());
@@ -274,7 +294,8 @@ public class SchemaFixConfig implements CommandLineRunner {
         try {
             log.info("[SchemaFix] Đang tạo indices cho bảng 'bookings' để tăng tốc Dashboard...");
             // Index cho thống kê doanh thu theo thời gian và trạng thái
-            jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_bookings_dashboard_stats ON bookings(status, created_at)");
+            jdbcTemplate
+                    .execute("CREATE INDEX IF NOT EXISTS idx_bookings_dashboard_stats ON bookings(status, created_at)");
             // Index cho việc tìm kiếm theo cinema
             jdbcTemplate.execute("CREATE INDEX IF NOT EXISTS idx_bookings_cinema_id ON bookings(cinema_id)");
             log.info("[SchemaFix] Đã hoàn tất tạo indices cho 'bookings'.");
@@ -294,12 +315,13 @@ public class SchemaFixConfig implements CommandLineRunner {
             log.warn("[SchemaFix] Không thể cập nhật constraint bookings_status: {}", e.getMessage());
         }
     }
-    
+
     private void unlockAllSeats() {
         try {
             log.info("[SchemaFix] Đang giải phóng toàn bộ ghế đang bị khóa (LOCKED) trên hệ thống...");
             // Chuyển toàn bộ ghế từ LOCKED sang AVAILABLE
-            int unlocked = jdbcTemplate.update("UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
+            int unlocked = jdbcTemplate.update(
+                    "UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
             if (unlocked > 0) {
                 log.info("[SchemaFix] Đã giải phóng thành công {} ghế đang bị khóa.", unlocked);
             } else {
@@ -324,12 +346,13 @@ public class SchemaFixConfig implements CommandLineRunner {
     private void ensureBookingExpColumns() {
         try {
             log.info("[SchemaFix] Đảm bảo cột 'earned_exp' trong 'bookings'...");
-            
+
             // Thử rename nếu còn cột cũ
             try {
                 jdbcTemplate.execute("ALTER TABLE bookings RENAME COLUMN pending_exp TO earned_exp");
                 log.info("[SchemaFix] Đã đổi tên cột 'pending_exp' -> 'earned_exp'.");
-            } catch (Exception ignore) {}
+            } catch (Exception ignore) {
+            }
 
             jdbcTemplate.execute("ALTER TABLE bookings ADD COLUMN IF NOT EXISTS earned_exp BIGINT DEFAULT 0");
             jdbcTemplate.execute("UPDATE bookings SET earned_exp = 0 WHERE earned_exp IS NULL");
@@ -363,15 +386,14 @@ public class SchemaFixConfig implements CommandLineRunner {
         try {
             log.info("[SchemaFix] Đảm bảo bảng 'user_exp_history' tồn tại...");
             jdbcTemplate.execute(
-                "CREATE TABLE IF NOT EXISTS user_exp_history (" +
-                "  id UUID PRIMARY KEY," +
-                "  user_id UUID NOT NULL REFERENCES users(id)," +
-                "  amount BIGINT NOT NULL," +
-                "  reason VARCHAR(100)," +
-                "  reference_id VARCHAR(100)," +
-                "  created_at TIMESTAMP" +
-                ")"
-            );
+                    "CREATE TABLE IF NOT EXISTS user_exp_history (" +
+                            "  id UUID PRIMARY KEY," +
+                            "  user_id UUID NOT NULL REFERENCES users(id)," +
+                            "  amount BIGINT NOT NULL," +
+                            "  reason VARCHAR(100)," +
+                            "  reference_id VARCHAR(100)," +
+                            "  created_at TIMESTAMP" +
+                            ")");
             log.info("[SchemaFix] Bảng 'user_exp_history' đã sẵn sàng.");
         } catch (Exception e) {
             log.error("[SchemaFix] Lỗi khi tạo bảng user_exp_history: {}", e.getMessage());
@@ -384,7 +406,49 @@ public class SchemaFixConfig implements CommandLineRunner {
             jdbcTemplate.execute("ALTER TABLE bookings ALTER COLUMN showtime_id DROP NOT NULL");
             log.info("[SchemaFix] Cột 'showtime_id' đã được chuyển sang chế độ Nullable.");
         } catch (Exception e) {
-            log.warn("[SchemaFix] Lỗi khi chuyển showtime_id sang Nullable (có thể đã là Nullable): {}", e.getMessage());
+            log.warn("[SchemaFix] Lỗi khi chuyển showtime_id sang Nullable (có thể đã là Nullable): {}",
+                    e.getMessage());
+        }
+    }
+
+    private void refundExpiredPendingCinePoints() {
+        try {
+            log.info("[SchemaFix] Kiểm tra và tự động hoàn trả CinePoint cho các đơn PENDING/EXPIRED chưa hoàn tất...");
+            List<Map<String, Object>> unrefunded = jdbcTemplate.queryForList(
+                    "SELECT t.user_id, t.amount, t.reference_id " +
+                            "FROM transactions t " +
+                            "JOIN bookings b ON b.booking_code = t.reference_id " +
+                            "WHERE t.type = 'PAYMENT_CREDIT' " +
+                            "AND b.status IN ('EXPIRED', 'CANCELLED') " +
+                            "AND NOT EXISTS (" +
+                            "  SELECT 1 FROM transactions r " +
+                            "  WHERE r.reference_id = t.reference_id AND r.type = 'REFUND'" +
+                            ")");
+
+            for (Map<String, Object> row : unrefunded) {
+                UUID userId = (UUID) row.get("user_id");
+                BigDecimal amount = (BigDecimal) row.get("amount");
+                String refId = (String) row.get("reference_id");
+                long cpToRefund = amount.divideToIntegralValue(BigDecimal.valueOf(1000)).longValue();
+
+                if (cpToRefund > 0) {
+                    jdbcTemplate.update(
+                            "UPDATE users SET reward_points = COALESCE(reward_points, 0) + ? WHERE id = ?",
+                            cpToRefund, userId);
+
+                    jdbcTemplate.update(
+                            "INSERT INTO transactions (id, user_id, amount, type, status, reference_id, description, created_at) "
+                                    +
+                                    "VALUES (?, ?, ?, 'REFUND', 'SUCCESS', ?, ?, NOW())",
+                            UUID.randomUUID(), userId, amount, refId,
+                            "Hoàn trả " + cpToRefund + " CinePoint do đơn đặt vé " + refId + " hết hạn thanh toán");
+
+                    log.info("[SchemaFix] Đã tự động hoàn trả {} CP cho user {} (Booking {})", cpToRefund, userId,
+                            refId);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("[SchemaFix] Lỗi kiểm tra hoàn trả CinePoint: {}", e.getMessage());
         }
     }
 }

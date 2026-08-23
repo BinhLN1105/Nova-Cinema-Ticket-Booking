@@ -37,6 +37,7 @@ public class DataSyncController {
     private final SeatMapService seatMapService;
     private final VoucherService voucherService;
     private final CinemaService cinemaService;
+    private final ScreenService screenService;
 
     // ── Security ────────────────────────────────────────────
     private void validateKey(String key) {
@@ -124,5 +125,17 @@ public class DataSyncController {
             @RequestHeader("X-Internal-Key") String key) {
         validateKey(key);
         return ResponseEntity.ok(cinemaService.getAllForSync());
+    }
+
+    // ════════════════════════════════════════════════════════
+    // GET /internal/api/cinemas/{cinemaId}/screens
+    // Lấy danh sách phòng chiếu và layout hàng/cột của rạp
+    // ════════════════════════════════════════════════════════
+    @GetMapping("/cinemas/{cinemaId}/screens")
+    public ResponseEntity<List<ScreenResponse>> getCinemaScreens(
+            @RequestHeader("X-Internal-Key") String key,
+            @PathVariable UUID cinemaId) {
+        validateKey(key);
+        return ResponseEntity.ok(screenService.getByCinema(cinemaId));
     }
 }

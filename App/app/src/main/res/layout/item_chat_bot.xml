@@ -1,60 +1,149 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<LinearLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
     android:gravity="start"
-    android:padding="8dp">
+    android:paddingHorizontal="12dp"
+    android:paddingVertical="6dp">
 
+    <!-- Nova Bot Avatar -->
     <ImageView
+        android:id="@+id/ivBotAvatar"
         android:layout_width="32dp"
         android:layout_height="32dp"
         android:src="@drawable/ic_baseline_smart_toy_24"
+        android:background="@drawable/bg_search_box"
+        android:padding="6dp"
+        app:tint="@color/nova_red"
         android:layout_marginEnd="8dp"
-        android:layout_gravity="bottom"/>
+        android:layout_gravity="top" />
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:maxWidth="280dp"
-        android:orientation="vertical"
-        android:background="@drawable/bg_chat_bot"
-        android:elevation="2dp"
-        android:padding="12dp">
+        android:maxWidth="290dp"
+        android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/tvMessage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="?attr/colorOnSurface"
-            android:textSize="14sp"
-            android:text="Bot reply"/>
-
+        <!-- Bot Chat Bubble -->
         <LinearLayout
-            android:id="@+id/layoutLoading"
+            android:id="@+id/bubbleBot"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:visibility="gone">
-            
-            <com.airbnb.lottie.LottieAnimationView
-                android:id="@+id/loadingIndicator"
-                android:layout_width="40dp"
-                android:layout_height="24dp"
-                app:lottie_rawRes="@raw/typing_indicator"
-                app:lottie_autoPlay="true"
-                app:lottie_loop="true"
-                xmlns:app="http://schemas.android.com/apk/res-auto"/>
+            android:orientation="vertical"
+            android:background="@drawable/bg_chat_bot"
+            android:padding="12dp">
 
+            <!-- Message Content -->
             <TextView
+                android:id="@+id/tvMessage"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="CineAI đang nghĩ..."
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="12sp"
-                android:textStyle="italic"
-                android:layout_marginStart="4dp"/>
+                android:textColor="#F1F5F9"
+                android:textSize="13.5sp"
+                android:lineSpacingExtra="3dp"
+                android:text="Bot reply message" />
+
+            <!-- Draft Booking Action Container (Shown when bot creates a draft) -->
+            <LinearLayout
+                android:id="@+id/layoutDraftAction"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone"
+                android:layout_marginTop="8dp">
+
+                <View
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:background="#334155"
+                    android:layout_marginBottom="8dp" />
+
+                <!-- Action Button -->
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnConfirmDraft"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="💳 Xác nhận thanh toán"
+                    android:textColor="@color/white"
+                    android:textSize="12.5sp"
+                    android:textStyle="bold"
+                    android:insetTop="0dp"
+                    android:insetBottom="0dp"
+                    app:cornerRadius="10dp"
+                    app:backgroundTint="@color/nova_red"
+                    app:elevation="2dp" />
+
+                <!-- Loading State while preparing draft -->
+                <LinearLayout
+                    android:id="@+id/layoutDraftLoading"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:padding="6dp"
+                    android:visibility="gone">
+
+                    <ProgressBar
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:indeterminateTint="@color/accent_gold" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:text="Đang nạp thông tin vé..."
+                        android:textColor="@color/accent_gold"
+                        android:textSize="12sp"
+                        android:textStyle="italic" />
+                </LinearLayout>
+
+            </LinearLayout>
+
+            <!-- Typing Loading Indicator -->
+            <LinearLayout
+                android:id="@+id/layoutLoading"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:visibility="gone"
+                android:paddingVertical="4dp">
+                
+                <com.airbnb.lottie.LottieAnimationView
+                    android:id="@+id/loadingIndicator"
+                    android:layout_width="36dp"
+                    android:layout_height="20dp"
+                    app:lottie_rawRes="@raw/typing_indicator"
+                    app:lottie_autoPlay="true"
+                    app:lottie_loop="true" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nova đang nghĩ..."
+                    android:textColor="#94A3B8"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:layout_marginStart="4dp" />
+            </LinearLayout>
+
         </LinearLayout>
+
+        <!-- Timestamp -->
+        <TextView
+            android:id="@+id/tvTimestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="4dp"
+            android:layout_marginTop="3dp"
+            android:textColor="#64748B"
+            android:textSize="10sp"
+            android:text="12:00" />
+
     </LinearLayout>
+
 </LinearLayout>

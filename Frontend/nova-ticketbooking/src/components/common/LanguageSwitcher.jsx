@@ -56,7 +56,7 @@ export function LanguageSwitcher({ direction = 'down' }) {
             exit={{ opacity: 0, y: direction === 'up' ? -8 : 8, scale: 0.96 }}
             transition={{ duration: 0.2 }}
             className={cn(
-              "absolute right-0 w-40 rounded-2xl glass-dark border border-white/8 overflow-hidden shadow-card-float z-50",
+              "absolute right-0 w-44 rounded-2xl bg-[#13141F] border border-white/15 overflow-hidden shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.08)] z-50 p-1.5",
               direction === 'up' ? "bottom-full mb-2" : "top-full mt-2"
             )}
           >

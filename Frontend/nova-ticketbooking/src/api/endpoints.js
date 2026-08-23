@@ -267,3 +267,14 @@ export const comboApi = {
   },
   uploadImageUrl: (id, url) => api.post(`/combos/${id}/image-url`, { url }),
 };
+
+// ── AI Audit Log (CSKH & Admin) ───────────────
+export const aiAuditApi = {
+  searchCustomers: (query, page = 0, size = 20) =>
+    api.get("/admin/ai-audit-logs/customers/search", { query, page, size }),
+  getLogsBySession: (sessionId, { reason, ticketId, page = 0, size = 20 } = {}) =>
+    api.get(`/admin/ai-audit-logs/session/${sessionId}`, { reason, ticketId, page, size }),
+  getLogsByUser: (userId, { reason, ticketId, page = 0, size = 20 } = {}) =>
+    api.get(`/admin/ai-audit-logs/user/${userId}`, { reason, ticketId, page, size }),
+};
+

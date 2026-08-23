@@ -95,6 +95,9 @@ interface ApiService {
         @Query("date") date: String?
     ): Call<ApiResponse<List<ShowtimeResponse>>>
 
+    @GET("showtimes/{id}")
+    fun getShowtimeById(@Path("id") id: String): Call<ApiResponse<ShowtimeResponse>>
+
     @GET("showtimes/{id}/seats")
     fun getSeatMap(@Path("id") showtimeId: String): Call<ApiResponse<SeatMapResponse>>
 
@@ -104,6 +107,9 @@ interface ApiService {
 
     @POST("bookings/quote")
     fun getBookingQuote(@Body request: BookingRequest): Call<ApiResponse<BookingResponse>>
+
+    @GET("bookings/draft/{draftId}")
+    fun getDraftBooking(@Path("draftId") draftId: String): Call<ApiResponse<DraftBookingResponse>>
 
     @GET("bookings/me")
     fun getMyBookings(

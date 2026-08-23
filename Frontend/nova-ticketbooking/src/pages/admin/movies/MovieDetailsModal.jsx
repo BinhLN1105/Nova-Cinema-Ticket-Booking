@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, PlayCircle, Star, Calendar, Clock, Loader2, Globe, Film, User, Users, Hash, CalendarCheck, CalendarX, Info, Tag } from "lucide-react";
-import { formatDate, getRatedColor, cn } from "@/utils";
+import { X, PlayCircle, Star, Calendar, Clock, Loader2, Globe, Film, User, Users, Hash, CalendarCheck, CalendarX, Info, Tag, Play } from "lucide-react";
+import { formatDate, getRatedColor, getEmbedTrailerUrl, cn } from "@/utils";
 import { useQuery } from "@tanstack/react-query";
 import { movieApi } from "@/api/endpoints";
 
@@ -40,6 +41,7 @@ function InfoRow({ icon: Icon, label, value, className = "" }) {
 }
 
 export default function MovieDetailsModal({ isOpen, onClose, movieId }) {
+  const [isPlayingTrailer, setIsPlayingTrailer] = useState(false);
   const { data: movie, isLoading } = useQuery({
     queryKey: ["admin", "movie-detail", movieId],
     queryFn: () => movieApi.getById(movieId),
@@ -103,14 +105,13 @@ export default function MovieDetailsModal({ isOpen, onClose, movieId }) {
                     />
                     {movie.trailerUrl && (
                       <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <a
-                          href={movie.trailerUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="w-16 h-16 bg-brand-500/90 rounded-full flex items-center justify-center text-white backdrop-blur-md hover:scale-110 transition-transform shadow-lg"
+                        <button
+                          type="button"
+                          onClick={() => setIsPlayingTrailer(true)}
+                          className="w-16 h-16 bg-brand-500/90 rounded-full flex items-center justify-center text-white backdrop-blur-md hover:scale-110 transition-transform shadow-lg cursor-pointer"
                         >
                           <PlayCircle className="w-8 h-8 ml-1" />
-                        </a>
+                        </button>
                       </div>
                     )}
 
@@ -220,6 +221,49 @@ export default function MovieDetailsModal({ isOpen, onClose, movieId }) {
             </button>
           </div>
         </motion.div>
+
+        {/* Trailer Video Player Overlay */}
+        <AnimatePresence>
+          {isPlayingTrailer && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/80 backdrop-blur-md"
+                onClick={() => setIsPlayingTrailer(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 8 }}
+                className="relative bg-cinema-900 border border-white/10 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden z-10 p-4"
+              >
+                <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-3">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Play className="w-4 h-4 text-brand-500 fill-current" />
+                    Trailer: {movie?.title}
+                  </h3>
+                  <button
+                    onClick={() => setIsPlayingTrailer(false)}
+                    className="p-1.5 text-cinema-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/5">
+                  <iframe
+                    src={getEmbedTrailerUrl(movie?.trailerUrl)}
+                    title={`${movie?.title} Trailer`}
+                    className="w-full h-full border-0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
     </AnimatePresence>
   );

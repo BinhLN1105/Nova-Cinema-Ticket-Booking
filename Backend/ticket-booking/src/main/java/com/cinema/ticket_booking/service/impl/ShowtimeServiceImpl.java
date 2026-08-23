@@ -13,6 +13,8 @@ import com.cinema.ticket_booking.model.Seat;
 import com.cinema.ticket_booking.model.Showtime;
 import com.cinema.ticket_booking.model.ShowtimeSeat;
 import com.cinema.ticket_booking.model.PricingRule;
+import com.cinema.ticket_booking.enums.MovieStatus;
+import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.enums.SeatStatus;
 import com.cinema.ticket_booking.enums.ShowtimeStatus;
 import com.cinema.ticket_booking.exception.BadRequestException;
@@ -26,16 +28,18 @@ import com.cinema.ticket_booking.repository.PricingRuleRepository;
 import com.cinema.ticket_booking.repository.ScreenRepository;
 import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.PaymentRepository;
+import com.cinema.ticket_booking.model.Cinema;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.exception.ConflictException;
-import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.service.CinemaService;
 import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.PricingEngineService;
 import com.cinema.ticket_booking.service.ShowtimeService;
 import com.cinema.ticket_booking.service.SeatLockService;
 import com.cinema.ticket_booking.service.SystemConfigService;
+import com.cinema.ticket_booking.util.SlugUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -54,6 +58,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class ShowtimeServiceImpl implements ShowtimeService {
 
     private static final ZoneId ZONE_HCM = ZoneId.of("Asia/Ho_Chi_Minh");
@@ -83,10 +88,8 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         return showtimeRepository.findAll().stream()
                 .filter(s -> date == null || s.getStartTime().toLocalDate().equals(date))
                 .filter(s -> movieId == null || s.getMovie().getId().equals(movieId))
-                .filter(s -> movieTitle == null
-                        || s.getMovie().getTitle().toLowerCase().contains(movieTitle.toLowerCase()))
-                .filter(s -> cinemaName == null
-                        || s.getScreen().getCinema().getName().toLowerCase().contains(cinemaName.toLowerCase()))
+                .filter(s -> movieTitle == null || matchMovieTitle(s.getMovie().getTitle(), movieTitle))
+                .filter(s -> cinemaName == null || matchCinemaEntity(s.getScreen().getCinema(), cinemaName))
                 .filter(s -> s.getStartTime().plusMinutes(allowance).isAfter(LocalDateTime.now()))
                 .map(s -> ShowtimeSyncResponse.builder()
                         .id(s.getId())
@@ -98,6 +101,26 @@ public class ShowtimeServiceImpl implements ShowtimeService {
                         .endTime(s.getEndTime())
                         .build())
                 .toList();
+    }
+
+    private boolean matchCinemaEntity(Cinema cinema, String queryName) {
+        if (cinema == null || queryName == null || queryName.isBlank())
+            return true;
+        String qNorm = SlugUtil.toSlug(queryName).replace("-", "");
+        String nameNorm = SlugUtil.toSlug(cinema.getName()).replace("-", "");
+        String cityNorm = SlugUtil.toSlug(cinema.getCity() != null ? cinema.getCity() : "").replace("-", "");
+        String addrNorm = SlugUtil.toSlug(cinema.getAddress() != null ? cinema.getAddress() : "").replace("-", "");
+
+        return nameNorm.contains(qNorm) || qNorm.contains(nameNorm)
+                || cityNorm.contains(qNorm) || addrNorm.contains(qNorm);
+    }
+
+    private boolean matchMovieTitle(String dbTitle, String queryTitle) {
+        if (dbTitle == null || queryTitle == null || queryTitle.isBlank())
+            return true;
+        String s1 = SlugUtil.toSlug(dbTitle).replace("-", "");
+        String s2 = SlugUtil.toSlug(queryTitle).replace("-", "");
+        return s1.contains(s2) || s2.contains(s1);
     }
 
     @Override
@@ -234,6 +257,29 @@ public class ShowtimeServiceImpl implements ShowtimeService {
         }
 
         Movie movie = movieService.findById(UUID.fromString(request.getMovieId()));
+        if (movie.getStatus() == MovieStatus.COMING_SOON) {
+            throw new BadRequestException("Phim '" + movie.getTitle()
+                    + "' đang ở trạng thái 'Sắp ra mắt' (COMING_SOON). Vui lòng chuyển trạng thái phim sang 'Đang chiếu' (NOW_SHOWING) trước khi tạo suất chiếu.");
+        }
+        if (movie.getStatus() == MovieStatus.ENDED) {
+            throw new BadRequestException(
+                    "Phim '" + movie.getTitle() + "' đã kết thúc chiếu (ENDED). Không thể tạo thêm suất chiếu.");
+        }
+        if (movie.getStatus() != MovieStatus.NOW_SHOWING) {
+            throw new BadRequestException(
+                    "Chỉ có thể tạo suất chiếu cho phim đang ở trạng thái 'Đang chiếu' (NOW_SHOWING).");
+        }
+
+        LocalDate showDate = request.getStartTime().toLocalDate();
+        if (movie.getReleaseDate() != null && showDate.isBefore(movie.getReleaseDate())) {
+            throw new BadRequestException("Ngày chiếu (" + showDate + ") không được trước ngày phát hành của phim ("
+                    + movie.getReleaseDate() + ").");
+        }
+        if (movie.getEndDate() != null && showDate.isAfter(movie.getEndDate())) {
+            throw new BadRequestException("Ngày chiếu (" + showDate + ") không được sau ngày kết thúc chiếu của phim ("
+                    + movie.getEndDate() + ").");
+        }
+
         Screen screen = screenRepository.findById(UUID.fromString(request.getScreenId()))
                 .orElseThrow(() -> new ResourceNotFoundException("Phòng chiếu", request.getScreenId()));
 

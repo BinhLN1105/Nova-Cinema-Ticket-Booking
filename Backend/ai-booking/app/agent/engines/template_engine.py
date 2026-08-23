@@ -3,7 +3,7 @@ from .base_engine import BaseChatEngine
 from .response_formatter import ResponseFormatter
 from ...tools import create_draft_booking, get_suggested_seats, create_draft_reminder, get_user_tickets
 from ...tools.reminder_tools import GetRemindersTool, DeleteReminderTool
-from ...agent.tools import search_knowledge_base, get_now_showing_movies, get_active_vouchers
+from ...agent.tools import search_knowledge_base, get_now_showing_movies, get_active_vouchers, get_active_cinemas, get_cinema_screens
 from ..intent_classifier import IntentClassifier
 from ..state import session_manager
 
@@ -79,6 +79,8 @@ def normalize_title(title_str: str) -> str:
     from ..intent_classifier import remove_vietnamese_accents
     s = remove_vietnamese_accents(title_str.lower())
     s = re.sub(r"[^a-z0-9\s]", " ", s)
+    s = re.sub(r"\bquan\s*(\d+)\b", r"q\1", s)
+    s = re.sub(r"\bq\s*(\d+)\b", r"q\1", s)
     return " ".join(s.split())
 
 def resolve_movie_title(user_msg: str, movie_titles: list[str]) -> tuple[str | None, list[str]]:
@@ -125,6 +127,80 @@ def resolve_movie_title(user_msg: str, movie_titles: list[str]) -> tuple[str | N
         return None, sorted(matches)
     
     return None, []
+
+def resolve_cinema_entity(user_msg: str, cinemas_list: list[dict]) -> tuple[dict | None, str | None]:
+    """
+    So khớp động rạp chiếu phim từ cơ sở dữ liệu dựa trên câu nói của người dùng.
+    Không dùng hardcode tên rạp.
+    """
+    if not user_msg or not cinemas_list:
+        return None, None
+
+    msg_norm = normalize_title(user_msg)
+    if not msg_norm:
+        return None, None
+
+    msg_words = set(msg_norm.split())
+    stop_words = {
+        "rap", "cum", "o", "tai", "khu", "vuc", "cinema", "phim", "lich", "chieu", 
+        "xem", "ve", "dat", "mua", "thoi", "tiet", "luc", "the", "nao", "hom", 
+        "nay", "mai", "co", "gi", "khong", "tp", "thanh", "pho", "cho", "em", "anh", "chi"
+    }
+
+    best_cinema = None
+    best_score = 0
+
+    for cinema in cinemas_list:
+        c_name = cinema.get("name", "")
+        c_city = cinema.get("city", "")
+        c_addr = cinema.get("address", "")
+
+        name_norm = normalize_title(c_name)
+        city_norm = normalize_title(c_city)
+        addr_norm = normalize_title(c_addr)
+
+        # 1. Full name match: cả tên rạp xuất hiện trong câu
+        if name_norm and name_norm in msg_norm:
+            score = 100 + len(name_norm)
+            if score > best_score:
+                best_score = score
+                best_cinema = cinema
+            continue
+
+        # 2. Core cinema name (loại bỏ từ chung 'cinema', 'rap') xuất hiện trong câu
+        core_tokens = [w for w in name_norm.split() if w not in stop_words and len(w) >= 2]
+        core_name = " ".join(core_tokens)
+
+        if core_name and len(core_name) >= 3 and core_name in msg_norm:
+            score = 80 + len(core_name)
+            if score > best_score:
+                best_score = score
+                best_cinema = cinema
+            continue
+
+        # 3. Khớp token đặc trưng duy nhất (ví dụ: 'q12', 'landmark')
+        for token in core_tokens:
+            if len(token) >= 2 and token in msg_words and token not in stop_words:
+                score = 60 + len(token)
+                if score > best_score:
+                    best_score = score
+                    best_cinema = cinema
+
+        # 4. Khớp địa danh / quận huyện từ địa chỉ/thành phố (ví dụ: 'cau giay', 'ha noi', 'da nang', 'can tho')
+        for loc in [city_norm, addr_norm]:
+            loc_tokens = [w for w in loc.split() if w not in stop_words and len(w) >= 2]
+            for i in range(len(loc_tokens)):
+                for j in range(i + 1, min(i + 3, len(loc_tokens) + 1)):
+                    phrase = " ".join(loc_tokens[i:j])
+                    if len(phrase) >= 4 and phrase in msg_norm:
+                        score = 40 + len(phrase)
+                        if score > best_score:
+                            best_score = score
+                            best_cinema = cinema
+
+    if best_cinema and best_score >= 40:
+        return best_cinema, best_cinema.get("name")
+    return None, None
 
 class TemplateEngine(BaseChatEngine):
     def __init__(self):
@@ -235,12 +311,11 @@ class TemplateEngine(BaseChatEngine):
         has_showtime_list = bool(state.get("showtime_list"))
         
         is_selecting_showtime = False
-        if has_showtime_list:
-            if msg_lower.isdigit():
+        is_movie_query = "phim" in msg_lower or "lịch chiếu" in msg_lower or "lich chieu" in msg_lower
+        if has_showtime_list and not is_movie_query:
+            if msg_lower.strip().isdigit():
                 is_selecting_showtime = True
-            elif re.search(r"\b(?:suất chiếu|suat chieu|suất|suat|mã suất|ma suat|mã|ma|chọn|chon|số|so)\b\s*\d+", msg_lower):
-                is_selecting_showtime = True
-            elif len(re.findall(r"\b\d+\b", msg_lower)) == 1:
+            elif re.search(r"\b(?:suất chiếu|suat chieu|suất|suat|mã suất|ma suat|mã|ma|chọn|chon|số|so|vé suất|ve suat|đặt vé suất|dat ve suat|đặt suất|dat suat)\b\s*\d+", msg_lower):
                 is_selecting_showtime = True
             elif any(x in msg_lower for x in ["đặt vé", "dat ve", "đặt", "dat", "suất", "suat", "chọn", "chon"]):
                 if not any(x in msg_lower for x in ["hoàn vé", "hoan ve", "hủy vé", "huy ve", "chính sách", "chinh sach", "bắp nước", "bap nuoc", "combo"]):
@@ -276,7 +351,7 @@ class TemplateEngine(BaseChatEngine):
             state = session_manager.get_state(session_id)
 
             # 1. Trích xuất thông tin đầu vào
-            showtime_match = re.search(r"\b(?:suất chiếu|suat chieu|suất|suat|mã suất|ma suat|mã|ma|chọn|chon|số|so)\b\s*([a-zA-Z0-9\-]+)", msg_lower)
+            showtime_match = re.search(r"\b(?:suất chiếu|suat chieu|suất|suat|mã suất|ma suat|mã|ma|chọn|chon|số|so|vé suất|ve suat|đặt vé suất|dat ve suat|đặt suất|dat suat)\b\s*([a-zA-Z0-9\-]+)", msg_lower)
             showtime_input = None
             if showtime_match:
                 candidate = showtime_match.group(1)
@@ -286,15 +361,11 @@ class TemplateEngine(BaseChatEngine):
             showtime_list = state.get("showtime_list", [])
             has_list = bool(showtime_list)
 
-            # Fallback 1: Nếu không có từ khóa nhưng msg chứa duy nhất 1 số nguyên dương (chỉ áp dụng nếu sẵn list trong state)
-            if not showtime_input and has_list:
-                numbers = re.findall(r"\b\d+\b", msg_lower)
-                if len(numbers) == 1:
-                    showtime_input = numbers[0]
-            
-            # Fallback 2: Nếu msg chỉ gồm mỗi chữ số (chỉ áp dụng nếu sẵn list trong state)
-            if not showtime_input and msg_lower.isdigit() and has_list:
-                showtime_input = msg_lower
+            # Fallback: Chỉ trích xuất số nếu message CHỈ GỒM 1 con số nguyên dương (ví dụ: user gõ "1" hoặc "2")
+            # và KHÔNG phải là câu hỏi/tìm kiếm phim (chứa "phim", "lịch chiếu"...)
+            if not showtime_input and has_list and not is_movie_query:
+                if msg_lower.strip().isdigit():
+                    showtime_input = msg_lower.strip()
 
             seats_match = re.findall(r"[a-jA-J]\d+", msg_lower)
             showtime_id = state.get("showtime_id")
@@ -336,6 +407,226 @@ class TemplateEngine(BaseChatEngine):
                     return (
                         f"💡 Anh/chị hãy gõ số thứ tự suất chiếu (từ 1 đến {len(showtime_list)}) hoặc gõ 'đặt vé suất [số]' để tiếp tục chọn ghế nhé!"
                     )
+
+                # 1b. Phát hiện câu hỏi tư vấn ghế ngồi (khi chưa có showtime_id cụ thể)
+                is_layout_query = any(k in msg_clean_for_list for k in [
+                    "so do ghe", "sap xep ghe", "sap xep", "bo tri ghe", "bo tri", "thu tu ghe",
+                    "danh so", "so do phong", "cau truc phong", "hang ghe the nao", "vi tri cac hang", "sap dat"
+                ])
+                is_best_seat_query = any(k in msg_clean_for_list for k in [
+                    "ghe ngoi cho nao", "cho nao dep", "vi tri dep", "ngoi dau dep", "goc nhin tot",
+                    "do moi mat", "chuan nhat", "tot nhat", "ghe nao dep", "ghe dep", "dep nhat"
+                ])
+                is_couple_query = any(k in msg_clean_for_list for k in [
+                    "couple", "cap doi", "2 nguoi", "hai nguoi", "nguoi yeu", "ghe doi", "sweetbox", "rieng tu", "hen ho"
+                ])
+                is_group_query = any(k in msg_clean_for_list for k in [
+                    "3 nguoi", "ba nguoi", "4 nguoi", "bon nguoi", "nhom", "5 nguoi", "lien nhau", "canh nhau", "cung hang"
+                ])
+
+                # Nếu người dùng đang hỏi tư vấn ghế và không phải đang gõ tên phim/lịch chiếu
+                is_asking_seats = (is_layout_query or is_best_seat_query or is_couple_query or is_group_query) and not ("lich chieu" in msg_clean_for_list or "lịch chiếu" in msg_lower)
+                
+                if is_asking_seats:
+                    # Nếu có sẵn danh sách suất chiếu từ bước trước, lấy suất đầu tiên để tra cứu sơ đồ thực tế
+                    if showtime_list:
+                        target_st = showtime_list[0]
+                        st_id = target_st.get("id") if isinstance(target_st, dict) else target_st
+                        suggested = get_suggested_seats.execute(st_id)
+                        m_title = target_st.get("movieTitle", "phim") if isinstance(target_st, dict) else "phim"
+                        c_name = target_st.get("cinemaName", "Rạp") if isinstance(target_st, dict) else "Rạp"
+
+                        if is_layout_query:
+                            return (
+                                f"📐 **Sơ đồ & Quy tắc bố trí ghế tại {c_name}:**\n\n"
+                                f"• **Màn hình (Screen):** Nằm ở phía trước chính diện phòng chiếu.\n"
+                                f"• **Hàng A — C (Ghế Thường):** Gần màn hình, tầm nhìn bao trùm khung hình lớn, giá vé tiết kiệm ({suggested.get('available_standard', 0)} ghế trống).\n"
+                                f"• **Hàng D — H (Ghế VIP - Vị trí vàng):** Khu vực trung tâm rạp, góc nhìn ngang thẳng tầm mắt, âm thanh Dolby Atmos vòm chuẩn nhất, không bị mỏi cổ ({suggested.get('available_vip', 0)} ghế trống).\n"
+                                f"• **Hàng K (Ghế Đôi Sweetbox):** Nằm ở hàng cuối cùng, thiết kế sofa đôi rộng rãi không vách ngăn, riêng tư và lãng mạn cho cặp đôi ({suggested.get('available_couple', 0)} ghế trống).\n"
+                                f"• **Đánh số ghế:** Đánh số thứ tự từ trái qua phải (1, 2, 3... 12), các số ở giữa (như 5, 6, 7, 8) là chính giữa màn hình.\n\n"
+                                f"👉 Anh/chị muốn đặt ghế nào hãy gõ ví dụ: **'chọn ghế G7 G8'** nhé!"
+                            )
+
+                        if is_best_seat_query:
+                            best_seats = ", ".join(suggested.get("suggested_seats", ["G7", "G8", "H6", "H7"]))
+                            return (
+                                f"🌟 **Tư vấn vị trí ghế đẹp nhất cho phim {m_title} ({c_name}):**\n\n"
+                                f"• **Vị trí vàng (Sweet Spot):** Các hàng ghế **VIP F, G, H** (đặc biệt là các ghế ở giữa từ số 5 đến 8) có góc nhìn $36^\\circ$ chuẩn điện ảnh quốc tế, không bị ngửa cổ và là điểm hội tụ âm thanh vòm sống động nhất.\n\n"
+                                f"💡 **Các ghế VIP trung tâm đẹp nhất đang còn trống:** **{best_seats}**.\n\n"
+                                f"👉 Anh/chị có muốn đặt các ghế này không? Hãy gõ ví dụ: **'chọn ghế {best_seats}'** nhé!"
+                            )
+
+                        if is_couple_query:
+                            c_pairs = suggested.get("adjacent_pairs_couple", [])
+                            vip_pairs = suggested.get("adjacent_pairs_vip", [])
+                            couple_text = ""
+                            if c_pairs:
+                                pair_str = ", ".join([f"{p[0]}-{p[1]}" for p in c_pairs[:3]])
+                                couple_text = f"• **Lựa chọn 1 — Ghế đôi Sweetbox (Hàng K cuối rạp):** Sofa đôi riêng tư lãng mạn. Đang trống các cặp: **{pair_str}**.\n"
+                            vip_text = ""
+                            if vip_pairs:
+                                v_pair_str = ", ".join([f"{p[0]}, {p[1]}" for p in vip_pairs[:3]])
+                                vip_text = f"• **Lựa chọn 2 — Cặp ghế VIP trung tâm (Hàng F, G):** Góc nhìn thẳng màn ảnh cực đẹp. Đang trống: **{v_pair_str}**.\n"
+
+                            sample_pair = c_pairs[0] if c_pairs else (vip_pairs[0] if vip_pairs else ["G7", "G8"])
+                            sample_str = " ".join(sample_pair)
+                            return (
+                                f"💑 **Tư vấn ghế cho Cặp đôi / 2 người xem {m_title}:**\n\n"
+                                f"{couple_text}"
+                                f"{vip_text}\n"
+                                f"👉 Anh/chị muốn chọn vị trí nào có thể gõ ví dụ: **'chọn ghế {sample_str}'** nhé!"
+                            )
+
+                        if is_group_query:
+                            quads = suggested.get("adjacent_quads", [])
+                            triples = suggested.get("adjacent_triples", [])
+                            if "4" in msg_clean_for_list or "bon" in msg_clean_for_list:
+                                if quads:
+                                    quad_lines = "\n".join([f"• Dãy 4 ghế liền nhau hàng {q[0][0]}: **{', '.join(q)}**" for q in quads[:3]])
+                                    sample_str = " ".join(quads[0])
+                                    return (
+                                        f"👥 **Tư vấn ghế cho Nhóm 4 người xem {m_title}:**\n\n"
+                                        f"Em đã quét sơ đồ phòng và tìm thấy các dãy **4 ghế liền kề nhau** ở vị trí VIP rất đẹp:\n"
+                                        f"{quad_lines}\n\n"
+                                        f"👉 Anh/chị hãy gõ: **'chọn ghế {sample_str}'** để giữ cả 4 ghế cạnh nhau nhé!"
+                                    )
+                                else:
+                                    return (
+                                        f"👥 **Tư vấn ghế cho Nhóm 4 người:**\n"
+                                        f"Hiện tại phòng chiếu không còn 4 ghế trống liền nhau trên cùng 1 hàng. Em gợi ý anh/chị chọn 2 cặp ghế hàng trên — hàng dưới ngay phía sau nhau (ví dụ: 2 ghế hàng G + 2 ghế hàng H) để nhóm ngồi gần nhau nhé!\n\n"
+                                        f"👉 Gõ ví dụ: **'chọn ghế G7 G8 H7 H8'** để đặt nhé."
+                                    )
+                            if "3" in msg_clean_for_list or "ba" in msg_clean_for_list:
+                                if triples:
+                                    triple_lines = "\n".join([f"• Dãy 3 ghế liền nhau hàng {t[0][0]}: **{', '.join(t)}**" for t in triples[:3]])
+                                    sample_str = " ".join(triples[0])
+                                    return (
+                                        f"👥 **Tư vấn ghế cho Nhóm 3 người xem {m_title}:**\n\n"
+                                        f"Em đã tìm thấy các dãy **3 ghế liền kề nhau** còn trống:\n"
+                                        f"{triple_lines}\n\n"
+                                        f"👉 Anh/chị hãy gõ: **'chọn ghế {sample_str}'** để giữ chỗ nhé!"
+                                    )
+
+                    # Kiểm tra xem người dùng có đề cập rạp cụ thể không
+                    cinemas_data = get_active_cinemas()
+                    matched_cinema, target_cinema_name = resolve_cinema_entity(user_message, cinemas_data)
+                    
+                    cinema_screens = []
+                    if matched_cinema and matched_cinema.get("id"):
+                        cinema_screens = get_cinema_screens(matched_cinema["id"])
+
+                    # Nếu người dùng có đề cập rạp cụ thể và tìm thấy danh sách phòng chiếu từ Database
+                    if matched_cinema and cinema_screens:
+                        c_display_name = matched_cinema.get("name", target_cinema_name)
+                        
+                        # Kiểm tra xem có đề cập phòng chiếu cụ thể nào không (ví dụ "H001", "Phòng 1", "Phòng 2")
+                        specific_screen = None
+                        for sc in cinema_screens:
+                            sc_name_clean = remove_vietnamese_accents(sc.get("name", "").lower())
+                            if sc_name_clean and sc_name_clean in msg_clean_for_list:
+                                specific_screen = sc
+                                break
+
+                        target_screens = [specific_screen] if specific_screen else cinema_screens
+                        
+                        screen_analysis_lines = []
+                        for sc in target_screens:
+                            s_name = sc.get("name", "Phòng chiếu")
+                            s_type = sc.get("screenType", "STANDARD")
+                            t_rows = sc.get("totalRows", 10) or 10
+                            t_cols = sc.get("totalCols", 12) or 12
+                            
+                            # Tính toán các hàng ghế (A -> ...)
+                            last_row_char = chr(ord('A') + min(t_rows, 26) - 1)
+                            
+                            # Hàng VIP (khoảng 50% - 75% chiều sâu phòng)
+                            vip_start_char = chr(ord('A') + max(3, t_rows // 2 - 1))
+                            vip_end_char = chr(ord('A') + min(t_rows - 2, max(3, t_rows // 2 + 2)))
+                            vip_rows_label = f"{vip_start_char} — {vip_end_char}" if vip_start_char != vip_end_char else vip_start_char
+                            
+                            # Cột trung tâm
+                            mid_col_start = max(1, t_cols // 2 - 1)
+                            mid_col_end = min(t_cols, t_cols // 2 + 2)
+                            center_cols_label = f"{mid_col_start}, {mid_col_start + 1}, {mid_col_end - 1}, {mid_col_end}"
+                            
+                            # Hàng Sweetbox / Couple
+                            sweetbox_char = last_row_char
+                            
+                            # Hàng Standard
+                            std_end_char = chr(ord('A') + max(0, t_rows // 2 - 2))
+                            std_rows_label = f"A — {std_end_char}" if std_end_char > 'A' else "A"
+
+                            screen_analysis_lines.append(
+                                f"• 🎬 **{s_name}** ({s_type} — {t_rows} hàng ghế A–{last_row_char}, {t_cols} cột):\n"
+                                f"  - **Vị trí vàng đẹp nhất (Sweet Spot):** Các hàng **VIP {vip_rows_label} (ghế số {center_cols_label})** — góc nhìn thẳng trực diện, không ngửa cổ, âm thanh vòm sống động nhất.\n"
+                                f"  - **Ghế đôi Sweetbox (Couple):** Hàng **{sweetbox_char}** cuối phòng — sofa đôi rộng rãi, riêng tư và lãng mạn.\n"
+                                f"  - **Ghế Thường tiết kiệm:** Hàng **{std_rows_label}** gần màn ảnh."
+                            )
+                        
+                        rooms_text = "\n\n".join(screen_analysis_lines)
+                        
+                        if is_layout_query:
+                            return (
+                                f"📐 **Sơ đồ & Quy tắc bố trí các phòng chiếu tại {c_display_name}:**\n\n"
+                                f"{rooms_text}\n\n"
+                                f"👉 Anh/chị muốn xem phim gì tại **{c_display_name}**? Hãy gõ ví dụ: **'lịch chiếu phim [Tên Phim]'** để em hiển thị suất chiếu và sơ đồ ghế còn trống nhé!"
+                            )
+                        elif is_couple_query:
+                            return (
+                                f"💑 **Tư vấn ghế cho Cặp đôi / 2 người tại {c_display_name}:**\n\n"
+                                f"{rooms_text}\n\n"
+                                f"👉 Anh/chị muốn xem phim gì? Hãy gõ ví dụ: **'lịch chiếu phim [Tên Phim]'** để em kiểm tra các vị trí ghế đôi đang còn trống nhé!"
+                            )
+                        elif is_group_query:
+                            return (
+                                f"👥 **Tư vấn đặt ghế cho Nhóm tại {c_display_name}:**\n\n"
+                                f"{rooms_text}\n\n"
+                                f"👉 Anh/chị đi nhóm mấy người? Hãy gõ ví dụ: **'lịch chiếu phim [Tên Phim]'** để em tự động quét và tìm dãy ghế liền kề nhau nhé!"
+                            )
+                        else:
+                            return (
+                                f"🌟 **Tư vấn vị trí ghế ngồi đẹp nhất tại {c_display_name}:**\n\n"
+                                f"Hiện tại tại **{c_display_name}** có các phòng chiếu với cấu hình bố trí chi tiết như sau:\n\n"
+                                f"{rooms_text}\n\n"
+                                f"👉 Anh/chị muốn xem phim gì tại **{c_display_name}**? Hãy gõ ví dụ: **'lịch chiếu phim [Tên Phim]'** để em kiểm tra các ghế VIP còn trống nhé!"
+                            )
+
+                    # Chưa có showtime_list trong bộ nhớ: Trả lời tư vấn rạp chung và hướng dẫn chọn phim
+                    if is_layout_query:
+                        return (
+                            "📐 **Sơ đồ & Quy tắc bố trí phòng chiếu Nova Cinema:**\n\n"
+                            "• **Màn hình (Screen):** Nằm ở phía trước chính diện phòng chiếu.\n"
+                            "• **Hàng A — C (Ghế Thường / Standard):** Gần màn hình, tầm nhìn bao trùm khung hình lớn, giá vé tiết kiệm.\n"
+                            "• **Hàng D — H (Ghế VIP - Vị trí vàng):** Khu vực trung tâm rạp, góc nhìn ngang tầm mắt, âm thanh Dolby Atmos vòm chuẩn nhất, không bị mỏi cổ.\n"
+                            "• **Hàng K (Ghế Đôi Sweetbox):** Hàng cuối cùng, thiết kế sofa đôi rộng rãi không vách ngăn, riêng tư và lãng mạn cho cặp đôi.\n"
+                            "• **Đánh số ghế:** Đánh số thứ tự từ trái qua phải (1, 2, 3... 12/14/16), các số ở giữa (như 5, 6, 7, 8) là chính giữa màn hình.\n\n"
+                            "👉 Anh/chị muốn xem phim nào hãy gõ: **'lịch chiếu phim [Tên Phim]'** để em hiển thị sơ đồ ghế còn trống nhé!"
+                        )
+
+                    if is_best_seat_query:
+                        return (
+                            "🌟 **Tư vấn vị trí ghế ngồi đẹp nhất tại rạp Nova Cinema:**\n\n"
+                            "• **Vị trí vàng (Sweet Spot):** Các hàng ghế **VIP D, E, F, G, H** (đặc biệt là các ghế ở giữa từ số 5 đến 8) có góc nhìn $36^\\circ$ chuẩn điện ảnh quốc tế, không bị ngửa cổ và là điểm hội tụ âm thanh vòm Dolby Atmos sống động nhất.\n"
+                            "• **Ghế Thường (Hàng A - C):** Phù hợp ai thích màn ảnh to bao trùm toàn bộ tầm nhìn.\n"
+                            "• **Ghế Đôi Sweetbox (Hàng K cuối):** Dành riêng cho cặp đôi cần sự riêng tư và lãng mạn.\n\n"
+                            "👉 Anh/chị muốn xem phim gì hãy gõ: **'lịch chiếu phim [Tên Phim]'** để em kiểm tra và đề xuất các ghế VIP đẹp nhất đang còn trống nhé!"
+                        )
+
+                    if is_couple_query:
+                        return (
+                            "💑 **Tư vấn ghế cho Cặp đôi / 2 người tại Nova Cinema:**\n\n"
+                            "• **Lựa chọn 1 — Ghế đôi Sweetbox (Hàng K cuối rạp):** Ghế sofa đôi liền nhau không vách ngăn, không gian riêng tư và lãng mạn nhất.\n"
+                            "• **Lựa chọn 2 — Cặp ghế VIP trung tâm (Hàng F, G):** Vị trí đẹp nhất để cùng thưởng thức trọn vẹn chất lượng phim và âm thanh đỉnh cao.\n\n"
+                            "👉 Anh/chị hãy gõ: **'lịch chiếu phim [Tên Phim]'** để em kiểm tra và giữ các ghế đôi đang còn trống nhé!"
+                        )
+
+                    if is_group_query:
+                        return (
+                            "👥 **Tư vấn đặt ghế cho Nhóm bạn / Đi đông người:**\n\n"
+                            "• Hệ thống Nova Cinema có tính năng **tự động quét và tìm các dãy ghế liền kề nhau** trên cùng một hàng VIP/Standard để cả nhóm được ngồi cạnh nhau.\n"
+                            "• Nếu số lượng ghế liền nhau trên 1 hàng không đủ, bot sẽ tự động đề xuất 2 cặp ghế hàng trên — hàng dưới ngay sát phía sau nhau.\n\n"
+                            "👉 Anh/chị đi nhóm mấy người và muốn xem phim gì? Hãy gõ ví dụ: **'lịch chiếu phim [Tên Phim]'** để em tìm dãy ghế liền nhau nhé!"
+                        )
 
                 movies = []
                 # 1. Lấy danh sách phim đang cưới tự động qua API Java
@@ -481,6 +772,53 @@ class TemplateEngine(BaseChatEngine):
                 
                 # Nếu không tìm thấy phim nào khớp (0 kết quả)
                 if not movie_name and not candidates:
+                    # Nếu người dùng chỉ gõ chung chung "đặt vé", "mua vé", "đặt vé xem phim"...
+                    is_generic_booking_phrase = any(b in msg_clean_for_list for b in ["dat ve", "mua ve", "book ve", "dat ghe", "giu ghe", "toi muon dat", "muon dat"])
+                    if is_generic_booking_phrase:
+                        # Nếu đang có sẵn 1 suất chiếu duy nhất từ tìm kiếm trước đó -> Tự động chuyển tiếp chọn ghế
+                        if showtime_list and len(showtime_list) == 1:
+                            target_st = showtime_list[0]
+                            st_id = target_st.get("id") if isinstance(target_st, dict) else target_st
+                            state["showtime_id"] = st_id
+                            state["selected_showtime_info"] = target_st
+                            session_manager.set_state(session_id, state)
+                            
+                            m_title = target_st.get("movieTitle", "phim") if isinstance(target_st, dict) else "phim"
+                            c_name = target_st.get("cinemaName", "rạp") if isinstance(target_st, dict) else "rạp"
+                            raw_time = target_st.get("startTime", "") if isinstance(target_st, dict) else ""
+                            time_str = raw_time.split("T")[1][:5] if "T" in raw_time else "20:00"
+
+                            seats_res = get_suggested_seats.invoke({"showtime_id": st_id})
+                            seats_msg = ResponseFormatter.format_suggested_seats(seats_res)
+                            return f"💺 Em đã chọn suất chiếu phim **{m_title}** ({c_name}) lúc **{time_str}** cho anh/chị.\n\n{seats_msg}"
+                        
+                        elif showtime_list and len(showtime_list) > 1:
+                            return f"💡 Hiện tại đang có {len(showtime_list)} suất chiếu. Anh/chị hãy gõ số thứ tự suất chiếu (từ 1 đến {len(showtime_list)}) hoặc gõ 'đặt vé suất [số]' để tiếp tục chọn ghế nhé!"
+
+                        if movies:
+                            lines = [
+                                "🎬 Chào anh/chị, anh/chị muốn đặt vé cho phim nào ạ?",
+                                "Hiện tại rạp đang chiếu các phim cực kỳ hấp dẫn:"
+                            ]
+                            for m in movies[:7]:
+                                genres = ", ".join(g["name"] for g in m.get("genres", []))
+                                duration = f"{m.get('duration')} phút" if m.get('duration') else ""
+                                rated = f"Hạng {m.get('rated')}" if m.get('rated') else ""
+                                meta = " — ".join(filter(None, [duration, rated, genres]))
+                                lines.append(f"• **{m['title']}** ({meta})")
+                            
+                            example_title = movie_titles[0] if movie_titles else "Mai"
+                            lines.append(f"\n👉 Anh/chị vui lòng phản hồi tên phim (Ví dụ: 'phim {example_title}') để em hiển thị lịch chiếu nhé!")
+                            return "\n".join(lines)
+                        elif movie_titles:
+                            movies_str = ", ".join(f"**{m}**" for m in movie_titles)
+                            example_title = movie_titles[0] if movie_titles else "Mai"
+                            return (
+                                f"🎬 Chào anh/chị, anh/chị muốn đặt vé cho phim nào ạ?\n"
+                                f"Hiện tại rạp đang chiếu các phim: {movies_str}.\n\n"
+                                f"👉 Anh/chị vui lòng phản hồi tên phim (Ví dụ: 'phim {example_title}') để em hiển thị lịch chiếu nhé!"
+                            )
+
                     # Kiểm tra xem câu hỏi có phải dạng câu hỏi tương đối/chưa rõ phim
                     asking_relative = any(rc in msg_clean_for_list for rc in ["rap do", "o do", "o day", "rap nay", "khu vuc do", "cho do", "suat may gio", "may gio", "co suat"])
                     if asking_relative:
@@ -497,19 +835,9 @@ class TemplateEngine(BaseChatEngine):
                     ).replace("[user_msg]", user_message)
 
 
-                cinema_name = ""
-                if "nguyễn trãi" in msg_lower or "nguyen trai" in msg_lower:
-                    cinema_name = "Nguyễn Trãi"
-                elif "trần hưng đạo" in msg_lower or "tran hung dao" in msg_lower:
-                    cinema_name = "Trần Hưng Đạo"
-                elif "quận 12" in msg_lower or "quan 12" in msg_lower or "q12" in msg_lower:
-                    cinema_name = "Quận 12"
-                elif "cầu giấy" in msg_lower or "cau giay" in msg_lower or "hà nội" in msg_lower or "ha noi" in msg_lower:
-                    cinema_name = "Hà Nội"
-                elif "đà nẵng" in msg_lower or "da nang" in msg_lower:
-                    cinema_name = "Đà Nẵng"
-                elif "cần thơ" in msg_lower or "can tho" in msg_lower:
-                    cinema_name = "Cần Thơ"
+                # So khớp rạp chiếu động từ Database
+                cinemas_data = get_active_cinemas()
+                matched_cinema_obj, cinema_name = resolve_cinema_entity(user_message, cinemas_data)
 
                 # Kế thừa ngữ cảnh rạp nếu người dùng hỏi gián tiếp ("ở rạp đó", "rạp đó", "ở đó", "ở đây")
                 if not cinema_name:
@@ -517,12 +845,7 @@ class TemplateEngine(BaseChatEngine):
                     if asking_relative_cinema:
                         saved_cinema = state.get("last_cinema")
                         if saved_cinema:
-                            for c_key in ["Nguyễn Trãi", "Trần Hưng Đạo", "Quận 12", "Hà Nội", "Đà Nẵng", "Cần Thơ"]:
-                                if remove_vietnamese_accents(c_key.lower()) in remove_vietnamese_accents(saved_cinema.lower()):
-                                    cinema_name = c_key
-                                    break
-                            if not cinema_name:
-                                cinema_name = saved_cinema
+                            cinema_name = saved_cinema
                         else:
                             return "Dạ, anh/chị muốn xem lịch chiếu tại cụm rạp nào ạ? (Ví dụ: Nova Cinema Quận 12, Nguyễn Trãi, Hà Nội...)"
 
@@ -552,6 +875,24 @@ class TemplateEngine(BaseChatEngine):
                             resp.raise_for_status()
                             showtimes = resp.json()
                             
+                        # Nếu tìm theo rạp cụ thể không thấy -> Thử query rộng và lọc thông minh
+                        if not showtimes and cinema_name:
+                            broad_params = {"movieTitle": title_to_query}
+                            if date: broad_params["date"] = date
+                            with httpx.Client(timeout=10) as client:
+                                resp = client.get(
+                                    f"{cfg.java_api_base}/internal/api/showtimes",
+                                    headers=headers, params=broad_params
+                                )
+                                if resp.status_code == 200:
+                                    broad_showtimes = resp.json()
+                                    c_clean = remove_vietnamese_accents(cinema_name.lower()).replace(" ", "").replace("quan", "q")
+                                    showtimes = [
+                                        s for s in broad_showtimes
+                                        if c_clean in remove_vietnamese_accents((s.get("cinemaName") or "").lower()).replace(" ", "").replace("quan", "q")
+                                           or remove_vietnamese_accents((s.get("cinemaName") or "").lower()).replace(" ", "").replace("quan", "q") in c_clean
+                                    ]
+
                         notice_prefix = ""
                         # Nếu ngày hôm nay không có suất và người dùng không chọn ngày cụ thể -> Fallback sang ngày mai
                         if not showtimes and not is_explicit:
@@ -568,6 +909,23 @@ class TemplateEngine(BaseChatEngine):
                                 )
                                 resp.raise_for_status()
                                 fallback_showtimes = resp.json()
+                                
+                                if not fallback_showtimes and cinema_name:
+                                    broad_params = {"movieTitle": title_to_query, "date": tomorrow_str}
+                                    with httpx.Client(timeout=10) as client:
+                                        resp_b = client.get(
+                                            f"{cfg.java_api_base}/internal/api/showtimes",
+                                            headers=headers, params=broad_params
+                                        )
+                                        if resp_b.status_code == 200:
+                                            broad_showtimes = resp_b.json()
+                                            c_clean = remove_vietnamese_accents(cinema_name.lower()).replace(" ", "").replace("quan", "q")
+                                            fallback_showtimes = [
+                                                s for s in broad_showtimes
+                                                if c_clean in remove_vietnamese_accents((s.get("cinemaName") or "").lower()).replace(" ", "").replace("quan", "q")
+                                                   or remove_vietnamese_accents((s.get("cinemaName") or "").lower()).replace(" ", "").replace("quan", "q") in c_clean
+                                            ]
+
                                 if fallback_showtimes:
                                     showtimes = fallback_showtimes
                                     notice_prefix = f"ℹ️ Hôm nay rạp đã hết suất chiếu cho phim '{title_to_query}', đây là lịch chiếu ngày mai ({tomorrow_formatted}):\n"
@@ -684,7 +1042,7 @@ class TemplateEngine(BaseChatEngine):
                         return "Hiện tại hệ thống không có lịch chiếu cho phim nào đang chiếu khả dụng ạ."
 
             # 2. Xử lý logic máy trạng thái (Slot Filling)
-            # Stage 2.1: Hỏi chọn ghế nếu chưa chọn ghế
+            # Stage 2.1: Hỏi chọn ghế & Tư vấn vị trí ghế thông minh
             if not seats:
                 state["showtime_id"] = showtime_id
                 state["seats"] = []
@@ -693,8 +1051,112 @@ class TemplateEngine(BaseChatEngine):
                 session_manager.set_state(session_id, state)
                 
                 suggested = get_suggested_seats.execute(showtime_id)
-                res_msg = ResponseFormatter.format_suggested_seats(suggested)
                 selected_info = state.get("selected_showtime_info")
+                
+                movie_label = selected_info["movieTitle"] if selected_info else "phim đã chọn"
+                cinema_label = selected_info["cinemaName"] if selected_info else "Rạp"
+                time_label = selected_info["startTime"].split('T')[-1][:5] if (selected_info and "startTime" in selected_info) else "20:00"
+
+                from ..intent_classifier import remove_vietnamese_accents
+                msg_seat_clean = remove_vietnamese_accents(msg_lower)
+
+                # 1. Câu hỏi về Sơ đồ ghế / Bố trí / Quy tắc đánh số
+                is_layout_query = any(k in msg_seat_clean for k in [
+                    "so do ghe", "sap xep ghe", "sap xep", "bo tri ghe", "bo tri", "thu tu ghe",
+                    "danh so", "so do phong", "cau truc phong", "hang ghe the nao", "vi tri cac hang", "sap dat"
+                ])
+                if is_layout_query:
+                    return (
+                        f"📐 **Sơ đồ & Quy tắc bố trí ghế tại {cinema_label}:**\n\n"
+                        f"• **Màn hình (Screen):** Nằm ở phía trước chính diện phòng chiếu.\n"
+                        f"• **Hàng A — C (Ghế Thường):** Gần màn hình, tầm nhìn bao trùm khung hình lớn, giá vé tiết kiệm ({suggested.get('available_standard', 0)} ghế trống).\n"
+                        f"• **Hàng D — H (Ghế VIP - Vị trí vàng):** Khu vực trung tâm rạp, góc nhìn ngang thẳng tầm mắt, âm thanh Dolby Atmos vòm chuẩn nhất, không bị mỏi cổ ({suggested.get('available_vip', 0)} ghế trống).\n"
+                        f"• **Hàng K (Ghế Đôi Sweetbox):** Nằm ở hàng cuối cùng, thiết kế sofa đôi rộng rãi không vách ngăn, riêng tư và lãng mạn cho cặp đôi ({suggested.get('available_couple', 0)} ghế trống).\n"
+                        f"• **Đánh số ghế:** Đánh số thứ tự từ trái qua phải (1, 2, 3... 12), các số ở giữa (như 5, 6, 7, 8) là chính giữa màn hình.\n\n"
+                        f"👉 Anh/chị muốn đặt ghế nào hãy gõ ví dụ: **'chọn ghế G7 G8'** nhé!"
+                    )
+
+                # 2. Câu hỏi về Vị trí đẹp nhất / Đỡ mỏi mắt / Ghế VIP
+                is_best_query = any(k in msg_seat_clean for k in [
+                    "dep nhat", "cho nao dep", "vi tri dep", "ngoi dau dep", "goc nhin tot",
+                    "do moi mat", "chuan nhat", "tot nhat", "ghe nao dep", "ghe dep"
+                ])
+                if is_best_query:
+                    best_seats = ", ".join(suggested.get("suggested_seats", ["G7", "G8", "H6", "H7"]))
+                    return (
+                        f"🌟 **Tư vấn vị trí ghế đẹp nhất cho phim {movie_label} ({cinema_label}):**\n\n"
+                        f"• **Vị trí vàng (Sweet Spot):** Các hàng ghế **VIP F, G, H** (đặc biệt là các ghế ở giữa từ số 5 đến 8) có góc nhìn $36^\\circ$ chuẩn điện ảnh quốc tế, không bị ngửa cổ và là điểm hội tụ âm thanh vòm sống động nhất.\n\n"
+                        f"💡 **Các ghế VIP trung tâm đẹp nhất đang còn trống:** **{best_seats}**.\n\n"
+                        f"👉 Anh/chị có muốn đặt các ghế này không? Hãy gõ ví dụ: **'chọn ghế {best_seats}'** nhé!"
+                    )
+
+                # 3. Câu hỏi về Couple / Cặp đôi / 2 người / Sweetbox
+                is_couple_query = any(k in msg_seat_clean for k in [
+                    "couple", "cap doi", "2 nguoi", "hai nguoi", "nguoi yeu", "ghe doi", "sweetbox", "rieng tu", "hen ho"
+                ])
+                if is_couple_query:
+                    c_pairs = suggested.get("adjacent_pairs_couple", [])
+                    vip_pairs = suggested.get("adjacent_pairs_vip", [])
+                    
+                    couple_text = ""
+                    if c_pairs:
+                        pair_str = ", ".join([f"{p[0]}-{p[1]}" for p in c_pairs[:3]])
+                        couple_text = f"• **Lựa chọn 1 — Ghế đôi Sweetbox (Hàng K cuối rạp):** Ghế sofa đôi liền nhau riêng tư lãng mạn. Đang trống các cặp: **{pair_str}**.\n"
+                    
+                    vip_text = ""
+                    if vip_pairs:
+                        v_pair_str = ", ".join([f"{p[0]}, {p[1]}" for p in vip_pairs[:3]])
+                        vip_text = f"• **Lựa chọn 2 — Cặp ghế VIP trung tâm (Hàng F, G):** Góc nhìn thẳng màn ảnh cực đẹp. Đang trống: **{v_pair_str}**.\n"
+
+                    sample_pair = c_pairs[0] if c_pairs else (vip_pairs[0] if vip_pairs else ["G7", "G8"])
+                    sample_str = " ".join(sample_pair)
+
+                    return (
+                        f"💑 **Tư vấn ghế cho Cặp đôi / 2 người xem {movie_label}:**\n\n"
+                        f"{couple_text}"
+                        f"{vip_text}\n"
+                        f"👉 Anh/chị muốn chọn vị trí nào có thể gõ ví dụ: **'chọn ghế {sample_str}'** nhé!"
+                    )
+
+                # 4. Câu hỏi về Nhóm 3 người / 4 người / Đi đông người / Liền nhau
+                is_group_query = any(k in msg_seat_clean for k in [
+                    "3 nguoi", "ba nguoi", "4 nguoi", "bon nguoi", "nhom", "5 nguoi", "lien nhau", "canh nhau", "cung hang"
+                ])
+                if is_group_query:
+                    quads = suggested.get("adjacent_quads", [])
+                    triples = suggested.get("adjacent_triples", [])
+                    
+                    # Nếu người dùng hỏi 4 người
+                    if "4" in msg_seat_clean or "bon" in msg_seat_clean:
+                        if quads:
+                            quad_lines = "\n".join([f"• Dãy 4 ghế liền nhau hàng {q[0][0]}: **{', '.join(q)}**" for q in quads[:3]])
+                            sample_str = " ".join(quads[0])
+                            return (
+                                f"👥 **Tư vấn ghế cho Nhóm 4 người xem {movie_label}:**\n\n"
+                                f"Em đã quét sơ đồ phòng và tìm thấy các dãy **4 ghế liền kề nhau** ở vị trí VIP rất đẹp:\n"
+                                f"{quad_lines}\n\n"
+                                f"👉 Anh/chị hãy gõ: **'chọn ghế {sample_str}'** để giữ cả 4 ghế cạnh nhau nhé!"
+                            )
+                        else:
+                            return (
+                                f"👥 **Tư vấn ghế cho Nhóm 4 người:**\n"
+                                f"Hiện tại phòng chiếu không còn 4 ghế trống liền nhau trên cùng 1 hàng. Em gợi ý anh/chị chọn 2 cặp ghế hàng trên — hàng dưới ngay phía sau nhau (ví dụ: 2 ghế hàng G + 2 ghế hàng H) để nhóm ngồi gần nhau nhé!\n\n"
+                                f"👉 Gõ ví dụ: **'chọn ghế G7 G8 H7 H8'** để đặt nhé."
+                            )
+                    
+                    # Nếu người dùng hỏi 3 người
+                    if "3" in msg_seat_clean or "ba" in msg_seat_clean:
+                        if triples:
+                            triple_lines = "\n".join([f"• Dãy 3 ghế liền nhau hàng {t[0][0]}: **{', '.join(t)}**" for t in triples[:3]])
+                            sample_str = " ".join(triples[0])
+                            return (
+                                f"👥 **Tư vấn ghế cho Nhóm 3 người xem {movie_label}:**\n\n"
+                                f"Em đã tìm thấy các dãy **3 ghế liền kề nhau** còn trống:\n"
+                                f"{triple_lines}\n\n"
+                                f"👉 Anh/chị hãy gõ: **'chọn ghế {sample_str}'** để giữ chỗ nhé!"
+                            )
+
+                res_msg = ResponseFormatter.format_suggested_seats(suggested)
                 if selected_info:
                     start_time_clean = selected_info["startTime"].split('T')[-1][:5]
                     res_msg = res_msg.replace(
@@ -1233,20 +1695,12 @@ class TemplateEngine(BaseChatEngine):
                 # Kiểm tra xem người dùng có đề cập rạp hoặc khu vực cụ thể nào không
                 from ..intent_classifier import remove_vietnamese_accents
                 msg_clean_w = remove_vietnamese_accents(msg_lower)
-                
-                target_cinema_name = ""
-                if "12" in msg_clean_w or "q12" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Quận 12"
-                elif "nguyen trai" in msg_clean_w or "quan 1" in msg_clean_w or "q1" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Nguyễn Trãi"
-                elif "tran hung dao" in msg_clean_w or "quan 5" in msg_clean_w or "q5" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Trần Hưng Đạo"
-                elif "ha noi" in msg_clean_w or "cau giay" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Hà Nội"
-                elif "da nang" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Đà Nẵng"
-                elif "can tho" in msg_clean_w:
-                    target_cinema_name = "Nova Cinema Cần Thơ"
+                # So khớp rạp động từ Database
+                cinemas_data = get_active_cinemas()
+                matched_cinema_obj, target_cinema_name = resolve_cinema_entity(user_message, cinemas_data)
+                asking_relative_cinema = any(rc in msg_clean_w for rc in ["rap do", "o do", "o day", "rap nay", "khu vuc do", "cho do", "o rap"])
+                if not target_cinema_name and asking_relative_cinema:
+                    target_cinema_name = state.get("last_cinema", "")
 
                 # Nếu người dùng hỏi phim đang chiếu / danh sách phim kèm thời tiết
                 is_asking_movies = any(p in msg_clean_w for p in [

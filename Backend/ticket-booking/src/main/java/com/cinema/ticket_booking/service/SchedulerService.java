@@ -16,4 +16,9 @@ public interface SchedulerService {
      * Dọn dẹp refresh token hết hạn trong DB.
      */
     void cleanExpiredRefreshTokens();
+
+    /**
+     * Tự động cập nhật vòng đời phim (COMING_SOON -> NOW_SHOWING -> ENDED).
+     */
+    void autoUpdateMovieLifecycle();
 }

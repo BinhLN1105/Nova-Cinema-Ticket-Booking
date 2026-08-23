@@ -12,12 +12,17 @@ class Settings(BaseSettings):
     internal_api_key: str = ""
 
     # LLM
-    gemini_api_key:  str = ""
-    openai_api_key:  str = ""
-    cohere_api_key:  str = ""
-    llm_model:       str = "gemini-2.5-flash"
-    llm_temperature: float = 0.1
-    use_mock_ai:     bool = True  # Ưu tiên chế độ phản hồi mẫu thông minh offline (tránh rate limit Gemini)
+    openrouter_api_key:  str = ""
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    gemini_api_key:      str = ""
+    openai_api_key:      str = ""
+    cohere_api_key:      str = ""
+    llm_model:           str = "deepseek/deepseek-chat"
+    llm_fallback_models: str = "qwen/qwen-2.5-72b-instruct:free,mistralai/mistral-7b-instruct:free,meta-llama/llama-3.1-70b-instruct:free"
+    llm_temperature:     float = 0.0  # Nhiệt độ thấp (0.0) chuẩn enterprise giúp AI không bịa đặt
+    llm_timeout:         float = 8.0  # Thời gian chờ tối đa (giây) cho mỗi model
+    llm_max_tokens:      int = 1024   # Độ dài token tối đa cho câu trả lời
+    use_mock_ai:         bool = True  # True: ưu tiên offline smart template; False: gọi OpenRouter LLM
 
     # Vector DB (FAISS)
     vector_db_dir:     str = "./faiss_index"
@@ -32,7 +37,7 @@ class Settings(BaseSettings):
 
     # Security
     jwt_secret: str = ""
-    cors_origins: str = "http://localhost:8080,http://localhost:3000"
+    cors_origins: str = "http://localhost:8080"
 
     class Config:
         env_file = ".env"
