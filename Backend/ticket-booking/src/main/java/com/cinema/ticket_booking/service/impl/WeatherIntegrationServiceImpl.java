@@ -33,7 +33,12 @@ public class WeatherIntegrationServiceImpl implements WeatherIntegrationService 
     private final ShowtimeRepository showtimeRepository;
     private final CinemaRepository cinemaRepository;
     private final ObjectMapper objectMapper;
-    private final RestTemplate restTemplate = new RestTemplate();
+    private RestTemplate restTemplate;
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setRestTemplate(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${app.weather.api-key:mock_key}")
     private String apiKey;
