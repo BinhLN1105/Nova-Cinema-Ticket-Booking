@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import org.springframework.data.jpa.repository.Modifying;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -56,4 +58,14 @@ public interface MovieRepository extends JpaRepository<Movie, UUID> {
     Page<Movie> findByStatusNotAndTitleContainingIgnoreCase(MovieStatus status, String title, Pageable pageable);
 
     long countByStatus(MovieStatus status);
+
+    // ── Tự động hóa vòng đời phim ─────────────────────────────────────────
+
+    @Modifying
+    @Query("UPDATE Movie m SET m.status = :targetStatus WHERE m.endDate < :date AND m.status != :targetStatus")
+    int updateStatusForEndedMovies(@Param("date") LocalDate date, @Param("targetStatus") MovieStatus targetStatus);
+
+    @Modifying
+    @Query("UPDATE Movie m SET m.status = :targetStatus WHERE m.releaseDate <= :date AND (m.endDate IS NULL OR m.endDate >= :date) AND m.status = 'COMING_SOON'")
+    int updateStatusForNowShowingMovies(@Param("date") LocalDate date, @Param("targetStatus") MovieStatus targetStatus);
 }

@@ -1,5 +1,7 @@
 package com.cinema.ticket_booking.config;
 
+import com.cinema.ticket_booking.service.MovieService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
@@ -20,6 +22,7 @@ public class DevStartupConfig implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final RedisConnectionFactory connectionFactory;
+    private final MovieService movieService;
 
     @Override
     public void run(String... args) throws Exception {
@@ -27,7 +30,8 @@ public class DevStartupConfig implements CommandLineRunner {
 
         // 1. Giải phóng ghế đang bị khóa
         try {
-            int unlocked = jdbcTemplate.update("UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
+            int unlocked = jdbcTemplate.update(
+                    "UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
             if (unlocked > 0) {
                 log.info("[DevStartup] Đã giải phóng {} ghế đang bị khóa.", unlocked);
             }
@@ -41,6 +45,15 @@ public class DevStartupConfig implements CommandLineRunner {
             log.info("[DevStartup] Đã dọn dẹp (Flush) Redis DB.");
         } catch (Exception e) {
             log.warn("[DevStartup] Không thể flush Redis: {}", e.getMessage());
+        }
+
+        // 3. Tự động đồng bộ vòng đời phim (hết hạn -> ENDED, khởi chiếu ->
+        // NOW_SHOWING)
+        try {
+            int updated = movieService.autoUpdateMovieStatuses();
+            log.info("[DevStartup] Đã đồng bộ trạng thái vòng đời phim ({} phim được cập nhật).", updated);
+        } catch (Exception e) {
+            log.warn("[DevStartup] Lỗi khi đồng bộ trạng thái phim: {}", e.getMessage());
         }
 
         log.info("[DevStartup] Hoàn tất dọn dẹp môi trường Local.");

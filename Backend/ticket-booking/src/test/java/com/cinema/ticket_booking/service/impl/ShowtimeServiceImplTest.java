@@ -8,6 +8,7 @@ import com.cinema.ticket_booking.dto.response.SeatMapResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeResponse;
 import com.cinema.ticket_booking.dto.response.ShowtimeSyncResponse;
 import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.enums.MovieStatus;
 import com.cinema.ticket_booking.enums.SeatStatus;
 import com.cinema.ticket_booking.enums.ShowtimeStatus;
 import com.cinema.ticket_booking.exception.BadRequestException;
@@ -205,7 +206,12 @@ class ShowtimeServiceImplTest {
         request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
         request.setBasePrice(BigDecimal.valueOf(80));
 
-        Movie movie = Movie.builder().duration(120).build();
+        Movie movie = Movie.builder()
+                .duration(120)
+                .status(MovieStatus.NOW_SHOWING)
+                .releaseDate(LocalDate.now().minusDays(1))
+                .endDate(LocalDate.now().plusMonths(1))
+                .build();
         Screen screen = Screen.builder().id(UUID.fromString(request.getScreenId())).build();
         Seat seat = Seat.builder().id(UUID.randomUUID()).build();
 
@@ -236,6 +242,46 @@ class ShowtimeServiceImplTest {
     }
 
     @Test
+    void testCreate_MovieStatusComingSoon_ThrowsBadRequest() {
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(UUID.randomUUID().toString());
+        request.setScreenId(UUID.randomUUID().toString());
+        request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
+        request.setBasePrice(BigDecimal.valueOf(80));
+
+        Movie movie = Movie.builder()
+                .title("Future Movie")
+                .duration(120)
+                .status(MovieStatus.COMING_SOON)
+                .build();
+
+        when(movieService.findById(any(UUID.class))).thenReturn(movie);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+        assertTrue(ex.getMessage().contains("Sắp ra mắt"));
+    }
+
+    @Test
+    void testCreate_MovieStatusEnded_ThrowsBadRequest() {
+        ShowtimeRequest request = new ShowtimeRequest();
+        request.setMovieId(UUID.randomUUID().toString());
+        request.setScreenId(UUID.randomUUID().toString());
+        request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
+        request.setBasePrice(BigDecimal.valueOf(80));
+
+        Movie movie = Movie.builder()
+                .title("Past Movie")
+                .duration(120)
+                .status(MovieStatus.ENDED)
+                .build();
+
+        when(movieService.findById(any(UUID.class))).thenReturn(movie);
+
+        BadRequestException ex = assertThrows(BadRequestException.class, () -> showtimeService.create(request));
+        assertTrue(ex.getMessage().contains("kết thúc"));
+    }
+
+    @Test
     void testCreate_Conflict() {
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(UUID.randomUUID().toString());
@@ -243,7 +289,10 @@ class ShowtimeServiceImplTest {
         request.setStartTime(LocalDateTime.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).plusHours(2));
         request.setBasePrice(BigDecimal.valueOf(80));
 
-        Movie movie = Movie.builder().duration(120).build();
+        Movie movie = Movie.builder()
+                .duration(120)
+                .status(MovieStatus.NOW_SHOWING)
+                .build();
         Screen screen = Screen.builder().id(UUID.fromString(request.getScreenId())).build();
 
         when(movieService.findById(any(UUID.class))).thenReturn(movie);

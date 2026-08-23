@@ -50,7 +50,7 @@ class AesGcmAttributeConverterTest {
     }
 
     @Test
-    @DisplayName("3. Fail-Fast Validation: Ném lỗi ngay lập tức khi key rỗng, null hoặc không đúng 32 bytes")
+    @DisplayName("3. Fail-Fast Validation: Ném lỗi ngay lập tức khi key rỗng hoặc null, và tự động sinh key cho các độ dài khác")
     void testFailFastOnMissingOrInvalidKey() {
         AesGcmAttributeConverter testConverter = new AesGcmAttributeConverter();
 
@@ -60,11 +60,10 @@ class AesGcmAttributeConverterTest {
         // Key rỗng
         assertThrows(IllegalStateException.class, () -> testConverter.initKey("   "));
 
-        // Key quá ngắn (16 bytes)
-        assertThrows(IllegalStateException.class, () -> testConverter.initKey("shortKey12345678"));
-
-        // Key quá dài (40 bytes)
-        assertThrows(IllegalStateException.class, () -> testConverter.initKey("1234567890123456789012345678901234567890"));
+        // Key độ dài bất kỳ (16 bytes hoặc 40 bytes) được SHA-256 KDF sinh khóa 256-bit hợp lệ
+        testConverter.initKey("shortKey12345678");
+        String encrypted = testConverter.convertToDatabaseColumn("Hello World");
+        assertEquals("Hello World", testConverter.convertToEntityAttribute(encrypted));
     }
 
     @Test
@@ -96,5 +95,15 @@ class AesGcmAttributeConverterTest {
 
         assertEquals("", converter.convertToDatabaseColumn(""));
         assertEquals("", converter.convertToEntityAttribute(""));
+    }
+
+    @Test
+    @DisplayName("7. Tự động loại bỏ dấu ngoặc kép hoặc khoảng trắng bao quanh key")
+    void testKeyWithQuotesAndWhitespace() {
+        AesGcmAttributeConverter testConverter = new AesGcmAttributeConverter();
+        testConverter.initKey("  \"" + VALID_32_BYTE_KEY + "\"  ");
+        String plainText = "Test with quotes";
+        String cipher = testConverter.convertToDatabaseColumn(plainText);
+        assertEquals(plainText, testConverter.convertToEntityAttribute(cipher));
     }
 }

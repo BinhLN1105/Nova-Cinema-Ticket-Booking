@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { QRCodeSVG } from 'qrcode.react'
 import { ArrowLeft, MapPin, Clock, Monitor, Ticket, X, Share2, Copy, CheckCheck, Star, Eye, EyeOff } from 'lucide-react'
-import { bookingApi, reviewApi, movieApi } from '@/api/endpoints'
+import { bookingApi, reviewApi, movieApi, authApi } from '@/api/endpoints'
+import { useAuthStore } from '@/stores/authStore'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
 import { Modal } from '@/components/common/ui/Modal'
 import { Button } from '@/components/common/ui/FormElements'
@@ -16,11 +17,56 @@ export default function TicketDetail() {
   const [copied, setCopied] = useState(false)
   const [showCode, setShowCode] = useState(false)
 
+  useEffect(() => {
+    authApi.me().then(res => {
+      if (res?.data) {
+        useAuthStore.getState().setUser(res.data)
+      } else if (res) {
+        useAuthStore.getState().setUser(res)
+      }
+    }).catch(() => {})
+  }, [])
+
   const { data: booking, refetch, isLoading } = useQuery({
     queryKey: ['booking', id],
     queryFn: () => bookingApi.getById(id),
     enabled: !!id,
   })
+
+  // Đếm ngược thời gian hết hạn cho đơn PENDING
+  const [timeLeft, setTimeLeft] = useState('')
+  const [isLowTime, setIsLowTime] = useState(false)
+  const [isExpired, setIsExpired] = useState(false)
+
+  useEffect(() => {
+    if (!booking?.expiresAt || booking?.status !== 'PENDING') return
+
+    const targetTime = new Date(booking.expiresAt).getTime()
+
+    const updateTimer = () => {
+      const diff = targetTime - Date.now()
+      if (diff <= 0) {
+        setTimeLeft('00:00')
+        setIsExpired(true)
+        setIsLowTime(true)
+        refetch() // Tự động refetch để chuyển status sang EXPIRED
+        return false
+      }
+      const mins = Math.floor(diff / (1000 * 60))
+      const secs = Math.floor((diff % (1000 * 60)) / 1000)
+      setIsLowTime(mins < 2)
+      setTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
+      return true
+    }
+
+    if (!updateTimer()) return
+
+    const timer = setInterval(() => {
+      if (!updateTimer()) clearInterval(timer)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [booking?.expiresAt, booking?.status, refetch])
 
   const cancelMutation = useMutation({
     mutationFn: () => bookingApi.cancelRequest(id),
@@ -126,6 +172,41 @@ export default function TicketDetail() {
           </button>
           <h1 className="font-display text-2xl font-bold text-white">Chi tiết vé</h1>
         </div>
+
+        {/* Countdown Timer Banner for PENDING bookings */}
+        {booking.status === 'PENDING' && booking.expiresAt && !isExpired && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className={cn(
+              "p-4 rounded-2xl mb-4 border flex items-center justify-between transition-all duration-300 shadow-md",
+              isLowTime
+                ? "bg-red-500/15 border-red-500/40 shadow-red-500/10 animate-pulse"
+                : "bg-amber-500/10 border-amber-500/30 shadow-amber-500/5"
+            )}
+          >
+            <div className="flex items-center gap-3">
+              <div className={cn(
+                "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0",
+                isLowTime ? "bg-red-500/20 text-red-400" : "bg-amber-500/20 text-amber-400"
+              )}>
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <p className="text-white text-xs font-semibold">Thời gian giữ vé còn lại</p>
+                <p className="text-cinema-400 text-[11px]">Đơn vé sẽ tự động hết hạn khi hết giờ</p>
+              </div>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <span className={cn(
+                "font-mono font-bold text-2xl tracking-wider",
+                isLowTime ? "text-red-400" : "text-amber-400"
+              )}>
+                {timeLeft || '--:--'}
+              </span>
+            </div>
+          </motion.div>
+        )}
 
         {/* Ticket card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
@@ -262,6 +343,16 @@ export default function TicketDetail() {
                   </div>
                 </div>
               </>
+            ) : booking.status === 'PENDING' ? (
+              <div className="text-center py-5 px-4">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 text-amber-400">
+                  <Clock className="w-6 h-6 animate-pulse" />
+                </div>
+                <p className="text-white text-sm font-semibold mb-1">Chờ thanh toán</p>
+                <p className="text-cinema-400 text-xs max-w-xs mx-auto">
+                  Mã QR và thông tin vé sẽ sẵn sàng ngay sau khi hoàn tất thanh toán.
+                </p>
+              </div>
             ) : (
               <div className="text-center py-4">
                 <Ticket className="w-12 h-12 text-cinema-600 mx-auto mb-2" />
@@ -271,17 +362,31 @@ export default function TicketDetail() {
           </div>
         </motion.div>
 
-        {/* Price */}
+        {/* Price Breakdown */}
         <div className="card-cinema p-4 mt-4 space-y-2">
-          {booking.discount > 0 && (
+          {(booking.subtotal || booking.totalOriginalAmount) && (booking.discountAmount > 0 || booking.pointDiscount > 0) && (
             <div className="flex justify-between text-sm">
-              <span className="text-cinema-400">Giảm giá</span>
-              <span className="text-green-400">- {formatCurrency(booking.discount)}</span>
+              <span className="text-cinema-400">Tạm tính</span>
+              <span className="text-cinema-200">
+                {formatCurrency((booking.subtotal || booking.totalOriginalAmount) || (Number(booking.totalAmount) + Number(booking.discountAmount || 0)))}
+              </span>
             </div>
           )}
-          <div className="flex justify-between font-bold">
-            <span className="text-white">Tổng cộng</span>
-            <span className="text-brand-400 text-lg">{formatCurrency(booking.totalAmount)}</span>
+          {(booking.discountAmount > 0 || booking.discount > 0) && (
+            <div className="flex justify-between text-sm">
+              <span className="text-cinema-400">
+                {booking.pointDiscount > 0 ? 'Đã trừ CinePoint' : 'Giảm giá / Khuyến mãi'}
+              </span>
+              <span className="text-green-400 font-medium">
+                - {formatCurrency(booking.discountAmount || booking.discount || booking.pointDiscount)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between items-center font-bold pt-2 border-t border-white/5">
+            <span className="text-white">
+              {booking.status === 'PENDING' ? 'Cần thanh toán' : 'Tổng cộng'}
+            </span>
+            <span className="text-brand-400 text-xl font-bold">{formatCurrency(booking.totalAmount)}</span>
           </div>
         </div>
 
@@ -305,14 +410,19 @@ export default function TicketDetail() {
         )}
 
         {/* Thanh toán lại nếu PENDING */}
-        {booking.status === 'PENDING' && (
+        {booking.status === 'PENDING' && !isExpired && (
           <button
             onClick={() => navigate(`/booking/payment/${booking.id}`)}
-            className="w-full mt-4 flex items-center justify-center gap-2 py-3
+            className="w-full mt-4 flex items-center justify-center gap-2 py-3.5
               rounded-xl bg-gradient-to-r from-brand-600 to-brand-500 text-white
-              hover:from-brand-500 hover:to-brand-400 font-medium transition-all shadow-lg shadow-brand-500/25"
+              hover:from-brand-500 hover:to-brand-400 font-semibold transition-all shadow-lg shadow-brand-500/25"
           >
             <span>Thanh toán ngay ({formatCurrency(booking.totalAmount)})</span>
+            {timeLeft && (
+              <span className="px-2 py-0.5 rounded-lg bg-black/25 text-white/90 text-xs font-mono font-bold">
+                {timeLeft}
+              </span>
+            )}
           </button>
         )}
 

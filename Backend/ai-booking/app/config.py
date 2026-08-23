@@ -17,8 +17,8 @@ class Settings(BaseSettings):
     gemini_api_key:      str = ""
     openai_api_key:      str = ""
     cohere_api_key:      str = ""
-    llm_model:           str = "meta-llama/llama-3.3-70b-instruct:free"
-    llm_fallback_models: str = "google/gemini-2.0-flash-exp:free,deepseek/deepseek-chat,mistralai/mistral-7b-instruct:free,qwen/qwen-2.5-72b-instruct:free"
+    llm_model:           str = "deepseek/deepseek-chat"
+    llm_fallback_models: str = "qwen/qwen-2.5-72b-instruct:free,mistralai/mistral-7b-instruct:free,meta-llama/llama-3.1-70b-instruct:free"
     llm_temperature:     float = 0.0  # Nhiệt độ thấp (0.0) chuẩn enterprise giúp AI không bịa đặt
     llm_timeout:         float = 8.0  # Thời gian chờ tối đa (giây) cho mỗi model
     llm_max_tokens:      int = 1024   # Độ dài token tối đa cho câu trả lời

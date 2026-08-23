@@ -3,6 +3,7 @@ package com.cinema.ticket_booking.exception;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.validation.FieldError;
 import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.security.access.AccessDeniedException;
@@ -10,13 +11,17 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.context.request.async.AsyncRequestNotUsableException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.apache.catalina.connector.ClientAbortException;
+import org.springframework.core.NestedExceptionUtils;
 
 import com.cinema.ticket_booking.dto.request.LoginRequest;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.hibernate.StaleObjectStateException;
 import java.util.HashMap;
 import java.util.Map;
+import java.io.IOException;
 
 @RestControllerAdvice
 @Slf4j
@@ -149,6 +154,27 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AppException.class)
     public ResponseEntity<ErrorResponse> handleAppException(AppException ex) {
         return build(ex.getStatus(), ex.getMessage());
+    }
+
+    // ── Xử lý trường hợp Client tự ngắt kết nối (ClientAbortException,
+    // AbortController, v.v.) ──
+    @ExceptionHandler({
+            ClientAbortException.class,
+            AsyncRequestNotUsableException.class
+    })
+    public void handleClientAbort(Exception ex) {
+        log.debug("Client aborted/cancelled connection: {}", ex.getMessage());
+    }
+
+    @ExceptionHandler(HttpMessageNotWritableException.class)
+    public ResponseEntity<ErrorResponse> handleMessageNotWritable(HttpMessageNotWritableException ex) {
+        Throwable root = NestedExceptionUtils.getMostSpecificCause(ex);
+        if (root instanceof IOException || root.getClass().getName().contains("ClientAbort")) {
+            log.debug("Client closed stream while writing response: {}", root.getMessage());
+            return null;
+        }
+        log.error("HttpMessageNotWritableException: ", ex);
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Lỗi định dạng dữ liệu trả về");
     }
 
     // ── 500 Internal Server Error (fallback) ──────────────────────────────

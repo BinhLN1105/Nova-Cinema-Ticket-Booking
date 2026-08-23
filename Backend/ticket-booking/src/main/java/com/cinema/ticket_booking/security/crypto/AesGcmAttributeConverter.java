@@ -13,6 +13,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.util.Base64;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 @Converter
 @Component
@@ -47,13 +49,27 @@ public class AesGcmAttributeConverter implements AttributeConverter<String, Stri
             throw new IllegalStateException(
                     "AUDIT_LOG_ENCRYPTION_KEY is required and must not be empty.");
         }
-        byte[] keyBytes = keyString.getBytes(StandardCharsets.UTF_8);
-        if (keyBytes.length != 32) {
-            throw new IllegalStateException(
-                    "AUDIT_LOG_ENCRYPTION_KEY must be exactly 32 bytes (256 bits) for AES-256-GCM encryption. Actual length: "
-                            + keyBytes.length + " bytes.");
+        keyString = keyString.trim();
+        if ((keyString.startsWith("\"") && keyString.endsWith("\"") && keyString.length() >= 2)
+                || (keyString.startsWith("'") && keyString.endsWith("'") && keyString.length() >= 2)) {
+            keyString = keyString.substring(1, keyString.length() - 1).trim();
         }
-        this.instanceKeySpec = new SecretKeySpec(keyBytes, "AES");
+        byte[] keyBytes = keyString.getBytes(StandardCharsets.UTF_8);
+        byte[] finalKeyBytes;
+        if (keyBytes.length == 32) {
+            finalKeyBytes = keyBytes;
+        } else {
+            try {
+                MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
+                finalKeyBytes = sha256.digest(keyBytes);
+                log.info(
+                        "[AesGcmConverter] AUDIT_LOG_ENCRYPTION_KEY length is {} bytes. Derived 256-bit AES key via SHA-256 KDF.",
+                        keyBytes.length);
+            } catch (NoSuchAlgorithmException e) {
+                throw new IllegalStateException("SHA-256 algorithm not available for key derivation", e);
+            }
+        }
+        this.instanceKeySpec = new SecretKeySpec(finalKeyBytes, "AES");
         staticKeySpec = this.instanceKeySpec;
         log.info("[AesGcmConverter] Initialized 256-bit AES-GCM encryption key successfully.");
     }

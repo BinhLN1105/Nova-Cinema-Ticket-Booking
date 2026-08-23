@@ -145,6 +145,9 @@ public class BookingServiceImpl implements BookingService {
                     showtime.getStartTime().isBefore(LocalDateTime.now(ZoneId.of("Asia/Ho_Chi_Minh")))) {
                 throw new BadRequestException("Suất chiếu không còn nhận đặt vé");
             }
+            if (showtime.getMovie() != null && showtime.getMovie().getStatus() != MovieStatus.NOW_SHOWING) {
+                throw new BadRequestException("Phim '" + showtime.getMovie().getTitle() + "' hiện không ở trạng thái đang chiếu (NOW_SHOWING).");
+            }
         }
 
         // ── 1. Chuẩn bị ghế ────────────────────────────────────────────────

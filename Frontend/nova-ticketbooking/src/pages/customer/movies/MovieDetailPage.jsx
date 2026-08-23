@@ -50,9 +50,35 @@ export default function MovieDetailPage() {
   const existingReview = canReviewData?.existingReview || null
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
+
+  const getEmbedTrailerUrl = (url) => {
+    if (!url) return '';
+    try {
+      if (url.includes('youtube.com/embed/')) {
+        const separator = url.includes('?') ? '&' : '?';
+        return url.includes('autoplay=1') ? url : `${url}${separator}autoplay=1&rel=0`;
+      }
+      const vMatch = url.match(/[?&]v=([^&#]+)/);
+      if (vMatch && vMatch[1]) {
+        return `https://www.youtube.com/embed/${vMatch[1]}?autoplay=1&rel=0`;
+      }
+      const shortMatch = url.match(/youtu\.be\/([^?&#]+)/);
+      if (shortMatch && shortMatch[1]) {
+        return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0`;
+      }
+      const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&#]+)/);
+      if (shortsMatch && shortsMatch[1]) {
+        return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0`;
+      }
+      return url;
+    } catch {
+      return url;
+    }
+  }
 
   const handleSubmitReview = async (e) => {
     e.preventDefault()
@@ -368,10 +394,13 @@ export default function MovieDetailPage() {
                   </button>
                 )}
                 {movie.trailerUrl && (
-                  <a href={movie.trailerUrl} target="_blank" rel="noopener noreferrer"
-                    className="btn-ghost w-full py-3.5 text-base justify-center flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsTrailerOpen(true)}
+                    className="btn-ghost w-full py-3.5 text-base justify-center flex items-center gap-2"
+                  >
                     <Play className="w-5 h-5 fill-current" /> Xem trailer
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -400,6 +429,33 @@ export default function MovieDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Trailer Popup Modal */}
+      <Modal
+        open={isTrailerOpen}
+        onClose={() => setIsTrailerOpen(false)}
+        title={`Trailer: ${movie?.title || ''}`}
+        size="2xl"
+        theme="dark"
+      >
+        <div className="pt-2 pb-1">
+          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
+            {isTrailerOpen && movie?.trailerUrl ? (
+              <iframe
+                src={getEmbedTrailerUrl(movie.trailerUrl)}
+                title={`${movie.title} Trailer`}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-cinema-400 text-sm">
+                Không tìm thấy trailer của phim này
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* Review Modal */}
       <Modal open={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Đánh giá phim" theme="dark">

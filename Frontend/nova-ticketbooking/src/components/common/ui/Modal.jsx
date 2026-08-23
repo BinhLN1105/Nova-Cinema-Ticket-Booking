@@ -12,26 +12,27 @@ const SIZE_MAP = {
   '2xl': 'max-w-2xl',
 }
 
-export function Modal({ open, onClose, title, description, children, size = 'md', theme = 'light', className }) {
+export function Modal({ open, isOpen, onClose, title, description, children, size = 'md', theme = 'light', className }) {
+  const isModalOpen = Boolean(open ?? isOpen);
   const isDark = theme === 'dark'
 
   // Close on Escape
   useEffect(() => {
     const handler = (e) => { if (e.key === 'Escape') onClose() }
-    if (open) window.addEventListener('keydown', handler)
+    if (isModalOpen) window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [open, onClose])
+  }, [isModalOpen, onClose])
 
   // Prevent body scroll
   useEffect(() => {
-    if (open) document.body.style.overflow = 'hidden'
+    if (isModalOpen) document.body.style.overflow = 'hidden'
     else document.body.style.overflow = ''
     return () => { document.body.style.overflow = '' }
-  }, [open])
+  }, [isModalOpen])
 
   return (
     <AnimatePresence>
-      {open && (
+      {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           {/* Backdrop */}
           <motion.div

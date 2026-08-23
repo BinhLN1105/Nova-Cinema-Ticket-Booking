@@ -1,9 +1,59 @@
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { useQuery, useInfiniteQuery } from '@tanstack/react-query'
-import { Ticket, Calendar, MapPin, ChevronRight, Loader2 } from 'lucide-react'
+import { useInfiniteQuery } from '@tanstack/react-query'
+import { Ticket, Calendar, MapPin, ChevronRight, Loader2, Clock } from 'lucide-react'
 import { bookingApi } from '@/api/endpoints'
 import { formatDateTime, formatCurrency, getStatusBadge, cn } from '@/utils'
+
+function TicketItemCountdown({ expiresAt, onExpired }) {
+  const [timeLeft, setTimeLeft] = useState('')
+  const [isExpired, setIsExpired] = useState(false)
+  const [isLowTime, setIsLowTime] = useState(false)
+
+  useEffect(() => {
+    if (!expiresAt) return
+
+    const targetTime = new Date(expiresAt).getTime()
+
+    const update = () => {
+      const diff = targetTime - Date.now()
+      if (diff <= 0) {
+        setTimeLeft('')
+        setIsExpired(true)
+        if (onExpired) onExpired()
+        return false
+      }
+      const mins = Math.floor(diff / (1000 * 60))
+      const secs = Math.floor((diff % (1000 * 60)) / 1000)
+      setIsLowTime(mins < 2)
+      setTimeLeft(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`)
+      return true
+    }
+
+    if (!update()) return
+
+    const interval = setInterval(() => {
+      if (!update()) clearInterval(interval)
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [expiresAt, onExpired])
+
+  if (isExpired || !timeLeft) return null
+
+  return (
+    <span className={cn(
+      "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-mono font-bold tracking-tight border shadow-sm transition-all",
+      isLowTime 
+        ? "bg-red-500/15 border-red-500/40 text-red-400 animate-pulse" 
+        : "bg-amber-500/15 border-amber-500/35 text-amber-300"
+    )}>
+      <Clock className="w-3 h-3" />
+      {timeLeft}
+    </span>
+  )
+}
 
 export default function TicketsPage() {
   const { 
@@ -11,7 +61,8 @@ export default function TicketsPage() {
     isLoading, 
     hasNextPage, 
     fetchNextPage, 
-    isFetchingNextPage 
+    isFetchingNextPage,
+    refetch 
   } = useInfiniteQuery({
     queryKey: ['bookings', 'my'],
     queryFn: ({ pageParam = 0 }) => bookingApi.getMyAll(pageParam, 10),
@@ -48,6 +99,10 @@ export default function TicketsPage() {
             <div className="space-y-3">
               {bookings.map((booking, i) => {
                 const badge = getStatusBadge(booking.status)
+                const seatCount = booking.seats 
+                  ? booking.seats.split(',').filter(Boolean).length 
+                  : (booking.seatCount || 0)
+
                 return (
                   <motion.div key={booking.id}
                     initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
@@ -61,25 +116,35 @@ export default function TicketsPage() {
                           {booking.movieTitle}
                         </h3>
                         <p className="text-cinema-400 text-xs flex items-center gap-1 mb-1">
-                          <MapPin className="w-3 h-3" /> {booking.cinemaName}
+                          <MapPin className="w-3 h-3 flex-shrink-0" /> {booking.cinemaName}
                         </p>
                         <p className="text-cinema-400 text-xs flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> {formatDateTime(booking.startTime)}
+                          <Calendar className="w-3 h-3 flex-shrink-0" /> {formatDateTime(booking.startTime)}
                         </p>
                         <div className="flex items-center gap-2 mt-2">
                           <span className={cn('badge text-xs',
                             `badge-${badge.color}`)}>
                             {badge.label}
                           </span>
-                          <span className="text-cinema-400 text-xs">
-                            {booking.seatCount} ghế
-                          </span>
+                          {seatCount > 0 && (
+                            <span className="text-cinema-400 text-xs">
+                              {seatCount} ghế ({booking.seats})
+                            </span>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right flex-shrink-0">
-                        <p className="text-white font-bold text-sm">{formatCurrency(booking.totalAmount)}</p>
-                        <ChevronRight className="w-4 h-4 text-cinema-500 mt-2 ml-auto
-                          group-hover:text-brand-400 transition-colors" />
+                      <div className="text-right flex-shrink-0 flex flex-col items-end justify-between self-stretch py-0.5">
+                        {booking.status === 'PENDING' && booking.expiresAt && (
+                          <TicketItemCountdown 
+                            expiresAt={booking.expiresAt} 
+                            onExpired={() => refetch()} 
+                          />
+                        )}
+                        <div className="mt-auto">
+                          <p className="text-white font-bold text-sm">{formatCurrency(booking.totalAmount)}</p>
+                          <ChevronRight className="w-4 h-4 text-cinema-500 mt-1 ml-auto
+                            group-hover:text-brand-400 transition-colors" />
+                        </div>
                       </div>
                     </Link>
                   </motion.div>

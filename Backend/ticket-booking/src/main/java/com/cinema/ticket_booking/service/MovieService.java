@@ -49,4 +49,6 @@ public interface MovieService {
     Movie findById(UUID id); // Dùng cho nội bộ các service khác gọi sang
 
     List<MovieSyncResponse> getNowShowingForSync(String genre);
+
+    int autoUpdateMovieStatuses();
 }

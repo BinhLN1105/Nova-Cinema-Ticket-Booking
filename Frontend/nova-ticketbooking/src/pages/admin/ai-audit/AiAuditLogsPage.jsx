@@ -354,6 +354,7 @@ export default function AiAuditLogsPage() {
               <Table
                 columns={customerColumns}
                 data={customerResults?.content || []}
+                rowKey={(c) => c.id}
                 loading={isSearchingCustomer}
                 emptyMessage="Không tìm thấy khách hàng nào khớp với từ khóa tìm kiếm."
                 emptyIcon="🔍"

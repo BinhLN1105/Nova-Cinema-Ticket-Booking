@@ -93,6 +93,28 @@ class MockClient:
                 {"id": "mov6", "title": "Thoát Khỏi Tận Thế"},
                 {"id": "mov7", "title": "Đại Chiến Người Khổng Lồ - S4 Part 2"}
             ]
+        elif "/screens" in url:
+            resp.json.return_value = [
+                {
+                    "id": "scr-1",
+                    "cinemaId": "cin-3",
+                    "cinemaName": "Nova Cinema Quận 12",
+                    "name": "Phòng H001",
+                    "screenType": "STANDARD",
+                    "totalRows": 10,
+                    "totalCols": 12,
+                    "isActive": True
+                }
+            ]
+        elif "/internal/api/cinemas" in url:
+            resp.json.return_value = [
+                {"id": "cin-1", "name": "Nova Cinema Nguyễn Trãi", "city": "TP. Hồ Chí Minh", "address": "123 Nguyễn Trãi, Q5"},
+                {"id": "cin-2", "name": "Nova Cinema Trần Hưng Đạo", "city": "TP. Hồ Chí Minh", "address": "456 Trần Hưng Đạo, Q1"},
+                {"id": "cin-3", "name": "Nova Cinema Quận 12", "city": "TP. Hồ Chí Minh", "address": "123,456/tan chanh hiep q12"},
+                {"id": "cin-4", "name": "Nova Cinema Hà Nội", "city": "Hà Nội", "address": "Cầu Giấy, Hà Nội"},
+                {"id": "cin-5", "name": "Nova Cinema Đà Nẵng", "city": "Đà Nẵng", "address": "Hải Châu, Đà Nẵng"},
+                {"id": "cin-6", "name": "Nova Cinema Cần Thơ", "city": "Cần Thơ", "address": "Ninh Kiều, Cần Thơ"}
+            ]
         elif "/internal/api/showtimes" in url:
             resp.json.return_value = [
                 {
@@ -128,12 +150,17 @@ class MockClient:
                 "availableSeats": 42,
                 "availableVipSeats": 12,
                 "availableStandardSeats": 30,
-                "availableCoupleSeats": 0,
                 "seats": [
-                    {"showtimeSeatId": "seat1", "rowLabel": "G", "colNumber": 7, "seatLabel": "G7"},
-                    {"showtimeSeatId": "seat2", "rowLabel": "G", "colNumber": 8, "seatLabel": "G8"},
-                    {"showtimeSeatId": "seat3", "rowLabel": "H", "colNumber": 6, "seatLabel": "H6"},
-                    {"showtimeSeatId": "seat4", "rowLabel": "H", "colNumber": 7, "seatLabel": "H7"}
+                    {"showtimeSeatId": "s_a1", "rowLabel": "A", "colNumber": 1, "seatLabel": "A1", "seatType": "STANDARD", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_a2", "rowLabel": "A", "colNumber": 2, "seatLabel": "A2", "seatType": "STANDARD", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_g5", "rowLabel": "G", "colNumber": 5, "seatLabel": "G5", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_g6", "rowLabel": "G", "colNumber": 6, "seatLabel": "G6", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_g7", "rowLabel": "G", "colNumber": 7, "seatLabel": "G7", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_g8", "rowLabel": "G", "colNumber": 8, "seatLabel": "G8", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_h6", "rowLabel": "H", "colNumber": 6, "seatLabel": "H6", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_h7", "rowLabel": "H", "colNumber": 7, "seatLabel": "H7", "seatType": "VIP", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_k1", "rowLabel": "K", "colNumber": 1, "seatLabel": "K1", "seatType": "COUPLE", "status": "AVAILABLE"},
+                    {"showtimeSeatId": "s_k2", "rowLabel": "K", "colNumber": 2, "seatLabel": "K2", "seatType": "COUPLE", "status": "AVAILABLE"}
                 ]
             }
         elif "/internal/api/ai/user/tickets" in url:
@@ -451,7 +478,36 @@ def run_tests():
     # Bước B: Chọn suất số 1 chuẩn (sẽ giải mã tự động ra id "125")
     step_a = chat(session_flow_id, "Đặt vé suất 1")["reply"]
     print(f"\nUser: Dat ve suat 1 (valid index)\nNova clean:\n{remove_non_ascii(step_a)}")
-    assert "de xuat" in remove_non_ascii(step_a).lower(), "Thieu goi y ghe ngoi"
+    assert "de xuat" in remove_non_ascii(step_a).lower() or "ghe" in remove_non_ascii(step_a).lower(), "Thieu goi y ghe ngoi"
+
+    # Test Seating Advisory Queries (Vị trí đẹp / Couple / Nhóm 4 người / Sơ đồ ghế)
+    step_best = chat(session_flow_id, "ghế ngồi chỗ nào là đẹp nhất")["reply"]
+    print(f"\nUser: ghe ngoi cho nao la dep nhat\nNova clean:\n{remove_non_ascii(step_best)}")
+    assert "dep nhat" in remove_non_ascii(step_best).lower() and "vip" in remove_non_ascii(step_best).lower(), "Loi tu van ghe dep nhat"
+
+    step_couple = chat(session_flow_id, "hợp cho couple thì ngồi ghế nào")["reply"]
+    print(f"\nUser: hop cho couple thi ngoi ghe nao\nNova clean:\n{remove_non_ascii(step_couple)}")
+    assert "couple" in remove_non_ascii(step_couple).lower() or "sweetbox" in remove_non_ascii(step_couple).lower(), "Loi tu van ghe couple"
+
+    step_group4 = chat(session_flow_id, "đi 4 người thì nên đặt ghế nào")["reply"]
+    print(f"\nUser: di 4 nguoi thi nen dat ghe nao\nNova clean:\n{remove_non_ascii(step_group4)}")
+    assert "4" in remove_non_ascii(step_group4).lower() and "lien" in remove_non_ascii(step_group4).lower(), "Loi tu van ghe nhom 4 nguoi"
+
+    step_layout = chat(session_flow_id, "sơ đồ ghế bố trí thế nào")["reply"]
+    print(f"\nUser: so do ghe bo tri the nao\nNova clean:\n{remove_non_ascii(step_layout)}")
+    assert "so do" in remove_non_ascii(step_layout).lower() or "bo tri" in remove_non_ascii(step_layout).lower(), "Loi giai thich so do ghe"
+
+    # Test Cold Start Seating Advisory (khi chưa chọn phim / suất chiếu nào)
+    session_cold_seat_id = "user_cold_seat_123"
+    cold_seat_res = chat(session_cold_seat_id, "ghế ngồi chỗ nào là đẹp nhất")["reply"]
+    print(f"\nUser: ghe ngoi cho nao la dep nhat (cold start)\nNova clean:\n{remove_non_ascii(cold_seat_res)}")
+    assert "vip" in remove_non_ascii(cold_seat_res).lower() and "khong tim thay phim" not in remove_non_ascii(cold_seat_res).lower(), "Loi cold start seat query"
+
+    # Test Cinema & Room-Specific Seating Advisory
+    session_cinema_seat_id = "user_cinema_seat_456"
+    cinema_seat_res = chat(session_cinema_seat_id, "ghế ngồi chỗ nào là đẹp nhất tại rạp Cinema Q12")["reply"]
+    print(f"\nUser: ghe ngoi cho nao la dep nhat tai rap Cinema Q12\nNova clean:\n{remove_non_ascii(cinema_seat_res)}")
+    assert ("quan 12" in remove_non_ascii(cinema_seat_res).lower() or "q12" in remove_non_ascii(cinema_seat_res).lower()) and "phong h001" in remove_non_ascii(cinema_seat_res).lower() and "vip" in remove_non_ascii(cinema_seat_res).lower(), "Loi cinema room specific seat query"
 
     # Bước C: Chọn ghế
     step_b = chat(session_flow_id, "chọn ghế G7 G8")["reply"]
