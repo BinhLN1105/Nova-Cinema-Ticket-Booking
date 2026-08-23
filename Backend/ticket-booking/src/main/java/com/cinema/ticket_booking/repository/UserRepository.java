@@ -44,6 +44,13 @@ public interface UserRepository extends JpaRepository<User, UUID> {
                           @Param("search") String search, 
                           Pageable pageable);
 
+    // Tìm kiếm khách hàng theo Tên, Email hoặc Số điện thoại (Phục vụ quy trình CSKH)
+    @Query("SELECT u FROM User u WHERE " +
+           "LOWER(u.fullName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "(u.phone IS NOT NULL AND u.phone LIKE CONCAT('%', :query, '%'))")
+    Page<User> searchCustomersByIdentifier(@Param("query") String query, Pageable pageable);
+
     @Modifying
     @Transactional
     @Query("UPDATE User u SET u.rankUsageThisMonth = 0")

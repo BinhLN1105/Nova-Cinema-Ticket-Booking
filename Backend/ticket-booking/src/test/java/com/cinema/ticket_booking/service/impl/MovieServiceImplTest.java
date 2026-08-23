@@ -470,4 +470,26 @@ class MovieServiceImplTest {
         movieService.updateAvgRating(id, null);
         assertEquals(BigDecimal.ZERO, movie.getAvgRating());
     }
+
+    @Test
+    void testAutoUpdateMovieStatuses_Success() {
+        when(movieRepository.updateStatusForEndedMovies(any(LocalDate.class), eq(MovieStatus.ENDED))).thenReturn(2);
+        when(movieRepository.updateStatusForNowShowingMovies(any(LocalDate.class), eq(MovieStatus.NOW_SHOWING))).thenReturn(3);
+
+        int total = movieService.autoUpdateMovieStatuses();
+
+        assertEquals(5, total);
+        verify(movieRepository).updateStatusForEndedMovies(any(LocalDate.class), eq(MovieStatus.ENDED));
+        verify(movieRepository).updateStatusForNowShowingMovies(any(LocalDate.class), eq(MovieStatus.NOW_SHOWING));
+    }
+
+    @Test
+    void testAutoUpdateMovieStatuses_NoChanges() {
+        when(movieRepository.updateStatusForEndedMovies(any(LocalDate.class), eq(MovieStatus.ENDED))).thenReturn(0);
+        when(movieRepository.updateStatusForNowShowingMovies(any(LocalDate.class), eq(MovieStatus.NOW_SHOWING))).thenReturn(0);
+
+        int total = movieService.autoUpdateMovieStatuses();
+
+        assertEquals(0, total);
+    }
 }

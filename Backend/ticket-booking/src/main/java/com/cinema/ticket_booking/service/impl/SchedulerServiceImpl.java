@@ -7,10 +7,17 @@ import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.BookingItemRepository;
 import com.cinema.ticket_booking.repository.ShowtimeSeatRepository;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
+import com.cinema.ticket_booking.repository.UserRepository;
+import com.cinema.ticket_booking.repository.TransactionRepository;
+import com.cinema.ticket_booking.model.Transaction;
+import com.cinema.ticket_booking.enums.TransactionType;
+import com.cinema.ticket_booking.enums.TransactionStatus;
+import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.enums.CampaignStatus;
 import com.cinema.ticket_booking.repository.NotificationCampaignRepository;
 import com.cinema.ticket_booking.service.NotificationService;
 import com.cinema.ticket_booking.service.SchedulerService;
+import com.cinema.ticket_booking.service.MovieService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -19,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -31,6 +39,9 @@ public class SchedulerServiceImpl implements SchedulerService {
     private final RefreshTokenRepository refreshTokenRepository;
     private final NotificationService notificationService;
     private final NotificationCampaignRepository notificationCampaignRepository;
+    private final MovieService movieService;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     /**
      * Mỗi 1 phút: giải phóng ghế LOCKED đã hết hạn giữ chỗ.
@@ -52,19 +63,18 @@ public class SchedulerServiceImpl implements SchedulerService {
 
     /**
      * Mỗi 2 phút: chuyển booking PENDING hết hạn → EXPIRED,
-     * đồng thời giải phóng ghế tương ứng.
+     * đồng thời giải phóng ghế tương ứng và hoàn CinePoint (nếu có thanh toán lai).
      */
     @Override
     @Scheduled(cron = "0 */2 * * * *")
     @Transactional
     public void expireOverdueBookings() {
         try {
-            // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE (không dùng
-            // filter(null) nữa)
+            // 1. Lấy danh sách booking sẽ bị expire trước khi UPDATE
             List<Booking> toExpire = bookingRepository.findByStatusAndExpiresAtBefore(
                     BookingStatus.PENDING, LocalDateTime.now());
 
-            // 2. Giải phóng ghế của từng booking
+            // 2. Giải phóng ghế & hoàn CinePoint của từng booking
             for (Booking booking : toExpire) {
                 bookingItemRepository.findByBookingIdWithSeat(booking.getId()).forEach(item -> {
                     var ss = item.getShowtimeSeat();
@@ -75,6 +85,42 @@ public class SchedulerServiceImpl implements SchedulerService {
                         showtimeSeatRepository.save(ss);
                     }
                 });
+
+                // Hoàn lại CinePoint nếu booking đã trừ CP khi thanh toán lai
+                if (booking.getUser() != null) {
+                    List<Transaction> creditTxs = transactionRepository
+                            .findByReferenceIdAndType(booking.getBookingCode(), TransactionType.PAYMENT_CREDIT);
+                    boolean alreadyRefunded = transactionRepository.existsByReferenceIdAndType(booking.getBookingCode(),
+                            TransactionType.REFUND);
+
+                    if (!creditTxs.isEmpty() && !alreadyRefunded) {
+                        java.math.BigDecimal totalCreditAmount = creditTxs.stream()
+                                .map(Transaction::getAmount)
+                                .reduce(java.math.BigDecimal.ZERO, java.math.BigDecimal::add);
+                        long cpToRefund = totalCreditAmount.divideToIntegralValue(java.math.BigDecimal.valueOf(1000))
+                                .longValue();
+
+                        if (cpToRefund > 0) {
+                            User user = booking.getUser();
+                            long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
+                            user.setRewardPoints(currentPoints + cpToRefund);
+                            userRepository.save(user);
+
+                            Transaction refundTx = Transaction.builder()
+                                    .user(user)
+                                    .amount(totalCreditAmount)
+                                    .type(TransactionType.REFUND)
+                                    .status(TransactionStatus.SUCCESS)
+                                    .referenceId(booking.getBookingCode())
+                                    .description("Hoàn trả " + cpToRefund + " CinePoint do đơn đặt vé "
+                                            + booking.getBookingCode() + " hết hạn thanh toán")
+                                    .build();
+                            transactionRepository.save(refundTx);
+                            log.info("[Scheduler] Đã hoàn trả {} CinePoint cho user {} (Booking {})", cpToRefund,
+                                    user.getEmail(), booking.getBookingCode());
+                        }
+                    }
+                }
             }
 
             // 3. Bulk update status → EXPIRED
@@ -167,6 +213,23 @@ public class SchedulerServiceImpl implements SchedulerService {
             } catch (Exception e) {
                 log.error("[Scheduler] ✗ Lỗi khi gửi chiến dịch {}: {}", campaign.getId(), e.getMessage());
             }
+        }
+    }
+
+    /**
+     * Mỗi ngày lúc 00:01 (giờ VN): Tự động cập nhật vòng đời phim.
+     * Chuyển phim hết hạn -> ENDED, phim đến ngày khởi chiếu -> NOW_SHOWING.
+     */
+    @Override
+    @Scheduled(cron = "0 1 0 * * *", zone = "Asia/Ho_Chi_Minh")
+    @Transactional
+    public void autoUpdateMovieLifecycle() {
+        try {
+            log.info("[Scheduler] Bắt đầu quét và đồng bộ vòng đời phim...");
+            int updated = movieService.autoUpdateMovieStatuses();
+            log.info("[Scheduler] Hoàn tất quét vòng đời phim. Tổng số phim đã cập nhật: {}", updated);
+        } catch (Exception e) {
+            log.error("[Scheduler] Lỗi khi tự động cập nhật vòng đời phim: {}", e.getMessage(), e);
         }
     }
 }

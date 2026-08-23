@@ -6,6 +6,7 @@ import com.cinema.ticket_booking.repository.BookingRepository;
 import com.cinema.ticket_booking.repository.MovieRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -47,6 +48,7 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    @DisplayName("1. Vượt quá 180 ngày ném IllegalArgumentException")
     void testGetStats_IntervalExceeded() {
         LocalDateTime start = LocalDateTime.now().minusDays(185);
         LocalDateTime end = LocalDateTime.now();
@@ -57,6 +59,7 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    @DisplayName("2. UUID rỗng hoặc 00000000... được chuyển đổi thành null cinemaId")
     void testGetStats_EmptyCinemaIdConvertedToNull() {
         UUID emptyId = UUID.fromString("00000000-0000-0000-0000-000000000000");
 
@@ -83,6 +86,7 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    @DisplayName("3. Lấy thống kê đầy đủ thành công bao gồm phân bổ vé & combo theo ngày")
     void testGetStats_Success() {
         UUID cinemaId = UUID.randomUUID();
 
@@ -109,15 +113,24 @@ class DashboardServiceImplTest {
         when(movieRepository.countByStatus(MovieStatus.NOW_SHOWING)).thenReturn(10L);
         when(userRepository.count()).thenReturn(100L);
 
+        String targetDateStr = startDate.toLocalDate().toString();
+
         // Mock Daily breakdown projections
         BookingRepository.RevenueByDayProjection dayRevProj = mock(BookingRepository.RevenueByDayProjection.class);
-        when(dayRevProj.getDate()).thenReturn(startDate.toLocalDate().toString());
+        when(dayRevProj.getDate()).thenReturn(targetDateStr);
         when(dayRevProj.getRevenue()).thenReturn(new BigDecimal("100000"));
         when(dayRevProj.getBookingCount()).thenReturn(2L);
         when(bookingRepository.getRevenueByDayInRange(any(), any(), eq(cinemaId))).thenReturn(List.of(dayRevProj));
 
-        when(bookingRepository.getDailyTicketRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
-        when(bookingRepository.getDailyConcessionRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(Collections.emptyList());
+        BookingRepository.RevenueByDayProjection dailyTicketProj = mock(BookingRepository.RevenueByDayProjection.class);
+        when(dailyTicketProj.getDate()).thenReturn(targetDateStr);
+        when(dailyTicketProj.getRevenue()).thenReturn(new BigDecimal("60000"));
+        when(bookingRepository.getDailyTicketRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(List.of(dailyTicketProj));
+
+        BookingRepository.RevenueByDayProjection dailyConcessionProj = mock(BookingRepository.RevenueByDayProjection.class);
+        when(dailyConcessionProj.getDate()).thenReturn(targetDateStr);
+        when(dailyConcessionProj.getRevenue()).thenReturn(new BigDecimal("40000"));
+        when(bookingRepository.getDailyConcessionRevenueInRange(any(), any(), eq(cinemaId))).thenReturn(List.of(dailyConcessionProj));
 
         // Mock Top Movies
         BookingRepository.TopMovieProjection topMovieProj = mock(BookingRepository.TopMovieProjection.class);
@@ -155,13 +168,13 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    @DisplayName("4. Doanh thu kỳ trước bằng 0 hoặc null, trả về change = 100%")
     void testGetStats_PrevRevenueAndBookingsZero() {
         UUID cinemaId = UUID.randomUUID();
 
-        // 1st call for current, 2nd call for prev (which returns null/0)
         when(bookingRepository.calculateNetRevenue(any(), any(), eq(cinemaId)))
                 .thenReturn(new BigDecimal("1000000"))
-                .thenReturn(BigDecimal.ZERO);
+                .thenReturn(null);
         when(bookingRepository.calculateTotalDiscounts(any(), any(), eq(cinemaId))).thenReturn(BigDecimal.ZERO);
         when(bookingRepository.countTotalBookingsByDateRange(any(), any(), eq(cinemaId)))
                 .thenReturn(15L)
@@ -188,6 +201,38 @@ class DashboardServiceImplTest {
     }
 
     @Test
+    @DisplayName("5. Cả kỳ này và kỳ trước đều không có doanh thu/booking, change = 0%")
+    void testGetStats_ZeroBothPeriods() {
+        when(bookingRepository.calculateNetRevenue(any(), any(), any()))
+                .thenReturn(BigDecimal.ZERO)
+                .thenReturn(BigDecimal.ZERO);
+        when(bookingRepository.calculateTotalDiscounts(any(), any(), any())).thenReturn(BigDecimal.ZERO);
+        when(bookingRepository.countTotalBookingsByDateRange(any(), any(), any()))
+                .thenReturn(0L)
+                .thenReturn(0L);
+
+        when(bookingRepository.getTicketRevenueBySeatType(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.getConcessionRevenueByCombo(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        when(movieRepository.countByStatus(MovieStatus.NOW_SHOWING)).thenReturn(0L);
+        when(userRepository.count()).thenReturn(0L);
+
+        when(bookingRepository.getRevenueByDayInRange(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.getDailyTicketRevenueInRange(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.getDailyConcessionRevenueInRange(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        when(bookingRepository.getTop5MoviesInRange(any(), any(), any())).thenReturn(Collections.emptyList());
+        when(bookingRepository.getRecentBookingsInRange(any(), any(), any())).thenReturn(Collections.emptyList());
+
+        DashboardStatsResponse stats = dashboardService.getStats(startDate, endDate, null);
+
+        assertNotNull(stats);
+        assertEquals(0.0, stats.getRevenueChange());
+        assertEquals(0.0, stats.getBookingChange());
+    }
+
+    @Test
+    @DisplayName("6. Xử lý lỗi Database exception và ném RuntimeException")
     void testGetStats_DatabaseException() {
         when(bookingRepository.calculateNetRevenue(any(), any(), any())).thenThrow(new RuntimeException("DB Connection down"));
 

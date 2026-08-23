@@ -47,4 +47,28 @@ class ChatbotRepository @Inject constructor(
 
         return result
     }
+
+    fun clearSession(): LiveData<Resource<Boolean>> {
+        val result = MutableLiveData<Resource<Boolean>>()
+        result.value = Resource.loading()
+
+        apiService.clearChatSession().enqueue(object : Callback<ApiResponse<Map<String, String>>> {
+            override fun onResponse(
+                call: Call<ApiResponse<Map<String, String>>>,
+                response: Response<ApiResponse<Map<String, String>>>
+            ) {
+                if (response.isSuccessful) {
+                    result.value = Resource.success(true)
+                } else {
+                    result.value = Resource.error("Không thể làm mới cuộc hội thoại")
+                }
+            }
+
+            override fun onFailure(call: Call<ApiResponse<Map<String, String>>>, t: Throwable) {
+                result.value = Resource.error("Lỗi kết nối: ${t.message}")
+            }
+        })
+
+        return result
+    }
 }

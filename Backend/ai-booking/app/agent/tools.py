@@ -248,6 +248,40 @@ def get_active_vouchers() -> str:
         return f"Lỗi kết nối: {str(e)}"
 
 
+def get_active_cinemas() -> list[dict]:
+    """
+    Lấy danh sách toàn bộ rạp chiếu phim đang hoạt động từ Java Backend.
+    """
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.get(
+                f"{cfg.java_api_base}/internal/api/cinemas",
+                headers=_java_headers()
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception:
+        return []
+
+
+def get_cinema_screens(cinema_id: str) -> list[dict]:
+    """
+    Lấy danh sách phòng chiếu và cấu hình hàng/cột của rạp cụ thể từ Java Backend.
+    """
+    if not cinema_id:
+        return []
+    try:
+        with httpx.Client(timeout=10) as client:
+            resp = client.get(
+                f"{cfg.java_api_base}/internal/api/cinemas/{cinema_id}/screens",
+                headers=_java_headers()
+            )
+            resp.raise_for_status()
+            return resp.json()
+    except Exception:
+        return []
+
+
 # Danh sách tools xuất ra để Agent dùng
 ALL_TOOLS = [
     search_knowledge_base,

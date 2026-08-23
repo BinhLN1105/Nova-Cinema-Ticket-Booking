@@ -110,6 +110,8 @@ const AdminNotifications = () =>
   lazy_(() => import("@/pages/admin/notifications/AdminNotificationsPage"));
 const AdminCombos = () =>
   lazy_(() => import("@/pages/admin/combos/CombosPage"));
+const AdminAiAuditLogs = () =>
+  lazy_(() => import("@/pages/admin/ai-audit/AiAuditLogsPage"));
 
 // Staff
 const StaffDashboard = () =>
@@ -193,6 +195,7 @@ export const router = createBrowserRouter([
           { path: "reports", element: <AdminReports /> },
           { path: "settings", element: <AdminSettings /> },
           { path: "notifications", element: <AdminNotifications /> },
+          { path: "ai-audit", element: <AdminAiAuditLogs /> },
           { path: "pos", element: <POSPage /> },
         ],
       },
@@ -211,6 +214,7 @@ export const router = createBrowserRouter([
           { path: "dashboard", element: <StaffDashboard /> },
           { path: "bookings", element: <StaffBookings /> },
           { path: "checkin", element: <StaffCheckIn /> },
+          { path: "ai-audit", element: <AdminAiAuditLogs /> },
           { path: "pos", element: <POSPage /> },
         ],
       },

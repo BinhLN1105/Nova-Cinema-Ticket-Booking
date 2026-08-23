@@ -1,94 +1,153 @@
+"""
+app/agent/engines/llm_engine.py
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+OpenRouter LLM Engine cho NovaTicket Enterprise Chatbot.
+- Chuẩn OpenAI-compatible endpoint qua OpenRouter API.
+- Nhiệt độ cấu hình 0.0 (Strict Zero-Hallucination).
+- Tích hợp Grounding RAG Context & Multi-turn Session Memory.
+- Tự động ném lỗi để tầng Chatbot kích hoạt Fallback khi bị Rate Limit (429) hoặc lỗi mạng.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+"""
+
 import datetime
+import logging
+import httpx
 from .base_engine import BaseChatEngine
 from ...config import get_settings
-from ...agent.tools import ALL_TOOLS
-from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.agents import AgentExecutor, create_tool_calling_agent
-from langchain.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain.memory import ConversationBufferWindowMemory
+from ...agent.tools import search_knowledge_base, get_now_showing_movies
 
+logger = logging.getLogger(__name__)
 cfg = get_settings()
 
-SYSTEM_PROMPT = """Bạn là Nova — trợ lý AI thông minh của NovaTicket, ứng dụng đặt vé xem phim hàng đầu Việt Nam.
+SYSTEM_PROMPT = """Bạn là Nova — trợ lý AI thông minh của NovaTicket, nền tảng đặt vé xem phim hàng đầu Việt Nam.
 
-## Nhiệm vụ của bạn
-Hỗ trợ khách hàng tra cứu và đặt vé xem phim một cách nhanh chóng, chính xác và thân thiện.
+## Nhiệm vụ của bạn:
+Hỗ trợ khách hàng tra cứu thông tin phim, lịch chiếu, giá vé, chính sách ưu đãi một cách nhanh chóng, chính xác và thân thiện.
 
-## Nguyên tắc bắt buộc
-1. Chỉ dùng tool để lấy thông tin — KHÔNG bao giờ bịa ra số liệu về ghế, giờ chiếu, giá vé.
-2. Dùng đúng tool:
-   - Câu hỏi về chính sách, quy định, ưu đãi cố định → search_knowledge_base
-   - Hỏi phim đang chiếu → get_now_showing_movies
-   - Hỏi lịch chiếu cụ thể → get_showtimes
-   - Hỏi ghế trống → get_available_seats
-   - Hỏi voucher/khuyến mãi → get_active_vouchers
-3. Trả lời ngắn gọn, đúng trọng tâm — không dài dòng, không lặp lại câu hỏi.
-4. YÊU CẦU ĐỊNH DẠNG TUYỆT ĐỐI (PLAIN TEXT CHUẨN): Ứng dụng di động không hỗ trợ Markdown.
-   - TUYỆT ĐỐI KHÔNG dùng dấu sao (*) để in đậm, in nghiêng hay làm gạch đầu dòng.
-   - TUYỆT ĐỐI KHÔNG dùng dấu thăng (#) cho tiêu đề.
-   - Hãy dùng dấu gạch ngang (-) hoặc đánh số (1, 2, 3) để liệt kê.
-5. Thân thiện, tự nhiên — dùng tiếng Việt tự nhiên, xưng "em" và gọi khách là "anh/chị".
+## Nguyên tắc cốt lõi (Chuẩn Doanh Nghiệp):
+1. TRUNG THỰC TUYỆT ĐỐI: Chỉ trả lời dựa trên dữ liệu ngữ cảnh được cung cấp bên dưới. TUYỆT ĐỐI KHÔNG tự bịa đặt suất chiếu, giá vé, mã giảm giá hay thông tin không có thật.
+2. NẾU KHÔNG CÓ THÔNG TIN: Hãy trả lời lịch sự rằng hiện chưa có thông tin đó và hướng dẫn khách hàng cách kiểm tra (ví dụ: gõ 'lịch chiếu phim [Tên Phim]' hoặc liên hệ hotline).
+3. ĐỊNH DẠNG RÕ RÀNG: Dùng dấu gạch đầu dòng (-) hoặc số thứ tự (1, 2, 3) để liệt kê thông tin.
+4. GIỌNG ĐIỆU: Thân thiện, chu đáo, xưng "em" và gọi khách là "anh/chị".
 """
 
 class LlmEngine(BaseChatEngine):
     def __init__(self):
-        self._session_memories = {}
+        # Lưu trữ lịch sử hội thoại trượt theo từng session: list of {"role": "user"|"assistant", "content": str}
+        self._session_histories: dict[str, list[dict]] = {}
 
-    def _get_memory(self, session_id: str) -> ConversationBufferWindowMemory:
-        if session_id not in self._session_memories:
-            self._session_memories[session_id] = ConversationBufferWindowMemory(
-                memory_key="chat_history",
-                return_messages=True,
-                k=6
-            )
-        return self._session_memories[session_id]
+    def _get_history(self, session_id: str) -> list[dict]:
+        if session_id not in self._session_histories:
+            self._session_histories[session_id] = []
+        return self._session_histories[session_id]
 
-    def _build_llm(self):
-        if cfg.gemini_api_key:
-            return ChatGoogleGenerativeAI(
-                model=cfg.llm_model,
-                google_api_key=cfg.gemini_api_key,
-                temperature=cfg.llm_temperature,
-            )
-        elif cfg.openai_api_key:
-            from langchain_openai import ChatOpenAI
-            return ChatOpenAI(
-                model=cfg.llm_model,
-                openai_api_key=cfg.openai_api_key,
-                temperature=cfg.llm_temperature,
-                streaming=True
-            )
-        else:
-            raise ValueError("Cần cấu hình GEMINI_API_KEY hoặc OPENAI_API_KEY")
+    def _append_history(self, session_id: str, role: str, content: str):
+        history = self._get_history(session_id)
+        history.append({"role": role, "content": content})
+        # Giữ tối đa 6 lượt hội thoại gần nhất (12 tin nhắn)
+        if len(history) > 12:
+            self._session_histories[session_id] = history[-12:]
+
+    def _call_openrouter(self, messages: list[dict]) -> str:
+        """Gửi request tới OpenRouter API với cơ chế tự động thử lần lượt các candidate models khi gặp Rate Limit hoặc lỗi"""
+        api_key = cfg.openrouter_api_key or cfg.openai_api_key
+        if not api_key:
+            raise ValueError("Chưa cấu hình OPENROUTER_API_KEY")
+
+        base_url = cfg.openrouter_base_url.rstrip("/")
+        url = f"{base_url}/chat/completions"
+        temperature = float(cfg.llm_temperature)
+
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "HTTP-Referer": "https://novaticket.vn",
+            "X-Title": "NovaTicket Enterprise Assistant",
+            "Content-Type": "application/json"
+        }
+
+        # 1. Tập hợp danh sách các model cần thử nghiệm theo thứ tự ưu tiên
+        candidate_models = []
+        if cfg.llm_model:
+            candidate_models.append(cfg.llm_model.strip())
+
+        fallback_models_str = getattr(cfg, "llm_fallback_models", "")
+        if fallback_models_str:
+            for m in fallback_models_str.split(","):
+                m_clean = m.strip()
+                if m_clean and m_clean not in candidate_models:
+                    candidate_models.append(m_clean)
+
+        if not candidate_models:
+            candidate_models = ["meta-llama/llama-3.3-70b-instruct:free"]
+
+        last_error = None
+        timeout = float(getattr(cfg, "llm_timeout", 8.0))
+        max_tokens = int(getattr(cfg, "llm_max_tokens", 1024))
+
+        with httpx.Client(timeout=timeout) as client:
+            for idx, model in enumerate(candidate_models):
+                try:
+                    logger.info(f"[OpenRouter LLM] [{idx + 1}/{len(candidate_models)}] Calling model '{model}' with temp={temperature}, timeout={timeout}s")
+                    payload = {
+                        "model": model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "max_tokens": max_tokens
+                    }
+                    resp = client.post(url, headers=headers, json=payload)
+
+                    if resp.status_code == 200:
+                        data = resp.json()
+                        choices = data.get("choices", [])
+                        if choices:
+                            reply = choices[0].get("message", {}).get("content", "").strip()
+                            if reply:
+                                logger.info(f"[OpenRouter LLM] Succeeded with model '{model}'")
+                                return reply
+
+                    err_msg = f"HTTP {resp.status_code}: {resp.text}"
+                    logger.warning(f"[OpenRouter LLM] Model '{model}' failed ({err_msg}). Trying next candidate...")
+                    last_error = RuntimeError(f"Model '{model}' failed ({err_msg})")
+                except Exception as e:
+                    logger.warning(f"[OpenRouter LLM] Model '{model}' exception: {e}. Trying next candidate...")
+                    last_error = e
+
+        logger.error(f"[OpenRouter LLM] All {len(candidate_models)} candidate models failed. Triggering template fallback.")
+        raise RuntimeError(f"All OpenRouter candidate models exhausted: {last_error}")
 
     def process(self, user_message: str, session_id: str, user_id: str = None) -> str:
-        memory = self._get_memory(session_id)
-        llm = self._build_llm()
-        
         now = datetime.datetime.now()
         today_str = now.strftime('%d/%m/%Y')
-        tomorrow_str = (now + datetime.timedelta(days=1)).strftime('%d/%m/%Y')
         time_str = now.strftime('%H:%M:%S')
 
-        dynamic_system_prompt = SYSTEM_PROMPT + f"\n\n## Ngữ cảnh thời gian:\n- Hôm nay: {today_str}\n- Ngày mai: {tomorrow_str}\n- Giờ: {time_str}\n"
+        # 1. Trích xuất ngữ cảnh RAG và danh mục phim đang chiếu để Grounding
+        rag_context = ""
+        try:
+            kb_results = search_knowledge_base.invoke({"query": user_message})
+            if kb_results and "không tìm thấy" not in kb_results.lower():
+                rag_context += f"\n\n## Kiến thức chính sách & ưu đãi (RAG):\n{kb_results}"
+        except Exception as e:
+            logger.debug(f"RAG search error in LlmEngine: {e}")
 
-        prompt = ChatPromptTemplate.from_messages([
-            ("system", dynamic_system_prompt),
-            MessagesPlaceholder(variable_name="chat_history"),
-            ("human", "{input}"),
-            MessagesPlaceholder(variable_name="agent_scratchpad"),
-        ])
-
-        agent = create_tool_calling_agent(llm, ALL_TOOLS, prompt)
-        executor = AgentExecutor(
-            agent=agent,
-            tools=ALL_TOOLS,
-            memory=memory,
-            verbose=True,
-            max_iterations=5,
-            handle_parsing_errors=True,
-            return_intermediate_steps=False,
+        # 2. Xây dựng dynamic system prompt
+        dynamic_system_prompt = (
+            f"{SYSTEM_PROMPT}\n\n"
+            f"## Ngữ cảnh hệ thống:\n"
+            f"- Thời gian hiện tại: {time_str} ngày {today_str}\n"
+            f"{rag_context}"
         )
-        
-        result = executor.invoke({"input": user_message})
-        return result["output"]
+
+        # 3. Tổng hợp messages với memory
+        history = self._get_history(session_id)
+        messages = [{"role": "system", "content": dynamic_system_prompt}]
+        messages.extend(history)
+        messages.append({"role": "user", "content": user_message})
+
+        # 4. Gọi OpenRouter LLM
+        reply = self._call_openrouter(messages)
+
+        # 5. Lưu vết memory sau khi thành công
+        self._append_history(session_id, "user", user_message)
+        self._append_history(session_id, "assistant", reply)
+
+        return reply

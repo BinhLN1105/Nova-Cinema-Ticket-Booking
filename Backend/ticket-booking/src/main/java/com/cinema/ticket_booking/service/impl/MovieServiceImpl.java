@@ -20,6 +20,7 @@ import com.cinema.ticket_booking.service.MovieService;
 import com.cinema.ticket_booking.service.CloudinaryService;
 import com.cinema.ticket_booking.service.SystemConfigService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
@@ -32,6 +33,8 @@ import org.springframework.data.domain.Sort;
 import java.math.RoundingMode;
 import java.math.BigDecimal;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -41,6 +44,7 @@ import java.util.Arrays;
 @Service // Bắt buộc phải có ở file Impl
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class MovieServiceImpl implements MovieService {
 
     private final MovieRepository movieRepository;
@@ -372,5 +376,28 @@ public class MovieServiceImpl implements MovieService {
                     .orElseThrow(() -> new ResourceNotFoundException("Thể loại", gid)));
         }
         return genres;
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = { "movies_list", "movies_now_showing", "movies_coming_soon" }, allEntries = true)
+    public int autoUpdateMovieStatuses() {
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        // 1. Chuyển các phim đã quá hạn chiếu sang ENDED
+        int endedCount = movieRepository.updateStatusForEndedMovies(today, MovieStatus.ENDED);
+
+        // 2. Chuyển các phim đã đến ngày khởi chiếu (và chưa hết hạn) sang NOW_SHOWING
+        int nowShowingCount = movieRepository.updateStatusForNowShowingMovies(today, MovieStatus.NOW_SHOWING);
+
+        int totalUpdated = endedCount + nowShowingCount;
+        if (totalUpdated > 0) {
+            log.info("[MovieLifecycle] Đã tự động cập nhật trạng thái phim (Ngày {}): {} phim sang ENDED (hết hạn), {} phim sang NOW_SHOWING (khởi chiếu).",
+                    today, endedCount, nowShowingCount);
+        } else {
+            log.info("[MovieLifecycle] Trạng thái vòng đời phim đã đồng bộ với ngày hiện tại ({}).", today);
+        }
+
+        return totalUpdated;
     }
 }

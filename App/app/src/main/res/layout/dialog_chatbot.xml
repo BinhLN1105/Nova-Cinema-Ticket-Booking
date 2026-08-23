@@ -1,101 +1,196 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.coordinatorlayout.widget.CoordinatorLayout 
+    xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/bg_bottom_nav_rounded"
-    android:backgroundTint="@color/surface_container">
+    android:background="@color/bg_dark">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <!-- Thanh nắm (Handle) để người dùng kéo BottomSheet -->
+        <!-- Top Drag Handle -->
         <View
             android:layout_width="40dp"
             android:layout_height="4dp"
             android:layout_gravity="center_horizontal"
-            android:layout_marginTop="12dp"
-            android:background="@color/outline_variant" />
+            android:layout_marginTop="10dp"
+            android:background="#334155" />
 
-        <!-- Phần đầu (Header) của bảng Chat -->
+        <!-- Header -->
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingHorizontal="20dp"
-            android:paddingVertical="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="CineAI ASSISTANT"
-                android:textColor="@color/primary"
-                android:textSize="18sp"
-                android:textStyle="bold"
+            <!-- Bot Avatar Badge -->
+            <ImageView
+                android:id="@+id/ivHeaderAvatar"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:background="@drawable/bg_search_box"
+                android:padding="8dp"
+                android:src="@drawable/ic_baseline_smart_toy_24"
+                app:tint="@color/nova_red"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintBottom_toBottomOf="parent" />
 
-            <ImageView
-                android:id="@+id/btnClose"
-                android:layout_width="32dp"
-                android:layout_height="32dp"
-                android:padding="6dp"
-                android:src="@drawable/ic_close"
-                app:tint="@color/on_surface_variant"
+            <!-- Title & Online Status -->
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="12dp"
+                android:orientation="vertical"
+                app:layout_constraintStart_toEndOf="@+id/ivHeaderAvatar"
+                app:layout_constraintEnd_toStartOf="@+id/layoutHeaderActions"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="Nova Assistant"
+                    android:textColor="@color/white"
+                    android:textSize="16sp"
+                    android:textStyle="bold" />
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <View
+                        android:layout_width="6dp"
+                        android:layout_height="6dp"
+                        android:background="@drawable/bg_film_sprocket"
+                        android:backgroundTint="#10B981" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="4dp"
+                        android:text="TRỰC TUYẾN"
+                        android:textColor="#10B981"
+                        android:textSize="9sp"
+                        android:textStyle="bold"
+                        android:letterSpacing="0.08" />
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- Actions (Clear Chat & Close) -->
+            <LinearLayout
+                android:id="@+id/layoutHeaderActions"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toTopOf="parent"
-                app:layout_constraintBottom_toBottomOf="parent"/>
+                app:layout_constraintBottom_toBottomOf="parent">
+
+                <ImageView
+                    android:id="@+id/btnClearChat"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:layout_marginEnd="6dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_refresh"
+                    app:tint="#94A3B8" />
+
+                <ImageView
+                    android:id="@+id/btnClose"
+                    android:layout_width="32dp"
+                    android:layout_height="32dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:clickable="true"
+                    android:focusable="true"
+                    android:padding="6dp"
+                    android:src="@drawable/ic_close"
+                    app:tint="#94A3B8" />
+            </LinearLayout>
+
         </androidx.constraintlayout.widget.ConstraintLayout>
 
-        <View android:layout_width="match_parent" android:layout_height="1dp" android:background="@color/divider_subtle"/>
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1E293B" />
 
-        <!-- Lịch sử Chat -->
+        <!-- Chat Messages History -->
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rvChat"
             android:layout_width="match_parent"
             android:layout_height="0dp"
             android:layout_weight="1"
-            android:padding="16dp"
             android:clipToPadding="false"
-            tools:listitem="@layout/item_chat_bot"/>
+            android:paddingVertical="8dp"
+            tools:listitem="@layout/item_chat_bot" />
 
-        <!-- Khu vực nhập tin nhắn -->
+        <!-- Suggestion Chips (Horizontal List of FAQs / Quick Prompts) -->
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/rvSuggestions"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:orientation="horizontal"
+            android:paddingHorizontal="12dp"
+            android:paddingVertical="8dp"
+            android:background="#0A111A"
+            app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager"
+            tools:listitem="@layout/item_suggestion_chip" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#1E293B" />
+
+        <!-- Message Input Row -->
         <LinearLayout
             android:id="@+id/layoutInput"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:gravity="center_vertical"
             android:orientation="horizontal"
             android:padding="12dp"
-            android:gravity="center_vertical"
-            android:background="@color/surface_container_highest">
+            android:background="#0D1B2A">
 
             <EditText
                 android:id="@+id/etMessage"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:hint="Hỏi CineAI điều gì đó..."
+                android:layout_weight="1"
                 android:background="@drawable/bg_search_box"
-                android:padding="14dp"
+                android:hint="Hỏi Nova về lịch chiếu, vé, rạp..."
+                android:inputType="textCapSentences|textMultiLine"
                 android:maxLines="4"
-                android:textSize="14sp"
-                android:textColor="@color/on_surface"
-                android:inputType="textCapSentences|textMultiLine"/>
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="12dp"
+                android:textColor="@color/white"
+                android:textColorHint="#64748B"
+                android:textSize="13.5sp" />
 
             <com.google.android.material.floatingactionbutton.FloatingActionButton
                 android:id="@+id/btnSend"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
+                android:layout_marginStart="10dp"
                 android:src="@drawable/ic_baseline_send_24"
+                app:backgroundTint="@color/nova_red"
+                app:elevation="2dp"
                 app:fabSize="mini"
-                app:tint="@color/white"
-                app:elevation="0dp"
-                app:backgroundTint="@color/primary"/>
+                app:tint="@color/white" />
         </LinearLayout>
+
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

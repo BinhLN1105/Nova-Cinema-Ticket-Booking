@@ -8,6 +8,7 @@ import {
   QrCode,
   LogOut,
   Film,
+  Bot,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
@@ -19,6 +20,7 @@ const NAV_ITEMS = [
   { href: "/staff/pos", icon: Film, label: "Quầy bán vé (POS)" },
   { href: "/staff/bookings", icon: CalendarCheck, label: "Đặt vé hôm nay" },
   { href: "/staff/checkin", icon: QrCode, label: "Check-in QR" },
+  { href: "/staff/ai-audit", icon: Bot, label: "Tra cứu AI CSKH" },
 ];
 
 export function StaffLayout() {

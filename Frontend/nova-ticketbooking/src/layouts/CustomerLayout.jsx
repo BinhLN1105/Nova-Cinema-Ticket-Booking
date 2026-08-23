@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation, useNavigate, Navigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Film,
   Search,
@@ -11,6 +11,8 @@ import {
   X,
   ChevronDown,
   Wallet,
+  LogOut,
+  Gift,
 } from "lucide-react";
 import { useAuthStore } from "@/stores/authStore";
 import { useAuth } from "@/hooks";
@@ -39,6 +41,7 @@ export function CustomerLayout() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenu, setUserMenu] = useState(false);
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const userMenuRef = useRef(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
 
@@ -46,6 +49,17 @@ export function CustomerLayout() {
     const onScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", onScroll);
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  // Close menus when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
+        setUserMenu(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   // Close menus and scroll to top on route change
@@ -78,24 +92,37 @@ export function CustomerLayout() {
 
           {/* Desktop nav */}
           <nav className="hidden md:flex items-center gap-1 ml-4">
-            {navLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                to={href}
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200",
-                  location.pathname === href
-                    ? "text-white bg-white/8"
-                    : "text-cinema-200 hover:text-white hover:bg-white/5",
-                )}
-              >
-                {label}
-              </Link>
-            ))}
+            {navLinks.map((link) => {
+              const active = location.pathname === link.href;
+              return (
+                <Link
+                  key={link.href}
+                  to={link.href}
+                  className={cn(
+                    "relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200",
+                    active
+                      ? "text-white font-semibold"
+                      : "text-cinema-200 hover:text-white hover:bg-white/5",
+                  )}
+                >
+                  {link.label}
+                  {active && (
+                    <motion.div
+                      layoutId="activeNav"
+                      className="absolute bottom-0 left-3 right-3 h-0.5 bg-brand-500 rounded-full"
+                    />
+                  )}
+                </Link>
+              );
+            })}
           </nav>
 
-          <div className="flex items-center gap-2 ml-auto">
-            {/* Search */}
+          {/* Right actions */}
+          <div className="ml-auto flex items-center gap-3">
+            {/* Language Switcher */}
+            <LanguageSwitcher />
+
+            {/* Search button */}
             <button
               onClick={() => navigate("/movies")}
               className="p-2.5 rounded-xl text-cinema-200 hover:text-white
@@ -131,55 +158,66 @@ export function CustomerLayout() {
                 </Link>
 
                 {/* User menu */}
-                <div className="relative">
+                <div className="relative" ref={userMenuRef}>
                   <button
                     onClick={() => setUserMenu(!userMenu)}
-                    className="flex items-center gap-2 px-3 py-2 rounded-xl
-                    hover:bg-white/8 transition-all duration-200 group"
+                    className={cn(
+                      "flex items-center gap-2.5 px-3 py-1.5 rounded-2xl transition-all duration-200 group border",
+                      userMenu
+                        ? "bg-white/10 border-white/20 shadow-inner-glow"
+                        : "bg-white/[0.04] border-white/10 hover:bg-white/[0.08] hover:border-white/20"
+                    )}
                   >
-                    <div
-                      className="w-8 h-8 rounded-full bg-brand-500/20 border
-                      border-brand-500/40 flex items-center justify-center"
-                    >
-                      {user?.avatarUrl ? (
-                        <img
-                          src={user.avatarUrl}
-                          alt=""
-                          className="w-full h-full rounded-full object-cover"
-                        />
-                      ) : (
-                        <User className="w-4 h-4 text-brand-400" />
-                      )}
+                    <div className="relative">
+                      <div
+                        className="w-8 h-8 rounded-full bg-brand-500/20 border
+                        border-brand-500/40 flex items-center justify-center overflow-hidden"
+                      >
+                        {user?.avatarUrl ? (
+                          <img
+                            src={user.avatarUrl}
+                            alt=""
+                            className="w-full h-full rounded-full object-cover"
+                          />
+                        ) : (
+                          <User className="w-4 h-4 text-brand-400" />
+                        )}
+                      </div>
+                      <span className={cn(
+                        "absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-cinema-900",
+                        user?.membershipTier === "DIAMOND" ? "bg-cyan-400" :
+                        user?.membershipTier === "GOLD" ? "bg-amber-400" :
+                        user?.membershipTier === "SILVER" ? "bg-slate-300" : "bg-orange-400"
+                      )} />
                     </div>
-                    <div className="hidden sm:flex flex-col items-start justify-center mr-1">
-                      <span className="text-sm font-medium max-w-[120px] truncate leading-tight">
-                        {user?.fullName}
+                    <div className="hidden sm:flex flex-col items-start justify-center text-left">
+                      <span className="text-sm font-semibold max-w-[120px] truncate leading-tight text-white group-hover:text-brand-300 transition-colors">
+                        {user?.fullName || "Khách hàng"}
                       </span>
                       <div className="flex items-center gap-1.5 mt-0.5">
                         <span
                           className={cn(
-                            "text-[10px] font-bold px-1.5 py-[1px] rounded uppercase border",
+                            "text-[9px] font-extrabold px-1.5 py-[0.5px] rounded uppercase border tracking-wider",
                             user?.membershipTier === "DIAMOND"
-                              ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/30"
+                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
                               : user?.membershipTier === "GOLD"
-                                ? "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
                                 : user?.membershipTier === "SILVER"
-                                  ? "bg-slate-300/20 text-slate-300 border-slate-300/30"
-                                  : "bg-orange-500/20 text-orange-400 border-orange-500/30"
+                                  ? "bg-slate-300/20 text-slate-200 border-slate-300/40"
+                                  : "bg-orange-500/20 text-orange-300 border-orange-500/40"
                           )}
                         >
                           {user?.membershipTier || "BRONZE"}
                         </span>
-                        <span className="text-[10px] font-medium text-cinema-300 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-brand-500"></span>
+                        <span className="text-[11px] font-bold text-amber-400 flex items-center gap-1">
                           {user?.rewardPoints || 0} CP
                         </span>
                       </div>
                     </div>
                     <ChevronDown
                       className={cn(
-                        "w-4 h-4 text-cinema-300 transition-transform duration-200",
-                        userMenu && "rotate-180",
+                        "w-4 h-4 text-cinema-300 transition-transform duration-200 group-hover:text-white",
+                        userMenu && "rotate-180 text-white",
                       )}
                     />
                   </button>
@@ -191,47 +229,97 @@ export function CustomerLayout() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.96 }}
                         transition={{ duration: 0.2 }}
-                        className="absolute right-0 top-full mt-2 w-48 rounded-2xl
-                          glass-dark border border-white/8 overflow-hidden shadow-card-float"
+                        className="absolute right-0 top-full mt-2 w-72 rounded-2xl
+                          bg-[#13141F] border border-white/15 shadow-[0_25px_60px_rgba(0,0,0,0.95),0_0_0_1px_rgba(255,255,255,0.08)]
+                          overflow-hidden z-50 p-2.5 divide-y divide-white/[0.08]"
                       >
-                        <div className="px-4 py-3 border-b border-white/6 mb-1 bg-white/[0.02]">
-                          <p className="text-xs text-cinema-300 mb-1">CinePoint</p>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-baseline gap-1">
-                              <span className="text-lg font-bold text-brand-400">{user?.rewardPoints || 0}</span>
-                              <span className="text-xs font-medium text-cinema-400">CP</span>
+                        {/* User Header Summary */}
+                        <div className="pb-3 px-2 pt-1 flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-brand-500/20 border border-brand-500/40 flex items-center justify-center overflow-hidden shrink-0">
+                            {user?.avatarUrl ? (
+                              <img src={user.avatarUrl} alt="" className="w-full h-full object-cover" />
+                            ) : (
+                              <User className="w-5 h-5 text-brand-400" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-bold text-white truncate leading-tight">
+                              {user?.fullName || "Khách hàng"}
+                            </p>
+                            <p className="text-xs text-cinema-300 truncate mt-0.5">
+                              {user?.email || "Thành viên NovaTicket"}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* CinePoint Card */}
+                        <div className="py-2.5 px-1">
+                          <div className="bg-gradient-to-br from-white/[0.06] to-white/[0.02] border border-white/[0.08] rounded-xl p-3 flex items-center justify-between gap-2">
+                            <div>
+                              <div className="text-[11px] font-medium text-cinema-300">
+                                Điểm CinePoint
+                              </div>
+                              <div className="flex items-baseline gap-1 mt-0.5">
+                                <span className="text-xl font-extrabold text-amber-400">{user?.rewardPoints || 0}</span>
+                                <span className="text-xs font-semibold text-cinema-400">CP</span>
+                              </div>
                             </div>
                             <button
                               onClick={() => { setUserMenu(false); setIsTopUpOpen(true); }}
-                              className="flex items-center gap-1.5 text-xs bg-brand-500 text-white px-2.5 py-1.5 rounded-lg hover:bg-brand-600 transition-colors font-semibold"
+                              className="flex items-center gap-1.5 text-xs bg-gradient-to-r from-brand-500 to-brand-600 hover:from-brand-600 hover:to-brand-700 text-white px-3 py-2 rounded-xl shadow-lg shadow-brand-500/25 font-bold transition-all hover:scale-105 active:scale-95 shrink-0"
                             >
                               <Wallet className="w-3.5 h-3.5" />
                               Nạp điểm
                             </button>
                           </div>
                         </div>
-                        <Link
-                          to="/profile"
-                          className="flex items-center gap-3 px-4 py-3 text-sm
-                          text-cinema-100 hover:bg-white/6 transition-colors"
-                        >
-                          <User className="w-4 h-4" /> {t("nav.profile", "Tài khoản")}
-                        </Link>
-                        <Link
-                          to="/tickets"
-                          className="flex items-center gap-3 px-4 py-3 text-sm
-                          text-cinema-100 hover:bg-white/6 transition-colors"
-                        >
-                          <Ticket className="w-4 h-4" /> {t("nav.tickets", "Vé của tôi")}
-                        </Link>
-                        <div className="border-t border-white/6 my-1" />
-                        <button
-                          onClick={logout}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm
-                          text-brand-400 hover:bg-brand-500/10 transition-colors"
-                        >
-                          Đăng xuất
-                        </button>
+
+                        {/* Menu Links */}
+                        <div className="py-1.5 space-y-0.5">
+                          <Link
+                            to="/profile"
+                            onClick={() => setUserMenu(false)}
+                            className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-cinema-100 hover:text-white hover:bg-white/[0.08] transition-all"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-cinema-300 group-hover:text-brand-400 group-hover:bg-brand-500/10 group-hover:border-brand-500/20 transition-colors">
+                              <User className="w-4 h-4" />
+                            </div>
+                            <span className="flex-1">{t("nav.profile", "Tài khoản cá nhân")}</span>
+                          </Link>
+                          <Link
+                            to="/tickets"
+                            onClick={() => setUserMenu(false)}
+                            className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-cinema-100 hover:text-white hover:bg-white/[0.08] transition-all"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-cinema-300 group-hover:text-amber-400 group-hover:bg-amber-500/10 group-hover:border-amber-500/20 transition-colors">
+                              <Ticket className="w-4 h-4" />
+                            </div>
+                            <span className="flex-1">{t("nav.tickets", "Vé của tôi")}</span>
+                          </Link>
+                          <Link
+                            to="/gift-cards"
+                            onClick={() => setUserMenu(false)}
+                            className="group flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-cinema-100 hover:text-white hover:bg-white/[0.08] transition-all"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/5 flex items-center justify-center text-cinema-300 group-hover:text-purple-400 group-hover:bg-purple-500/10 group-hover:border-purple-500/20 transition-colors">
+                              <Gift className="w-4 h-4" />
+                            </div>
+                            <span className="flex-1">Thẻ quà tặng</span>
+                          </Link>
+                        </div>
+
+                        {/* Logout */}
+                        <div className="pt-1.5">
+                          <button
+                            onClick={() => { setUserMenu(false); logout(); }}
+                            className="group w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all text-left"
+                          >
+                            <div className="w-8 h-8 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400 group-hover:text-red-300 transition-colors">
+                              <LogOut className="w-4 h-4" />
+                            </div>
+                            <span>Đăng xuất</span>
+                          </button>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>

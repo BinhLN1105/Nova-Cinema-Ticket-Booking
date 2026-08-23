@@ -5,7 +5,7 @@ import { cn } from "@/utils";
 
 export function Table({
   columns,
-  data,
+  data = [],
   loading,
   skeletonRows = 6,
   rowKey,
@@ -13,6 +13,12 @@ export function Table({
   emptyIcon = "📭",
   onRowClick,
 }) {
+  const getRowKey = (row, index) => {
+    if (typeof rowKey === "function") return rowKey(row) ?? index;
+    if (typeof rowKey === "string" && row?.[rowKey] !== undefined) return row[rowKey];
+    return row?.id ?? row?._id ?? row?.key ?? index;
+  };
+
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
@@ -58,9 +64,9 @@ export function Table({
               </td>
             </tr>
           ) : (
-            data.map((row) => (
+            data.map((row, index) => (
               <tr
-                key={rowKey(row)}
+                key={getRowKey(row, index)}
                 onClick={() => onRowClick?.(row)}
                 className={cn(
                   "border-b border-gray-100 transition-colors",
@@ -88,15 +94,17 @@ export function Table({
 
 export function Pagination({
   page,
-  totalPages,
+  currentPage,
+  totalPages = 0,
   totalElements,
-  pageSize,
+  pageSize = 10,
   onPageChange,
 }) {
+  const activePage = page ?? currentPage ?? 0;
   if (totalPages <= 1) return null;
 
-  const start = page * pageSize + 1;
-  const end = Math.min((page + 1) * pageSize, totalElements);
+  const start = activePage * pageSize + 1;
+  const end = totalElements ? Math.min((activePage + 1) * pageSize, totalElements) : (activePage + 1) * pageSize;
 
   // Compute visible page range
   const range = [];
@@ -104,14 +112,14 @@ export function Pagination({
     for (let i = 0; i < totalPages; i++) range.push(i);
   } else {
     range.push(0);
-    if (page > 2) range.push("...");
+    if (activePage > 2) range.push("...");
     for (
-      let i = Math.max(1, page - 1);
-      i <= Math.min(totalPages - 2, page + 1);
+      let i = Math.max(1, activePage - 1);
+      i <= Math.min(totalPages - 2, activePage + 1);
       i++
     )
       range.push(i);
-    if (page < totalPages - 3) range.push("...");
+    if (activePage < totalPages - 3) range.push("...");
     range.push(totalPages - 1);
   }
 
@@ -122,12 +130,12 @@ export function Pagination({
         <span className="font-medium text-gray-700">
           {start}–{end}
         </span>{" "}
-        / {totalElements}
+        {totalElements ? `/ ${totalElements}` : `(Trang ${activePage + 1}/${totalPages})`}
       </p>
       <div className="flex items-center gap-1">
         <button
-          onClick={() => onPageChange(page - 1)}
-          disabled={page === 0}
+          onClick={() => onPageChange(activePage - 1)}
+          disabled={activePage === 0}
           className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           <ChevronLeft className="w-4 h-4" />
@@ -146,7 +154,7 @@ export function Pagination({
               onClick={() => onPageChange(p)}
               className={cn(
                 "w-8 h-8 rounded-lg text-sm font-medium transition-all",
-                p === page
+                p === activePage
                   ? "bg-brand-500 text-white"
                   : "text-gray-600 hover:bg-gray-100",
               )}
@@ -156,8 +164,8 @@ export function Pagination({
           ),
         )}
         <button
-          onClick={() => onPageChange(page + 1)}
-          disabled={page >= totalPages - 1}
+          onClick={() => onPageChange(activePage + 1)}
+          disabled={activePage >= totalPages - 1}
           className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
         >
           <ChevronRight className="w-4 h-4" />

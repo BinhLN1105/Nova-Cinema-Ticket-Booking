@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
@@ -21,7 +22,8 @@ public class AsyncConfig {
      * Thread pool riêng cho các tác vụ async (FCM, email...).
      * Tránh block thread xử lý HTTP request.
      */
-    @Bean(name = "asyncExecutor")
+    @Bean(name = { "asyncExecutor", "taskExecutor" })
+    @Primary
     public Executor asyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(4);

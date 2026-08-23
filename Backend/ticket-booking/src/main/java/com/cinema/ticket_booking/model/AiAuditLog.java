@@ -1,5 +1,7 @@
 package com.cinema.ticket_booking.model;
 
+import com.cinema.ticket_booking.security.crypto.AesGcmAttributeConverter;
+
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -26,10 +28,12 @@ public class AiAuditLog {
     @Column(name = "session_id", nullable = false)
     private String sessionId;
 
-    @Column(name = "user_message", length = 2000)
+    @Convert(converter = AesGcmAttributeConverter.class)
+    @Column(name = "user_message", length = 4000)
     private String userMessage;
 
-    @Column(name = "ai_response", length = 4000)
+    @Convert(converter = AesGcmAttributeConverter.class)
+    @Column(name = "ai_response", length = 8000)
     private String aiResponse;
 
     @Column(name = "intent")

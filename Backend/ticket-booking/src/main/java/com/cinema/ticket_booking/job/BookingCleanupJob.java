@@ -1,10 +1,16 @@
 package com.cinema.ticket_booking.job;
 
 import com.cinema.ticket_booking.enums.BookingStatus;
+import com.cinema.ticket_booking.enums.TransactionStatus;
+import com.cinema.ticket_booking.enums.TransactionType;
 import com.cinema.ticket_booking.enums.UserVoucherStatus;
 import com.cinema.ticket_booking.model.Booking;
+import com.cinema.ticket_booking.model.Transaction;
+import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.model.UserVoucher;
 import com.cinema.ticket_booking.repository.BookingRepository;
+import com.cinema.ticket_booking.repository.TransactionRepository;
+import com.cinema.ticket_booking.repository.UserRepository;
 import com.cinema.ticket_booking.repository.UserVoucherRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,6 +18,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -22,10 +29,12 @@ public class BookingCleanupJob {
 
     private final BookingRepository bookingRepository;
     private final UserVoucherRepository userVoucherRepository;
+    private final UserRepository userRepository;
+    private final TransactionRepository transactionRepository;
 
     /**
      * Chạy mỗi 2 phút. Dọn dẹp các booking PENDING đã quá hạn thanh toán.
-     * Đồng thời trả lại Voucher về trạng thái AVAILABLE nếu có.
+     * Đồng thời trả lại Voucher về AVAILABLE và hoàn CinePoint (nếu thanh toán lai) cho User.
      */
     @Scheduled(fixedRate = 120000) // 2 minutes
     @Transactional
@@ -56,6 +65,37 @@ public class BookingCleanupJob {
                                     booking.getVoucher().getCode(), booking.getUser().getEmail());
                             }
                         });
+            }
+
+            // 4. Nếu booking có trừ CinePoint khi thanh toán lai (PAYMENT_CREDIT), hoàn trả lại điểm
+            if (booking.getUser() != null) {
+                List<Transaction> creditTxs = transactionRepository.findByReferenceIdAndType(booking.getBookingCode(), TransactionType.PAYMENT_CREDIT);
+                boolean alreadyRefunded = transactionRepository.existsByReferenceIdAndType(booking.getBookingCode(), TransactionType.REFUND);
+
+                if (!creditTxs.isEmpty() && !alreadyRefunded) {
+                    BigDecimal totalCreditAmount = creditTxs.stream()
+                            .map(Transaction::getAmount)
+                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    long cpToRefund = totalCreditAmount.divideToIntegralValue(BigDecimal.valueOf(1000)).longValue();
+
+                    if (cpToRefund > 0) {
+                        User user = booking.getUser();
+                        long currentPoints = user.getRewardPoints() != null ? user.getRewardPoints() : 0L;
+                        user.setRewardPoints(currentPoints + cpToRefund);
+                        userRepository.save(user);
+
+                        Transaction refundTx = Transaction.builder()
+                                .user(user)
+                                .amount(totalCreditAmount)
+                                .type(TransactionType.REFUND)
+                                .status(TransactionStatus.SUCCESS)
+                                .referenceId(booking.getBookingCode())
+                                .description("Hoàn trả " + cpToRefund + " CinePoint do đơn đặt vé " + booking.getBookingCode() + " hết hạn thanh toán")
+                                .build();
+                        transactionRepository.save(refundTx);
+                        log.info("Successfully refunded {} CinePoints to user {} for expired booking {}", cpToRefund, user.getEmail(), booking.getBookingCode());
+                    }
+                }
             }
         }
 

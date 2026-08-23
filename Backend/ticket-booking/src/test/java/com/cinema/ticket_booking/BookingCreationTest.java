@@ -125,6 +125,7 @@ class BookingCreationTest {
                 .id(UUID.randomUUID())
                 .title("Awesome Movie")
                 .duration(120)
+                .status(MovieStatus.NOW_SHOWING)
                 .build();
 
         showtime = Showtime.builder()

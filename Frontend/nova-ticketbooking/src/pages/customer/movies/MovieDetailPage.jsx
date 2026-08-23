@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Star, Clock, Play, Ticket, Calendar, Globe, Users, ChevronLeft, MessageSquare } from 'lucide-react'
 import { movieApi, reviewApi, bookingApi } from '@/api/endpoints'
-import { formatDate, getRatedColor, getImageUrl, cn } from '@/utils'
+import { formatDate, getRatedColor, getImageUrl, getEmbedTrailerUrl, cn } from '@/utils'
 import { useAuthStore } from '@/stores/authStore'
 import { toast } from 'react-hot-toast'
 import { useState } from 'react'
@@ -50,6 +50,7 @@ export default function MovieDetailPage() {
   const existingReview = canReviewData?.existingReview || null
 
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [isTrailerOpen, setIsTrailerOpen] = useState(false)
   const [rating, setRating] = useState(5)
   const [comment, setComment] = useState('')
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
@@ -368,10 +369,13 @@ export default function MovieDetailPage() {
                   </button>
                 )}
                 {movie.trailerUrl && (
-                  <a href={movie.trailerUrl} target="_blank" rel="noopener noreferrer"
-                    className="btn-ghost w-full py-3.5 text-base justify-center flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsTrailerOpen(true)}
+                    className="btn-ghost w-full py-3.5 text-base justify-center flex items-center gap-2"
+                  >
                     <Play className="w-5 h-5 fill-current" /> Xem trailer
-                  </a>
+                  </button>
                 )}
               </div>
 
@@ -400,6 +404,33 @@ export default function MovieDetailPage() {
           </motion.div>
         </div>
       </div>
+
+      {/* Trailer Popup Modal */}
+      <Modal
+        open={isTrailerOpen}
+        onClose={() => setIsTrailerOpen(false)}
+        title={`Trailer: ${movie?.title || ''}`}
+        size="2xl"
+        theme="dark"
+      >
+        <div className="pt-2 pb-1">
+          <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
+            {isTrailerOpen && movie?.trailerUrl ? (
+              <iframe
+                src={getEmbedTrailerUrl(movie.trailerUrl)}
+                title={`${movie.title} Trailer`}
+                className="w-full h-full border-0"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                allowFullScreen
+              />
+            ) : (
+              <div className="w-full h-full flex items-center justify-center text-cinema-400 text-sm">
+                Không tìm thấy trailer của phim này
+              </div>
+            )}
+          </div>
+        </div>
+      </Modal>
 
       {/* Review Modal */}
       <Modal open={isReviewModalOpen} onClose={() => setIsReviewModalOpen(false)} title="Đánh giá phim" theme="dark">

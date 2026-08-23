@@ -86,6 +86,33 @@ class BookingRepository @Inject constructor(
         return result
     }
 
+    fun getDraftBooking(draftId: String): LiveData<Resource<DraftBookingResponse>> {
+        val result = MutableLiveData<Resource<DraftBookingResponse>>()
+        result.value = Resource.loading()
+        apiService.getDraftBooking(draftId).enqueue(object : Callback<ApiResponse<DraftBookingResponse>> {
+            override fun onResponse(
+                call: Call<ApiResponse<DraftBookingResponse>>,
+                response: Response<ApiResponse<DraftBookingResponse>>
+            ) {
+                if (response.isSuccessful && response.body() != null && response.body()!!.success) {
+                    val data = response.body()!!.data
+                    if (data != null) {
+                        result.value = Resource.success(data)
+                    } else {
+                        result.value = Resource.error("Không tìm thấy thông tin vé nháp")
+                    }
+                } else {
+                    result.value = Resource.error(getErrorMessage(response, "Đơn vé nháp không tồn tại hoặc đã hết hạn (tối đa 10 phút)"))
+                }
+            }
+
+            override fun onFailure(call: Call<ApiResponse<DraftBookingResponse>>, t: Throwable) {
+                result.value = Resource.error("Lỗi kết nối: ${t.message}")
+            }
+        })
+        return result
+    }
+
     fun getMyBookings(page: Int, size: Int): LiveData<Resource<PageResponse<BookingSummary>>> {
         val result = MediatorLiveData<Resource<PageResponse<BookingSummary>>>()
         result.value = Resource.loading()

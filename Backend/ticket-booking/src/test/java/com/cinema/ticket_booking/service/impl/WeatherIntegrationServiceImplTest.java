@@ -69,17 +69,21 @@ class WeatherIntegrationServiceImplTest {
                 .cinema(cinema)
                 .build();
 
+        LocalDateTime testStartTime = LocalDateTime.now(ZONE_VN).plusHours(2);
         showtime = Showtime.builder()
                 .id(showtimeId)
                 .screen(screen)
-                .startTime(LocalDateTime.now(ZONE_VN).plusHours(2))
+                .startTime(testStartTime)
                 .build();
+
+        String showtimeDate = testStartTime.toLocalDate().toString();
+        String showtimeHour = String.format("%02d:00", testStartTime.getHour());
 
         cache = CinemaWeatherCache.builder()
                 .cinemaId(cinemaId)
                 .latitude(10.8231)
                 .longitude(106.6297)
-                .lastWeatherData("{\"forecast\":{\"forecastday\":[{\"date\":\"" + LocalDateTime.now(ZONE_VN).toLocalDate() + "\",\"hour\":[{\"time\":\"" + LocalDateTime.now(ZONE_VN).toLocalDate() + " " + String.format("%02d:00", LocalDateTime.now(ZONE_VN).plusHours(2).getHour()) + "\",\"temp_c\":28.5,\"condition\":{\"text\":\"Trời quang mây tạnh\"}}]}]}}")
+                .lastWeatherData("{\"forecast\":{\"forecastday\":[{\"date\":\"" + showtimeDate + "\",\"hour\":[{\"time\":\"" + showtimeDate + " " + showtimeHour + "\",\"temp_c\":28.5,\"condition\":{\"text\":\"Trời quang mây tạnh\"}}]}]}}")
                 .lastFetchedAt(LocalDateTime.now(ZONE_VN))
                 .build();
 
@@ -208,7 +212,9 @@ class WeatherIntegrationServiceImplTest {
 
     @Test
     void testGetWeatherForShowtime_BadWeather_Condition() {
-        String badWeatherJson = "{\"forecast\":{\"forecastday\":[{\"date\":\"" + LocalDateTime.now(ZONE_VN).toLocalDate() + "\",\"hour\":[{\"time\":\"" + LocalDateTime.now(ZONE_VN).toLocalDate() + " " + String.format("%02d:00", LocalDateTime.now(ZONE_VN).plusHours(2).getHour()) + "\",\"temp_c\":24.0,\"condition\":{\"text\":\"Mưa dông lớn kèm sấm sét\"}}]}]}}";
+        String showtimeDate = showtime.getStartTime().toLocalDate().toString();
+        String showtimeHour = String.format("%02d:00", showtime.getStartTime().getHour());
+        String badWeatherJson = "{\"forecast\":{\"forecastday\":[{\"date\":\"" + showtimeDate + "\",\"hour\":[{\"time\":\"" + showtimeDate + " " + showtimeHour + "\",\"temp_c\":24.0,\"condition\":{\"text\":\"Mưa dông lớn kèm sấm sét\"}}]}]}}";
         cache.setLastWeatherData(badWeatherJson);
 
         when(showtimeRepository.findById(showtimeId)).thenReturn(Optional.of(showtime));
