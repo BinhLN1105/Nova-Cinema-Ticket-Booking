@@ -29,6 +29,7 @@ import org.springframework.data.domain.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -70,6 +71,8 @@ class ShowtimeServiceImplTest {
     @InjectMocks
     private ShowtimeServiceImpl showtimeService;
 
+    private static final ZoneId ZONE_HCM = ZoneId.of("Asia/Ho_Chi_Minh");
+
     @Test
     void testGetShowtimesForSync() {
         Movie movie = Movie.builder().id(UUID.randomUUID()).title("Avenger").build();
@@ -79,8 +82,8 @@ class ShowtimeServiceImplTest {
                 .id(UUID.randomUUID())
                 .movie(movie)
                 .screen(screen)
-                .startTime(LocalDateTime.now().plusHours(2))
-                .endTime(LocalDateTime.now().plusHours(4))
+                .startTime(LocalDateTime.now(ZONE_HCM).plusHours(2))
+                .endTime(LocalDateTime.now(ZONE_HCM).plusHours(4))
                 .build();
 
         when(systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10)).thenReturn(10);
@@ -388,7 +391,7 @@ class ShowtimeServiceImplTest {
     @Test
     void testCreate_StartTimeTooSoon_ThrowsBadRequest() {
         ShowtimeRequest request = new ShowtimeRequest();
-        request.setStartTime(LocalDateTime.now().plusMinutes(2)); // < 5 mins
+        request.setStartTime(LocalDateTime.now(ZONE_HCM).plusMinutes(2)); // < 5 mins
 
         assertThrows(BadRequestException.class, () -> showtimeService.create(request));
     }
@@ -398,7 +401,7 @@ class ShowtimeServiceImplTest {
         UUID movieId = UUID.randomUUID();
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(movieId.toString());
-        request.setStartTime(LocalDateTime.now().plusHours(2));
+        request.setStartTime(LocalDateTime.now(ZONE_HCM).plusHours(2));
 
         Movie movie = Movie.builder().id(movieId).title("Test").status(MovieStatus.COMING_SOON).build();
         when(movieService.findById(movieId)).thenReturn(movie);
@@ -411,7 +414,7 @@ class ShowtimeServiceImplTest {
         UUID movieId = UUID.randomUUID();
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(movieId.toString());
-        request.setStartTime(LocalDateTime.now().plusHours(2));
+        request.setStartTime(LocalDateTime.now(ZONE_HCM).plusHours(2));
 
         Movie movie = Movie.builder().id(movieId).title("Test").status(MovieStatus.ENDED).build();
         when(movieService.findById(movieId)).thenReturn(movie);
@@ -424,13 +427,13 @@ class ShowtimeServiceImplTest {
         UUID movieId = UUID.randomUUID();
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(movieId.toString());
-        request.setStartTime(LocalDateTime.now().plusDays(1));
+        request.setStartTime(LocalDateTime.now(ZONE_HCM).plusDays(1));
 
         Movie movie = Movie.builder()
                 .id(movieId)
                 .title("Test")
                 .status(MovieStatus.NOW_SHOWING)
-                .releaseDate(LocalDate.now().plusDays(3))
+                .releaseDate(LocalDate.now(ZONE_HCM).plusDays(3))
                 .build();
         when(movieService.findById(movieId)).thenReturn(movie);
 
@@ -442,14 +445,14 @@ class ShowtimeServiceImplTest {
         UUID movieId = UUID.randomUUID();
         ShowtimeRequest request = new ShowtimeRequest();
         request.setMovieId(movieId.toString());
-        request.setStartTime(LocalDateTime.now().plusDays(10));
+        request.setStartTime(LocalDateTime.now(ZONE_HCM).plusDays(10));
 
         Movie movie = Movie.builder()
                 .id(movieId)
                 .title("Test")
                 .status(MovieStatus.NOW_SHOWING)
-                .releaseDate(LocalDate.now().minusDays(5))
-                .endDate(LocalDate.now().plusDays(5))
+                .releaseDate(LocalDate.now(ZONE_HCM).minusDays(5))
+                .endDate(LocalDate.now(ZONE_HCM).plusDays(5))
                 .build();
         when(movieService.findById(movieId)).thenReturn(movie);
 
@@ -470,8 +473,8 @@ class ShowtimeServiceImplTest {
                 .id(UUID.randomUUID())
                 .movie(movie)
                 .screen(screen)
-                .startTime(LocalDateTime.now().plusHours(3))
-                .endTime(LocalDateTime.now().plusHours(5))
+                .startTime(LocalDateTime.now(ZONE_HCM).plusHours(3))
+                .endTime(LocalDateTime.now(ZONE_HCM).plusHours(5))
                 .build();
 
         when(systemConfigService.getIntConfig("LATE_BOOKING_ALLOWANCE_MINS", 10)).thenReturn(10);
