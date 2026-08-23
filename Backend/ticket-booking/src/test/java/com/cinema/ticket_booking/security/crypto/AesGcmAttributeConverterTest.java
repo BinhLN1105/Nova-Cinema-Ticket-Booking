@@ -106,4 +106,24 @@ class AesGcmAttributeConverterTest {
         String cipher = testConverter.convertToDatabaseColumn(plainText);
         assertEquals(plainText, testConverter.convertToEntityAttribute(cipher));
     }
+
+    @Test
+    @DisplayName("8. validateAndInitKey hoạt động đúng khi có cấu hình secretKeyString")
+    void testValidateAndInitKey() {
+        AesGcmAttributeConverter testConverter = new AesGcmAttributeConverter();
+        org.springframework.test.util.ReflectionTestUtils.setField(testConverter, "secretKeyString", VALID_32_BYTE_KEY);
+        testConverter.validateAndInitKey();
+
+        String encrypted = testConverter.convertToDatabaseColumn("Secret data");
+        assertEquals("Secret data", testConverter.convertToEntityAttribute(encrypted));
+    }
+
+    @Test
+    @DisplayName("9. Ciphertext ngắn bất thường trả về raw data")
+    void testShortCiphertext() {
+        // Chuỗi base64 rất ngắn (ít hơn 28 bytes khi decode)
+        String shortPayload = "ENC:" + java.util.Base64.getEncoder().encodeToString("short".getBytes());
+        String result = converter.convertToEntityAttribute(shortPayload);
+        assertEquals(shortPayload, result);
+    }
 }

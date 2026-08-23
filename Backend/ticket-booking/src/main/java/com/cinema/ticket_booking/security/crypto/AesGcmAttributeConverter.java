@@ -16,6 +16,8 @@ import java.util.Base64;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import java.util.concurrent.atomic.AtomicReference;
+
 @Converter
 @Component
 @Slf4j
@@ -27,7 +29,7 @@ public class AesGcmAttributeConverter implements AttributeConverter<String, Stri
     private static final String PREFIX = "ENC:";
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
-    private static volatile SecretKeySpec staticKeySpec;
+    private static final AtomicReference<SecretKeySpec> STATIC_KEY_SPEC = new AtomicReference<>();
 
     @Value("${app.security.encryption.aes-key:}")
     private String secretKeyString;
@@ -38,7 +40,7 @@ public class AesGcmAttributeConverter implements AttributeConverter<String, Stri
     public void validateAndInitKey() {
         if (secretKeyString != null && !secretKeyString.isBlank()) {
             initKey(secretKeyString);
-        } else if (staticKeySpec == null) {
+        } else if (STATIC_KEY_SPEC.get() == null) {
             throw new IllegalStateException(
                     "AUDIT_LOG_ENCRYPTION_KEY is required and must be provided via environment variable or configuration.");
         }
@@ -70,12 +72,12 @@ public class AesGcmAttributeConverter implements AttributeConverter<String, Stri
             }
         }
         this.instanceKeySpec = new SecretKeySpec(finalKeyBytes, "AES");
-        staticKeySpec = this.instanceKeySpec;
+        STATIC_KEY_SPEC.set(this.instanceKeySpec);
         log.info("[AesGcmConverter] Initialized 256-bit AES-GCM encryption key successfully.");
     }
 
     private SecretKeySpec getActiveKeySpec() {
-        SecretKeySpec key = instanceKeySpec != null ? instanceKeySpec : staticKeySpec;
+        SecretKeySpec key = instanceKeySpec != null ? instanceKeySpec : STATIC_KEY_SPEC.get();
         if (key == null) {
             throw new IllegalStateException(
                     "Encryption key is not initialized. Please configure app.security.encryption.aes-key");
