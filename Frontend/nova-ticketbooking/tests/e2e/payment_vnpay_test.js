@@ -67,7 +67,7 @@ async function interceptVnpay(I, responseCode) {
 async function payWithVnpay(I) {
   await I.usePlaywrightTo('choose VNPay and proceed', async ({ page }) => {
     await page.getByRole('button', { name: 'VNPay' }).click();
-    await page.getByRole('button', { name: 'Tiến hành thanh toán' }).click();
+    await page.getByRole('button', { name: /Thanh toán ngay|Tiến hành thanh toán|Thanh toán/ }).click();
   });
 }
 
