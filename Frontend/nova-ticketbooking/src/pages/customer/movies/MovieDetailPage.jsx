@@ -110,7 +110,7 @@ export default function MovieDetailPage() {
   if (!movie) return null
 
   return (
-    <div className="min-h-screen bg-cinema-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-cinema-900 text-slate-900 dark:text-white transition-colors duration-300">
       {/* Backdrop Hero */}
       <div className="relative h-[65vh] overflow-hidden">
         <div className="absolute inset-0">
@@ -126,7 +126,7 @@ export default function MovieDetailPage() {
         {/* Back button */}
         <button onClick={() => navigate(-1)}
           className="absolute top-24 left-6 flex items-center gap-2 glass px-4 py-2
-            rounded-xl text-sm text-cinema-200 hover:text-white transition-all">
+            rounded-xl text-sm text-cinema-200 hover:text-white transition-all shadow-md">
           <ChevronLeft className="w-4 h-4" /> Quay lại
         </button>
 
@@ -179,22 +179,22 @@ export default function MovieDetailPage() {
             {/* Description */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}>
-              <h2 className="font-display text-xl font-bold text-white mb-3">Nội dung phim</h2>
-              <p className="text-cinema-200 leading-relaxed">{movie.description}</p>
+              <h2 className="font-display text-xl font-bold text-slate-900 dark:text-white mb-3">Nội dung phim</h2>
+              <p className="text-slate-600 dark:text-cinema-200 leading-relaxed">{movie.description}</p>
             </motion.div>
 
             {/* Cast & Crew */}
             <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2 }}>
-              <h2 className="font-display text-xl font-bold text-white mb-4">Đội ngũ sản xuất</h2>
+              <h2 className="font-display text-xl font-bold text-slate-900 dark:text-white mb-4">Đội ngũ sản xuất</h2>
               <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-cinema-800/60 border border-white/5">
-                  <p className="text-cinema-400 text-xs mb-1">Đạo diễn</p>
-                  <p className="text-white font-medium text-sm">{movie.director}</p>
+                <div className="p-4 rounded-xl bg-white dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5 shadow-sm">
+                  <p className="text-slate-500 dark:text-cinema-400 text-xs mb-1">Đạo diễn</p>
+                  <p className="text-slate-900 dark:text-white font-medium text-sm">{movie.director}</p>
                 </div>
-                <div className="p-4 rounded-xl bg-cinema-800/60 border border-white/5">
-                  <p className="text-cinema-400 text-xs mb-1">Diễn viên</p>
-                  <p className="text-white font-medium text-sm line-clamp-2">{movie.cast}</p>
+                <div className="p-4 rounded-xl bg-white dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5 shadow-sm">
+                  <p className="text-slate-500 dark:text-cinema-400 text-xs mb-1">Diễn viên</p>
+                  <p className="text-slate-900 dark:text-white font-medium text-sm line-clamp-2">{movie.cast}</p>
                 </div>
               </div>
             </motion.div>
@@ -204,7 +204,7 @@ export default function MovieDetailPage() {
               <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}>
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="font-display text-xl font-bold text-white">
+                  <h2 className="font-display text-xl font-bold text-slate-900 dark:text-white">
                     Đánh giá ({reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : reviews.totalElements})
                   </h2>
                   {user && (canReview || alreadyReviewed) && (
@@ -218,29 +218,29 @@ export default function MovieDetailPage() {
                       }
                       setIsReviewModalOpen(true);
                     }}
-                      className="btn-ghost py-1.5 px-3 text-sm text-brand-400 border-brand-500/30">
+                      className="btn-ghost py-1.5 px-3 text-sm text-brand-500 border-brand-500/30">
                       <MessageSquare className="w-4 h-4" /> {alreadyReviewed ? 'Sửa đánh giá' : 'Viết đánh giá'}
                     </button>
                   )}
                   {user && !canReview && !alreadyReviewed && (
-                    <div className="text-sm text-cinema-400 italic">
+                    <div className="text-sm text-slate-500 dark:text-cinema-400 italic">
                       Đã mua vé & xem phim để đánh giá
                     </div>
                   )}
                 </div>
 
                 {/* Shopee-style review stats & filters */}
-                <div className="bg-cinema-800/40 border border-white/5 p-5 rounded-2xl mb-6">
+                <div className="bg-white dark:bg-cinema-800/40 border border-slate-200 dark:border-white/5 p-5 rounded-2xl mb-6 shadow-sm">
                   <div className="flex flex-col md:flex-row gap-6 items-center">
                     {/* Overall Rating */}
-                    <div className="text-center md:border-r border-white/10 md:pr-6 md:w-32">
-                      <div className="text-4xl font-bold text-gold-400">{movie.avgRating?.toFixed(1) || '0.0'}</div>
+                    <div className="text-center md:border-r border-slate-200 dark:border-white/10 md:pr-6 md:w-32">
+                      <div className="text-4xl font-bold text-gold-500 dark:text-gold-400">{movie.avgRating?.toFixed(1) || '0.0'}</div>
                       <div className="flex justify-center my-1">
                         {Array.from({ length: 5 }).map((_, i) => (
-                          <Star key={i} className={cn('w-3.5 h-3.5', i < Math.round(movie.avgRating || 0) ? 'text-gold-400 fill-current' : 'text-cinema-600')} />
+                          <Star key={i} className={cn('w-3.5 h-3.5', i < Math.round(movie.avgRating || 0) ? 'text-gold-500 dark:text-gold-400 fill-current' : 'text-slate-300 dark:text-cinema-600')} />
                         ))}
                       </div>
-                      <div className="text-xs text-cinema-400">{reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : reviews.totalElements} đánh giá</div>
+                      <div className="text-xs text-slate-500 dark:text-cinema-400">{reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : reviews.totalElements} đánh giá</div>
                     </div>
                     {/* Progress bars */}
                     <div className="flex-1 space-y-1.5 w-full">
@@ -248,21 +248,20 @@ export default function MovieDetailPage() {
                         const total = reviewStats ? Object.values(reviewStats).reduce((a, b) => a + b, 0) : 1;
                         const count = reviewStats ? reviewStats[star] || 0 : 0;
                         const percent = total > 0 ? (count / total) * 100 : 0;
-                        // Sửa lỗi biến div thành nút(Từ dòng 251 -> 266)
                         return (
                           <button
                             key={star}
                             type="button"
                             onClick={() => { setRatingFilter(star); setReviewSize(5); }}
-                            className="flex items-center gap-2 text-sm cursor-pointer border-none bg-transparent p-0"
+                            className="flex items-center gap-2 text-sm cursor-pointer border-none bg-transparent p-0 w-full"
                           >
-                            <div className="flex items-center gap-1 w-8 text-cinema-200">
-                              {star}<Star className="w-3 h-3 text-gold-400 fill-current" />
+                            <div className="flex items-center gap-1 w-8 text-slate-600 dark:text-cinema-200">
+                              {star}<Star className="w-3 h-3 text-gold-500 dark:text-gold-400 fill-current" />
                             </div>
-                            <div className="flex-1 h-2 bg-cinema-700/50 rounded-full overflow-hidden">
-                              <div className="h-full bg-gold-400 rounded-full" style={{ width: `${percent}%` }}></div>
+                            <div className="flex-1 h-2 bg-slate-200 dark:bg-cinema-700/50 rounded-full overflow-hidden">
+                              <div className="h-full bg-gold-500 dark:bg-gold-400 rounded-full" style={{ width: `${percent}%` }}></div>
                             </div>
-                            <div className="w-8 text-right text-cinema-400 text-xs">{count}</div>
+                            <div className="w-8 text-right text-slate-500 dark:text-cinema-400 text-xs">{count}</div>
                           </button>
                         )
                       })}
@@ -270,24 +269,24 @@ export default function MovieDetailPage() {
                   </div>
 
                   {/* Filters */}
-                  <div className="mt-5 pt-5 border-t border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
+                  <div className="mt-5 pt-5 border-t border-slate-200 dark:border-white/10 flex flex-col sm:flex-row gap-3 sm:items-center justify-between">
                     <div className="flex flex-wrap gap-2">
                       <button onClick={() => { setRatingFilter(null); setReviewSize(5); }}
                         className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border",
-                          ratingFilter === null ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
+                          ratingFilter === null ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-slate-700 dark:text-cinema-200 border-slate-200 dark:border-white/20 hover:border-slate-400")}>
                         Tất cả
                       </button>
                       {[5, 4, 3, 2, 1].map(star => (
                         <button key={star} onClick={() => { setRatingFilter(star); setReviewSize(5); }}
                           className={cn("px-4 py-1.5 rounded-full text-sm font-medium transition-colors border flex items-center justify-center gap-1",
-                            ratingFilter === star ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-cinema-200 border-white/20 hover:border-white/40")}>
+                            ratingFilter === star ? "bg-brand-500 text-white border-brand-500" : "bg-transparent text-slate-700 dark:text-cinema-200 border-slate-200 dark:border-white/20 hover:border-slate-400")}>
                           {star} <Star className="w-3.5 h-3.5" />
                         </button>
                       ))}
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className="text-sm text-cinema-300">Sắp xếp:</span>
-                      <select className="bg-cinema-800 border border-white/10 text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none"
+                      <span className="text-sm text-slate-600 dark:text-cinema-300">Sắp xếp:</span>
+                      <select className="bg-white dark:bg-cinema-800 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white text-sm rounded-lg px-2 py-1.5 focus:outline-none"
                         value={sort} onChange={e => { setSort(e.target.value); setReviewSize(5); }}>
                         <option value="highest">Cao nhất</option>
                         <option value="lowest">Thấp nhất</option>
@@ -299,13 +298,13 @@ export default function MovieDetailPage() {
 
                 <div className="space-y-4">
                   {reviews.content.length === 0 ? (
-                    <div className="text-center py-8 text-cinema-400">Không có đánh giá nào phù hợp.</div>
+                    <div className="text-center py-8 text-slate-500 dark:text-cinema-400">Không có đánh giá nào phù hợp.</div>
                   ) : (
                     reviews.content.map(review => (
-                      <div key={review.id} className="p-4 rounded-xl bg-cinema-800/60 border border-white/5">
+                      <div key={review.id} className="p-4 rounded-xl bg-white dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5 shadow-sm">
                         <div className="flex items-center gap-3 mb-2">
                           <div className="w-10 h-10 rounded-full bg-brand-500/20 flex items-center
-                            justify-center text-brand-400 font-bold overflow-hidden border border-brand-500/10">
+                            justify-center text-brand-500 font-bold overflow-hidden border border-brand-500/10">
                             {review.userAvatarUrl ? (
                               <img
                                 src={review.userAvatarUrl}
@@ -317,21 +316,21 @@ export default function MovieDetailPage() {
                             )}
                           </div>
                           <div className="flex-1">
-                            <p className="text-white text-sm font-medium">{review.userFullName || review.userName || 'Người dùng'}</p>
+                            <p className="text-slate-900 dark:text-white text-sm font-medium">{review.userFullName || review.userName || 'Người dùng'}</p>
                             <div className="flex items-center gap-2">
                               <div className="flex gap-0.5 mt-0.5">
                                 {Array.from({ length: 5 }).map((_, i) => (
                                   <Star key={i} className={cn('w-3.5 h-3.5',
-                                    i < review.rating ? 'text-gold-400 fill-current' : 'text-cinema-600')} />
+                                    i < review.rating ? 'text-gold-500 dark:text-gold-400 fill-current' : 'text-slate-300 dark:text-cinema-600')} />
                                 ))}
                               </div>
-                              <span className="text-xs text-cinema-400 mt-0.5 whitespace-nowrap">
+                              <span className="text-xs text-slate-500 dark:text-cinema-400 mt-0.5 whitespace-nowrap">
                                 {review.createdAt ? new Date(review.createdAt).toLocaleDateString('vi-VN') : ''}
                               </span>
                             </div>
                           </div>
                         </div>
-                        <p className="text-cinema-200 text-sm mt-3 ml-13 pl-1 leading-relaxed">{review.comment}</p>
+                        <p className="text-slate-700 dark:text-cinema-200 text-sm mt-3 ml-13 pl-1 leading-relaxed">{review.comment}</p>
                       </div>
                     ))
                   )}
@@ -340,7 +339,7 @@ export default function MovieDetailPage() {
                   {!reviews.last && (
                     <div className="pt-4 text-center">
                       <button onClick={() => setReviewSize(s => s + 5)}
-                        className="px-6 py-2 rounded-full border border-white/10 text-cinema-200 text-sm hover:bg-white/5 transition-colors">
+                        className="px-6 py-2 rounded-full border border-slate-200 dark:border-white/10 text-slate-700 dark:text-cinema-200 text-sm hover:bg-slate-100 dark:hover:bg-white/5 transition-colors">
                         Xem thêm đánh giá
                       </button>
                     </div>
@@ -356,7 +355,7 @@ export default function MovieDetailPage() {
             className="lg:w-80 flex-shrink-0">
             <div className="sticky top-24 space-y-4">
               {/* Poster */}
-              <div className="rounded-2xl overflow-hidden shadow-card-float">
+              <div className="rounded-2xl overflow-hidden shadow-card-float border border-slate-200 dark:border-transparent">
                 <img src={movie.posterUrl} alt={movie.title} className="w-full object-cover" />
               </div>
 
@@ -380,24 +379,24 @@ export default function MovieDetailPage() {
               </div>
 
               {/* Stats */}
-              <div className="p-4 rounded-xl bg-cinema-800/60 border border-white/5 space-y-3">
+              <div className="p-4 rounded-xl bg-white dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5 space-y-3 shadow-sm">
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-cinema-400 flex items-center gap-2">
+                  <span className="text-slate-500 dark:text-cinema-400 flex items-center gap-2">
                     <Users className="w-4 h-4" /> Lượt đặt vé
                   </span>
-                  <span className="text-white font-semibold">
+                  <span className="text-slate-900 dark:text-white font-semibold">
                     {movie.totalBookings?.toLocaleString()}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-cinema-400">Phân loại</span>
+                  <span className="text-slate-500 dark:text-cinema-400">Phân loại</span>
                   <span className={cn('badge text-xs', getRatedColor(movie.rated))}>
                     {movie.rated}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-cinema-400">Ngôn ngữ</span>
-                  <span className="text-white">{movie.language}</span>
+                  <span className="text-slate-500 dark:text-cinema-400">Ngôn ngữ</span>
+                  <span className="text-slate-900 dark:text-white">{movie.language}</span>
                 </div>
               </div>
             </div>

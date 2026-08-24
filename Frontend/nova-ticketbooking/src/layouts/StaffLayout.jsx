@@ -20,7 +20,7 @@ const NAV_ITEMS = [
   { href: "/staff/pos", icon: Film, label: "Quầy bán vé (POS)" },
   { href: "/staff/bookings", icon: CalendarCheck, label: "Đặt vé hôm nay" },
   { href: "/staff/checkin", icon: QrCode, label: "Check-in QR" },
-  { href: "/staff/ai-audit", icon: Bot, label: "Tra cứu AI CSKH" },
+  { href: "/staff/ai-audit", icon: Bot, label: "Tra cứu tin nhắn CSKH" },
 ];
 
 export function StaffLayout() {

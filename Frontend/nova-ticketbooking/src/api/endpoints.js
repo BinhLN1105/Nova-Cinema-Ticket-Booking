@@ -84,6 +84,8 @@ export const showtimeApi = {
   getById: (id) => api.get(`/showtimes/${id}`),
   getByMovie: (movieId, cinemaId, date) =>
     api.get("/showtimes", { movieId, cinemaId, date }),
+  getByCinema: (cinemaId, date) =>
+    api.get("/showtimes", { cinemaId, date }),
   getSeatMap: (showtimeId) => api.get(`/showtimes/${showtimeId}/seats`),
   getCombos: () => api.get("/combos"),
   // Admin

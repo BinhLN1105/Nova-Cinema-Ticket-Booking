@@ -117,7 +117,7 @@ export default function TicketDetail() {
   }
 
   if (isLoading) return (
-    <div className="min-h-screen bg-cinema-900 pt-24 flex items-center justify-center">
+    <div className="min-h-screen bg-slate-50 dark:bg-cinema-900 pt-24 flex items-center justify-center">
       <div className="w-8 h-8 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
     </div>
   )
@@ -132,14 +132,14 @@ export default function TicketDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-cinema-900 pt-24 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-cinema-900 text-slate-900 dark:text-white pt-24 pb-16 transition-colors duration-300">
       <div className="max-w-md mx-auto px-4 sm:px-6">
         <div className="flex items-center gap-4 mb-8">
           <button onClick={() => navigate(-1)}
-            className="p-2.5 rounded-xl glass border border-white/8 text-cinema-200 hover:text-white transition-all">
+            className="p-2.5 rounded-xl bg-white dark:glass border border-slate-200 dark:border-white/8 text-slate-700 dark:text-cinema-200 hover:text-slate-900 dark:hover:text-white transition-all shadow-sm">
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <h1 className="font-display text-2xl font-bold text-white">Chi tiết vé</h1>
+          <h1 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Chi tiết vé</h1>
         </div>
 
         {/* Countdown Timer Banner for PENDING bookings */}
@@ -162,8 +162,8 @@ export default function TicketDetail() {
                 <Clock className="w-5 h-5 animate-pulse" />
               </div>
               <div>
-                <p className="text-white text-xs font-semibold">Thời gian giữ vé còn lại</p>
-                <p className="text-cinema-400 text-[11px]">Đơn vé sẽ tự động hết hạn khi hết giờ</p>
+                <p className="text-slate-900 dark:text-white text-xs font-semibold">Thời gian giữ vé còn lại</p>
+                <p className="text-slate-500 dark:text-cinema-400 text-[11px]">Đơn vé sẽ tự động hết hạn khi hết giờ</p>
               </div>
             </div>
             <div className="text-right flex-shrink-0">
@@ -187,22 +187,22 @@ export default function TicketDetail() {
                 className="w-20 h-28 object-cover rounded-xl flex-shrink-0" />
               <div className="flex-1">
                 <div className="flex items-start justify-between gap-2">
-                  <h2 className="font-display font-bold text-white text-lg leading-tight">
+                  <h2 className="font-display font-bold text-slate-900 dark:text-white text-lg leading-tight">
                     {booking.movieTitle}
                   </h2>
                   <span className={cn('badge text-xs flex-shrink-0', `badge-${badge.color}`)}>
                     {badge.label}
                   </span>
                 </div>
-                <div className="mt-3 space-y-1.5 text-sm text-cinema-100">
+                <div className="mt-3 space-y-1.5 text-sm text-slate-600 dark:text-cinema-100">
                   <p className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-cinema-400" /> {booking.cinemaName}
+                    <MapPin className="w-3.5 h-3.5 text-slate-400 dark:text-cinema-400" /> {booking.cinemaName}
                   </p>
                   <p className="flex items-center gap-1.5">
-                    <Monitor className="w-3.5 h-3.5 text-cinema-400" /> {booking.screenName}
+                    <Monitor className="w-3.5 h-3.5 text-slate-400 dark:text-cinema-400" /> {booking.screenName}
                   </p>
                   <p className="flex items-center gap-1.5">
-                    <Clock className="w-3.5 h-3.5 text-cinema-400" /> {formatDateTime(booking.startTime)}
+                    <Clock className="w-3.5 h-3.5 text-slate-400 dark:text-cinema-400" /> {formatDateTime(booking.startTime)}
                   </p>
                 </div>
               </div>
@@ -210,12 +210,12 @@ export default function TicketDetail() {
 
             {/* Seats & Combos */}
             <div className="grid grid-cols-1 gap-3">
-              <div className="p-3 rounded-xl bg-cinema-800/60 border border-white/5">
-                <p className="text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Ghế</p>
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5">
+                <p className="text-slate-500 dark:text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Ghế</p>
                 <div className="flex flex-wrap gap-2">
                   {booking.seats.map((s, i) => (
                     <span key={i} className="px-3 py-1.5 rounded-lg bg-brand-500/10
-                      border border-brand-500/30 text-brand-400 text-sm font-mono font-bold shadow-sm shadow-brand-500/10">
+                      border border-brand-500/30 text-brand-600 dark:text-brand-400 text-sm font-mono font-bold shadow-sm shadow-brand-500/10">
                       {s.rowLabel}{s.colNumber}
                     </span>
                   ))}
@@ -223,13 +223,13 @@ export default function TicketDetail() {
               </div>
 
               {booking.combos && booking.combos.length > 0 && (
-                <div className="p-3 rounded-xl bg-cinema-800/60 border border-white/5">
-                  <p className="text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Combo / Bắp nước</p>
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-cinema-800/60 border border-slate-200 dark:border-white/5">
+                  <p className="text-slate-500 dark:text-cinema-300 text-xs mb-2 uppercase tracking-widest font-bold">Combo / Bắp nước</p>
                   <div className="space-y-1.5">
                     {booking.combos.map((c, i) => (
                       <div key={i} className="flex justify-between items-center text-sm">
-                        <span className="text-cinema-200">{c.comboName}</span>
-                        <span className="px-2 py-0.5 rounded bg-brand-500/15 text-brand-400 font-bold border border-brand-500/20">
+                        <span className="text-slate-700 dark:text-cinema-200">{c.comboName}</span>
+                        <span className="px-2 py-0.5 rounded bg-brand-500/15 text-brand-600 dark:text-brand-400 font-bold border border-brand-500/20">
                           x{c.quantity}
                         </span>
                       </div>
@@ -242,90 +242,90 @@ export default function TicketDetail() {
 
           {/* Ticket tear line */}
           <div className="relative h-5 overflow-hidden">
-            <div className="absolute inset-0 bg-cinema-800 border-x border-white/6" />
+            <div className="absolute inset-0 bg-slate-100 dark:bg-cinema-800 border-x border-slate-200 dark:border-white/6" />
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t-2 border-dashed border-cinema-600" />
+              <div className="w-full border-t-2 border-dashed border-slate-300 dark:border-cinema-600" />
             </div>
-            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-cinema-900 border border-white/6" />
-            <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-cinema-900 border border-white/6" />
+            <div className="absolute -left-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-50 dark:bg-cinema-900 border border-slate-200 dark:border-white/6" />
+            <div className="absolute -right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-slate-50 dark:bg-cinema-900 border border-slate-200 dark:border-white/6" />
           </div>
 
           {/* Bottom part — QR */}
           <div className="card-cinema p-5 rounded-t-none border-t-0 flex flex-col items-center">
             {booking.status === 'PAID' && booking.qrCode ? (
               <>
-                <div className="p-4 rounded-2xl bg-white mb-3">
+                <div className="p-4 rounded-2xl bg-white mb-3 shadow-md border border-slate-200 dark:border-transparent">
                   <QRCodeSVG value={booking.qrCode} size={160} />
                 </div>
-                <p className="text-cinema-200 text-xs text-center font-medium">
+                <p className="text-slate-600 dark:text-cinema-200 text-xs text-center font-medium">
                   Xuất trình mã QR này tại quầy để check-in
                 </p>
                 <div className="mt-2 flex items-center justify-center gap-2">
-                  <p className="text-cinema-400 font-mono text-sm tracking-wider">
+                  <p className="text-slate-600 dark:text-cinema-400 font-mono text-sm tracking-wider">
                     {showCode ? booking.bookingCode : maskCode(booking.bookingCode)}
                   </p>
                   <button
                     onClick={() => setShowCode(!showCode)}
-                    className="p-1 text-cinema-500 hover:text-brand-400 transition-colors"
+                    className="p-1 text-slate-400 dark:text-cinema-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors"
                   >
                     {showCode ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
                 </div>
 
                 {/* Share buttons */}
-                <div className="w-full mt-5 pt-4 border-t border-cinema-700/50">
-                  <p className="text-cinema-400 text-xs text-center mb-3 uppercase tracking-wider flex items-center justify-center gap-1.5">
+                <div className="w-full mt-5 pt-4 border-t border-slate-200 dark:border-cinema-700/50">
+                  <p className="text-slate-500 dark:text-cinema-400 text-xs text-center mb-3 uppercase tracking-wider flex items-center justify-center gap-1.5">
                     <Share2 className="w-3.5 h-3.5" /> Chia sẻ vé
                   </p>
                   <div className="grid grid-cols-4 gap-2">
                     {/* Copy Link */}
                     <button onClick={copyLink}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-100 dark:bg-cinema-800/80 hover:bg-slate-200 dark:hover:bg-cinema-700 transition-all">
                       {copied
-                        ? <CheckCheck className="w-5 h-5 text-green-400" />
-                        : <Copy className="w-5 h-5 text-cinema-300" />}
-                      <span className="text-[10px] text-cinema-400">{copied ? 'Đã chép' : 'Sao chép'}</span>
+                        ? <CheckCheck className="w-5 h-5 text-green-500 dark:text-green-400" />
+                        : <Copy className="w-5 h-5 text-slate-600 dark:text-cinema-300" />}
+                      <span className="text-[10px] text-slate-600 dark:text-cinema-400">{copied ? 'Đã chép' : 'Sao chép'}</span>
                     </button>
                     {/* Zalo */}
                     <button onClick={shareZalo}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-100 dark:bg-cinema-800/80 hover:bg-slate-200 dark:hover:bg-cinema-700 transition-all">
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
                         <rect width="24" height="24" rx="6" fill="#0068FF" />
                         <text x="3" y="17" fontSize="11" fontWeight="bold" fill="white">Za</text>
                       </svg>
-                      <span className="text-[10px] text-cinema-400">Zalo</span>
+                      <span className="text-[10px] text-slate-600 dark:text-cinema-400">Zalo</span>
                     </button>
                     {/* Facebook */}
                     <button onClick={shareFacebook}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-100 dark:bg-cinema-800/80 hover:bg-slate-200 dark:hover:bg-cinema-700 transition-all">
                       <svg className="w-5 h-5" viewBox="0 0 24 24" fill="#1877F2">
                         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
                       </svg>
-                      <span className="text-[10px] text-cinema-400">Facebook</span>
+                      <span className="text-[10px] text-slate-600 dark:text-cinema-400">Facebook</span>
                     </button>
                     {/* Native Share / More */}
                     <button onClick={shareNative}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-cinema-800/80 hover:bg-cinema-700 transition-all">
-                      <Share2 className="w-5 h-5 text-cinema-300" />
-                      <span className="text-[10px] text-cinema-400">Khác</span>
+                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl bg-slate-100 dark:bg-cinema-800/80 hover:bg-slate-200 dark:hover:bg-cinema-700 transition-all">
+                      <Share2 className="w-5 h-5 text-slate-600 dark:text-cinema-300" />
+                      <span className="text-[10px] text-slate-600 dark:text-cinema-400">Khác</span>
                     </button>
                   </div>
                 </div>
               </>
             ) : booking.status === 'PENDING' ? (
               <div className="text-center py-5 px-4">
-                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 text-amber-400">
+                <div className="w-12 h-12 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-3 text-amber-500 dark:text-amber-400">
                   <Clock className="w-6 h-6 animate-pulse" />
                 </div>
-                <p className="text-white text-sm font-semibold mb-1">Chờ thanh toán</p>
-                <p className="text-cinema-400 text-xs max-w-xs mx-auto">
+                <p className="text-slate-900 dark:text-white text-sm font-semibold mb-1">Chờ thanh toán</p>
+                <p className="text-slate-500 dark:text-cinema-400 text-xs max-w-xs mx-auto">
                   Mã QR và thông tin vé sẽ sẵn sàng ngay sau khi hoàn tất thanh toán.
                 </p>
               </div>
             ) : (
               <div className="text-center py-4">
-                <Ticket className="w-12 h-12 text-cinema-600 mx-auto mb-2" />
-                <p className="text-cinema-400 text-sm">QR code chưa sẵn sàng</p>
+                <Ticket className="w-12 h-12 text-slate-400 dark:text-cinema-600 mx-auto mb-2" />
+                <p className="text-slate-500 dark:text-cinema-400 text-sm">QR code chưa sẵn sàng</p>
               </div>
             )}
           </div>
@@ -335,27 +335,27 @@ export default function TicketDetail() {
         <div className="card-cinema p-4 mt-4 space-y-2">
           {(booking.subtotal || booking.totalOriginalAmount) && (booking.discountAmount > 0 || booking.pointDiscount > 0) && (
             <div className="flex justify-between text-sm">
-              <span className="text-cinema-400">Tạm tính</span>
-              <span className="text-cinema-200">
+              <span className="text-slate-500 dark:text-cinema-400">Tạm tính</span>
+              <span className="text-slate-800 dark:text-cinema-200 font-medium">
                 {formatCurrency((booking.subtotal || booking.totalOriginalAmount) || (Number(booking.totalAmount) + Number(booking.discountAmount || 0)))}
               </span>
             </div>
           )}
           {(booking.discountAmount > 0 || booking.discount > 0) && (
             <div className="flex justify-between text-sm">
-              <span className="text-cinema-400">
+              <span className="text-slate-500 dark:text-cinema-400">
                 {booking.pointDiscount > 0 ? 'Đã trừ CinePoint' : 'Giảm giá / Khuyến mãi'}
               </span>
-              <span className="text-green-400 font-medium">
+              <span className="text-green-600 dark:text-green-400 font-medium">
                 - {formatCurrency(booking.discountAmount || booking.discount || booking.pointDiscount)}
               </span>
             </div>
           )}
-          <div className="flex justify-between items-center font-bold pt-2 border-t border-white/5">
-            <span className="text-white">
-              {booking.status === 'PENDING' ? 'Cần thanh toán' : 'Tổng cộng'}
+          <div className="flex justify-between text-base font-bold pt-2 border-t border-slate-100 dark:border-white/8">
+            <span className="text-slate-900 dark:text-white">Tổng cộng</span>
+            <span className="text-brand-600 dark:text-brand-400 font-display text-lg">
+              {formatCurrency(booking.totalAmount)}
             </span>
-            <span className="text-brand-400 text-xl font-bold">{formatCurrency(booking.totalAmount)}</span>
           </div>
         </div>
 

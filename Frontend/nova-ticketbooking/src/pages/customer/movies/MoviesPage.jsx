@@ -59,10 +59,10 @@ function MovieCard({ movie }) {
 
       {/* Info */}
       <div className="p-3">
-        <h3 className="font-display font-bold text-white text-sm leading-snug mb-2 line-clamp-2">
+        <h3 className="font-display font-bold text-slate-900 dark:text-white text-sm leading-snug mb-2 line-clamp-2">
           {movie.title}
         </h3>
-        <div className="flex items-center justify-between text-xs text-cinema-300">
+        <div className="flex items-center justify-between text-xs text-slate-600 dark:text-cinema-300">
           <span className="flex items-center gap-1">
             <Star className="w-3 h-3 text-gold-400 fill-current" />
             {movie.avgRating > 0 ? movie.avgRating.toFixed(1) : 'Chưa có'}
@@ -74,7 +74,7 @@ function MovieCard({ movie }) {
         {movie.genres?.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-2">
             {movie.genres.slice(0, 2).map(g => (
-              <span key={g.id} className="text-xs px-1.5 py-0.5 rounded bg-cinema-700 text-cinema-300">
+              <span key={g.id} className="text-xs px-1.5 py-0.5 rounded bg-slate-100 dark:bg-cinema-700 text-slate-700 dark:text-cinema-300 border border-slate-200 dark:border-transparent">
                 {g.name}
               </span>
             ))}
@@ -117,16 +117,16 @@ export default function MoviesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cinema-900 pt-24 pb-16">
+    <div className="min-h-screen bg-slate-50 dark:bg-cinema-900 text-slate-900 dark:text-white pt-24 pb-16 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
 
         {/* Header */}
         <div className="mb-10">
           <motion.h1 initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-            className="font-display text-4xl font-bold text-white mb-2">
+            className="font-display text-4xl font-bold text-slate-900 dark:text-white mb-2">
             Khám phá phim
           </motion.h1>
-          <p className="text-cinema-300">
+          <p className="text-slate-500 dark:text-cinema-300">
             {data?.totalElements ?? 0} bộ phim đang có
           </p>
         </div>
@@ -135,23 +135,23 @@ export default function MoviesPage() {
         <div className="flex flex-col sm:flex-row gap-4 mb-8">
           {/* Search */}
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-cinema-400" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-cinema-400" />
             <input
               value={search}
               onChange={e => { setSearch(e.target.value); updateFilter('q', e.target.value) }}
               placeholder="Tìm kiếm phim..."
-              className="input-cinema pl-11 pr-10"
+              className="w-full pl-11 pr-10 py-2.5 rounded-xl bg-white dark:bg-cinema-800/80 border border-slate-200 dark:border-white/10 text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-cinema-400 focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500 transition-all shadow-sm"
             />
             {search && (
               <button onClick={() => { setSearch(''); updateFilter('q', '') }}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-cinema-400 hover:text-white">
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-cinema-400 hover:text-slate-700 dark:hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             )}
           </div>
 
           {/* Status tabs */}
-          <div className="flex items-center gap-1 p-1 rounded-xl bg-cinema-800 border border-white/5">
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-slate-200/70 dark:bg-cinema-800 border border-slate-300/80 dark:border-white/5">
             {STATUS_TABS.map(tab => (
               <button key={tab.value}
                 onClick={() => { setStatus(tab.value); updateFilter('status', tab.value) }}
@@ -159,7 +159,7 @@ export default function MoviesPage() {
                   'px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200',
                   status === tab.value
                     ? 'bg-brand-500 text-white shadow-glow-red'
-                    : 'text-cinema-300 hover:text-white'
+                    : 'text-slate-600 dark:text-cinema-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/50 dark:hover:bg-white/5'
                 )}>
                 {tab.label}
               </button>

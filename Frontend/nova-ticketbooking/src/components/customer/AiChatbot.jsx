@@ -8,7 +8,9 @@ import {
   User, 
   Loader2, 
   ChevronDown,
-  RefreshCw
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { chatbotApi, bookingApi, showtimeApi, movieApi } from "@/api/endpoints";
@@ -38,6 +40,19 @@ const SUGGESTED_PROMPTS = [
 
 const CHAT_STORAGE_KEY = "novaticket_chat_messages";
 
+const formatMessageTime = (time) => {
+  if (!time) return "";
+  try {
+    const d = typeof time === "string" || typeof time === "number" ? new Date(time) : time;
+    if (d instanceof Date && !isNaN(d.getTime())) {
+      return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    }
+  } catch (e) {
+    console.error("Error formatting time:", e);
+  }
+  return "";
+};
+
 export function AiChatbot() {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
@@ -62,6 +77,29 @@ export function AiChatbot() {
   
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
+  const chipsRef = useRef(null);
+  const [canScrollChipsLeft, setCanScrollChipsLeft] = useState(false);
+  const [canScrollChipsRight, setCanScrollChipsRight] = useState(true);
+
+  const checkChipsScroll = () => {
+    if (!chipsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = chipsRef.current;
+    setCanScrollChipsLeft(scrollLeft > 4);
+    setCanScrollChipsRight(scrollLeft < scrollWidth - clientWidth - 4);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(checkChipsScroll, 200);
+    }
+  }, [isOpen, messages]);
+
+  const handleChipsScroll = (direction) => {
+    if (!chipsRef.current) return;
+    const offset = direction === 'left' ? -160 : 160;
+    chipsRef.current.scrollBy({ left: offset, behavior: 'smooth' });
+    setTimeout(checkChipsScroll, 350);
+  };
 
   const handleConfirmBooking = async (draftId) => {
     if (isConfirming) return;
@@ -242,19 +280,19 @@ export function AiChatbot() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="absolute bottom-20 right-0 w-[360px] sm:w-[380px] max-w-[calc(100vw-32px)] h-[500px] sm:h-[530px] max-h-[calc(100vh-110px)]
-              bg-[#0d1b2a]/95 backdrop-blur-xl border border-white/10 rounded-3xl shadow-card-float overflow-hidden flex flex-col"
+              bg-white/95 dark:bg-[#0d1b2a]/95 backdrop-blur-xl border border-slate-200 dark:border-white/10 rounded-3xl shadow-[0_20px_60px_rgba(0,0,0,0.15)] dark:shadow-card-float overflow-hidden flex flex-col transition-colors duration-300"
           >
             {/* Header */}
-            <div className="px-5 py-3.5 bg-white/[0.03] border-b border-white/5 flex items-center justify-between">
+            <div className="px-5 py-3.5 bg-slate-50/80 dark:bg-white/[0.03] border-b border-slate-200 dark:border-white/5 flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-9 h-9 rounded-xl bg-brand-500/20 flex items-center justify-center border border-brand-500/30">
-                  <Bot className="w-5 h-5 text-brand-400" />
+                  <Bot className="w-5 h-5 text-brand-500 dark:text-brand-400" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm text-white leading-tight">Nova Assistant</h3>
+                  <h3 className="font-bold text-sm text-slate-900 dark:text-white leading-tight">Nova Assistant</h3>
                   <div className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                    <span className="text-[10px] text-cinema-400 uppercase font-bold tracking-wider">Trực tuyến</span>
+                    <span className="text-[10px] text-slate-500 dark:text-cinema-400 uppercase font-bold tracking-wider">Trực tuyến</span>
                   </div>
                 </div>
               </div>
@@ -262,13 +300,13 @@ export function AiChatbot() {
                 <button 
                   onClick={handleClearChat}
                   title="Xóa hội thoại"
-                  className="p-1.5 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 dark:text-cinema-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <RefreshCw className="w-4 h-4" />
                 </button>
                 <button 
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 rounded-lg text-cinema-400 hover:text-white hover:bg-white/5 transition-all cursor-pointer"
+                  className="p-1.5 rounded-lg text-slate-400 dark:text-cinema-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/60 dark:hover:bg-white/5 transition-all cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -278,7 +316,7 @@ export function AiChatbot() {
             {/* Messages Body */}
             <div 
               ref={scrollRef}
-              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-hide"
+              className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4 scrollbar-none no-scrollbar"
             >
               {messages.map((msg) => (
                 <div 
@@ -291,8 +329,8 @@ export function AiChatbot() {
                   <div className={cn(
                     "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
                     msg.sender === "user" 
-                      ? "bg-gradient-to-br from-cinema-800 to-[#1b2a41] text-cinema-50 border border-brand-500/30 rounded-tr-none shadow-md shadow-black/20" 
-                      : "bg-white/[0.06] text-cinema-100 rounded-tl-none border border-white/5"
+                      ? "bg-gradient-to-br from-brand-600 to-brand-700 text-white rounded-tr-none shadow-md shadow-brand-500/10" 
+                      : "bg-slate-100 dark:bg-white/[0.06] text-slate-800 dark:text-cinema-100 rounded-tl-none border border-slate-200/80 dark:border-white/5 shadow-sm"
                   )}>
                     {msg.sender === "bot" ? (
                       <>
@@ -300,19 +338,29 @@ export function AiChatbot() {
                           remarkPlugins={[remarkGfm]}
                           components={{
                             table: ({node, ...props}) => (
-                              <div className="overflow-x-auto my-3 -mx-1">
-                                <table className="border-collapse border border-white/10 w-full text-xs" {...props} />
+                              <div className="overflow-x-auto my-3 -mx-1 scrollbar-none no-scrollbar">
+                                <table className="border-collapse border border-slate-200 dark:border-white/10 w-full text-xs" {...props} />
                               </div>
                             ),
-                            th: ({node, ...props}) => <th className="border border-white/10 px-2 py-1.5 bg-white/5 text-left font-bold" {...props} />,
-                            td: ({node, ...props}) => <td className="border border-white/10 px-2 py-1.5 text-cinema-300" {...props} />,
-                            ul: ({node, ...props}) => <ul className="list-disc ml-5 my-2 space-y-1 text-cinema-100" {...props} />,
-                            ol: ({node, ...props}) => <ol className="list-decimal ml-5 my-2 space-y-1 text-cinema-100" {...props} />,
-                            li: ({node, ...props}) => <li className="text-cinema-100 my-0.5 leading-relaxed" {...props} />,
+                            th: ({node, ...props}) => <th className="border border-slate-200 dark:border-white/10 px-2 py-1.5 bg-slate-200 dark:bg-white/5 text-slate-900 dark:text-white text-left font-bold" {...props} />,
+                            td: ({node, ...props}) => <td className="border border-slate-200 dark:border-white/10 px-2 py-1.5 text-slate-700 dark:text-cinema-300" {...props} />,
+                            ul: ({node, ...props}) => <ul className="list-disc ml-5 my-2 space-y-1 text-slate-700 dark:text-cinema-100" {...props} />,
+                            ol: ({node, ...props}) => <ol className="list-decimal ml-5 my-2 space-y-1 text-slate-700 dark:text-cinema-100" {...props} />,
+                            li: ({node, ...props}) => <li className="text-slate-700 dark:text-cinema-100 my-0.5 leading-relaxed" {...props} />,
                             p: ({node, ...props}) => <p className="mb-2 last:mb-0 whitespace-pre-line leading-relaxed" {...props} />,
-                            a: ({node, ...props}) => <a className="text-brand-400 hover:underline" {...props} />,
-                            code: ({node, ...props}) => <code className="bg-white/10 px-1 rounded text-xs" {...props} />,
-                            strong: ({node, ...props}) => <strong className="font-bold text-white" {...props} />
+                            code: ({node, inline, className, children, ...props}) => {
+                              return !inline ? (
+                                <div className="my-2 bg-slate-200 dark:bg-black/40 p-2.5 rounded-xl border border-slate-300 dark:border-white/5 overflow-x-auto text-xs font-mono scrollbar-none no-scrollbar">
+                                  <code className="text-slate-900 dark:text-cinema-200" {...props}>
+                                    {children}
+                                  </code>
+                                </div>
+                              ) : (
+                                <code className="bg-slate-200 dark:bg-white/10 px-1.5 py-0.5 rounded text-xs font-mono text-brand-600 dark:text-brand-300" {...props}>
+                                  {children}
+                                </code>
+                              );
+                            }
                           }}
                         >
                           {msg.text}
@@ -323,7 +371,7 @@ export function AiChatbot() {
                           const draftId = draftMatch ? draftMatch[1] : null;
                           if (draftId) {
                             return (
-                              <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-2 w-full">
+                              <div className="mt-3 pt-3 border-t border-slate-200 dark:border-white/10 flex flex-col gap-2 w-full">
                                 <button
                                   type="button"
                                   onClick={() => handleConfirmBooking(draftId)}
@@ -351,30 +399,33 @@ export function AiChatbot() {
                       msg.text
                     )}
                   </div>
-                  <span className="text-[10px] text-cinema-500 mt-1.5 px-1 font-medium">
-                    {msg.time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[10px] text-slate-400 dark:text-cinema-500 mt-1 px-1 font-medium">
+                    {formatMessageTime(msg.time)}
                   </span>
                 </div>
               ))}
               
               {isLoading && (
-                <div className="flex items-start gap-2.5 max-w-[85%]">
-                  <div className="bg-white/8 text-cinema-200 px-4 py-3 rounded-2xl rounded-tl-none border border-white/5">
-                    <div className="flex gap-1">
+                <div className="flex items-center gap-2 text-slate-500 dark:text-cinema-400 text-xs py-2">
+                  <div className="w-7 h-7 rounded-xl bg-gradient-to-br from-brand-500 to-brand-600 flex items-center justify-center text-white shadow-md shadow-brand-500/20">
+                    <Bot className="w-4 h-4 animate-pulse" />
+                  </div>
+                  <div className="bg-slate-100 dark:bg-white/[0.06] border border-slate-200/80 dark:border-white/5 rounded-2xl rounded-tl-none px-4 py-3 shadow-sm">
+                    <div className="flex items-center gap-1.5">
                       <motion.span 
                         animate={{ opacity: [0.3, 1, 0.3] }} 
-                        transition={{ repeat: Infinity, duration: 1, delay: 0 }}
-                        className="w-1.5 h-1.5 rounded-full bg-cinema-400" 
+                        transition={{ repeat: Infinity, duration: 1 }}
+                        className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-cinema-400" 
                       />
                       <motion.span 
                         animate={{ opacity: [0.3, 1, 0.3] }} 
                         transition={{ repeat: Infinity, duration: 1, delay: 0.2 }}
-                        className="w-1.5 h-1.5 rounded-full bg-cinema-400" 
+                        className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-cinema-400" 
                       />
                       <motion.span 
                         animate={{ opacity: [0.3, 1, 0.3] }} 
                         transition={{ repeat: Infinity, duration: 1, delay: 0.4 }}
-                        className="w-1.5 h-1.5 rounded-full bg-cinema-400" 
+                        className="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-cinema-400" 
                       />
                     </div>
                   </div>
@@ -382,22 +433,50 @@ export function AiChatbot() {
               )}
             </div>
 
-            {/* Suggestion Chips (Always Visible Horizontal Scrollable Row) */}
+            {/* Suggestion Chips (Always Visible Horizontal Scrollable Row with Scroll Controls) */}
             {!isLoading && (
-              <div className="relative border-t border-white/5 bg-white/[0.01]">
-                {/* Horizontal Fade Indicators */}
-                <div className="absolute left-0 top-0 bottom-0 w-8 bg-gradient-to-r from-[#0d1b2a]/90 to-transparent pointer-events-none z-10" />
-                <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#0d1b2a]/90 to-transparent pointer-events-none z-10" />
+              <div className="relative border-t border-slate-200 dark:border-white/5 bg-slate-50/80 dark:bg-white/[0.01] group/chips">
+                {/* Left Scroll Arrow */}
+                {canScrollChipsLeft && (
+                  <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center pr-2 bg-gradient-to-r from-white via-white/90 dark:from-[#0d1b2a] dark:via-[#0d1b2a]/90 to-transparent">
+                    <button
+                      type="button"
+                      onClick={() => handleChipsScroll('left')}
+                      className="w-6 h-6 rounded-full bg-white dark:bg-cinema-800 border border-slate-200 dark:border-white/10 shadow-md flex items-center justify-center text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-cinema-700 transition-all cursor-pointer ml-1"
+                      title="Cuộn sang trái"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+
+                {/* Right Scroll Arrow */}
+                {canScrollChipsRight && (
+                  <div className="absolute right-0 top-0 bottom-0 z-10 flex items-center pl-2 bg-gradient-to-l from-white via-white/90 dark:from-[#0d1b2a] dark:via-[#0d1b2a]/90 to-transparent">
+                    <button
+                      type="button"
+                      onClick={() => handleChipsScroll('right')}
+                      className="w-6 h-6 rounded-full bg-white dark:bg-cinema-800 border border-slate-200 dark:border-white/10 shadow-md flex items-center justify-center text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-cinema-700 transition-all cursor-pointer mr-1"
+                      title="Cuộn sang phải"
+                    >
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
                 
-                <div className="px-6 py-2.5 flex gap-2 overflow-x-auto scrollbar-none scroll-smooth items-center">
+                <div 
+                  ref={chipsRef}
+                  onScroll={checkChipsScroll}
+                  className="px-4 py-2.5 flex gap-2 overflow-x-auto scrollbar-none no-scrollbar scroll-smooth items-center"
+                >
                   {SUGGESTED_PROMPTS.map((prompt, index) => (
                     <button
                       key={index}
                       type="button"
                       onClick={() => handleSuggestionClick(prompt)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white/5 border border-white/5 
-                        rounded-full text-xs text-cinema-300 hover:text-white hover:bg-brand-500/20 hover:border-brand-500/30
-                        transition-all duration-200 whitespace-nowrap shrink-0"
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 
+                        rounded-full text-xs text-slate-700 dark:text-cinema-300 hover:text-brand-600 dark:hover:text-white hover:bg-brand-50 dark:hover:bg-brand-500/20 hover:border-brand-300 dark:hover:border-brand-500/30
+                        transition-all duration-200 whitespace-nowrap shrink-0 shadow-sm cursor-pointer"
                     >
                       <span>{prompt.icon}</span>
                       <span>{prompt.label}</span>
@@ -408,10 +487,10 @@ export function AiChatbot() {
             )}
 
             {/* Footer / Input */}
-            <div className="p-4 bg-white/[0.02] border-t border-white/5">
+            <div className="p-4 bg-slate-50/80 dark:bg-white/[0.02] border-t border-slate-200 dark:border-white/5">
               {/* Helper text display for template completions */}
               {showHelperText && (
-                <div className="text-[11px] text-brand-400 mb-2 px-1 flex items-center gap-1.5 animate-pulse">
+                <div className="text-[11px] text-brand-500 dark:text-brand-400 mb-2 px-1 flex items-center gap-1.5 animate-pulse">
                   <span>💡</span>
                   <span>Ví dụ nhập tiếp số: <strong>125</strong> (Ví dụ: {inputValue}125) để thực thi.</span>
                 </div>
@@ -427,21 +506,21 @@ export function AiChatbot() {
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Hỏi Nova về lịch chiếu, vé, rạp..."
-                  className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-5 py-3 pr-12
-                    text-sm text-white placeholder:text-cinema-500 focus:outline-none focus:border-brand-500/50 
-                    focus:bg-white/[0.08] transition-all"
+                  className="flex-1 bg-white dark:bg-white/5 border border-slate-200 dark:border-white/10 rounded-2xl px-5 py-3 pr-12
+                    text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-cinema-500 focus:outline-none focus:border-brand-500/50 
+                    focus:bg-white dark:focus:bg-white/[0.08] shadow-sm transition-all"
                 />
                 <button
                   type="submit"
                   disabled={!inputValue.trim() || isLoading}
                   className="absolute right-2 p-2 rounded-xl bg-brand-500 text-white 
-                    hover:bg-brand-600 disabled:opacity-50 disabled:bg-cinema-700 
+                    hover:bg-brand-600 disabled:opacity-50 disabled:bg-slate-300 dark:disabled:bg-cinema-700 
                     transition-all shadow-glow-red"
                 >
                   {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                 </button>
               </form>
-              <p className="text-[10px] text-center text-cinema-500 mt-3 font-medium">
+              <p className="text-[10px] text-center text-slate-400 dark:text-cinema-500 mt-3 font-medium">
                 NOVA CINEMA WITH LOVE &lt;3
               </p>
             </div>

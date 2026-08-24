@@ -74,7 +74,11 @@ async function goToBookingShowtime(I, showtimeId) {
 // Vì vậy không thể dò bằng class, phải dò bằng nội dung text khớp đúng định dạng HH:MM.
 async function findAndClickShowtimeByHour(I, hour) {
     const enabledIndices = await I.executeScript(() => {
-        const btns = Array.from(document.querySelectorAll('button.rounded-2xl, button[class*="rounded-2xl"]'));
+        const btns = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .filter(b => {
+                const text = b.innerText.trim();
+                return (text.includes('Hôm nay') || text.includes('Thứ') || text.includes('CN')) && /\d{2}\/\d{4}/.test(text);
+            });
         return btns.map((b, i) => ({ i: i + 1, disabled: b.disabled || b.hasAttribute('disabled') }))
                    .filter(x => !x.disabled)
                    .map(x => x.i);
@@ -82,7 +86,14 @@ async function findAndClickShowtimeByHour(I, hour) {
     console.log('[T4] Các ngày enabled (index):', JSON.stringify(enabledIndices));
 
     for (const idx of enabledIndices) {
-        I.click(`(//button[contains(@class,"rounded-2xl") and not(@disabled)])[${idx}]`);
+        await I.executeScript((i) => {
+            const btns = Array.from(document.querySelectorAll('button.rounded-2xl'))
+                .filter(b => {
+                    const text = b.innerText.trim();
+                    return (text.includes('Hôm nay') || text.includes('Thứ') || text.includes('CN')) && /\d{2}\/\d{4}/.test(text);
+                });
+            if (btns[i - 1]) btns[i - 1].click();
+        }, idx);
 
         // Polling: kiểm tra DOM nhiều lần trong tối đa ~6s, thay vì chờ cứng 1 khoảng thời gian.
         // Lý do: dữ liệu suất chiếu có thể load bất đồng bộ (gọi API riêng sau khi đổi ngày),
@@ -191,14 +202,22 @@ Scenario('Chọn ngày khác - bộ lọc cập nhật theo ngày được chọ
     // Lịch phụ thuộc ngày chạy CI, vì vậy không được hard-code thứ trong tuần.
     // Chọn một ngày enabled khác ngày đang active và giữ lại nhãn để xác nhận UI đổi filter.
     const previousDay = await I.executeScript(() => {
-        const active = Array.from(document.querySelectorAll('button.rounded-2xl'))
-            .find(button => button.classList.contains('bg-brand-500'));
+        const dateButtons = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .filter(b => {
+                const text = b.innerText.trim();
+                return (text.includes('Hôm nay') || text.includes('Thứ') || text.includes('CN')) && /\d{2}\/\d{4}/.test(text);
+            });
+        const active = dateButtons.find(button => button.classList.contains('bg-brand-500'));
         return active?.innerText.trim() ?? null;
     });
 
     const selectedDay = await I.executeScript(() => {
-        const buttons = Array.from(document.querySelectorAll('button.rounded-2xl'));
-        const nextDay = buttons.find(button =>
+        const dateButtons = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .filter(b => {
+                const text = b.innerText.trim();
+                return (text.includes('Hôm nay') || text.includes('Thứ') || text.includes('CN')) && /\d{2}\/\d{4}/.test(text);
+            });
+        const nextDay = dateButtons.find(button =>
             !button.disabled &&
             !button.hasAttribute('disabled') &&
             !button.classList.contains('bg-brand-500')
@@ -214,8 +233,12 @@ Scenario('Chọn ngày khác - bộ lọc cập nhật theo ngày được chọ
     I.wait(2);
 
     const activeDay = await I.executeScript(() => {
-        const active = Array.from(document.querySelectorAll('button.rounded-2xl'))
-            .find(button => button.classList.contains('bg-brand-500'));
+        const dateButtons = Array.from(document.querySelectorAll('button.rounded-2xl'))
+            .filter(b => {
+                const text = b.innerText.trim();
+                return (text.includes('Hôm nay') || text.includes('Thứ') || text.includes('CN')) && /\d{2}\/\d{4}/.test(text);
+            });
+        const active = dateButtons.find(button => button.classList.contains('bg-brand-500'));
         return active?.innerText.trim() ?? null;
     });
 
@@ -264,10 +287,15 @@ Scenario('Chọn suất chiếu 19:00 - hiển thị đúng khung giờ', async 
         // Không tìm thấy 19:00 cụ thể — click suất chiếu đầu tiên có sẵn
         // (có thể UI render format khác: "19h00", "7:00 PM", v.v.)
         console.log('[T4] ⚠️ Không tìm thấy "19:00" — thử click suất chiếu đầu tiên có sẵn');
-        I.click('(//button[contains(@class,"rounded-2xl")])[1]');
+        await I.executeScript(() => {
+            const btn = Array.from(document.querySelectorAll('button')).find(b =>
+                /^\d{1,2}:\d{2}/.test(b.innerText.trim()) || b.innerText.includes('Đặt vé')
+            );
+            if (btn) btn.click();
+        });
         I.wait(2);
         // Xác minh trang booking vẫn hiển thị đúng sau khi chọn ngày
-        I.see('CHỌN NGÀY');
+        I.see('Chọn suất chiếu');
     }
 
 });
