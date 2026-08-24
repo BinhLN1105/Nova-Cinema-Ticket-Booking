@@ -91,33 +91,38 @@ export function Modal({ open, isOpen, onClose, title, description, children, siz
 // Confirm dialog
 
 export function ConfirmDialog({
-  open, onClose, onConfirm, title, message,
-  confirmLabel = 'Xác nhận', confirmVariant = 'danger', loading
+  open, isOpen, onClose, onConfirm, title, message,
+  confirmLabel = 'Xác nhận', confirmVariant = 'danger', loading, isLoading
 }) {
+  const isDialogLoading = Boolean(loading ?? isLoading)
+  const isDialogOpen = Boolean(open ?? isOpen)
+
   return (
-    <Modal open={open} onClose={onClose} size="sm">
+    <Modal open={isDialogOpen} onClose={onClose} size="sm">
       <div className="text-center">
         <div className={cn(
-          'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl',
-          confirmVariant === 'danger' ? 'bg-red-50' : 'bg-blue-50'
+          'w-14 h-14 rounded-2xl mx-auto mb-4 flex items-center justify-center text-2xl shadow-inner',
+          confirmVariant === 'danger' ? 'bg-red-50 text-red-500' :
+          confirmVariant === 'warning' ? 'bg-amber-50 text-amber-500' :
+          'bg-blue-50 text-blue-500'
         )}>
-          {confirmVariant === 'danger' ? '⚠️' : '✅'}
+          {confirmVariant === 'danger' ? '🗑️' : confirmVariant === 'warning' ? '⏸️' : '✨'}
         </div>
         <h3 className="font-bold text-gray-900 text-lg mb-2">{title}</h3>
-        <p className="text-gray-500 text-sm mb-6">{message}</p>
+        <p className="text-gray-500 text-sm mb-6 leading-relaxed">{message}</p>
         <div className="flex gap-3">
-          <button onClick={onClose} disabled={loading}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50">
+          <button type="button" onClick={onClose} disabled={isDialogLoading}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 text-sm font-medium hover:bg-gray-50 transition-all disabled:opacity-50 cursor-pointer">
             Hủy
           </button>
-          <button onClick={onConfirm} disabled={loading}
+          <button type="button" onClick={onConfirm} disabled={isDialogLoading}
             className={cn(
-              'flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50',
-              confirmVariant === 'danger'
-                ? 'bg-red-500 hover:bg-red-600'
-                : 'bg-brand-500 hover:bg-brand-600'
+              'flex-1 py-2.5 rounded-xl text-white text-sm font-semibold transition-all disabled:opacity-50 cursor-pointer shadow-sm',
+              confirmVariant === 'danger' ? 'bg-red-500 hover:bg-red-600 shadow-red-500/25' :
+              confirmVariant === 'warning' ? 'bg-amber-500 hover:bg-amber-600 shadow-amber-500/25' :
+              'bg-brand-500 hover:bg-brand-600 shadow-brand-500/25'
             )}>
-            {loading ? (
+            {isDialogLoading ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Đang xử lý...

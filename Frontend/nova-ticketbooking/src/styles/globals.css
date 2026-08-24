@@ -89,11 +89,27 @@
 
   /* Custom scrollbar */
   ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: #111118; }
+  ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb {
-    background: rgba(229, 9, 20, 0.4);
+    background: rgba(148, 163, 184, 0.4);
     border-radius: 9999px;
-    &:hover { background: rgba(229, 9, 20, 0.7); }
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(148, 163, 184, 0.7);
+  }
+
+  .dark ::-webkit-scrollbar-track,
+  html.dark ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .dark ::-webkit-scrollbar-thumb,
+  html.dark ::-webkit-scrollbar-thumb {
+    background: rgba(229, 9, 20, 0.4);
+  }
+  .dark ::-webkit-scrollbar-thumb:hover,
+  html.dark ::-webkit-scrollbar-thumb:hover {
+    background: rgba(229, 9, 20, 0.7);
   }
 }
 
@@ -101,6 +117,19 @@
    COMPONENT STYLES
    ═══════════════════════════════════════════════ */
 @layer components {
+
+  /* ── Scrollbar Hide Utilities ─── */
+  .scrollbar-none,
+  .scrollbar-hide,
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar,
+  .scrollbar-hide::-webkit-scrollbar,
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 
   /* ── Skeleton Loading ─── */
   .skeleton {
@@ -241,3 +270,63 @@
   .line-clamp-2 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
   .line-clamp-3 { overflow: hidden; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
 }
+
+/* ═══════════════════════════════════════════════
+   CINEMATIC VIEW TRANSITIONS
+   ═══════════════════════════════════════════════ */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-old(root) {
+  z-index: 9999;
+}
+
+.dark::view-transition-new(root) {
+  z-index: 1;
+}
+
+/* ── Light Mode Customer Adaptations ── */
+html.light {
+  color-scheme: light;
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --text-primary: #0F172A;
+  --text-muted: #64748B;
+}
+
+html.light body {
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+html.light .card-cinema {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  color: #0F172A;
+}
+
+html.light .card-cinema:hover {
+  border: 1px solid rgba(229, 9, 20, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+}
+
+html.light .glass-dark {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04);
+}
+
+

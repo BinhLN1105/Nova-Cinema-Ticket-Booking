@@ -7,6 +7,7 @@ export default function Logo({
   badge, 
   collapsed = false, 
   className,
+  textClassName,
   size = "md",
   onClick 
 }) {
@@ -55,7 +56,7 @@ export default function Logo({
       {/* ✍️ PHẦN TEXT THƯƠNG HIỆU */}
       {!collapsed && (
         <div className="flex items-center gap-2 overflow-hidden whitespace-nowrap">
-          <span className="font-display text-xl font-bold tracking-wider transition-colors duration-200 text-white">
+          <span className={cn("font-display text-xl font-bold tracking-wider transition-colors duration-200", textClassName || "text-slate-900 dark:text-white")}>
             Nova<span className="text-[#F5C518]">Ticket</span>
           </span>
           {badge && (

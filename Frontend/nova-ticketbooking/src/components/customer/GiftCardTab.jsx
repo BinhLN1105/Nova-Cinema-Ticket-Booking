@@ -44,9 +44,9 @@ export function GiftCardTab() {
   return (
     <div className="space-y-6">
       {/* Redeem Form */}
-      <div className="card-cinema p-6 border border-brand-500/20 shadow-[0_0_20px_rgba(233,69,96,0.1)]">
-        <h2 className="font-display font-bold text-white text-lg mb-4 flex items-center gap-2">
-          <Gift className="w-5 h-5 text-brand-400" /> Đổi Thẻ Quà Tặng
+      <div className="card-cinema p-6 border border-brand-500/20 shadow-sm">
+        <h2 className="font-display font-bold text-slate-900 dark:text-white text-lg mb-4 flex items-center gap-2">
+          <Gift className="w-5 h-5 text-brand-500 dark:text-brand-400" /> Đổi Thẻ Quà Tặng
         </h2>
         <form onSubmit={handleRedeem} className="flex gap-3">
           <input
@@ -54,7 +54,7 @@ export function GiftCardTab() {
             placeholder="Nhập mã thẻ (VD: GC-XXXX-XXXX)"
             value={code}
             onChange={(e) => setCode(e.target.value.toUpperCase())}
-            className="flex-1 input bg-cinema-900 border-white/10 uppercase"
+            className="flex-1 input bg-slate-50 dark:bg-cinema-900 border-slate-200 dark:border-white/10 text-slate-900 dark:text-white uppercase"
           />
           <button
             type="submit"
@@ -72,7 +72,7 @@ export function GiftCardTab() {
 
       {/* My Purchased Cards */}
       <div className="card-cinema p-6">
-        <h2 className="font-display font-bold text-white text-lg mb-4">Thẻ đã mua</h2>
+        <h2 className="font-display font-bold text-slate-900 dark:text-white text-lg mb-4">Thẻ đã mua</h2>
         
         {isLoading ? (
           <div className="flex justify-center py-8">
@@ -80,8 +80,8 @@ export function GiftCardTab() {
           </div>
         ) : !giftCardsData?.content?.length ? (
           <div className="text-center py-8">
-            <Gift className="w-12 h-12 text-cinema-600 mx-auto mb-3" />
-            <p className="text-cinema-400">Bạn chưa mua thẻ quà tặng nào</p>
+            <Gift className="w-12 h-12 text-slate-400 dark:text-cinema-600 mx-auto mb-3" />
+            <p className="text-slate-500 dark:text-cinema-400">Bạn chưa mua thẻ quà tặng nào</p>
           </div>
         ) : (
           <div className="space-y-3">
@@ -90,34 +90,31 @@ export function GiftCardTab() {
                 key={card.id}
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between p-4 rounded-xl bg-cinema-800/50 border border-white/5"
+                className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-cinema-800/50 border border-slate-200 dark:border-white/5 shadow-sm"
               >
                 <div>
-                  <p className="text-white font-medium flex items-center gap-2">
+                  <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                     {card.code}
                     <button onClick={() => { navigator.clipboard.writeText(card.code); toast.success('Đã sao chép mã thẻ!') }}
-                      className="text-cinema-400 hover:text-brand-400 transition-colors" title="Sao chép mã">
+                      className="text-slate-400 dark:text-cinema-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors" title="Sao chép mã">
                       <Copy className="w-3.5 h-3.5" />
                     </button>
-                    {card.isRedeemed ? (
-                      <span className="text-xs bg-green-500/20 text-green-400 px-2 py-0.5 rounded flex items-center gap-1">
-                        <Check className="w-3 h-3" /> Đã đổi
-                      </span>
-                    ) : (
-                      <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded flex items-center gap-1">
-                        <Clock className="w-3 h-3" /> Chưa đổi
-                      </span>
-                    )}
                   </p>
-                  <p className="text-cinema-400 text-sm mt-1">
-                    {card.isRedeemed
-                      ? `Đã đổi: ${formatDateTime(card.redeemedAt)}`
-                      : `Hết hạn: ${formatDateTime(card.expiresAt)}`}
+                  <p className="text-slate-500 dark:text-cinema-400 text-xs mt-1">
+                    Ngày mua: {formatDateTime(card.createdAt)}
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-brand-400 font-bold">{formatCurrency(card.pointValue, '')} CP</p>
-                  <p className="text-cinema-500 text-xs mt-0.5">Mệnh giá: {formatCurrency(card.price)}</p>
+                  <p className="text-slate-900 dark:text-white font-display font-bold">
+                    {formatCurrency(card.initialAmount)}
+                  </p>
+                  <span className={`inline-block text-[10px] px-2 py-0.5 rounded-full font-bold uppercase mt-1 ${
+                    card.status === 'ACTIVE' 
+                      ? 'bg-green-500/10 text-green-600 dark:text-green-400 border border-green-500/20' 
+                      : 'bg-slate-200 dark:bg-cinema-700 text-slate-500 dark:text-cinema-400'
+                  }`}>
+                    {card.status === 'ACTIVE' ? 'Chưa nạp' : 'Đã nạp'}
+                  </span>
                 </div>
               </motion.div>
             ))}

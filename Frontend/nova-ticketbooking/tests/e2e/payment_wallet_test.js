@@ -47,7 +47,7 @@ async function startCheckout(I, testData) {
   await I.usePlaywrightTo('create the booking from the confirmation UI', async ({ page }) => {
     await page.getByRole('button', { name: /Thanh toán/ }).click();
   });
-  I.waitForText('Chọn phương thức thanh toán', 20);
+  I.waitForText('Phương thức thanh toán', 20);
 }
 
 Feature('Payment - CinePoint wallet and loyalty reduction');
@@ -67,7 +67,7 @@ Scenario('Customer pays a new booking with CinePoint and sees the correct point 
   I.see('Ví CinePoint');
   const { totalVnd, pointsUsed } = await I.usePlaywrightTo('verify the point conversion shown on checkout', async ({ page }) => {
     await page.getByRole('button', { name: 'Ví CinePoint' }).click();
-    const totalText = await page.locator('div').filter({ hasText: /^Tổng tiền/ }).last().locator('span').last().innerText();
+    const totalText = await page.locator('div').filter({ hasText: /(Tổng tiền|Số tiền cần thanh toán)/ }).last().locator('span').last().innerText();
     const totalVnd = toVnd(totalText);
     const pointsUsed = Math.ceil(totalVnd / 1000);
     return { totalVnd, pointsUsed };

@@ -152,6 +152,7 @@ function VouchersTab() {
   const [showForm, setShowForm]     = useState(false)
   const [editTarget, setEditTarget] = useState(null)
   const [deleteTarget, setDelete]   = useState(null)
+  const [toggleTarget, setToggleTarget] = useState(null)
   const qc = useQueryClient()
 
   // API Queries
@@ -224,10 +225,29 @@ function VouchersTab() {
     }
   }
 
+  // Calculate accurate dynamic status for voucher
+  const getVoucherStatus = (v) => {
+    if (!v.isActive) {
+      return { label: 'Tạm dừng', color: 'gray' }
+    }
+    const now = new Date()
+    if (v.endDate && new Date(v.endDate) < now) {
+      return { label: 'Đã hết hạn', color: 'red' }
+    }
+    if (v.startDate && new Date(v.startDate) > now) {
+      return { label: 'Sắp diễn ra', color: 'blue' }
+    }
+    if (v.usageLimit != null && v.usageLimit > 0 && (v.usedCount || 0) >= v.usageLimit) {
+      return { label: 'Hết lượt dùng', color: 'gold' }
+    }
+    return { label: 'Đang hoạt động', color: 'green' }
+  }
+
   // Stats
-  const activeCount = (voucherList?.content ?? []).filter(v => v.isActive).length
-  const totalUsed   = (voucherList?.content ?? []).reduce((s, v) => s + (v.usedCount || 0), 0)
-  const nearExpiry  = (voucherList?.content ?? []).filter(v => v.usageLimit > 0 && (v.usedCount / v.usageLimit >= 0.9)).length
+  const allVouchers  = voucherList?.content ?? []
+  const activeCount  = allVouchers.filter(v => getVoucherStatus(v).label === 'Đang hoạt động').length
+  const expiredCount = allVouchers.filter(v => getVoucherStatus(v).label === 'Đã hết hạn' || getVoucherStatus(v).label === 'Hết lượt dùng').length
+  const totalUsed    = allVouchers.reduce((s, v) => s + (v.usedCount || 0), 0)
 
   const columns = [
     {
@@ -271,27 +291,28 @@ function VouchersTab() {
       ),
     },
     {
-      key: 'isActive', header: 'Trạng thái',
-      render: (v) => (
-        <StatusBadge label={v.isActive ? 'Đang hoạt động' : 'Tạm dừng'} color={v.isActive ? 'green' : 'gray'} />
-      ),
+      key: 'status', header: 'Trạng thái',
+      render: (v) => {
+        const st = getVoucherStatus(v)
+        return <StatusBadge label={st.label} color={st.color} />
+      },
     },
     {
       key: 'actions', header: '',
       render: (v) => (
         <div className="flex items-center justify-end gap-1">
           <button onClick={() => openEdit(v)}
-            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all" title="Chỉnh sửa">
+            className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-all cursor-pointer" title="Chỉnh sửa">
             <Edit2 className="w-4 h-4" />
           </button>
-          <button onClick={() => toggleMutation.mutate(v.id)}
+          <button onClick={() => setToggleTarget(v)}
             disabled={toggleMutation.isPending}
-            className={cn('p-2 rounded-lg transition-all', v.isActive ? 'hover:bg-amber-50 text-amber-400' : 'hover:bg-green-50 text-green-400')}
+            className={cn('p-2 rounded-lg transition-all cursor-pointer', v.isActive ? 'hover:bg-amber-50 text-amber-500' : 'hover:bg-green-50 text-green-500')}
             title={v.isActive ? 'Tạm dừng' : 'Kích hoạt'}>
             {v.isActive ? <ToggleRight className="w-4 h-4" /> : <ToggleLeft className="w-4 h-4" />}
           </button>
           <button onClick={() => setDelete(v)}
-            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all" title="Xóa">
+            className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-all cursor-pointer" title="Xóa">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
@@ -304,10 +325,10 @@ function VouchersTab() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Tổng voucher',   value: (voucherList?.content ?? []).length, icon: Ticket,     bg: 'bg-blue-50',   text: 'text-blue-500' },
-          { label: 'Đang hoạt động', value: activeCount,          icon: CheckCircle2,bg: 'bg-green-50', text: 'text-green-500' },
-          { label: 'Lượt sử dụng',  value: totalUsed.toLocaleString(), icon: Users, bg: 'bg-purple-50', text: 'text-purple-500' },
-          { label: 'Gần hết lượt',  value: nearExpiry,            icon: TrendingUp,  bg: 'bg-red-50',   text: 'text-red-500' },
+          { label: 'Tổng voucher',       value: allVouchers.length,           icon: Ticket,       bg: 'bg-blue-50',   text: 'text-blue-500' },
+          { label: 'Đang hoạt động',     value: activeCount,                  icon: CheckCircle2, bg: 'bg-green-50',  text: 'text-green-500' },
+          { label: 'Lượt sử dụng',      value: totalUsed.toLocaleString(),   icon: Users,        bg: 'bg-purple-50', text: 'text-purple-500' },
+          { label: 'Hết hạn / Hết lượt', value: expiredCount,                 icon: TrendingUp,   bg: 'bg-red-50',    text: 'text-red-500' },
         ].map(({ label, value, icon: Icon, bg, text }) => (
           <div key={label} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-3">
             <div className={`w-10 h-10 rounded-xl ${bg} flex items-center justify-center flex-shrink-0`}>
@@ -429,6 +450,28 @@ function VouchersTab() {
         title="Xóa Voucher?" confirmLabel="Xóa"
         message={`Bạn có chắc muốn xóa voucher "${deleteTarget?.code}"? Người dùng đang có mã này sẽ không dùng được nữa.`}
       />
+
+      <ConfirmDialog
+        open={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={() => {
+          toggleMutation.mutate(toggleTarget.id, {
+            onSuccess: () => {
+              toast.success(toggleTarget.isActive ? 'Đã tạm dừng mã voucher' : 'Đã kích hoạt lại mã voucher')
+              setToggleTarget(null)
+            }
+          })
+        }}
+        isLoading={toggleMutation.isPending}
+        title={toggleTarget?.isActive ? 'Tạm dừng Voucher?' : 'Kích hoạt Voucher?'}
+        confirmLabel={toggleTarget?.isActive ? 'Tạm dừng' : 'Kích hoạt'}
+        confirmVariant={toggleTarget?.isActive ? 'warning' : 'primary'}
+        message={
+          toggleTarget?.isActive
+            ? `Bạn có chắc muốn tạm dừng mã "${toggleTarget?.code}"? Khách hàng sẽ tạm thời không thể áp dụng mã này khi đặt vé.`
+            : `Bạn có chắc muốn kích hoạt lại mã "${toggleTarget?.code}" cho khách hàng sử dụng?`
+        }
+      />
     </div>
   )
 }
@@ -438,6 +481,7 @@ function PromotionsTab() {
   const [showForm, setShowForm]         = useState(false)
   const [editTarget, setEditTarget]     = useState(null)
   const [deleteTarget, setDelete]       = useState(null)
+  const [toggleTarget, setToggleTarget] = useState(null)
   const [isUploadingImage, setIsUploadingImage] = useState(false)
   const qc = useQueryClient()
 
@@ -563,7 +607,15 @@ function PromotionsTab() {
                 )}
                 {/* Active badge */}
                 <div className="absolute top-2 right-2">
-                  <StatusBadge label={promo.isActive ? 'Đang chạy' : 'Tạm dừng'} color={promo.isActive ? 'green' : 'gray'} />
+                  {(() => {
+                    const now = new Date()
+                    const isExpired = promo.endDate && new Date(promo.endDate) < now
+                    const isUpcoming = promo.startDate && new Date(promo.startDate) > now
+                    if (!promo.isActive) return <StatusBadge label="Tạm dừng" color="gray" />
+                    if (isExpired) return <StatusBadge label="Đã kết thúc" color="red" />
+                    if (isUpcoming) return <StatusBadge label="Sắp diễn ra" color="blue" />
+                    return <StatusBadge label="Đang chạy" color="green" />
+                  })()}
                 </div>
                 {/* Priority badge */}
                 <div className="absolute top-2 left-2 bg-black/40 backdrop-blur-sm text-white text-xs
@@ -596,10 +648,10 @@ function PromotionsTab() {
                     text-xs font-medium text-blue-600 hover:bg-blue-50 transition-all">
                     <Edit2 className="w-3.5 h-3.5" /> Sửa
                   </button>
-                  <button onClick={() => toggleMutation.mutate(promo.id)}
+                  <button onClick={() => setToggleTarget(promo)}
                     disabled={toggleMutation.isPending}
                     className={cn(
-                      'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all',
+                      'flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer',
                       promo.isActive ? 'text-amber-600 hover:bg-amber-50' : 'text-green-600 hover:bg-green-50'
                     )}>
                     {promo.isActive ? <ToggleRight className="w-3.5 h-3.5" /> : <ToggleLeft className="w-3.5 h-3.5" />}
@@ -607,7 +659,7 @@ function PromotionsTab() {
                   </button>
                   <button onClick={() => setDelete(promo)}
                     className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg
-                    text-xs font-medium text-red-500 hover:bg-red-50 transition-all">
+                    text-xs font-medium text-red-500 hover:bg-red-50 transition-all cursor-pointer">
                     <Trash2 className="w-3.5 h-3.5" /> Xóa
                   </button>
                 </div>
@@ -679,7 +731,29 @@ function PromotionsTab() {
         onConfirm={() => deleteMutation.mutate(deleteTarget.id)}
         isLoading={deleteMutation.isPending}
         title="Xóa khuyến mãi?" confirmLabel="Xóa"
-        message={`Xóa khuyến mãi "${deleteTarget?.title}"?`}
+        message={`Bạn có chắc muốn xóa chương trình khuyến mãi "${deleteTarget?.title}"?`}
+      />
+
+      <ConfirmDialog
+        open={!!toggleTarget}
+        onClose={() => setToggleTarget(null)}
+        onConfirm={() => {
+          toggleMutation.mutate(toggleTarget.id, {
+            onSuccess: () => {
+              toast.success(toggleTarget.isActive ? 'Đã tạm dừng khuyến mãi' : 'Đã bật lại khuyến mãi')
+              setToggleTarget(null)
+            }
+          })
+        }}
+        isLoading={toggleMutation.isPending}
+        title={toggleTarget?.isActive ? 'Tạm dừng Khuyến mãi?' : 'Bật lại Khuyến mãi?'}
+        confirmLabel={toggleTarget?.isActive ? 'Tạm dừng' : 'Bật lại'}
+        confirmVariant={toggleTarget?.isActive ? 'warning' : 'primary'}
+        message={
+          toggleTarget?.isActive
+            ? `Bạn có chắc muốn tắt hiển thị banner chương trình "${toggleTarget?.title}"?`
+            : `Bạn có chắc muốn bật hiển thị banner chương trình "${toggleTarget?.title}"?`
+        }
       />
     </div>
   )
