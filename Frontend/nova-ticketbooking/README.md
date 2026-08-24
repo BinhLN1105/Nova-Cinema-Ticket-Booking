@@ -55,7 +55,7 @@ graph TD
 ### 2. 👩‍💼 Cổng Nhân Viên Rạp (Staff Portal)
 * **Quầy Bán Vé Tại Rạp (POS Page)**: Thao tác nhanh cho nhân viên bán vé trực tiếp cho khách tại quầy.
 * **Soát Vé Check-in QR**: Quét mã QR vé bằng camera hoặc nhập mã code thủ công, tự động kiểm tra tính hợp lệ và cập nhật trạng thái đã vào rạp.
-* **Tra Cứu AI CSKH**: Tiếp nhận khiếu nại khách hàng, tìm kiếm danh tính và xem lịch sử tương tác AI trong 30 ngày.
+* **Tra Cứu Tin Nhắn CSKH**: Tiếp nhận khiếu nại khách hàng, tìm kiếm danh tính và xem lịch sử tương tác AI trong 30 ngày.
 
 ### 3. 🛡️ Cổng Quản Trị Hệ Thống (Admin Portal)
 * **Dashboard Phân Tích**: Biểu đồ doanh thu Area Chart, tỷ lệ lấp đầy rạp, top phim ăn khách, doanh thu theo từng cụm rạp.

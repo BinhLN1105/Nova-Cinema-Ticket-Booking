@@ -53,7 +53,7 @@ export default function GiftCardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cinema-900 pt-24 pb-12">
+    <div className="min-h-screen bg-slate-50 dark:bg-cinema-900 text-slate-900 dark:text-white pt-24 pb-12 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6">
         
         <motion.div 
@@ -61,13 +61,13 @@ export default function GiftCardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="text-center mb-10"
         >
-          <div className="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-400 font-bold mx-auto flex items-center justify-center mb-4 border border-brand-500/30">
+          <div className="w-16 h-16 rounded-2xl bg-brand-500/20 text-brand-500 dark:text-brand-400 font-bold mx-auto flex items-center justify-center mb-4 border border-brand-500/30">
             <Gift className="w-8 h-8" />
           </div>
-          <h1 className="font-display text-3xl md:text-4xl font-bold text-white mb-4">
+          <h1 className="font-display text-3xl md:text-4xl font-bold text-slate-900 dark:text-white mb-4">
             Thẻ Quà Tặng CinePoint
           </h1>
-          <p className="text-cinema-200 text-lg max-w-xl mx-auto">
+          <p className="text-slate-600 dark:text-cinema-200 text-lg max-w-xl mx-auto">
             Mua thẻ e-voucher để tự nạp điểm CinePoint hoặc dành tặng bạn bè. Chiết khấu hấp dẫn, điểm không bao giờ hết hạn.
           </p>
         </motion.div>
@@ -76,7 +76,7 @@ export default function GiftCardPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="glass-dark rounded-3xl p-6 sm:p-10 border border-white/10"
+          className="bg-white dark:bg-cinema-800/80 rounded-3xl p-6 sm:p-10 border border-slate-200 dark:border-white/10 shadow-xl"
         >
           {/* Card Preview */}
           <div className="relative aspect-[1.6/1] max-w-md mx-auto rounded-2xl overflow-hidden mb-10 shadow-[0_20px_50px_rgba(233,69,96,0.3)]">
@@ -109,7 +109,7 @@ export default function GiftCardPage() {
 
           <div className="space-y-6 max-w-md mx-auto">
             <div>
-              <span className="block text-sm font-medium text-cinema-200 mb-3">
+              <span className="block text-sm font-medium text-slate-700 dark:text-cinema-200 mb-3">
                 Chọn mệnh giá (VNĐ)
               </span>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -121,8 +121,8 @@ export default function GiftCardPage() {
                     className={cn(
                       'py-3 rounded-xl border text-sm font-medium transition-all duration-200',
                       selectedAmount === amount
-                        ? 'bg-brand-500/20 border-brand-500 text-brand-400 scale-[1.02]'
-                        : 'bg-cinema-800/50 border-white/5 text-cinema-300 hover:bg-cinema-800 hover:border-white/10'
+                        ? 'bg-brand-500/20 border-brand-500 text-brand-600 dark:text-brand-400 scale-[1.02] font-bold'
+                        : 'bg-slate-100 dark:bg-cinema-800/50 border-slate-200 dark:border-white/5 text-slate-700 dark:text-cinema-300 hover:bg-slate-200/70 dark:hover:bg-cinema-800 hover:border-slate-300 dark:hover:border-white/10'
                     )}
                   >
                     {formatCurrency(amount)}
@@ -131,8 +131,8 @@ export default function GiftCardPage() {
               </div>
             </div>
 
-            <div className="pt-4 border-t border-white/10">
-              <span className="block text-sm font-medium text-cinema-200 mb-3">
+            <div className="pt-4 border-t border-slate-200 dark:border-white/10">
+              <span className="block text-sm font-medium text-slate-700 dark:text-cinema-200 mb-3">
                 Phương thức thanh toán
               </span>
               <div className="space-y-2">
@@ -142,14 +142,14 @@ export default function GiftCardPage() {
                   return (
                     <button key={method.id} onClick={() => setSelectedMethod(method.id)}
                       className={`w-full flex items-center justify-between p-3 rounded-xl border transition-all
-                        ${isSelected ? 'bg-brand-500/10 border-brand-500 shadow-glow-red' : 'glass-dark border-white/5 hover:border-white/20'}`}>
+                        ${isSelected ? 'bg-brand-500/10 border-brand-500 shadow-glow-red' : 'bg-slate-50 dark:bg-cinema-800/40 border-slate-200 dark:border-white/5 hover:border-slate-300 dark:hover:border-white/20'}`}>
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg bg-white/5 ${method.color}`}>
+                        <div className={`p-2 rounded-lg bg-slate-100 dark:bg-white/5 ${method.color}`}>
                           <Icon className="w-5 h-5" />
                         </div>
                         <div className="text-left">
-                          <p className={`font-semibold text-sm ${isSelected ? 'text-white' : 'text-gray-200'}`}>{method.name}</p>
-                          <p className="text-xs text-gray-400">{method.desc}</p>
+                          <p className={`font-semibold text-sm ${isSelected ? 'text-brand-600 dark:text-white' : 'text-slate-800 dark:text-gray-200'}`}>{method.name}</p>
+                          <p className="text-xs text-slate-500 dark:text-gray-400">{method.desc}</p>
                         </div>
                       </div>
                       {isSelected && <CheckCircle2 className="w-5 h-5 text-brand-500" />}
@@ -159,10 +159,10 @@ export default function GiftCardPage() {
               </div>
             </div>
 
-            <div className="pt-4 mt-4 border-t border-white/10">
+            <div className="pt-4 mt-4 border-t border-slate-200 dark:border-white/10">
               <div className="flex justify-between items-center mb-4">
-                <span className="text-cinema-200">Tổng thanh toán</span>
-                <span className="text-2xl font-bold text-white">{formatCurrency(selectedAmount)}</span>
+                <span className="text-slate-600 dark:text-cinema-200 font-medium">Tổng thanh toán</span>
+                <span className="text-2xl font-bold text-slate-900 dark:text-white">{formatCurrency(selectedAmount)}</span>
               </div>
               <button
                 onClick={handleBuy}

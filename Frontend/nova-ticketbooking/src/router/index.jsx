@@ -45,6 +45,8 @@ const MoviesPage = () =>
   lazy_(() => import("@/pages/customer/movies/MoviesPage"));
 const MovieDetailPage = () =>
   lazy_(() => import("@/pages/customer/movies/MovieDetailPage"));
+const CinemasPage = () =>
+  lazy_(() => import("@/pages/customer/cinemas/CinemasPage"));
 const PromotionsPage   = () => 
   lazy_(() => import('@/pages/customer/promotions/PromotionsPage'))
 const SelectShowtime = () =>
@@ -132,6 +134,7 @@ export const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "movies", element: <MoviesPage /> },
       { path: "movies/:id", element: <MovieDetailPage /> },
+      { path: "cinemas", element: <CinemasPage /> },
       { path: 'promotions',      element: <PromotionsPage /> },
       { path: "gift-cards",      element: <GiftCardPage /> },
       { path: "gift-cards/result", element: <GiftCardResult /> },

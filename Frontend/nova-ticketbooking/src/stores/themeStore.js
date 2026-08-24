@@ -15,7 +15,25 @@ const getInitialRole = () => {
   return "CUSTOMER";
 };
 
+const getInitialMode = () => {
+  if (typeof document !== "undefined") {
+    const attr = document.documentElement.getAttribute("data-theme");
+    if (attr === "light" || attr === "dark") return attr;
+    if (document.documentElement.classList.contains("light")) return "light";
+    if (document.documentElement.classList.contains("dark")) return "dark";
+  }
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem("nova-theme-mode");
+      if (saved === "light" || saved === "dark") return saved;
+      if (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) return "light";
+    } catch (e) {}
+  }
+  return "dark";
+};
+
 const DEFAULTS = {
+  mode: getInitialMode(),
   brandColor: "#E50914",
   accentColor: "#F5A623",
   animations: true,
@@ -56,8 +74,20 @@ function generatePalette(hex) {
 
 const STYLE_ID = "nova-theme-overrides";
 
-function applyTheme({ brandColor, accentColor, animations, compact }) {
+function applyTheme({ mode, brandColor, accentColor, animations, compact }) {
   const root = document.documentElement;
+  const activeMode = mode || getInitialMode();
+
+  // Synchronize class and data attribute
+  root.classList.remove("light", "dark");
+  root.classList.add(activeMode);
+  root.setAttribute("data-theme", activeMode);
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.setItem("nova-theme-mode", activeMode);
+    } catch (e) {}
+  }
+
   const brand = generatePalette(brandColor);
   const accent = generatePalette(accentColor);
   const { r: br, g: bg, b: bb } = hexToRgb(brandColor);
@@ -230,6 +260,18 @@ export const useThemeStore = create(
       setTheme: (updates) => {
         set(updates);
         applyTheme({ ...get(), ...updates });
+      },
+
+      setMode: (newMode) => {
+        set({ mode: newMode });
+        applyTheme({ ...get(), mode: newMode });
+      },
+
+      toggleMode: () => {
+        const nextMode = get().mode === "dark" ? "light" : "dark";
+        set({ mode: nextMode });
+        applyTheme({ ...get(), mode: nextMode });
+        return nextMode;
       },
 
       resetTheme: () => {
