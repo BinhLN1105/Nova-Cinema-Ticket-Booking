@@ -47,7 +47,18 @@ class CancelConfirmFragment : Fragment() {
             return
         }
 
-        confirmCancellation()
+        AlertDialog.Builder(requireContext())
+            .setTitle("Xác nhận hủy vé")
+            .setMessage("Bạn có chắc chắn muốn hủy đơn vé này không? Sau khi hủy, vé sẽ được hoàn điểm CinePoint theo chính sách.")
+            .setPositiveButton("Xác nhận") { _, _ ->
+                confirmCancellation()
+            }
+            .setNegativeButton("Quay lại") { dialog, _ ->
+                dialog.dismiss()
+                Navigation.findNavController(view).popBackStack()
+            }
+            .setCancelable(false)
+            .show()
 
         binding.btnBackToDetail.setOnClickListener { v ->
             val args = Bundle().apply {

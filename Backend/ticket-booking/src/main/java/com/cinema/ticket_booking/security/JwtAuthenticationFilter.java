@@ -65,10 +65,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {
                     if (user.getIsActive()) {
+                        // Lấy quyền trực tiếp từ Database thay vì tin tưởng claim cũ trong JWT
                         var authToken = new UsernamePasswordAuthenticationToken(
                                 user,
                                 null,
-                                List.of(new SimpleGrantedAuthority("ROLE_" + role)));
+                                List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
                         authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                         SecurityContextHolder.getContext().setAuthentication(authToken);
                     }

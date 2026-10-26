@@ -170,26 +170,33 @@ export function calculateActualDiscount(cartTotal, voucher) {
 
 // ── Embed Trailer URL Helper ─────────────────
 export function getEmbedTrailerUrl(url) {
-  if (!url) return '';
+  if (!url || typeof url !== 'string') return '';
+  const trimmed = url.trim();
   try {
-    if (url.includes('youtube.com/embed/')) {
-      const separator = url.includes('?') ? '&' : '?';
-      return url.includes('autoplay=1') ? url : `${url}${separator}autoplay=1&rel=0`;
+    if (trimmed.startsWith('https://www.youtube.com/embed/') || trimmed.startsWith('https://youtube.com/embed/')) {
+      const parsed = new URL(trimmed);
+      parsed.searchParams.set('autoplay', '1');
+      parsed.searchParams.set('rel', '0');
+      return parsed.toString();
     }
-    const vMatch = url.match(/[?&]v=([^&#]+)/);
+    const vMatch = trimmed.match(/[?&]v=([a-zA-Z0-9_-]{11})/);
     if (vMatch && vMatch[1]) {
       return `https://www.youtube.com/embed/${vMatch[1]}?autoplay=1&rel=0`;
     }
-    const shortMatch = url.match(/youtu\.be\/([^?&#]+)/);
+    const shortMatch = trimmed.match(/youtu\.be\/([a-zA-Z0-9_-]{11})/);
     if (shortMatch && shortMatch[1]) {
       return `https://www.youtube.com/embed/${shortMatch[1]}?autoplay=1&rel=0`;
     }
-    const shortsMatch = url.match(/youtube\.com\/shorts\/([^?&#]+)/);
+    const shortsMatch = trimmed.match(/youtube\.com\/shorts\/([a-zA-Z0-9_-]{11})/);
     if (shortsMatch && shortsMatch[1]) {
       return `https://www.youtube.com/embed/${shortsMatch[1]}?autoplay=1&rel=0`;
     }
-    return url;
+    const vimeoMatch = trimmed.match(/vimeo\.com\/(?:video\/|)(\d+)/);
+    if (vimeoMatch && vimeoMatch[1]) {
+      return `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`;
+    }
+    return '';
   } catch {
-    return url;
+    return '';
   }
 }

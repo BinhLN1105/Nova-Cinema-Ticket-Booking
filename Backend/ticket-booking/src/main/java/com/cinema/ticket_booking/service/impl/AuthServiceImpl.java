@@ -11,6 +11,7 @@ import com.cinema.ticket_booking.enums.AuthProvider;
 import com.cinema.ticket_booking.enums.UserRole;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ConflictException;
+import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.exception.UnauthorizedException;
 import com.cinema.ticket_booking.repository.RefreshTokenRepository;
 import com.cinema.ticket_booking.repository.UserRepository;
@@ -119,6 +120,13 @@ public class AuthServiceImpl implements AuthService {
                     "Provider không được hỗ trợ: " + request.getProvider());
         };
 
+        if (info.getEmail() == null || info.getEmail().isBlank()) {
+            throw new BadRequestException("Không thể lấy email từ tài khoản mạng xã hội này");
+        }
+        if (request.getProvider() == AuthProvider.GOOGLE && !info.isEmailVerified()) {
+            throw new UnauthorizedException("Email từ tài khoản Google chưa được xác minh");
+        }
+
         // Bước 2: Tìm hoặc tạo user từ thông tin Social
         User user = findOrCreateSocialUser(info, request.getProvider());
 
@@ -183,9 +191,10 @@ public class AuthServiceImpl implements AuthService {
 
             // 2. Tạo mã OTP 6 số
             String otp = String.format("%06d", secureRandom.nextInt(1000000));
-            if (Arrays.asList(env.getActiveProfiles()).contains("test")
-                    || Arrays.asList(env.getActiveProfiles()).contains("dev")) {
-                otp = "123456"; // Fixed OTP for CI/CD and local development test automation
+            // Chỉ cho phép fixed OTP khi có cấu hình mock rõ ràng trong test
+            if (Arrays.asList(env.getActiveProfiles()).contains("test") && 
+                "true".equalsIgnoreCase(env.getProperty("app.auth.mock-otp-enabled", "false"))) {
+                otp = "123456";
             }
 
             // 3. Lưu vào Redis (5 phút)
@@ -269,9 +278,24 @@ public class AuthServiceImpl implements AuthService {
         // Trường hợp 1: Đã từng đăng nhập Social trước đó → tìm theo providerId
         return userRepository.findByAuthProviderAndProviderId(provider, info.getProviderId())
                 .orElseGet(() -> {
-                    // Trường hợp 2: Email đã có tài khoản LOCAL → liên kết Social vào
+                    // Trường hợp 2: Email đã có tài khoản
                     if (userRepository.existsByEmail(info.getEmail())) {
                         User existing = userRepository.findByEmail(info.getEmail()).get();
+
+                        // CHỐT CHẶN BẢO MẬT: Không cho phép Social Login tự động liên kết vào tài khoản Quản trị/Nhân viên
+                        if (existing.getRole() != UserRole.CUSTOMER) {
+                            throw new ForbiddenException("Không thể dùng đăng nhập mạng xã hội cho tài khoản Quản trị/Nhân viên");
+                        }
+
+                        // Nếu tài khoản LOCAL có mật khẩu, không ghi đè authProvider thành GOOGLE/FACEBOOK để không làm mất quyền đăng nhập mật khẩu
+                        if (existing.getAuthProvider() == AuthProvider.LOCAL) {
+                            existing.setProviderId(info.getProviderId());
+                            if (existing.getAvatarUrl() == null) {
+                                existing.setAvatarUrl(info.getAvatarUrl());
+                            }
+                            return userRepository.save(existing);
+                        }
+
                         existing.setAuthProvider(provider);
                         existing.setProviderId(info.getProviderId());
                         if (existing.getAvatarUrl() == null) {

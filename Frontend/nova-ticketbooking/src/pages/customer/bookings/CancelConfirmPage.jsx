@@ -15,41 +15,54 @@ export default function CancelConfirmPage() {
   const { user } = useAuth()
   const setUser = useAuthStore(s => s.setUser)
 
-  const [status, setStatus] = useState('loading') // loading, success, error
-  const [errorMessage, setErrorMessage] = useState('')
-  const hasCalled = useRef(false)
+  const [status, setStatus] = useState(!token || !bookingId ? 'error' : 'prompt') // prompt, loading, success, error
+  const [errorMessage, setErrorMessage] = useState(!token || !bookingId ? 'Thông tin xác nhận không hợp lệ' : '')
 
-  useEffect(() => {
-    if (!token || !bookingId || hasCalled.current) return
-    hasCalled.current = true
-
-    const confirmCancel = async () => {
+  const handleConfirmCancel = async () => {
+    if (!token || !bookingId) return
+    setStatus('loading')
+    try {
+      await bookingApi.cancelConfirm(token, bookingId)
       try {
-        await bookingApi.cancelConfirm(token, bookingId)
-        
-        // Fetch latest user profile to update CinePoints
-        try {
-          const updatedUser = await api.get('/auth/me')
-          setUser(updatedUser)
-        } catch (profileErr) {
-          console.error('Failed to refresh profile:', profileErr)
-        }
-
-        setStatus('success')
-      } catch (err) {
-        setStatus('error')
-        setErrorMessage(err.response?.data?.message || 'Có lỗi xảy ra khi xác nhận huỷ vé')
+        const updatedUser = await api.get('/auth/me')
+        setUser(updatedUser)
+      } catch (profileErr) {
+        console.error('Failed to refresh profile:', profileErr)
       }
+      setStatus('success')
+    } catch (err) {
+      setStatus('error')
+      setErrorMessage(err.response?.data?.message || 'Có lỗi xảy ra khi xác nhận huỷ vé')
     }
-
-    confirmCancel()
-  }, [token, bookingId, setUser])
+  }
 
   return (
     <div className="min-h-screen bg-cinema-900 pt-24 pb-16 flex items-center justify-center">
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
         className="card-cinema p-8 max-w-md w-full text-center mx-4">
         
+        {status === 'prompt' && (
+          <div className="flex flex-col items-center">
+            <div className="w-20 h-20 rounded-full bg-amber-500/20 flex items-center justify-center mb-6">
+              <span className="text-3xl text-amber-500 font-bold">!</span>
+            </div>
+            <h2 className="text-2xl font-bold text-white mb-3">Xác nhận huỷ đơn đặt vé</h2>
+            <p className="text-cinema-300 mb-8">
+              Bạn có chắc chắn muốn huỷ vé xem phim này không? Sau khi xác nhận, vé sẽ được huỷ và điểm CinePoint sẽ được hoàn trả theo quy định.
+            </p>
+            <div className="flex gap-4 w-full">
+              <button onClick={() => navigate('/customer/profile')}
+                className="btn border border-cinema-700 hover:bg-cinema-800 text-white flex-1 py-3 rounded-xl font-medium">
+                Không huỷ
+              </button>
+              <button onClick={handleConfirmCancel}
+                className="btn bg-red-600 hover:bg-red-700 text-white flex-1 py-3 rounded-xl font-medium">
+                Xác nhận huỷ
+              </button>
+            </div>
+          </div>
+        )}
+
         {status === 'loading' && (
           <div className="flex flex-col items-center">
             <Loader2 className="w-16 h-16 text-brand-500 animate-spin mb-4" />

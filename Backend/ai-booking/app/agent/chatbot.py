@@ -95,11 +95,9 @@ def chat(session_id: str, user_message: str, user_id: str = None, force_fallback
     is_transactional = (intent in transactional_intents) or is_in_reminder_flow or is_clarify_booking or (
         state.get("showtime_id") is not None or state.get("awaiting_movie") is True or state.get("showtime_list")
     )
-    is_testing_llm_fallback = "trigger_ratelimit_429" in user_message or "trigger_server_error_500" in user_message
-
     try:
         # 1. Nếu hệ thống ép fallback / mock, HOẶC là tác vụ nghiệp vụ giao tác (Đặt vé nháp, Nhắc lịch, Xem điểm/vé)
-        if (not is_testing_llm_fallback) and (force_fallback or use_mock or is_transactional):
+        if force_fallback or use_mock or is_transactional:
             used_fallback = bool(force_fallback or use_mock)
             engine = AgentFactory.get_engine(force_fallback=True)
             reply_text = engine.process(user_message, session_id, user_id=user_id)

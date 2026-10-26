@@ -1,3 +1,4 @@
+import secrets
 """
 app/main.py
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -40,8 +41,8 @@ app.add_middleware(
 
 # ── Security dependency ───────────────────────────────────────
 def verify_internal_key(x_internal_key: str = Header(...)) -> None:
-    """Bảo vệ endpoint /sync — chỉ Java server mới được gọi"""
-    if x_internal_key != cfg.internal_api_key:
+    """Bảo vệ endpoint nội bộ — chỉ Java server mới được gọi"""
+    if not cfg.internal_api_key or not secrets.compare_digest(x_internal_key, cfg.internal_api_key):
         raise HTTPException(status_code=403, detail="Unauthorized")
 
 
@@ -124,9 +125,11 @@ async def sync_endpoint():
 # ════════════════════════════════════════════════════════════
 #  POST /api/v1/session/clear  — xóa lịch sử chat
 # ════════════════════════════════════════════════════════════
-@app.post("/api/v1/session/clear")
+@app.post("/api/v1/session/clear", dependencies=[Depends(verify_internal_key)])
 async def clear_session_endpoint(session_id: str):
     clear_session(session_id)
+    from .agent.engines.llm_engine import clear_engine_session
+    clear_engine_session(session_id)
     return {"status": "ok", "message": f"Đã xóa lịch sử session {session_id}"}
 
 

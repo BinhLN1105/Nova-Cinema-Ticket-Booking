@@ -1,3 +1,8 @@
+---
+name: security
+description: Tiêu chuẩn bảo mật cho dự án NovaTicket, tập trung vào Stateless Authentication (JWT), Access Control / RBAC, Internal API Key, CORS và bảo vệ dữ liệu nhạy cảm.
+---
+
 # Security Skill
 
 Kỹ năng này định nghĩa các tiêu chuẩn bảo mật cho dự án NovaTicket, tập trung vào xác thực (Authentication), phân quyền (Authorization) và bảo vệ dữ liệu.

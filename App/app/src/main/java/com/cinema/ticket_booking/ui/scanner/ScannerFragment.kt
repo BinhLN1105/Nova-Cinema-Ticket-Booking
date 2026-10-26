@@ -40,13 +40,23 @@ class ScannerFragment : Fragment() {
             SnackbarHelper.showSuccess(binding.root, "Đã huỷ quét")
         } else {
             val qrCode = result.contents
-            if (qrCode.startsWith("http") || qrCode.startsWith("novaticket://")) {
-                try {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(qrCode))
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    SnackbarHelper.showError(binding.root, "Mã QR không hợp lệ hoặc không được hỗ trợ")
-                }
+            if (qrCode.startsWith("http://") || qrCode.startsWith("https://")) {
+                val uri = Uri.parse(qrCode)
+                AlertDialog.Builder(requireContext())
+                    .setTitle("Mở liên kết từ mã QR?")
+                    .setMessage(qrCode)
+                    .setPositiveButton("Mở") { _, _ ->
+                        try {
+                            val intent = Intent(Intent.ACTION_VIEW, uri).apply {
+                                addCategory(Intent.CATEGORY_BROWSABLE)
+                            }
+                            startActivity(intent)
+                        } catch (e: Exception) {
+                            SnackbarHelper.showError(binding.root, "Không thể mở liên kết")
+                        }
+                    }
+                    .setNegativeButton("Hủy", null)
+                    .show()
             } else {
                 binding.progressBar.visibility = View.VISIBLE
                 viewModel.checkInTicket(qrCode)

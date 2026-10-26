@@ -9,8 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.net.URI;
 import java.util.Map;
-
 
 @Slf4j
 @Service
@@ -18,8 +18,6 @@ import java.util.Map;
 public class CloudinaryService {
 
     private final Cloudinary cloudinary;
-
-
 
     /**
      * Upload ảnh lên Cloudinary vào thư mục cụ thể
@@ -37,12 +35,53 @@ public class CloudinaryService {
      * Upload ảnh từ URL (Cloudinary tự fetch)
      */
     public String uploadImageFromUrl(String url, String folder) throws IOException {
+        validateImageUrl(url);
         Map<?, ?> uploadResult = cloudinary.uploader().upload(url,
                 ObjectUtils.asMap(
                         "folder", "Nova Ticket Booking/" + folder,
                         "resource_type", "auto"
                 ));
         return uploadResult.get("secure_url").toString();
+    }
+
+    /**
+     * Xác thực an toàn URL hình ảnh trước khi gửi cho Cloudinary SDK,
+     * ngăn chặn Local File Exfiltration và SSRF vào mạng nội bộ.
+     */
+    private void validateImageUrl(String url) {
+        if (url == null || url.isBlank()) {
+            throw new IllegalArgumentException("URL hình ảnh không được để trống");
+        }
+        String trimmed = url.trim();
+        if (trimmed.contains("\n") || trimmed.contains("\r") || trimmed.contains("\\")) {
+            throw new IllegalArgumentException("Định dạng URL chứa ký tự không hợp lệ");
+        }
+        URI uri;
+        try {
+            uri = URI.create(trimmed);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Định dạng URL không hợp lệ: " + e.getMessage());
+        }
+
+        String scheme = uri.getScheme();
+        if (scheme == null || (!scheme.equalsIgnoreCase("http") && !scheme.equalsIgnoreCase("https"))) {
+            throw new IllegalArgumentException("Chỉ chấp nhận URL ảnh có giao thức http hoặc https");
+        }
+
+        String host = uri.getHost();
+        if (host == null || host.isBlank()) {
+            throw new IllegalArgumentException("URL không chứa tên miền (host) hợp lệ");
+        }
+
+        String lowerHost = host.toLowerCase();
+        if (lowerHost.equals("localhost") || lowerHost.endsWith(".localhost") ||
+                lowerHost.equals("127.0.0.1") || lowerHost.startsWith("127.") ||
+                lowerHost.equals("0.0.0.0") || lowerHost.equals("::1") || lowerHost.equals("[::1]") ||
+                lowerHost.startsWith("169.254.") || lowerHost.startsWith("10.") ||
+                lowerHost.startsWith("192.168.") ||
+                lowerHost.matches("^172\\.(1[6-9]|2[0-9]|3[0-1])\\..*")) {
+            throw new IllegalArgumentException("Không cho phép tải ảnh từ địa chỉ nội bộ hoặc máy chủ cục bộ");
+        }
     }
 
     /**

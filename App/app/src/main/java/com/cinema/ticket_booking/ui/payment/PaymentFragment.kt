@@ -94,7 +94,7 @@ class PaymentFragment : Fragment() {
         val settings = binding.webView.settings
         settings.javaScriptEnabled = true
         settings.domStorageEnabled = true
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
         settings.useWideViewPort = true
         settings.loadWithOverviewMode = true
         settings.setSupportMultipleWindows(false)
@@ -151,6 +151,9 @@ class PaymentFragment : Fragment() {
                 try {
                     val intent = Intent.parseUri(loadUrl, Intent.URI_INTENT_SCHEME)
                     if (intent != null) {
+                        intent.addCategory(Intent.CATEGORY_BROWSABLE)
+                        intent.component = null
+                        intent.selector = null
                         view.context.startActivity(intent)
                     }
                 } catch (e: Exception) {
@@ -191,8 +194,10 @@ class PaymentFragment : Fragment() {
             }
 
             override fun onReceivedSslError(wv: WebView, handler: SslErrorHandler, error: android.net.http.SslError) {
-                android.util.Log.w("PaymentFragment", "SSL error: $error")
-                handler.proceed() // VNPay sandbox may have SSL issues
+                android.util.Log.e("PaymentFragment", "SSL error: $error")
+                handler.cancel()
+                binding.progressBar.visibility = View.GONE
+                SnackbarHelper.showError(binding.root, "Kết nối thanh toán không an toàn (Chứng chỉ SSL lỗi).")
             }
         }
 

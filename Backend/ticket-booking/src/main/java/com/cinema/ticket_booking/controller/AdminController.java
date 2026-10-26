@@ -200,6 +200,7 @@ public class AdminController {
 
     @PatchMapping("/users/{id}/role")
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateRole(
             @PathVariable UUID id,
             @RequestBody java.util.Map<String, String> body,
