@@ -2,6 +2,7 @@ package com.cinema.ticket_booking.service.impl;
 
 import com.cinema.ticket_booking.dto.response.NotificationResponse;
 import com.cinema.ticket_booking.dto.response.PageResponse;
+import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.model.Booking;
 import com.cinema.ticket_booking.model.Notification;
 import com.cinema.ticket_booking.model.GlobalNotification;
@@ -104,9 +105,14 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public void delete(UUID id, UUID userId) {
 
-        // 1. Thử xóa ở bảng cá nhân
-        if (notificationRepository.existsById(id)) {
-            notificationRepository.deleteById(id);
+        // 1. Thử xóa ở bảng cá nhân và kiểm tra quyền sở hữu (chống IDOR)
+        var notifOpt = notificationRepository.findById(id);
+        if (notifOpt.isPresent()) {
+            Notification item = notifOpt.get();
+            if (item.getUser() != null && !item.getUser().getId().equals(userId)) {
+                throw new ForbiddenException("Bạn không có quyền xóa thông báo của người khác");
+            }
+            notificationRepository.delete(item);
             return;
         }
 
@@ -233,7 +239,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Async
     public void pushFcm(User user, String title, String body, String bookingId) {
         if (FirebaseApp.getApps().isEmpty()) {
-            log.warn("[FCM] FirebaseApp chưa được khởi tạo. Bỏ qua gửi push notification cho user: {}", user.getEmail());
+            log.warn("[FCM] FirebaseApp chưa được khởi tạo. Bỏ qua gửi push notification cho user: {}",
+                    user.getEmail());
             return;
         }
         if (!user.getAllowTransactionNotification()) {

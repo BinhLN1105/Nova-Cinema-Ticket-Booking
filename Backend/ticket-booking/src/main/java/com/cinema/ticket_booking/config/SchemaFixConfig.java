@@ -6,7 +6,6 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.cache.Cache;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.redis.cache.RedisCacheManager;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.UUID;
@@ -24,15 +23,13 @@ public class SchemaFixConfig implements CommandLineRunner {
 
     private final JdbcTemplate jdbcTemplate;
     private final RedisCacheManager cacheManager;
-    private final RedisConnectionFactory connectionFactory;
 
     @Override
     public void run(String... args) throws Exception {
         log.info("[SchemaFix] Bắt đầu kiểm tra và bảo trì hệ thống...");
 
         // 1. ƯU TIÊN HÀNG ĐẦU: Dọn dẹp Cache và giải phóng ghế để có thể test ngay
-        flushRedis();
-        unlockAllSeats();
+        unlockExpiredSeats();
 
         clearCache("movies_now_showing");
         clearCache("movies_coming_soon");
@@ -316,14 +313,13 @@ public class SchemaFixConfig implements CommandLineRunner {
         }
     }
 
-    private void unlockAllSeats() {
+    private void unlockExpiredSeats() {
         try {
-            log.info("[SchemaFix] Đang giải phóng toàn bộ ghế đang bị khóa (LOCKED) trên hệ thống...");
-            // Chuyển toàn bộ ghế từ LOCKED sang AVAILABLE
+            log.info("[SchemaFix] Đang giải phóng các ghế hết hạn giữ chỗ (status=LOCKED & locked_until < NOW())...");
             int unlocked = jdbcTemplate.update(
-                    "UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED'");
+                    "UPDATE showtime_seats SET status = 'AVAILABLE', locked_by = NULL, locked_until = NULL WHERE status = 'LOCKED' AND (locked_until IS NULL OR locked_until < NOW())");
             if (unlocked > 0) {
-                log.info("[SchemaFix] Đã giải phóng thành công {} ghế đang bị khóa.", unlocked);
+                log.info("[SchemaFix] Đã giải phóng thành công {} ghế hết hạn.", unlocked);
             } else {
                 log.info("[SchemaFix] Không có ghế nào đang bị khóa cần giải phóng.");
             }
@@ -369,16 +365,6 @@ public class SchemaFixConfig implements CommandLineRunner {
             log.info("[SchemaFix] Đã đảm bảo cột 'image_url' cho phép giá trị NULL.");
         } catch (Exception e) {
             log.warn("[SchemaFix] Lỗi khi bảo trì bảng promotions: {}", e.getMessage());
-        }
-    }
-
-    private void flushRedis() {
-        try {
-            log.info("[SchemaFix] Đang thực hiện FLUSH Redis để tránh lỗi Serialization...");
-            connectionFactory.getConnection().serverCommands().flushDb();
-            log.info("[SchemaFix] Đã dọn dẹp xong toàn bộ Redis DB.");
-        } catch (Exception e) {
-            log.warn("[SchemaFix] Không thể flush Redis: {}", e.getMessage());
         }
     }
 

@@ -200,6 +200,7 @@ public class AdminController {
 
     @PatchMapping("/users/{id}/role")
     @Transactional
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponse<Void>> updateRole(
             @PathVariable UUID id,
             @RequestBody java.util.Map<String, String> body,
@@ -387,10 +388,10 @@ public class AdminController {
                     .id(b.getId().toString())
                     .bookingCode(b.getBookingCode())
                     .movieTitle(isConcessionOnly ? "🍿 Hóa đơn F&B" : b.getShowtime().getMovie().getTitle())
-                    .moviePosterUrl(!isConcessionOnly ? b.getShowtime().getMovie().getPosterUrl() : null)
-                    .startTime(!isConcessionOnly ? b.getShowtime().getStartTime() : null)
+                    .moviePosterUrl(isConcessionOnly ? null : b.getShowtime().getMovie().getPosterUrl())
+                    .startTime(isConcessionOnly ? null : b.getShowtime().getStartTime())
                     .cinemaName(cinemaName)
-                    .screenName(!isConcessionOnly ? b.getShowtime().getScreen().getName() : "—")
+                    .screenName(isConcessionOnly ? "—" : b.getShowtime().getScreen().getName())
                     .totalAmount(b.getTotalAmount())
                     .status(b.getStatus())
                     .paymentMethod(b.getPaymentMethod())

@@ -220,7 +220,9 @@ async function processNewmanFailures() {
 
       // ── BƯỚC THÔNG MINH CHỐNG TRÙNG LẶP BUG TRÊN JIRA ───────────────────────
       // Tìm kiếm xem trên dự án có ticket Bug nào tương tự đang MỞ hay không
-      const jql = `project = "${projectKey}" AND issuetype = "Bug" AND summary ~ "\\"${rawUrl}\\"" AND statusCategory != Done`;
+      const safeProjectKey = (projectKey || '').replace(/[^A-Z0-9]/g, '');
+      const safeRawUrl = (rawUrl || '').replace(/[\r\n]/g, '').replace(/[\\"]/g, '\\$&');
+      const jql = `project = "${safeProjectKey}" AND issuetype = "Bug" AND summary ~ "\\"${safeRawUrl}\\"" AND statusCategory != Done`;
       
       const searchResponse = await axios.get(
         `https://${domain}/rest/api/3/search/jql`,

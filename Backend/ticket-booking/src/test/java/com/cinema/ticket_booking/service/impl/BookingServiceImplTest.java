@@ -1317,4 +1317,102 @@ class BookingServiceImplTest {
         UUID eligibleId = bookingService.getEligibleBookingForReview(userId, movieId);
         assertNull(eligibleId);
     }
+
+    // ── Bảo mật: HMAC QR & phân quyền hủy vé theo rạp (Security Audit) ──────
+
+    @Test
+    void testCheckIn_SignedQrInvalidSignature_ThrowsBadRequest() {
+        User staff = User.builder().id(UUID.randomUUID()).role(UserRole.STAFF).build();
+        String tamperedQr = "BK123.forged-signature";
+        when(qrCodeService.verifyQrContent(tamperedQr)).thenReturn(false);
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.checkIn(staff, tamperedQr));
+        assertTrue(ex.getMessage().contains("Chữ ký số"));
+        verify(bookingRepository, never()).findByQrCode(any());
+    }
+
+    @Test
+    void testCheckIn_SignedQrValidSignature_ProceedsToLookup() {
+        User staff = User.builder().id(UUID.randomUUID()).role(UserRole.STAFF).build();
+        String signedQr = "BK123.valid-signature";
+        when(qrCodeService.verifyQrContent(signedQr)).thenReturn(true);
+        when(bookingRepository.findByQrCode(signedQr)).thenReturn(Optional.empty());
+        when(bookingRepository.findByBookingCode(signedQr)).thenReturn(Optional.empty());
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.checkIn(staff, signedQr));
+        assertEquals("QR hoặc Mã đặt vé không tồn tại", ex.getMessage());
+        verify(bookingRepository).findByQrCode(signedQr);
+    }
+
+    @Test
+    void testCancelBooking_StaffOtherCinema_ThrowsForbidden() {
+        UUID bookingId = UUID.randomUUID();
+        User staff = User.builder().id(UUID.randomUUID()).role(UserRole.STAFF).build();
+        Cinema bookingCinema = Cinema.builder().id(UUID.randomUUID()).build();
+        Cinema staffCinema = Cinema.builder().id(UUID.randomUUID()).build();
+        Showtime localShowtime = Showtime.builder()
+                .screen(Screen.builder().cinema(bookingCinema).build())
+                .startTime(LocalDateTime.now().plusHours(5))
+                .build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .status(BookingStatus.PAID)
+                .user(User.builder().id(UUID.randomUUID()).role(UserRole.CUSTOMER).build())
+                .showtime(localShowtime)
+                .build();
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(staffProfileRepository.findByUserId(staff.getId()))
+                .thenReturn(Optional.of(StaffProfile.builder().cinema(staffCinema).build()));
+
+        assertThrows(ForbiddenException.class, () -> bookingService.cancelBooking(staff, bookingId));
+        assertEquals(BookingStatus.PAID, booking.getStatus());
+        verify(bookingRepository, never()).save(any());
+    }
+
+    @Test
+    void testCancelBooking_StaffSameCinema_PassesCinemaCheck() {
+        UUID bookingId = UUID.randomUUID();
+        User staff = User.builder().id(UUID.randomUUID()).role(UserRole.STAFF).build();
+        Cinema cinema = Cinema.builder().id(UUID.randomUUID()).build();
+        Showtime localShowtime = Showtime.builder()
+                .screen(Screen.builder().cinema(cinema).build())
+                .startTime(LocalDateTime.now().plusHours(5))
+                .build();
+        // Trạng thái PENDING: vượt qua chốt chặn rạp, dừng ở bước kiểm tra trạng thái thanh toán
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .status(BookingStatus.PENDING)
+                .user(User.builder().id(UUID.randomUUID()).role(UserRole.CUSTOMER).build())
+                .showtime(localShowtime)
+                .build();
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(staffProfileRepository.findByUserId(staff.getId()))
+                .thenReturn(Optional.of(StaffProfile.builder().cinema(cinema).build()));
+
+        BadRequestException ex = assertThrows(BadRequestException.class,
+                () -> bookingService.cancelBooking(staff, bookingId));
+        assertEquals("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công", ex.getMessage());
+    }
+
+    @Test
+    void testCancelBooking_StaffProfileWithoutShowtime_SkipsCinemaCheck() {
+        UUID bookingId = UUID.randomUUID();
+        User staff = User.builder().id(UUID.randomUUID()).role(UserRole.STAFF).build();
+        Booking booking = Booking.builder()
+                .id(bookingId)
+                .status(BookingStatus.PENDING)
+                .user(User.builder().id(UUID.randomUUID()).role(UserRole.CUSTOMER).build())
+                .showtime(null)
+                .build();
+
+        when(bookingRepository.findById(bookingId)).thenReturn(Optional.of(booking));
+        when(staffProfileRepository.findByUserId(staff.getId()))
+                .thenReturn(Optional.of(StaffProfile.builder().cinema(Cinema.builder().id(UUID.randomUUID()).build()).build()));
+
+        assertThrows(BadRequestException.class, () -> bookingService.cancelBooking(staff, bookingId));
+    }
 }

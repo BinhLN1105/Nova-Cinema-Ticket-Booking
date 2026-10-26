@@ -206,6 +206,88 @@ class AuthServiceImplTest {
     }
 
     @Test
+    @DisplayName("4a. socialLogin ném lỗi khi provider không trả về email")
+    void testSocialLogin_NullEmail_ThrowsBadRequest() {
+        SocialLoginRequest request = new SocialLoginRequest();
+        request.setProvider(AuthProvider.FACEBOOK);
+        request.setIdToken("fb_token");
+
+        SocialUserInfo userInfo = SocialUserInfo.builder().providerId("fb_id").email(null).build();
+        when(facebookTokenVerifier.verify("fb_token")).thenReturn(userInfo);
+
+        assertThrows(BadRequestException.class, () -> authService.socialLogin(request));
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("4b. socialLogin ném lỗi khi email rỗng")
+    void testSocialLogin_BlankEmail_ThrowsBadRequest() {
+        SocialLoginRequest request = new SocialLoginRequest();
+        request.setProvider(AuthProvider.FACEBOOK);
+        request.setIdToken("fb_token");
+
+        SocialUserInfo userInfo = SocialUserInfo.builder().providerId("fb_id").email("   ").build();
+        when(facebookTokenVerifier.verify("fb_token")).thenReturn(userInfo);
+
+        assertThrows(BadRequestException.class, () -> authService.socialLogin(request));
+    }
+
+    @Test
+    @DisplayName("4c. socialLogin Google ném lỗi khi email chưa được xác minh")
+    void testSocialLogin_GoogleUnverifiedEmail_ThrowsUnauthorized() {
+        SocialLoginRequest request = new SocialLoginRequest();
+        request.setProvider(AuthProvider.GOOGLE);
+        request.setIdToken("google_token");
+
+        SocialUserInfo userInfo = SocialUserInfo.builder()
+                .providerId("google_id_123")
+                .email("customer@test.com")
+                .emailVerified(false)
+                .build();
+        when(googleTokenVerifier.verify("google_token")).thenReturn(userInfo);
+
+        assertThrows(UnauthorizedException.class, () -> authService.socialLogin(request));
+        verify(userRepository, never()).findByAuthProviderAndProviderId(any(), any());
+    }
+
+    @Test
+    @DisplayName("4d. socialLogin chặn liên kết vào tài khoản STAFF/ADMIN")
+    void testSocialLogin_LinkToStaffAccount_ThrowsForbidden() {
+        SocialLoginRequest request = new SocialLoginRequest();
+        request.setProvider(AuthProvider.GOOGLE);
+        request.setIdToken("google_token");
+
+        SocialUserInfo userInfo = SocialUserInfo.builder()
+                .providerId("google_id_staff")
+                .email("staff@test.com")
+                .emailVerified(true)
+                .build();
+        when(googleTokenVerifier.verify("google_token")).thenReturn(userInfo);
+        when(userRepository.findByAuthProviderAndProviderId(AuthProvider.GOOGLE, "google_id_staff"))
+                .thenReturn(Optional.empty());
+        when(userRepository.existsByEmail("staff@test.com")).thenReturn(true);
+        when(userRepository.findByEmail("staff@test.com")).thenReturn(Optional.of(staffUser));
+
+        assertThrows(com.cinema.ticket_booking.exception.ForbiddenException.class,
+                () -> authService.socialLogin(request));
+        assertEquals(AuthProvider.LOCAL, staffUser.getAuthProvider());
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("4e. requestPasswordReset dùng OTP ngẫu nhiên khi không ở profile test")
+    void testRequestPasswordReset_Customer_NonTestProfile() {
+        when(userRepository.findByEmail("customer@test.com")).thenReturn(Optional.of(customerUser));
+        when(env.getActiveProfiles()).thenReturn(new String[]{"dev"});
+
+        authService.requestPasswordReset("customer@test.com");
+
+        verify(valueOperations).set(eq("otp:customer@test.com"), argThat(otp -> otp.matches("\\d{6}")),
+                eq(5L), eq(TimeUnit.MINUTES));
+        verify(emailService).sendPasswordResetOtpEmail(eq(customerUser), anyString());
+    }
+
+    @Test
     @DisplayName("5. refreshToken thành công khi token còn hạn")
     void testRefreshToken_Success() {
         RefreshTokenRequest request = new RefreshTokenRequest();

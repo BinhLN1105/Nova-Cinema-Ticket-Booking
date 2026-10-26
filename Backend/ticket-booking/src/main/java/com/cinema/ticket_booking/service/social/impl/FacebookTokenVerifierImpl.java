@@ -40,6 +40,9 @@ public class FacebookTokenVerifierImpl implements FacebookTokenVerifier {
 
     @Override
     public SocialUserInfo verify(String accessToken) {
+        if (appId == null || appId.isBlank() || appSecret == null || appSecret.isBlank()) {
+            throw new UnauthorizedException("Tính năng đăng nhập Facebook chưa được cấu hình Client ID và Secret trên máy chủ");
+        }
         try {
             // ── Bước 1: Debug token để xác minh tính hợp lệ ──────────────
             debugToken(accessToken);

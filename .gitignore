@@ -113,3 +113,4 @@ Desktop.ini
 Docker-compose/init.sql
 Docker-compose/supabase_backup.sql
 
+.agents/skills/security-audit/

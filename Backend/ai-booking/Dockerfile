@@ -20,7 +20,12 @@ COPY data/ ./data/
 # ARG chỉ tồn tại trong quá trình build, KHÔNG bị lưu thành layer vào image cuối.
 ARG COHERE_API_KEY
 # Truyền thẳng ARG vào lệnh RUN — key sẽ không bị bake vào docker history
-RUN mkdir -p faiss_index && COHERE_API_KEY=$COHERE_API_KEY python scripts/ingest.py
+RUN mkdir -p faiss_index && \
+    if [ -n "$COHERE_API_KEY" ]; then \
+        COHERE_API_KEY=$COHERE_API_KEY python scripts/ingest.py; \
+    else \
+        echo "⚠️ COHERE_API_KEY not provided during build, skipping pre-bake ingestion."; \
+    fi
 
 # 4. 🛡️ BẢO MẬT: Tạo user giới hạn quyền, không chạy bằng Root
 RUN useradd --create-home --shell /bin/bash appuser \

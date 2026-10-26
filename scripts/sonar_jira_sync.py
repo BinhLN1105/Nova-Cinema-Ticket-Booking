@@ -143,7 +143,27 @@ def extract_rule_and_file_from_jira(jira_domain, auth_header, issue_key):
     return list(rule_ids), list(files)
 
 # ── HÀM POLLING CHỜ SONARCLOUD XỬ LÝ XONG BÁO CÁO (COMPUTE ENGINE) ────────────
+def is_trusted_sonar_url(url: str) -> bool:
+    try:
+        from urllib.parse import urlparse
+        parsed = urlparse(url)
+        if parsed.scheme != "https":
+            return False
+        allowed_hosts = ["sonarcloud.io", "api.sonarcloud.io"]
+        custom_host = os.getenv("SONAR_HOST_URL")
+        if custom_host:
+            custom_parsed = urlparse(custom_host)
+            if custom_parsed.hostname:
+                allowed_hosts.append(custom_parsed.hostname.lower())
+        hostname = (parsed.hostname or "").lower()
+        return any(hostname == h or hostname.endswith("." + h) for h in allowed_hosts)
+    except Exception:
+        return False
+
 def poll_sonar_task(ce_task_url, sonar_token):
+    if not is_trusted_sonar_url(ce_task_url):
+        print(f"❌ Bảo mật: URL ceTaskUrl không thuộc domain SonarCloud được phép: {ce_task_url}")
+        return False
     auth_bytes = f"{sonar_token}:".encode("utf-8")
     sonar_auth = f"Basic {base64.b64encode(auth_bytes).decode('utf-8')}"
     headers = {"Authorization": sonar_auth}
