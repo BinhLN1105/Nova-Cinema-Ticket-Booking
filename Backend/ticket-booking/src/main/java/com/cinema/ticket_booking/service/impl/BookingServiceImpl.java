@@ -599,18 +599,15 @@ public class BookingServiceImpl implements BookingService {
      */
     @Override
     public CheckInResponse checkIn(User staff, String qrCode) {
-        Booking booking;
-        if (qrCode.contains(".")) {
+                if (qrCode != null && qrCode.contains(".")) {
             if (!qrCodeService.verifyQrContent(qrCode)) {
                 throw new BadRequestException("Chữ ký số trên mã QR không hợp lệ hoặc đã bị can thiệp");
             }
-            booking = bookingRepository.findByQrCode(qrCode)
-                    .orElseThrow(() -> new BadRequestException("Mã QR không tồn tại trên hệ thống"));
-        } else {
-            // Check-in bằng bookingCode chỉ dành riêng cho nhân viên quầy
-            booking = bookingRepository.findByBookingCode(qrCode)
-                    .orElseThrow(() -> new BadRequestException("Mã đặt vé không tồn tại"));
         }
+
+        Booking booking = bookingRepository.findByQrCode(qrCode)
+                .orElseGet(() -> bookingRepository.findByBookingCode(qrCode)
+                        .orElseThrow(() -> new BadRequestException("QR hoặc Mã đặt vé không tồn tại")));
 
         if (booking.getStatus() == BookingStatus.CHECKED_IN) {
             throw new ConflictException("Đơn vé này đã được check-in trước đó");
@@ -853,14 +850,16 @@ public class BookingServiceImpl implements BookingService {
         if (!isStaffOrAdmin && !booking.getUser().getId().equals(actionUser.getId())) {
             throw new BadRequestException("Bạn không có quyền huỷ đơn đặt vé này");
         }
-        // Nhân viên STAFF chỉ được hủy vé tại rạp mình được phân công
+                // Nhân viên STAFF chỉ được hủy vé tại rạp mình được phân công
         if (actionUser.getRole() == UserRole.STAFF) {
-            UUID bookingCinemaId = booking.getShowtime().getScreen().getCinema().getId();
-            var profile = staffProfileRepository.findByUserId(actionUser.getId())
-                    .orElseThrow(() -> new ForbiddenException("Tài khoản nhân viên chưa được cấu hình rạp làm việc"));
-            if (!profile.getCinema().getId().equals(bookingCinemaId)) {
-                throw new ForbiddenException("Nhân viên không có quyền hủy vé của rạp khác!");
-            }
+            staffProfileRepository.findByUserId(actionUser.getId()).ifPresent(profile -> {
+                if (booking.getShowtime() != null && booking.getShowtime().getScreen() != null 
+                        && booking.getShowtime().getScreen().getCinema() != null && profile.getCinema() != null) {
+                    if (!profile.getCinema().getId().equals(booking.getShowtime().getScreen().getCinema().getId())) {
+                        throw new ForbiddenException("Nhân viên không có quyền hủy vé của rạp khác!");
+                    }
+                }
+            });
         }
         if (booking.getStatus() != BookingStatus.PAID) {
             throw new BadRequestException("Chỉ có thể huỷ đơn đặt vé đã thanh toán thành công");

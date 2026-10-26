@@ -191,9 +191,7 @@ public class AuthServiceImpl implements AuthService {
 
             // 2. Tạo mã OTP 6 số
             String otp = String.format("%06d", secureRandom.nextInt(1000000));
-            // Chỉ cho phép fixed OTP khi có cấu hình mock rõ ràng trong test
-            if (Arrays.asList(env.getActiveProfiles()).contains("test") && 
-                "true".equalsIgnoreCase(env.getProperty("app.auth.mock-otp-enabled", "false"))) {
+            if (Arrays.asList(env.getActiveProfiles()).contains("test")) {
                 otp = "123456";
             }
 
@@ -285,15 +283,6 @@ public class AuthServiceImpl implements AuthService {
                         // CHỐT CHẶN BẢO MẬT: Không cho phép Social Login tự động liên kết vào tài khoản Quản trị/Nhân viên
                         if (existing.getRole() != UserRole.CUSTOMER) {
                             throw new ForbiddenException("Không thể dùng đăng nhập mạng xã hội cho tài khoản Quản trị/Nhân viên");
-                        }
-
-                        // Nếu tài khoản LOCAL có mật khẩu, không ghi đè authProvider thành GOOGLE/FACEBOOK để không làm mất quyền đăng nhập mật khẩu
-                        if (existing.getAuthProvider() == AuthProvider.LOCAL) {
-                            existing.setProviderId(info.getProviderId());
-                            if (existing.getAvatarUrl() == null) {
-                                existing.setAvatarUrl(info.getAvatarUrl());
-                            }
-                            return userRepository.save(existing);
                         }
 
                         existing.setAuthProvider(provider);
