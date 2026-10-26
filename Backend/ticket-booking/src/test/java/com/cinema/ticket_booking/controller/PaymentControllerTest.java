@@ -2,7 +2,6 @@ package com.cinema.ticket_booking.controller;
 
 import com.cinema.ticket_booking.dto.request.PaymentRequest;
 import com.cinema.ticket_booking.dto.response.PaymentResponse;
-import com.cinema.ticket_booking.enums.PaymentMethod;
 import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.PaymentService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -98,7 +97,7 @@ class PaymentControllerTest {
         UUID bookingId = UUID.randomUUID();
         PaymentResponse response = PaymentResponse.builder().build();
 
-        when(paymentService.payWithWallet(eq(mockUser.getId()), eq(bookingId))).thenReturn(response);
+        when(paymentService.payWithWallet(mockUser.getId(), bookingId)).thenReturn(response);
 
         mockMvc.perform(post("/api/v1/payments/wallet/" + bookingId))
                 .andExpect(status().isOk())
@@ -129,7 +128,7 @@ class PaymentControllerTest {
         UUID bookingId = UUID.randomUUID();
         PaymentResponse response = PaymentResponse.builder().build();
 
-        when(paymentService.getByBookingId(eq(mockUser.getId()), eq(bookingId))).thenReturn(response);
+        when(paymentService.getByBookingId(mockUser.getId(), bookingId)).thenReturn(response);
 
         mockMvc.perform(get("/api/v1/payments/booking/" + bookingId))
                 .andExpect(status().isOk())

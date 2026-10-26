@@ -304,4 +304,65 @@ class PaymentServiceImplTest {
 
         assertThrows(ForbiddenException.class, () -> paymentService.getByBookingId(otherId, bookingId));
     }
+
+    @Test
+    void testGetByBookingId_SingleParam_Success() {
+        UUID bookingId = UUID.randomUUID();
+        Payment payment = Payment.builder().build();
+        PaymentResponse response = PaymentResponse.builder().build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(paymentMapper.toResponse(payment)).thenReturn(response);
+
+        PaymentResponse result = paymentService.getByBookingId(bookingId);
+        assertNotNull(result);
+        verify(paymentRepository).findByBookingId(bookingId);
+    }
+
+    @Test
+    void testGetByBookingId_WithAdmin_Success() {
+        UUID bookingId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        User admin = User.builder().id(adminId).role(com.cinema.ticket_booking.enums.UserRole.ADMIN).build();
+        User owner = User.builder().id(UUID.randomUUID()).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        Booking booking = Booking.builder().user(owner).build();
+        Payment payment = Payment.builder().booking(booking).build();
+        PaymentResponse response = PaymentResponse.builder().build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(userRepository.findById(adminId)).thenReturn(Optional.of(admin));
+        when(paymentMapper.toResponse(payment)).thenReturn(response);
+
+        PaymentResponse result = paymentService.getByBookingId(adminId, bookingId);
+        assertNotNull(result);
+    }
+
+    @Test
+    void testGetByBookingId_CallerNotFound_ThrowsForbidden() {
+        UUID bookingId = UUID.randomUUID();
+        UUID ghostUserId = UUID.randomUUID();
+        User owner = User.builder().id(UUID.randomUUID()).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        Booking booking = Booking.builder().user(owner).build();
+        Payment payment = Payment.builder().booking(booking).build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(userRepository.findById(ghostUserId)).thenReturn(Optional.empty());
+
+        assertThrows(ForbiddenException.class, () -> paymentService.getByBookingId(ghostUserId, bookingId));
+    }
+
+    @Test
+    void testGetByBookingId_BookingWithoutUser_Success() {
+        UUID bookingId = UUID.randomUUID();
+        UUID anyUser = UUID.randomUUID();
+        Booking booking = Booking.builder().user(null).build();
+        Payment payment = Payment.builder().booking(booking).build();
+        PaymentResponse response = PaymentResponse.builder().build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(paymentMapper.toResponse(payment)).thenReturn(response);
+
+        PaymentResponse result = paymentService.getByBookingId(anyUser, bookingId);
+        assertNotNull(result);
+    }
 }

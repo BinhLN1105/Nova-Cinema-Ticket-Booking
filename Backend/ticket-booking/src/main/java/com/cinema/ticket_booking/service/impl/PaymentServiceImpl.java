@@ -336,15 +336,7 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
-    @Override
-    @Transactional(readOnly = true)
-    public PaymentResponse getByBookingId(UUID bookingId) {
-        return getByBookingId(null, bookingId);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public PaymentResponse getByBookingId(UUID userId, UUID bookingId) {
+    private PaymentResponse fetchPaymentResponse(UUID userId, UUID bookingId) {
         Payment payment = paymentRepository.findByBookingId(bookingId)
                 .orElseThrow(() -> new ResourceNotFoundException("Payment của booking", bookingId));
 
@@ -359,6 +351,18 @@ public class PaymentServiceImpl implements PaymentService {
         }
 
         return paymentMapper.toResponse(payment);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getByBookingId(UUID bookingId) {
+        return fetchPaymentResponse(null, bookingId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getByBookingId(UUID userId, UUID bookingId) {
+        return fetchPaymentResponse(userId, bookingId);
     }
 
     // ── VNPay helpers ─────────────────────────────────────────────────────

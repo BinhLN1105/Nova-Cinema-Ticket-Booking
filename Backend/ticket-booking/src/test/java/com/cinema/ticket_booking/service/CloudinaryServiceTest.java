@@ -115,4 +115,52 @@ class CloudinaryServiceTest {
         assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://172.16.0.1/image.jpg", "folder"));
         assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://169.254.169.254/latest/meta-data", "folder"));
     }
+
+    @Test
+    void testValidateImageUrl_RejectsControlCharsAndMalformedUrls() {
+        // Ký tự xuống dòng / backslash bên trong URL (chống CRLF injection & Windows path)
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("https://example.com/a\nb.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("https://example.com/a\rb.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("https://example.com\\..\\secret.jpg", "folder"));
+        // Cú pháp URI không hợp lệ (khoảng trắng) -> URI.create ném lỗi
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("https://exa mple.com/a.jpg", "folder"));
+        // Không có scheme
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("//example.com/a.jpg", "folder"));
+        // Có scheme nhưng không có host
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("https:/only-path/a.jpg", "folder"));
+        verifyNoInteractions(uploader);
+    }
+
+    @Test
+    void testValidateImageUrl_RejectsLoopbackVariants() {
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("http://app.localhost/a.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("http://127.8.9.10/a.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("http://[::1]/a.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class,
+                () -> cloudinaryService.uploadImageFromUrl("http://172.31.255.1/a.jpg", "folder"));
+        verifyNoInteractions(uploader);
+    }
+
+    @Test
+    void testValidateImageUrl_AllowsPublicHttpAndNonPrivate172() throws IOException {
+        Map<String, Object> uploadResult = new HashMap<>();
+        uploadResult.put("secure_url", "https://cloudinary.com/ok.jpg");
+        when(uploader.upload(anyString(), anyMap())).thenReturn(uploadResult);
+
+        // http (không phải https) với host công khai
+        assertEquals("https://cloudinary.com/ok.jpg",
+                cloudinaryService.uploadImageFromUrl("HTTP://images.example.com/a.jpg", "movies"));
+        // 172.32.x.x nằm ngoài dải private 172.16.0.0/12
+        assertEquals("https://cloudinary.com/ok.jpg",
+                cloudinaryService.uploadImageFromUrl("http://172.32.0.1/a.jpg", "movies"));
+    }
 }

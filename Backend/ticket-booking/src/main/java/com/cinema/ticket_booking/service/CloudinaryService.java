@@ -79,7 +79,7 @@ public class CloudinaryService {
                 lowerHost.equals("0.0.0.0") || lowerHost.equals("::1") || lowerHost.equals("[::1]") ||
                 lowerHost.startsWith("169.254.") || lowerHost.startsWith("10.") ||
                 lowerHost.startsWith("192.168.") ||
-                lowerHost.matches("^172\\.(1[6-9]|2[0-9]|3[0-1])\\..*")) {
+                lowerHost.matches("^172\\.(1[6-9]|2\\d|3[01])\\..*")) {
             throw new IllegalArgumentException("Không cho phép tải ảnh từ địa chỉ nội bộ hoặc máy chủ cục bộ");
         }
     }

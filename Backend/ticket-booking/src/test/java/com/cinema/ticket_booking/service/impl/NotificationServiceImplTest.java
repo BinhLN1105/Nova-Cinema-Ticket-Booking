@@ -138,4 +138,33 @@ class NotificationServiceImplTest {
         assertThrows(com.cinema.ticket_booking.exception.ForbiddenException.class,
                 () -> notificationService.delete(notification.getId(), anotherUser));
     }
+
+    @Test
+    @DisplayName("7. pushFcm bỏ qua khi FirebaseApp chưa khởi tạo")
+    void testPushFcm_FirebaseAppNotInitialized() {
+        User u = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@fcm.com")
+                .allowTransactionNotification(true)
+                .fcmToken("mock-fcm-token")
+                .build();
+
+        assertDoesNotThrow(() -> notificationService.pushFcm(u, "Title", "Body", "BK123"));
+    }
+
+    @Test
+    @DisplayName("8. delete thành công khi thông báo không gắn user cụ thể")
+    void testDeleteNotification_NullUser_DeletesSuccessfully() {
+        Notification noUserNotification = Notification.builder()
+                .id(UUID.randomUUID())
+                .user(null)
+                .title("Hệ thống")
+                .body("Bảo trì")
+                .type(NotificationType.SYSTEM)
+                .build();
+        when(notificationRepository.findById(noUserNotification.getId())).thenReturn(Optional.of(noUserNotification));
+
+        assertDoesNotThrow(() -> notificationService.delete(noUserNotification.getId(), userId));
+        verify(notificationRepository).delete(noUserNotification);
+    }
 }
