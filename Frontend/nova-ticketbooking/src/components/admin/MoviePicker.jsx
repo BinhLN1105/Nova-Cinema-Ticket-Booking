@@ -25,7 +25,7 @@ export default function MoviePicker({ value = '', onChange }) {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (search.trim().length >= 1) {
-        handleSearch()
+        void handleSearch()
       } else {
         setResults([])
       }

@@ -95,7 +95,7 @@ export function GiftCardTab() {
                 <div>
                   <p className="text-slate-900 dark:text-white font-medium flex items-center gap-2">
                     {card.code}
-                    <button onClick={() => { navigator.clipboard.writeText(card.code); toast.success('Đã sao chép mã thẻ!') }}
+                    <button onClick={() => { void navigator.clipboard.writeText(card.code); toast.success('Đã sao chép mã thẻ!') }}
                       className="text-slate-400 dark:text-cinema-400 hover:text-brand-500 dark:hover:text-brand-400 transition-colors" title="Sao chép mã">
                       <Copy className="w-3.5 h-3.5" />
                     </button>

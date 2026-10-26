@@ -64,7 +64,7 @@ function CopyCode({ code }) {
   const [copied, setCopied] = useState(false)
   const copy = (e) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(code)
+    void navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
