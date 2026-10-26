@@ -218,10 +218,10 @@ export default function SeatBuilderModal({ open, onClose, cinema, screen }) {
     },
     onSuccess: () => {
       toast.success("Đã lưu bố trí ghế thành công!");
-      qc.invalidateQueries({
+      void qc.invalidateQueries({
         queryKey: ["screen-seats", cinema?.id, screen?.id],
       });
-      qc.invalidateQueries({ queryKey: ["admin-screens", cinema?.id] });
+      void qc.invalidateQueries({ queryKey: ["admin-screens", cinema?.id] });
       onClose();
     },
     onError: (err) => {

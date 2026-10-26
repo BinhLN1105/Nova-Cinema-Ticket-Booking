@@ -107,7 +107,7 @@ export default function MapLocationPickerModal({
         pin.on('dragend', (e) => {
           const newPos = e.target.getLatLng()
           setSelectedCoords({ lat: newPos.lat, lng: newPos.lng })
-          reverseGeocode(newPos.lat, newPos.lng)
+          void reverseGeocode(newPos.lat, newPos.lng)
         })
 
         markerRef.current = pin
@@ -115,7 +115,7 @@ export default function MapLocationPickerModal({
     }
 
     if (!skipReverse) {
-      reverseGeocode(lat, lng)
+      void reverseGeocode(lat, lng)
     }
   }
 
@@ -186,7 +186,7 @@ export default function MapLocationPickerModal({
       pin.on('dragend', (e) => {
         const newPos = e.target.getLatLng()
         setSelectedCoords({ lat: newPos.lat, lng: newPos.lng })
-        reverseGeocode(newPos.lat, newPos.lng)
+        void reverseGeocode(newPos.lat, newPos.lng)
       })
 
       markerRef.current = pin
@@ -204,10 +204,10 @@ export default function MapLocationPickerModal({
       }, 200)
 
       if (initialLat && initialLng) {
-        reverseGeocode(initPos.lat, initPos.lng)
+        void reverseGeocode(initPos.lat, initPos.lng)
       } else if (initialAddress) {
         // Auto search initial address if provided and no coordinates yet
-        handleSearch(initialAddress + (initialCity ? `, ${initialCity}` : ''))
+        void handleSearch(initialAddress + (initialCity ? `, ${initialCity}` : ''))
       }
     }, 100)
 
@@ -364,13 +364,13 @@ export default function MapLocationPickerModal({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleSearch()
+                    if (e.key === 'Enter') void handleSearch()
                   }}
                   placeholder="Nhập địa chỉ, tên địa điểm hoặc dán tọa độ (VD: 10.8651, 106.6171)..."
                   className="w-full pl-10 pr-24 py-2.5 text-sm bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 transition-all placeholder:text-gray-400"
                 />
                 <button
-                  onClick={() => handleSearch()}
+                  onClick={() => void handleSearch()}
                   disabled={isSearching}
                   className="absolute right-1.5 top-1/2 -translate-y-1/2 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white text-xs font-semibold rounded-lg transition-all flex items-center gap-1.5 shadow-sm"
                 >
@@ -449,7 +449,7 @@ export default function MapLocationPickerModal({
                     <button
                       onClick={() => {
                         const str = `${selectedCoords.lat.toFixed(6)}, ${selectedCoords.lng.toFixed(6)}`
-                        navigator.clipboard.writeText(str)
+                        void navigator.clipboard.writeText(str)
                         toast.success('Đã sao chép tọa độ vào bộ nhớ tạm')
                       }}
                       className="text-gray-400 hover:text-gray-700 flex items-center gap-1 font-normal hover:underline"

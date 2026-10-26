@@ -88,7 +88,7 @@ export default function ConfirmBooking() {
         setIsLoadingQuote(false);
       }
     };
-    fetchQuote();
+    void fetchQuote();
   }, [booking.appliedVoucher]);
 
   return (

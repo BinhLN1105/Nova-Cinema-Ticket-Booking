@@ -232,7 +232,7 @@ export default function ImageUploader({
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                           e.preventDefault(); // Ngăn submit form cha
-                          handleUrlSubmit(e);
+                          void handleUrlSubmit(e);
                         }
                       }}
                       placeholder="https://images.unsplash.com/..."

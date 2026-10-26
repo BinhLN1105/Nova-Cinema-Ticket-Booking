@@ -43,25 +43,27 @@ export function CinematicThemeToggle({ className }) {
         toggleMode();
       });
 
-      transition.ready.then(() => {
-        const clipPath = [
-          `circle(0px at ${x}px ${y}px)`,
-          `circle(${endRadius}px at ${x}px ${y}px)`
-        ];
+      void transition.ready
+        .then(() => {
+          const clipPath = [
+            `circle(0px at ${x}px ${y}px)`,
+            `circle(${endRadius}px at ${x}px ${y}px)`
+          ];
 
-        document.documentElement.animate(
-          {
-            clipPath: isDark ? clipPath : [...clipPath].reverse()
-          },
-          {
-            duration: 400,
-            easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
-            pseudoElement: isDark
-              ? '::view-transition-new(root)'
-              : '::view-transition-old(root)'
-          }
-        );
-      });
+          document.documentElement.animate(
+            {
+              clipPath: isDark ? clipPath : [...clipPath].reverse()
+            },
+            {
+              duration: 400,
+              easing: 'cubic-bezier(0.16, 1, 0.3, 1)',
+              pseudoElement: isDark
+                ? '::view-transition-new(root)'
+                : '::view-transition-old(root)'
+            }
+          );
+        })
+        .catch(() => {});
     },
     [isAnimating, isDark, toggleMode]
   );

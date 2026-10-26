@@ -64,7 +64,7 @@ function CopyCode({ code }) {
   const [copied, setCopied] = useState(false)
   const copy = (e) => {
     e.stopPropagation()
-    navigator.clipboard.writeText(code)
+    void navigator.clipboard.writeText(code)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
@@ -362,7 +362,7 @@ function VouchersTab() {
               <Input {...register('code')}
                 onChange={e => {
                   e.target.value = e.target.value.toUpperCase();
-                  register('code').onChange(e);
+                  void register('code').onChange(e);
                 }}
                 error={!!errors.code} placeholder="VD: NOVA20" className="uppercase font-mono tracking-wider" />
             </Field>
