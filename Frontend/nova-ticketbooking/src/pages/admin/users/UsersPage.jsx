@@ -101,7 +101,7 @@ export default function UsersPage() {
     mutationFn: () => userApi.ban(banTarget?.id),
     onSuccess: () => {
       toast.success("Đã cập nhật trạng thái tài khoản");
-      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
       setBanTarget(null);
     },
     onError: (err) =>
@@ -112,7 +112,7 @@ export default function UsersPage() {
     mutationFn: () => userApi.updateRole(changeRole?.id, newRole),
     onSuccess: () => {
       toast.success("Đã cập nhật vai trò");
-      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
       setChangeRole(null);
     },
     onError: (err) =>
@@ -123,7 +123,7 @@ export default function UsersPage() {
     mutationFn: () => userApi.createStaff(staffForm),
     onSuccess: () => {
       toast.success("Tạo nhân viên thành công");
-      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
       setShowCreateStaff(false);
       setStaffForm({ fullName: "", email: "", password: "", cinemaId: "" });
     },
@@ -136,7 +136,7 @@ export default function UsersPage() {
       userApi.assignCinema(assignCinemaUser?.id, selectedCinema),
     onSuccess: () => {
       toast.success("Đã phân công rạp");
-      qc.invalidateQueries({ queryKey: ["admin", "users"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "users"] });
       setAssignCinemaUser(null);
     },
     onError: (err) =>

@@ -191,7 +191,7 @@ export default function POSPage() {
     }),
     onSuccess: (data, paymentMethod) => {
       setCurrentBookingId(data.id);
-      if (paymentMethod === 'CASH') {
+      if (paymentMethod == 'CASH') {
         setPaymentStep('success');
         toast.success('Thanh toán tiền mặt thành công!');
       } else {
@@ -199,9 +199,9 @@ export default function POSPage() {
         setVnpayUrl(data.paymentUrl); 
         // fallback if paymentUrl missing in create
         if(!data.paymentUrl) {
-            bookingApi.createPayment(data.id).then(payData => {
+            void bookingApi.createPayment(data.id).then(payData => {
                 setVnpayUrl(payData.paymentUrl);
-            });
+            }).catch(() => {});
         }
       }
     },
