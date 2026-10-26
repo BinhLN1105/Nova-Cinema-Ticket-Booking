@@ -101,4 +101,18 @@ class CloudinaryServiceTest {
         String url4 = "https://res.cloudinary.com/demo/image/upload/veryimportantpath/sample.jpg";
         assertEquals("veryimportantpath/sample", cloudinaryService.extractPublicId(url4));
     }
+    @Test
+    void testValidateImageUrl_InvalidInputs() {
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl(null, "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("   ", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("ftp://example.com/a.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("file:///etc/passwd", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://localhost:8080/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://127.0.0.1:8080/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://0.0.0.0/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://10.0.0.1/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://192.168.1.100/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://172.16.0.1/image.jpg", "folder"));
+        assertThrows(IllegalArgumentException.class, () -> cloudinaryService.uploadImageFromUrl("http://169.254.169.254/latest/meta-data", "folder"));
+    }
 }

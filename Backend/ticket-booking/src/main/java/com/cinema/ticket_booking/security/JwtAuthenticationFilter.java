@@ -60,7 +60,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         try {
             String userId = jwtService.extractUserId(token);
-            String role = jwtService.extractRole(token);
 
             if (userId != null && SecurityContextHolder.getContext().getAuthentication() == null) {
                 userRepository.findById(UUID.fromString(userId)).ifPresent(user -> {

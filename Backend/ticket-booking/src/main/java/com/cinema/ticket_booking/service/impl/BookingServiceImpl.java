@@ -599,10 +599,8 @@ public class BookingServiceImpl implements BookingService {
      */
     @Override
     public CheckInResponse checkIn(User staff, String qrCode) {
-                if (qrCode != null && qrCode.contains(".")) {
-            if (!qrCodeService.verifyQrContent(qrCode)) {
-                throw new BadRequestException("Chữ ký số trên mã QR không hợp lệ hoặc đã bị can thiệp");
-            }
+                if (qrCode != null && qrCode.contains(".") && !qrCodeService.verifyQrContent(qrCode)) {
+            throw new BadRequestException("Chữ ký số trên mã QR không hợp lệ hoặc đã bị can thiệp");
         }
 
         Booking booking = bookingRepository.findByQrCode(qrCode)
@@ -854,10 +852,9 @@ public class BookingServiceImpl implements BookingService {
         if (actionUser.getRole() == UserRole.STAFF) {
             staffProfileRepository.findByUserId(actionUser.getId()).ifPresent(profile -> {
                 if (booking.getShowtime() != null && booking.getShowtime().getScreen() != null 
-                        && booking.getShowtime().getScreen().getCinema() != null && profile.getCinema() != null) {
-                    if (!profile.getCinema().getId().equals(booking.getShowtime().getScreen().getCinema().getId())) {
-                        throw new ForbiddenException("Nhân viên không có quyền hủy vé của rạp khác!");
-                    }
+                        && booking.getShowtime().getScreen().getCinema() != null && profile.getCinema() != null
+                        && !profile.getCinema().getId().equals(booking.getShowtime().getScreen().getCinema().getId())) {
+                    throw new ForbiddenException("Nhân viên không có quyền hủy vé của rạp khác!");
                 }
             });
         }

@@ -255,4 +255,53 @@ class PaymentServiceImplTest {
 
         assertThrows(ResourceNotFoundException.class, () -> paymentService.getByBookingId(bookingId));
     }
+    @Test
+    void testGetByBookingId_WithOwner_Success() {
+        UUID bookingId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        User owner = User.builder().id(ownerId).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        Booking booking = Booking.builder().user(owner).build();
+        Payment payment = Payment.builder().booking(booking).build();
+        PaymentResponse response = PaymentResponse.builder().build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(userRepository.findById(ownerId)).thenReturn(Optional.of(owner));
+        when(paymentMapper.toResponse(payment)).thenReturn(response);
+
+        PaymentResponse result = paymentService.getByBookingId(ownerId, bookingId);
+        assertNotNull(result);
+    }
+
+    @Test
+    void testGetByBookingId_WithStaff_Success() {
+        UUID bookingId = UUID.randomUUID();
+        UUID staffId = UUID.randomUUID();
+        User staff = User.builder().id(staffId).role(com.cinema.ticket_booking.enums.UserRole.STAFF).build();
+        User owner = User.builder().id(UUID.randomUUID()).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        Booking booking = Booking.builder().user(owner).build();
+        Payment payment = Payment.builder().booking(booking).build();
+        PaymentResponse response = PaymentResponse.builder().build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(userRepository.findById(staffId)).thenReturn(Optional.of(staff));
+        when(paymentMapper.toResponse(payment)).thenReturn(response);
+
+        PaymentResponse result = paymentService.getByBookingId(staffId, bookingId);
+        assertNotNull(result);
+    }
+
+    @Test
+    void testGetByBookingId_WithUnauthorizedCustomer_ThrowsForbidden() {
+        UUID bookingId = UUID.randomUUID();
+        UUID otherId = UUID.randomUUID();
+        User other = User.builder().id(otherId).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        User owner = User.builder().id(UUID.randomUUID()).role(com.cinema.ticket_booking.enums.UserRole.CUSTOMER).build();
+        Booking booking = Booking.builder().user(owner).build();
+        Payment payment = Payment.builder().booking(booking).build();
+
+        when(paymentRepository.findByBookingId(bookingId)).thenReturn(Optional.of(payment));
+        when(userRepository.findById(otherId)).thenReturn(Optional.of(other));
+
+        assertThrows(ForbiddenException.class, () -> paymentService.getByBookingId(otherId, bookingId));
+    }
 }

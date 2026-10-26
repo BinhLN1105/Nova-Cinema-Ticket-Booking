@@ -215,4 +215,31 @@ class RateLimitAspectTest {
         assertEquals("Quá nhiều yêu cầu. Vui lòng thử lại sau.", exception.getMessage());
         verify(joinPoint, never()).proceed();
     }
+    @Test
+    void testGetClientIp_TrustedProxy() {
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getRemoteAddr()).thenReturn("127.0.0.1");
+        when(req.getHeader("X-Forwarded-For")).thenReturn("203.0.113.195, 10.0.0.1");
+
+        String ip = org.springframework.test.util.ReflectionTestUtils.invokeMethod(rateLimitAspect, "getClientIp", req);
+        assertEquals("203.0.113.195", ip);
+    }
+
+    @Test
+    void testGetClientIp_UntrustedProxy() {
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getRemoteAddr()).thenReturn("198.51.100.1");
+
+        String ip = org.springframework.test.util.ReflectionTestUtils.invokeMethod(rateLimitAspect, "getClientIp", req);
+        assertEquals("198.51.100.1", ip);
+    }
+
+    @Test
+    void testGetClientIp_NullRemoteAddr() {
+        HttpServletRequest req = mock(HttpServletRequest.class);
+        when(req.getRemoteAddr()).thenReturn(null);
+
+        String ip = org.springframework.test.util.ReflectionTestUtils.invokeMethod(rateLimitAspect, "getClientIp", req);
+        assertEquals("unknown", ip);
+    }
 }

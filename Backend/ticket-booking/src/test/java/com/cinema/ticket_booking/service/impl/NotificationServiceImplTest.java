@@ -109,4 +109,33 @@ class NotificationServiceImplTest {
         notificationService.markAllAsRead(userId);
         verify(notificationRepository, times(1)).markAllAsRead(userId);
     }
+    @Test
+    @DisplayName("4. deleteNotification thành công khi đúng chủ sở hữu")
+    void testDeleteNotification_Success() {
+        when(notificationRepository.findById(notification.getId())).thenReturn(Optional.of(notification));
+
+        notificationService.delete(notification.getId(), userId);
+        verify(notificationRepository, times(1)).delete(notification);
+    }
+
+    @Test
+    @DisplayName("5. delete không ném lỗi khi không tìm thấy thông báo")
+    void testDeleteNotification_NotFound() {
+        UUID randomId = UUID.randomUUID();
+        when(notificationRepository.findById(randomId)).thenReturn(Optional.empty());
+        when(globalNotificationRepository.existsById(randomId)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> notificationService.delete(randomId, userId));
+    }
+
+    @Test
+    @DisplayName("6. delete ném ForbiddenException khi khác chủ sở hữu")
+    void testDeleteNotification_Forbidden() {
+        UUID anotherUser = UUID.randomUUID();
+        when(notificationRepository.findById(notification.getId())).thenReturn(Optional.of(notification));
+
+        assertThrows(com.cinema.ticket_booking.exception.ForbiddenException.class,
+                () -> notificationService.delete(notification.getId(), anotherUser));
+    }
 }
