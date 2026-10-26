@@ -104,7 +104,7 @@ export default function TicketDetail() {
         url: ticketUrl,
       })
     } else {
-      copyLink()
+      await copyLink()
     }
   }
 

@@ -241,7 +241,7 @@ export function AiChatbot() {
 
   const handleSuggestionClick = (prompt) => {
     if (prompt.autoSend) {
-      sendDirectQuery(prompt.text);
+      void sendDirectQuery(prompt.text);
     } else {
       setInputValue(prompt.text);
       if (inputRef.current) {

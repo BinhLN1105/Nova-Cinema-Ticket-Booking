@@ -31,7 +31,7 @@ function CompactVoucherCard({ voucher, index }) {
   const applicable = APPLICABLE_LABELS[voucher.applicableTo] || APPLICABLE_LABELS.ALL
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(voucher.code)
+    void navigator.clipboard.writeText(voucher.code)
     setCopied(true)
     toast.success(`Đã copy mã: ${voucher.code}`)
     setTimeout(() => setCopied(false), 2500)
