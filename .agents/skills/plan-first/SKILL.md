@@ -1,3 +1,8 @@
+---
+name: plan-first
+description: Quy trình bắt buộc lập kế hoạch và chờ User xác nhận (Plan-First & User Confirmation) trước khi thực hiện các tác vụ phức tạp, thay đổi từ 2 file trở lên, hoặc thay đổi logic trọng yếu trong dự án NovaTicket.
+---
+
 # Plan-First Skill (Strict Planning & User Confirmation)
 
 Kỹ năng này quy định quy trình bắt buộc: **LẬP KẾ HOẠCH & XÁC NHẬN TRƯỚC KHI THỰC HIỆN** (Plan-First & User Confirmation) cho mọi tác vụ phức tạp trong toàn bộ dự án NovaTicket.

@@ -1,3 +1,8 @@
+---
+name: db-migration
+description: Quy tắc và quy trình quản lý cập nhật cấu trúc cơ sở dữ liệu (Flyway Schema Migration, naming convention, SQL rules) trong dự án NovaTicket.
+---
+
 # Database Migration Skill
 
 Kỹ năng này định nghĩa cách thức quản lý và cập nhật cấu trúc cơ sở dữ liệu (Schema Evolution) trong dự án NovaTicket.

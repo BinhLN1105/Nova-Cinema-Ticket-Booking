@@ -13,7 +13,7 @@ on:
 
 jobs:
   run-ui-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
 
     services:
       # ── POSTGRESQL VỚI PGVECTOR ─────────────────────────────────
@@ -113,7 +113,7 @@ jobs:
       # ── KHỞI CHẠY PLAYWRIGHT BROWSERS ──────────────────────────────
       - name: 🌐 Cài đặt Playwright Chromium
         working-directory: Frontend/nova-ticketbooking
-        run: npx playwright install chromium
+        run: npx playwright install --with-deps chromium
 
       # ── THIẾT LẬP THƯ VIỆN HỖ TRỢ HTTPS CHO LOCALHOST ──────────────
       - name: 🔐 Cài đặt và cấu hình mkcert (HTTPS)
@@ -186,20 +186,24 @@ jobs:
             (github.event_name == 'pull_request' && (github.base_ref == 'dev' || github.base_ref == 'main')) ||
             (github.event_name == 'push' && (github.ref_name == 'dev' || github.ref_name == 'main'))
           )
+        env:
+          REF_NAME: ${{ github.ref_name }}
+          HEAD_REF: ${{ github.head_ref }}
+          EVENT_COMMIT_MSG: ${{ github.event.head_commit.message }}
         run: |
           JIRA_KEY=""
 
           # 1. Thử trích xuất từ tên nhánh hiện tại (Ví dụ KAN-65)
-          JIRA_KEY=$(echo "${{ github.ref_name }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
+          JIRA_KEY=$(echo "$REF_NAME" | grep -oE 'KAN-[0-9]+' | head -n 1)
 
           # 2. Nếu trống (Trường hợp PR), thử trích xuất từ tên nhánh nguồn (github.head_ref)
-          if [ -z "$JIRA_KEY" ] && [ -n "${{ github.head_ref }}" ]; then
-            JIRA_KEY=$(echo "${{ github.head_ref }}" | grep -oE 'KAN-[0-9]+' | head -n 1)
+          if [ -z "$JIRA_KEY" ] && [ -n "$HEAD_REF" ]; then
+            JIRA_KEY=$(echo "$HEAD_REF" | grep -oE 'KAN-[0-9]+' | head -n 1)
           fi
 
           # 3. Nếu vẫn trống (Trường hợp merge trực tiếp vào dev/main), thử trích xuất từ Commit Message
           if [ -z "$JIRA_KEY" ]; then
-            COMMIT_MSG=$(git log -1 --pretty=%B || echo "${{ github.event.head_commit.message }}")
+            COMMIT_MSG=$(git log -1 --pretty=%B 2>/dev/null || echo "$EVENT_COMMIT_MSG")
             JIRA_KEY=$(echo "$COMMIT_MSG" | grep -oE 'KAN-[0-9]+' | head -n 1)
           fi
 

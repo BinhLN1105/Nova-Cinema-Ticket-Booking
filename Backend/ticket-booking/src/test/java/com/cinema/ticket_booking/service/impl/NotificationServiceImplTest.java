@@ -109,4 +109,62 @@ class NotificationServiceImplTest {
         notificationService.markAllAsRead(userId);
         verify(notificationRepository, times(1)).markAllAsRead(userId);
     }
+    @Test
+    @DisplayName("4. deleteNotification thành công khi đúng chủ sở hữu")
+    void testDeleteNotification_Success() {
+        when(notificationRepository.findById(notification.getId())).thenReturn(Optional.of(notification));
+
+        notificationService.delete(notification.getId(), userId);
+        verify(notificationRepository, times(1)).delete(notification);
+    }
+
+    @Test
+    @DisplayName("5. delete không ném lỗi khi không tìm thấy thông báo")
+    void testDeleteNotification_NotFound() {
+        UUID randomId = UUID.randomUUID();
+        when(notificationRepository.findById(randomId)).thenReturn(Optional.empty());
+        when(globalNotificationRepository.existsById(randomId)).thenReturn(false);
+
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(
+                () -> notificationService.delete(randomId, userId));
+    }
+
+    @Test
+    @DisplayName("6. delete ném ForbiddenException khi khác chủ sở hữu")
+    void testDeleteNotification_Forbidden() {
+        UUID anotherUser = UUID.randomUUID();
+        when(notificationRepository.findById(notification.getId())).thenReturn(Optional.of(notification));
+
+        assertThrows(com.cinema.ticket_booking.exception.ForbiddenException.class,
+                () -> notificationService.delete(notification.getId(), anotherUser));
+    }
+
+    @Test
+    @DisplayName("7. pushFcm bỏ qua khi FirebaseApp chưa khởi tạo")
+    void testPushFcm_FirebaseAppNotInitialized() {
+        User u = User.builder()
+                .id(UUID.randomUUID())
+                .email("test@fcm.com")
+                .allowTransactionNotification(true)
+                .fcmToken("mock-fcm-token")
+                .build();
+
+        assertDoesNotThrow(() -> notificationService.pushFcm(u, "Title", "Body", "BK123"));
+    }
+
+    @Test
+    @DisplayName("8. delete thành công khi thông báo không gắn user cụ thể")
+    void testDeleteNotification_NullUser_DeletesSuccessfully() {
+        Notification noUserNotification = Notification.builder()
+                .id(UUID.randomUUID())
+                .user(null)
+                .title("Hệ thống")
+                .body("Bảo trì")
+                .type(NotificationType.SYSTEM)
+                .build();
+        when(notificationRepository.findById(noUserNotification.getId())).thenReturn(Optional.of(noUserNotification));
+
+        assertDoesNotThrow(() -> notificationService.delete(noUserNotification.getId(), userId));
+        verify(notificationRepository).delete(noUserNotification);
+    }
 }

@@ -31,13 +31,28 @@ Hỗ trợ khách hàng tra cứu thông tin phim, lịch chiếu, giá vé, ch�
 4. GIỌNG ĐIỆU: Thân thiện, chu đáo, xưng "em" và gọi khách là "anh/chị".
 """
 
+_global_llm_engine_instance = None
+
+def clear_engine_session(session_id: str):
+    global _global_llm_engine_instance
+    if _global_llm_engine_instance:
+        _global_llm_engine_instance.clear_session(session_id)
+
 class LlmEngine(BaseChatEngine):
     def __init__(self):
-        # Lưu trữ lịch sử hội thoại trượt theo từng session: list of {"role": "user"|"assistant", "content": str}
+        global _global_llm_engine_instance
+        _global_llm_engine_instance = self
+        # Giới hạn kích thước bộ nhớ tránh tràn RAM (tối đa 500 session)
         self._session_histories: dict[str, list[dict]] = {}
+
+    def clear_session(self, session_id: str):
+        self._session_histories.pop(session_id, None)
 
     def _get_history(self, session_id: str) -> list[dict]:
         if session_id not in self._session_histories:
+            if len(self._session_histories) > 500:
+                oldest_key = next(iter(self._session_histories))
+                self._session_histories.pop(oldest_key, None)
             self._session_histories[session_id] = []
         return self._session_histories[session_id]
 

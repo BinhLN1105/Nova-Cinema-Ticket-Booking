@@ -76,10 +76,20 @@ public class RateLimitAspect {
     }
 
     private String getClientIp(HttpServletRequest request) {
+        String remoteAddr = request.getRemoteAddr();
         String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null && !xForwardedFor.isEmpty()) {
-            return xForwardedFor.split(",")[0].trim();
+        if (xForwardedFor != null && !xForwardedFor.isBlank() && isTrustedProxy(remoteAddr)) {
+            String clientIp = xForwardedFor.split(",")[0].trim();
+            if (clientIp.matches("^[0-9a-fA-F:.]+$")) {
+                return clientIp;
+            }
         }
-        return request.getRemoteAddr();
+        return remoteAddr != null ? remoteAddr : "unknown";
+    }
+
+    private boolean isTrustedProxy(String remoteAddr) {
+        if (remoteAddr == null) return false;
+        return remoteAddr.equals("127.0.0.1") || remoteAddr.equals("0:0:0:0:0:0:0:1") || 
+               remoteAddr.startsWith("10.") || remoteAddr.startsWith("172.") || remoteAddr.startsWith("192.168.");
     }
 }

@@ -9,6 +9,7 @@ import com.cinema.ticket_booking.model.User;
 import com.cinema.ticket_booking.service.GiftCardService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
@@ -18,8 +19,10 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.view.RedirectView;
 
+import java.net.URI;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/gift-cards")
 @RequiredArgsConstructor
@@ -43,23 +46,32 @@ public class GiftCardController {
     // GET /api/v1/gift-cards/vnpay-return
     @GetMapping("/vnpay-return")
     public RedirectView vnpayReturn(@RequestParam Map<String, String> params) {
-        giftCardService.handleVnpayCallback(params);
-
-        String responseCode = params.get("vnp_ResponseCode");
-        String returnUrl = params.get("vnp_ReturnUrl"); // Optional, tuỳ frontend setup
-
-        // Vì đây giống Wallet Topup, ta có thể sửa redirect URL cứng về trang kết quả
-        // Cần đảm bảo frontend có route /gift-cards/result
-        if (returnUrl != null && returnUrl.contains("/api/v1")) {
-            // Rút gọn base origin từ returnUrl (ví dụ
-            // "http://localhost:5173/api/v1/gift-cards/vnpay-return")
-            int idx = returnUrl.indexOf("/api/v1");
-            returnUrl = returnUrl.substring(0, idx);
-        } else {
-            returnUrl = frontendUrl; // fallback
+        try {
+            giftCardService.handleVnpayCallback(params);
+        } catch (Exception e) {
+            log.error("[GiftCard] Lỗi khi xử lý callback VNPay: {}", e.getMessage(), e);
         }
 
-        String redirectUrl = returnUrl + "/gift-cards/result?vnp_ResponseCode=" + responseCode;
+        String responseCode = params.get("vnp_ResponseCode");
+        String returnUrl = params.get("vnp_ReturnUrl");
+
+        // Chống Open Redirect: Chỉ cho phép redirect về frontendUrl đã cấu hình
+        String baseRedirectUrl = frontendUrl;
+        if (returnUrl != null && !returnUrl.isBlank()) {
+            try {
+                URI uri = URI.create(returnUrl.trim());
+                URI baseUri = URI.create(frontendUrl.trim());
+                if (uri.getHost() != null && uri.getHost().equalsIgnoreCase(baseUri.getHost())) {
+                    baseRedirectUrl = uri.getScheme() + "://" + uri.getAuthority();
+                }
+            } catch (Exception e) {
+                // Fallback về frontendUrl mặc định
+            }
+        }
+
+        String safeResponseCode = (responseCode != null && responseCode.matches("^[a-zA-Z0-9]+$"))
+                ? responseCode : "99";
+        String redirectUrl = baseRedirectUrl + "/gift-cards/result?vnp_ResponseCode=" + safeResponseCode;
         return new RedirectView(redirectUrl);
     }
 

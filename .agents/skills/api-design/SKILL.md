@@ -1,3 +1,8 @@
+---
+name: api-design
+description: Quy tắc thiết kế và triển khai REST API chuẩn trong hệ thống NovaTicket, đảm bảo tính nhất quán giữa Backend (Spring Boot), AI Service (FastAPI) và Client (Android, React).
+---
+
 # API Design Skill
 
 Kỹ năng này định nghĩa các quy tắc thiết kế và triển khai REST API trong hệ thống NovaTicket, đảm bảo tính nhất quán giữa Backend (Spring Boot), AI Service (FastAPI) và các Client (Android, React).

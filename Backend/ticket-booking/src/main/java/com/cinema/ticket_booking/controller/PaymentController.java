@@ -8,6 +8,7 @@ import com.cinema.ticket_booking.security.RateLimit;
 import com.cinema.ticket_booking.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -18,6 +19,7 @@ import java.util.UUID;
 import java.io.IOException;
 import jakarta.servlet.http.HttpServletResponse;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
@@ -57,25 +59,31 @@ public class PaymentController {
                 String txnRef = params.get("vnp_TxnRef");
                 String source = params.get("source");
 
-                // Quyết định URL đích dựa trên kết quả
-                String status = "00".equals(responseCode) ? "success" : "failed";
-
+                String status = "failed";
                 try {
                         paymentService.handleVnpayCallback(params);
+                        if ("00".equals(responseCode)) {
+                                status = "success";
+                        }
                 } catch (Exception e) {
-
+                        log.error("[VNPay] Lỗi khi xử lý callback từ VNPay: txnRef={}, error={}", txnRef, e.getMessage(), e);
+                        status = "failed";
                 }
+
+                // Sanitize responseCode chống Header Injection / CRLF
+                String safeResponseCode = (responseCode != null && responseCode.matches("^[a-zA-Z0-9]+$"))
+                                ? responseCode : "99";
 
                 if ("mobile".equals(source)) {
                         // Mobile app → redirect về deep link để WebView chặn
-                        String deepLink = "cinema://payment/result?vnp_ResponseCode=" + responseCode + "&status="
+                        String deepLink = "cinema://payment/result?vnp_ResponseCode=" + safeResponseCode + "&status="
                                         + status;
 
                         response.sendRedirect(deepLink);
                 } else {
                         // Web frontend
                         String redirectUrl = frontendUrl + "/booking/result?status=" + status + "&vnp_ResponseCode="
-                                        + responseCode;
+                                        + safeResponseCode;
 
                         response.sendRedirect(redirectUrl);
                 }
@@ -84,8 +92,10 @@ public class PaymentController {
         // GET /api/v1/payments/booking/{bookingId} — xem trạng thái thanh toán
         @GetMapping("/payments/booking/{bookingId}")
         public ResponseEntity<ApiResponse<PaymentResponse>> getByBooking(
+                        @AuthenticationPrincipal User currentUser,
                         @PathVariable UUID bookingId) {
+                UUID userId = currentUser != null ? currentUser.getId() : null;
                 return ResponseEntity.ok(ApiResponse.success(
-                                paymentService.getByBookingId(bookingId)));
+                                paymentService.getByBookingId(userId, bookingId)));
         }
 }

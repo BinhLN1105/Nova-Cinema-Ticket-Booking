@@ -15,4 +15,6 @@ public interface PaymentService {
     PaymentResponse payWithWallet(UUID userId, UUID bookingId);
 
     PaymentResponse getByBookingId(UUID bookingId);
+
+    PaymentResponse getByBookingId(UUID userId, UUID bookingId);
 }

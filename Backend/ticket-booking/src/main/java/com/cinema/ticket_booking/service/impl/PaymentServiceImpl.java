@@ -8,6 +8,7 @@ import com.cinema.ticket_booking.model.Payment;
 import com.cinema.ticket_booking.enums.BookingStatus;
 import com.cinema.ticket_booking.enums.PaymentMethod;
 import com.cinema.ticket_booking.enums.PaymentStatus;
+import com.cinema.ticket_booking.enums.UserRole;
 import com.cinema.ticket_booking.exception.BadRequestException;
 import com.cinema.ticket_booking.exception.ForbiddenException;
 import com.cinema.ticket_booking.exception.PaymentException;
@@ -335,12 +336,33 @@ public class PaymentServiceImpl implements PaymentService {
         }
     }
 
+    private PaymentResponse fetchPaymentResponse(UUID userId, UUID bookingId) {
+        Payment payment = paymentRepository.findByBookingId(bookingId)
+                .orElseThrow(() -> new ResourceNotFoundException("Payment của booking", bookingId));
+
+        if (userId != null && payment.getBooking() != null && payment.getBooking().getUser() != null) {
+            User caller = userRepository.findById(userId).orElse(null);
+            boolean isStaffOrAdmin = caller != null &&
+                    (caller.getRole() == UserRole.STAFF ||
+                            caller.getRole() == UserRole.ADMIN);
+            if (!isStaffOrAdmin && !payment.getBooking().getUser().getId().equals(userId)) {
+                throw new ForbiddenException("Bạn không có quyền xem thông tin thanh toán này");
+            }
+        }
+
+        return paymentMapper.toResponse(payment);
+    }
+
     @Override
     @Transactional(readOnly = true)
     public PaymentResponse getByBookingId(UUID bookingId) {
-        Payment payment = paymentRepository.findByBookingId(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Payment của booking", bookingId));
-        return paymentMapper.toResponse(payment);
+        return fetchPaymentResponse(null, bookingId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PaymentResponse getByBookingId(UUID userId, UUID bookingId) {
+        return fetchPaymentResponse(userId, bookingId);
     }
 
     // ── VNPay helpers ─────────────────────────────────────────────────────
